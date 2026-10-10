@@ -365,12 +365,15 @@ export class Trs80 implements Hal, Machine, Configurable {
                         default:
                             rom = model1Level2Rom;
                             break;
+
+                        case BasicLevel.COMPILED:
+                            rom = model3CompiledRom;
+                            break;
                     }
                     break;
 
                 case ModelType.MODEL3:
                 default:
-                    rom = model3Rom;
                     switch (this.config.basicLevel) {
                         case BasicLevel.LEVEL2:
                         default:
@@ -384,7 +387,17 @@ export class Trs80 implements Hal, Machine, Configurable {
                     break;
 
                 case ModelType.MODEL4:
-                    rom = model4Rom;
+                    // rom = model4Rom;
+                    switch (this.config.basicLevel) {
+                        case BasicLevel.LEVEL2:
+                        default:
+                            rom = model4Rom;
+                            break;
+
+                        case BasicLevel.COMPILED:
+                            rom = model3CompiledRom;
+                            break;
+                    }
                     break;
             }
         }
