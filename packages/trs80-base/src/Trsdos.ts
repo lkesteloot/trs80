@@ -11,11 +11,6 @@ import {BYTES_PER_SECTOR, Density, FloppyDisk, FloppyDiskGeometry, SectorPositio
 import {toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
 
-// Whether to check the high bits of the GAT table entries. I keep seeing floppies with wrong values
-// here, so disabling this. Those bits were probably not accessed anyway, so it's probably not out of
-// spec to be wrong.
-const CHECK_GAT_HIGH_BITS = false;
-
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
 
@@ -364,22 +359,22 @@ export class TrsdosGatInfo {
     }
 
     /**
-     * Check various things about the GAT to see if it's valid.
+     * Whether every lump's unused high bits hold what the DOS writes there: set in the 2.3
+     * family and NEWDOS/80, clear in TRSDOS 1.3. This pins down the granules per lump, but some
+     * formatters leave the bits clear and a damaged GAT fails it, so it's a preference among
+     * candidates, not a requirement.
      */
-    public isValid(granulesPerLump: number, lumpCount: number, version: TrsdosVersion): boolean {
-        if (CHECK_GAT_HIGH_BITS) {
-            // The mask for the unused bits in the GAT, and the value we expect to see there.
-            const mask = (0xFF << granulesPerLump) & 0xFF;
-            const expectedValue = version === TrsdosVersion.V1_3 ? 0x00 : mask;
+    public hasValidHighBits(granulesPerLump: number, lumpCount: number, version: TrsdosVersion): boolean {
+        // The mask for the unused bits in the GAT, and the value we expect to see there.
+        const mask = (0xFF << granulesPerLump) & 0xFF;
+        const expectedValue = version === TrsdosVersion.V1_3 ? 0x00 : mask;
 
-            // Top bits don't map to anything, so must be zero (Model 3) or one (Model 1).
-            for (let lump = 0; lump < lumpCount; lump++) {
-                const g = this.gat[lump];
-                if ((g & mask) !== expectedValue) {
-                    TRS80_BASE_LOGGER.trace("GAT: high bits are not correct: 0x" + toHexByte(g) +
-                        " lump " + lump + " with " + granulesPerLump + " granules per lump");
-                    return false;
-                }
+        for (let lump = 0; lump < lumpCount; lump++) {
+            const g = this.gat[lump];
+            if ((g & mask) !== expectedValue) {
+                TRS80_BASE_LOGGER.trace("GAT: high bits are not correct: 0x" + toHexByte(g) +
+                    " lump " + lump + " with " + granulesPerLump + " granules per lump");
+                return false;
             }
         }
 
@@ -766,6 +761,11 @@ export class Trsdos {
      * Negative scores mean that we're pretty sure this isn't a TRSDOS disk. Higher scores are better.
      */
     public readonly evaluation: Evaluation;
+    /**
+     * Whether the GAT's unused high bits are what the DOS writes there, given this candidate's
+     * granules per lump. See "Evidence that turned out to be reliable" in FLOPPY_FORMATS.md.
+     */
+    public readonly gatPassesStrictCheck: boolean;
 
     constructor(
         disk: FloppyDisk,
@@ -797,6 +797,30 @@ export class Trsdos {
             ? "cylinder" : "lump";
 
         this.evaluation = this.evaluate();
+        const gatInfo = this.getGatInfo();
+        this.gatPassesStrictCheck = typeof gatInfo !== "string" &&
+            gatInfo.hasValidHighBits(this.granulesPerLump, this.lumpCount, this.version);
+    }
+
+    /**
+     * Compare this candidate interpretation of the disk with another, for sorting best first:
+     * negative if this one is better, positive if the other is, zero if they're equally good.
+     * A disqualified candidate (negative score) is worse than any other. Otherwise one whose
+     * GAT passes the strict check is better than one whose GAT doesn't, and after that the
+     * higher score wins.
+     */
+    public compareTo(other: Trsdos): number {
+        const thisDisqualified = this.evaluation.score < 0;
+        const otherDisqualified = other.evaluation.score < 0;
+        if (thisDisqualified !== otherDisqualified) {
+            return thisDisqualified ? 1 : -1;
+        }
+
+        if (this.gatPassesStrictCheck !== other.gatPassesStrictCheck) {
+            return this.gatPassesStrictCheck ? -1 : 1;
+        }
+
+        return other.evaluation.score - this.evaluation.score;
     }
 
     /**
@@ -807,9 +831,6 @@ export class Trsdos {
         const gatInfo = this.getGatInfo();
         if (typeof gatInfo === "string") {
             return { score: -1, reason: gatInfo };
-        }
-        if (!gatInfo.isValid(this.granulesPerLump, this.lumpCount, this.version)) {
-            return { score: -1, reason: "GAT is invalid" };
         }
 
         // Check directory sectors for magic string.
@@ -1362,8 +1383,8 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
         ... generateNewdos80Candidates(disk),
     ];
 
-    // Sort by decreasing score.
-    candidates.sort((a, b) => b.evaluation.score - a.evaluation.score);
+    // Best first.
+    candidates.sort((a, b) => a.compareTo(b));
 
     if (false) {
         for (const trsdos of candidates) {

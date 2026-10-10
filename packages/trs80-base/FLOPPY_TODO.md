@@ -28,12 +28,17 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       each of `Cornsoft-Micro-SynthDev.dmk` and `...-newshell-bath6.dmk`:
       double-sided images used single-sided (and see `DS023.DMK` below). Trying both side
       counts as candidates may be simplest, letting the score and the GAT check
-      decide.
+      decide. On willus's LS-DOS disks the media block and 0xCD bit 5 agree with
+      each other where the decoder's sides don't: `willus/fractl5.dmk` (one side
+      allocated on double-sided media) and `willus/dwfontu8.dmk` (two sides
+      allocated, imaged single-sided).
 - [ ] **Read the GAT's media block** (0xF5-0xFF, "\x03LSI" or "\x03631" then
       seven Drive Control Table bytes; see "What the TRSDOS 6 manuals add" in
       `FLOPPY_FORMATS.md`). It gives density, sides, sectors per track, granules
       per track, granule size, cylinders and the directory cylinder, and was
-      right on all 18 disks that have it, data disks included. Use it as the
+      right on all 18 disks that have it, data disks included, and on 124 of
+      135 of willus's (100 of them double-sided; the others disagree with the
+      decoder's side count, not with the disk). Use it as the
       first candidate's parameters, or as a score bonus for candidates that
       agree with it, like PDRIVE.
 - [ ] **Directory size from DIR/SYS's extent** (the `granulesPerDir` TODO in every
@@ -42,7 +47,15 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       both and break ties toward the smaller one. This is why `dospls34.dmk` is no
       longer decoded: with 2 sides and 6 granules, the directory reaches side 1,
       where SYS10-12 live, and their bytes look like garbage entries. With 3
-      granules it scores 38 and all 38 CMD/SYS files decode cleanly.
+      granules it scores 38 and all 38 CMD/SYS files decode cleanly. Two NEWDOS
+      disks show the NEWDOS form: the German `NEWDOS-80 v2.0 ...` disk and
+      `peter/2-06.dmk` have `GPL=6` GATs (bytes 0xC0, 0xCF), but the `GPL=6`
+      candidate reads a whole lump (30 sectors) of directory where the real one
+      is 10 or 20, hits garbage and is rejected, so they decode as `GPL=2` and
+      3 instead (same directory, same files). NEWDOS records the directory size
+      itself, in HIT byte 0x1F (extra entry sectors beyond 8); use that.
+      `willus/PRODUCER.dmk` (DOSPLUS 3.4, double sided) is the same case: 58
+      hits with a side-0 directory, rejected with a whole-cylinder one.
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
       on its pseudo-density disks; several non-NEWDOS disks (`BUSINESS`, `COMREF`,
@@ -65,19 +78,18 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       strict GAT pass". (`issue-1/m1-trsdos-blank.dmk` passes now that TRSDOS
       2.x's 0x2C DIR/SYS hash counts as a hit. The 1.3 blank disk,
       `m3-trsdos-blank.dmk`, has no entries, but the floor applies only to 2.3.)
-- [ ] **`CHECK_GAT_HIGH_BITS`.** It now gets granules per lump and checks exactly
-      `lumpCount` bytes, lump 0 included (which obeys the rule on all 108 disks
-      checked), so it's ready to enable: it passes all 86 real directories and
-      rejects all 3,663 wrong ones. Make it a strong penalty rather than a hard
-      reject, since a damaged GAT fails it
-      (`Col 2 - 028 - No Box - Scripsit [T11-T12-T13 BAD].dmk`).
 - [ ] **Boot byte 2 as evidence.** It names the directory cylinder (or NEWDOS's
       starting lump) on all 76 decoded Model I/4 disks, but candidates don't use
       it. A score bonus, not a gate, so game disks just go without.
 - [ ] **Garbage directory slots reject whole candidates.** An in-use slot with an
       unprintable name returns "can't decode directory entry filename" and a
       score of −1. Count it as a miss instead (`Abacux X ... [M3][Original].dmk`
-      has 45 good hashes and 8 garbage slots).
+      has 45 good hashes and 8 garbage slots). Also `willus/l808212a.dmk`
+      (DOSPLUS 3.3, 26 hits) and `willus/wdhddr12.dmk` (LDOS line, 9 hits), and
+      five more LOAD-80 disks like the first in willus's archive.
+- [ ] **The GAT's AUTO command must be printable**, or the GAT is rejected.
+      `willus/epenc2zm.dmk`, an Electric Pencil disk with 14 hits and no misses,
+      fails only on that. Accept or ignore a garbage AUTO field.
 - [ ] **What `getNameAndVersion()` still gets wrong.** It now maps 0xCB to
       NEWDOS/80 1 and 2, VTOS 3.0, DOSPLUS 3.1-4.0 and TRSDOS 2.x (0x21), and
       recognizes MultiDOS and UltraDOS by strings in the boot track, DOSPLUS IV
@@ -88,7 +100,16 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       boot string), and `trsdos-6.2-ssdd-crc-weird-version.dmk`, whose 0xCB of
       0x35 makes it "DOSPLUS 3.5" although its media block says TRSDOS 6.2.
       Unverified: 0x22 and 0x50 on Kim Watt's utility disks, 0x16 on two disks,
-      0x32 ("DOSPLUS 3.2") on six, and 0x00 on the Planet Makruk disks.
+      and 0x00 on the Planet Makruk disks. Wrong, found in willus's archive:
+      0x40 is VTOS 4.0 too (`willus/vtos40.dmk`, `vtos401a.dmk`), not just
+      DOSPLUS 4.0; DOSPLUS IV system disks don't always say "DOSPLUS" in the
+      boot track (`willus/dp4bare.dmk` is "TRSDOS 6.0"; the SYS0 banner says
+      DOSPLUS IV); MultiDOS 1.5 writes "(c) 1982 C.E.C." (`willus/MDOS15.dmk`, "TRSDOS
+      0.0"); `willus/rapds13.dmk` is RAPIDOS ("TRSDOS 6.0"); and 0x32 is real
+      DOSPLUS 3.2 only with DOSPLUS's `F3 FE` boot sector
+      (`willus/dsp1321a.dmk`). The other 0x32 disks, all six of ours, share a
+      boot sector that says "Not A System Disk:" and isn't DOSPLUS's; the same
+      formatter also writes 0x34.
 - [ ] **`TrsdosGatInfo`'s LDOS fields are unused.** With `Trsdos14GatInfo` and
       `generateLdosCandidates()` gone and the report no longer printing them,
       `cylinderCount`, `granulesPerTrack`, `sideCount` and `density` (and the
@@ -120,9 +141,14 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       `BasicProgram`, because the GAT's first byte is 0xFF, and zero-length files
       (`TESTDAT4` on `NEWDOS1D.dmk`) are too. That's `decodeTrs80File()`'s
       sniffing, not the DOS decoder, but it shows up in every NEWDOS report.
-- [ ] **`trs80gp/LD4-631.DSK`** (LS-DOS 6.3.1, Model 4) isn't recognized as a
-      floppy image at all: it used to throw "Inconsistent densities" and is now
-      a `RawBinaryFile`.
+- [ ] **Truncated DMKs aren't read.** `trs80gp/LD4-631.DSK` (LS-DOS 6.3.1,
+      Model 4) and `willus/ND80M3V3.dmk` (NEWDOS/80) both have headers saying
+      40 tracks double sided but hold 79 tracks, one short; willus's archive
+      has a third (`pwrtol03`, 35 tracks, also one short). Read the tracks that
+      are there instead of rejecting the file.
+- [ ] **A `.dmk` extension only tries the DMK reader**, while `.dsk` sniffs.
+      `willus/ld1-531.dmk` is really JV1 and `willus/l808709a.dmk` JV3; about 30
+      of willus's `.dmk` files are like that. Fall back to `decodeDsk()`.
 
 ## Unresolved disks
 
@@ -130,18 +156,12 @@ None of these blocks anything. Several now produce a decoding, but the
 regression suite has no snapshots for them, so each needs checking by hand
 against the layout found when the lump model was verified.
 
-- `peter/055 - DosPlus IV Master.dmk` and its two siblings: now read as
-  TRSDOS-style `GPL=2` with only 3 files; the best reading found earlier had 3 of
-  14 hashes. Probably still wrong; possibly a Model 4 layout.
 - `peter/Col 2 - 030 - No Box - No Label.dmk`: now decodes as NEWDOS/80, `GPL=2`,
   directory lump 17, with all 24 system files clean. Earlier notes said its boot
   byte names cylinder 61; reconcile that.
-- `peter/Manufacturing and Inventory Control v3.0 ...`: now reads as NEWDOS/80
-  `GPL=2`, double-sided, directory lump 140, with 1 of 13 CMD/SYS/BAS files
-  failing. Its PDRIVE table says `GPL=8`, `SPT=36`, so the reading is suspect.
 - `peter/52VFRED.DMK`: decodes (`GPL=8`, double-sided, 9 code files clean), but
-  its GAT reads 0x25 in every used lump, which isn't a granule bitmap, so it
-  will fail the strict GAT check once that's enabled.
+  its GAT reads 0x25 in every used lump, which isn't a granule bitmap. No
+  candidate passes the strict GAT check, so it falls back to the best score.
 - `peter/DS023.DMK`: decodes with NEWDOS-style `GPL=2` lumps on two sides
   (directory lump 72, 12 code files clean), although it was verified earlier as
   a TRSDOS-family disk used single-sided. Check which reading is right once
@@ -153,6 +173,8 @@ against the layout found when the lump model was verified.
 
 - [ ] `disks/peter/` and `disks/planet-makruk/` are untracked, and their 172
       images have no sidecars or snapshots.
+- [ ] `disks/willus/` (25 disks, October 2026) has sidecars but no snapshots
+      and isn't committed yet.
 - [ ] The snapshots haven't been updated since the switch (see "Where things
       stand"). Their `rejections` arrays still hold the old reasons, including
       "Model 4", which no code produces any more; `--update` will clear them.
@@ -204,7 +226,7 @@ snapshots); 226 of 276 disks decode.
   `NEWDOS90.dmk` (59 files; it used to find a garbage directory),
   `NEWDOS1D.dmk`, `newdos80-2.0-ssdd.dmk`, `newdos80-working.dmk`,
   `hustle_hscore_work_4-26-82.dmk`, `NEWDOS_80sssd_jv1.DSK` (no more truncated
-  files) and `StarTrek-Trsdos-8.2.dsk` (22 files, up from 8). Also
+  files) and `StarTrek-NEWDOS80.dsk` (22 files, up from 8). Also
   `ldos-5.3.0-ssdd-crc-boot-sector.dmk`, `ldosutil.dmk` and `trsdisk1.dmk` now
   decode, and five disks that used to throw no longer do.
 - **Among the new disks,** the German NEWDOS disk (cylinder 0 single density on

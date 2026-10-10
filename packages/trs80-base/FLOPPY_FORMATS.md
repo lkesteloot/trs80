@@ -406,8 +406,9 @@ Strongest first. Measured on all 274 images.
    *Machine Language Disk I-O*; negated, five images read `TRSDOS - DISK
    OPERATING SYSTEM - VER 2.3`. Search for the negated form too. (Single-density
    DMK images store each byte twice, so a plain byte search of the image file
-   misses it there.) `trsdos-2.1-sssd-1.jv1` carries the 2.3 banner despite its
-   name.
+   misses it there.) The banners showed that three disks named "trsdos-2.1"
+   were 2.2 and 2.3, and they were renamed (October 2026; see "Disks worth
+   remembering").
 2. **The boot sector's code.** FORMAT writes the same boot sector to every disk,
    data disks included, so hashing it (with byte 2, the directory cylinder,
    masked) identifies the formatter. 274 disks have 120 distinct boot sectors.
@@ -821,12 +822,24 @@ For guessing a layout and directory location, strongest first:
    included: the DOS marks cylinder 0 fully allocated, and byte 0 obeys the rule
    on all 108 disks checked (71 TRSDOS-family, 10 TRSDOS 1.3, 27 NEWDOS system
    disks). Check exactly `lumpCount` bytes, which on NEWDOS can be fewer or more
-   than the cylinders. It is the `CHECK_GAT_HIGH_BITS` test in `Trsdos.ts`. Two
-   caveats: a damaged GAT fails it
+   than the cylinders. Caveats: a damaged GAT fails it
    (`Col 2 - 028 - No Box - Scripsit [T11-T12-T13 BAD].dmk` has one bad byte and
-   44 of 51 hashes), so treat it as strong evidence rather than a hard reject;
-   and an all-0xFF sector passes the 2.3-family form, an all-zero sector the 1.3
-   form, so keep the printable name and date check alongside it.
+   44 of 51 hashes); some formatters leave the unused bits clear on 2.3-family
+   disks (the two Planet Makruk disks, `willus/NEWDMIN.dmk`); and an all-0xFF
+   sector passes the 2.3-family form, an all-zero sector the 1.3 form, so keep
+   the printable name and date check alongside it.
+
+   So `decodeTrsdos()` uses it as a preference, not a requirement (October
+   2026): among candidates that aren't disqualified, one that passes beats one
+   that doesn't, and score decides within each group. As a hard reject it lost
+   9 of the 244 decoded disks; as a preference it loses none and changes six
+   readings, five of them for the better, because it fixes the granules per
+   lump, which hash hits can't: `41BFRED` and `49VFRED` (`GPL=8`; 10 more files
+   found on the second), `Manufacturing and Inventory Control` (`GPL=8`, as its
+   PDRIVE table says, every file now clean), `willus/ND80BIG.dmk` (`GPL=4`, as
+   its PDRIVE table says) and `willus/rapds13.dmk` (31 clean files instead of
+   24). The sixth, `DS023.DMK`, changes reading without getting better or
+   worse; neither reading decodes its CMD files.
 3. **The boot sector's byte 2** (masked with 0x7F) names the directory cylinder
    on all 76 decoded Model I and 4 disks, and for NEWDOS it's the starting lump.
    It's how the DOS itself finds the directory, and TRSDOS 2.3B kept it even
@@ -905,8 +918,43 @@ entirely untested.
 
 ## Disks worth remembering
 
-As of October 2026 the collection is 276 images: 254 DMK, 13 DSK, 5 JV1, 4 JV3.
+As of October 2026 the collection is 301 images: 279 DMK, 13 DSK, 5 JV1, 4 JV3.
 Most of the growth is in `peter/`, which has no snapshots yet.
+
+**`willus/`** holds 25 disks picked from willus.com's archive of TRS-80
+software (`~/Dropbox/Personal/willus.com/trs80`, about 15,500 DMK files). Most
+of that archive is useless here: willus copied each program, even ones listed
+as original disk images, onto a 40-track TRSDOS 1.3 disk for his emulator, and
+those are all identical in layout. Only the roughly 900 images that aren't
+256,016 bytes are originals, and 873 of them aren't in this collection. The
+picks are DOS versions we lacked (DOSPLUS 3.2.1, VTOS 4.0 and 4.0.1, TRSDOS 2.0
+and 6.0.0, Percom DoubleDOS 4.23, MultiDOS 1.5, RAPIDOS, two DOSPLUS IV, two TRSDOS
+2.3B system disks, an 80-cylinder double-sided NEWDOS/80 disk) and disks that
+exercise gaps in `FLOPPY_TODO.md`. Each sidecar's notes say why it's there.
+The rest of the archive's originals are worth rescanning when a gap needs more
+evidence: there are, for example, about 100 double-sided LS-DOS data disks.
+
+**DOSPLUS 3.2 existed** (trs-80.org: Micro-Systems released 3.1 through 3.4 in
+1980-1982). `willus/dsp1321a.dmk` is 3.2.1 for the Model I, with 0xCB = 0x32
+and DOSPLUS's `F3 FE` boot sector. The six 0x32 disks in `peter/` are not
+DOSPLUS: they share another boot sector, which says "Not A System Disk:", from
+a formatter that also writes 0x34.
+
+**Filenames came from wherever the images were found, and some were wrong.**
+These were renamed in October 2026, from evidence on the disks; each sidecar's
+`aliases` keeps the old name:
+
+| Old name | New name | Evidence |
+|---|---|---|
+| `StarTrek-Trsdos-8.2.dsk` | `StarTrek-NEWDOS80.dsk` | GAT byte 0xCB is 0x82, NEWDOS/80 v2; "8.2" was our old misreading |
+| `simple/DOSPLS2B.dmk` (and `C`, `D`) | `simple/ldos-5.1-dosplus2-source-b.dmk` (`-c`, `-d`) | LDOS 5.1.3 data disks (GAT name "LDOSDISK", LDOS boot sector) holding DOSPLUS II's assembly source |
+| `simple/trsdos-2.1-sssd-1.dmk` | `simple/trsdos-2.2-sssd.dmk` | SYS0 banner (negated) says VER 2.2 |
+| `simple/trsdos-2.1-sssd-2.dmk` | `simple/trsdos-2.3-sssd-2.dmk` | SYS0 banner says VER 2.3 |
+| `simple/trsdos-2.1-sssd-1.jv1` | `simple/trsdos-2.3-sssd.jv1` | SYS0 banner says VER 2.3 |
+| `peter/055 - DosPlus IV Master.dmk` (and `055v`) | `peter/055 - Orchestra-90 [Labeled DosPlus IV Master].dmk` (and `055v`) | only BOOT/SYS, DIR/SYS and ORCH90/CMD; the boot sector is Orchestra-90's. A third copy was already named `[Really Only ORCH-90]` |
+
+So a filename is a hint, not evidence. Before relying on one, check the
+SYS0 banner, the boot track and the GAT.
 
 - `NEWDOS-80 v2.0 Build 02.03.87 (-)(Apparat)[h Horst Weikamp][German].dmk`: the
   only double-sided, mixed-density NEWDOS disk. Cylinder 0 is 5-sector single
