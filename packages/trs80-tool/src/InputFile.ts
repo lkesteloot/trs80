@@ -6,6 +6,7 @@ import {
     Trs80File,
     Trsdos, TrsdosDirEntry, decodeTrs80CassetteFile, decodeTrs80File, decodeTrsdos, getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
+import {ToolError} from "./utils.js";
 
 /**
  * Information about each input file.
@@ -140,8 +141,7 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
     try {
         buffer = fs.readFileSync(inFilename);
     } catch (e: any) {
-        console.log("Can't open \"" + inFilename + "\": " + e.message);
-        process.exit(1);
+        throw new ToolError("Can't open \"" + inFilename + "\": " + e.message);
     }
 
     if (ext.toLowerCase() == ".wav") {
@@ -156,8 +156,7 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
     } else {
         const trs80File = decodeTrs80File(buffer, { filename: inFilename });
         if (trs80File.error !== undefined) {
-            console.log("Can't open \"" + inFilename + "\": " + trs80File.error);
-            process.exit(1);
+            throw new ToolError("Can't open \"" + inFilename + "\": " + trs80File.error);
         }
 
         if (isFloppy(trs80File)) {

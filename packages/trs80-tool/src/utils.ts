@@ -5,6 +5,17 @@ import { Trs80File, decodeTrs80File } from "trs80-base";
 import { AudioFile, readWavFile } from "trs80-cassette";
 
 /**
+ * Error that ends the command. Its message is shown to the user without a stack trace,
+ * and the tool exits with status 1.
+ */
+export class ToolError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ToolError";
+    }
+}
+
+/**
  * Return the singular or plural version of a string depending on the count.
  */
 export function pluralize(count: number, singular: string, plural?: string): string {

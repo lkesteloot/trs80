@@ -152,14 +152,26 @@
             <p>Global flags are:</p>
             <div><pre><code>--version         Show the tool's version number.
 --help            Show the usage message.
---color=COLOR     Force color mode (off, 16, 256, 16m, or auto).</code></pre>
+--color=COLOR     Force color mode (off, 16, 256, 16m, or auto).
+--no-pager        Don't send output to a pager.</code></pre>
             </div>
             <p>By default <code>trs80-tool</code> detects the color capabilities of the terminal
             and sets the <code>--color</code> flag automatically. You can override this, either
             to turn off color (if it bothers you) or to force it on (when piping into
-            a pager). For example:</p>
-            <div><pre><code>% trs80-tool --color=16 hexdump in.cmd | less</code></pre>
+            another program). For example:</p>
+            <div><pre><code>% trs80-tool --color=16 hexdump in.cmd | grep 5200</code></pre>
             </div>
+
+            <p>Like <code>git</code>, the commands that can print a lot (<code>dir</code>,
+            <code>info</code>, <code>sectors</code>, <code>hexdump</code>, and <code>disasm</code>)
+            send their output to a pager when it's going to the terminal, with colors intact.
+            The pager is the <code>TRS80_TOOL_PAGER</code> environment variable if it's set,
+            then <code>PAGER</code>, then <code>less</code> (except on Windows, which only pages
+            if one of the variables is set). Set it to <code>cat</code> or to an empty string,
+            or use <code>--no-pager</code>, to turn paging off. If <code>LESS</code>
+            isn't set, the tool sets it to <code>FRX</code>, so that <code>less</code> quits right away
+            when the output fits on one screen, shows colors, and doesn't clear the screen
+            when you quit.</p>
 
             <div><pre><code>--trace=MODULE    show trace logs for module (base, emulator, floppy).</code></pre></div>
 
@@ -470,6 +482,14 @@ C CRC error (ID or data).
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app's name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+
+            <h3 id="2026-10-09">October 9, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v2.9.3: The <code>dir</code>, <code>info</code>,
+                    <code>sectors</code>, <code>hexdump</code>, and <code>disasm</code> commands
+                    send their output to a pager, with colors intact, when it's going to the terminal.
+                    See <a href="#usage">Usage</a> to choose the pager or turn it off.</li>
+            </ul>
 
             <h3 id="2026-09-14">September 14, 2026</h3>
             <ul>

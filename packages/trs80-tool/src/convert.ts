@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { expandFile } from "./InputFile.js";
-import {pluralizeWithCount} from "./utils.js";
+import {pluralizeWithCount, ToolError} from "./utils.js";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio,
     concatAudio, writeWavFile } from "trs80-cassette";
 import {CassetteSpeed, Trs80File} from "trs80-base";
@@ -69,8 +69,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
         // Output is a file. Its extension will help us determine how to convert the input files.
         const outExt = path.parse(outFilename).ext.toLowerCase();
         if (outExt === "") {
-            console.log("No file extension on output file \"" + outFilename + "\", don't know how to convert");
-            process.exit(1);
+            throw new ToolError("No file extension on output file \"" + outFilename + "\", don't know how to convert");
         }
 
         // See if input is a single file.
@@ -103,9 +102,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         }
 
                         default:
-                            console.log("Can't convert a raw binary program to " + outExt.toUpperCase());
-                            process.exit(1);
-                            break;
+                            throw new ToolError("Can't convert a raw binary program to " + outExt.toUpperCase());
                     }
                     break;
                 }
@@ -141,9 +138,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         }
 
                         default:
-                            console.log("Can't convert a Basic program to " + outExt.toUpperCase());
-                            process.exit(1);
-                            break;
+                            throw new ToolError("Can't convert a Basic program to " + outExt.toUpperCase());
                     }
                     break;
 
@@ -153,9 +148,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                 case "ScpFloppyDisk":
                 case "Cassette":
                 case "BootSector":
-                    console.log("Files of type \"" + infile.trs80File.getDescription() + "\" are not yet supported");
-                    process.exit(1);
-                    break;
+                    throw new ToolError("Files of type \"" + infile.trs80File.getDescription() + "\" are not yet supported");
 
                 case "SystemProgram":
                     switch (outExt) {
@@ -200,9 +193,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                             break;
 
                         default:
-                            console.log("Can't convert a system program program to " + outExt.toUpperCase());
-                            process.exit(1);
-                            break;
+                            throw new ToolError("Can't convert a system program program to " + outExt.toUpperCase());
                     }
                     break;
 
@@ -253,9 +244,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                             break;
 
                         default:
-                            console.log("Can't convert a CMD program to " + outExt.toUpperCase());
-                            process.exit(1);
-                            break;
+                            throw new ToolError("Can't convert a CMD program to " + outExt.toUpperCase());
                     }
                     break;
 
@@ -280,9 +269,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         }
 
                         default:
-                            console.log("Can't convert an L1 program to " + outExt.toUpperCase());
-                            process.exit(1);
-                            break;
+                            throw new ToolError("Can't convert an L1 program to " + outExt.toUpperCase());
                     }
                     break;
 
@@ -312,9 +299,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         }
 
                         default:
-                            console.log("Can't convert an ASM program to " + outExt.toUpperCase());
-                            process.exit(1);
-                            break;
+                            throw new ToolError("Can't convert an ASM program to " + outExt.toUpperCase());
                     }
                     break;
             }
@@ -350,9 +335,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         case "Cassette":
                         case "BootSector":
                             // Shouldn't happen, we split up archives.
-                            console.log(`Can't put ${inFile.trs80File.getDescription()} into a ${outExt.toUpperCase()} file`);
-                            process.exit(1);
-                            break;
+                            throw new ToolError(`Can't put ${inFile.trs80File.getDescription()} into a ${outExt.toUpperCase()} file`);
                         case "CmdProgram": {
                             // Convert to system program first.
                             const inName = path.parse(inFile.filename).name;

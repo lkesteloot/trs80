@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import {Archive, TrsdosFile, WavFile} from "./Archive.js";
+import {ToolError} from "./utils.js";
 import {decodeBasicProgram, decodeSystemProgram, trsdosProtectionLevelToString } from "trs80-base";
 import { BitType } from "trs80-cassette";
 
@@ -10,8 +11,7 @@ import { BitType } from "trs80-cassette";
 export function extract(infile: string, outfile: string): void {
     const archive = new Archive(infile);
     if (archive.error !== undefined) {
-        console.log(archive.error);
-        process.exit(1);
+        throw new ToolError(archive.error);
     } else {
         // See if outfile is an existing directory.
         if (fs.existsSync(outfile) && fs.statSync(outfile).isDirectory()) {
