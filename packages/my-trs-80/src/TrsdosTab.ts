@@ -12,7 +12,7 @@ import JSZip from "jszip";
  */
 export class TrsdosTab extends PageTab {
     constructor(filePanel: IFilePanel, trs80File: Trs80File, trsdos: Trsdos) {
-        super("TRSDOS");
+        super("DOS");
 
         this.element.classList.add("trsdos-tab");
 
@@ -38,7 +38,7 @@ export class TrsdosTab extends PageTab {
             infoDiv.append(valueSpan);
         };
         addField("File type", trs80File.getDescription(), "file-type");
-        addField("Version", trsdos.nameAndVersion, "version");
+        addField("Operating System", trsdos.nameAndVersion, "version");
         const gatInfo = trsdos.getGatInfo();
         if (typeof gatInfo === "string") {
             addField("Error", gatInfo, "error");
