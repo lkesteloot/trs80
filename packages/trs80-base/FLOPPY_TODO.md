@@ -136,15 +136,17 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **A `.dmk` extension only tries the DMK reader**, while `.dsk` sniffs.
       `willus/ld1-531.dmk` is really JV1 and `willus/l808709a.dmk` JV3; about 30
       of willus's `.dmk` files are like that. Fall back to `decodeDsk()`.
-- [ ] **BOOT/SYS reports missing sectors on three disks** where the old decoder
-      read it cleanly: `simple/ldosutil.dmk`, `willus/dsp1321a.dmk` and
-      `peter/Col 2 - 010 - No Box - Dos+ Master [T27-1 T28-1].dmk` (3-8
-      sectors each). Probably the lump model's view of cylinder 0; only
-      BOOT/SYS is affected.
-- [ ] **`info` labels every 2.3-family disk "Model I"**, including LS-DOS and
-      TRSDOS 6 disks ("LS-DOS 6.3 (Model I)"), since 764eedc folded the LDOS
-      variant into the 2.3 family. `trsdosVersionToString()` names the
-      directory format, not the machine; the label should say that, or go.
+- [ ] **Rename `TrsdosVersion`.** It isn't a version: it picks between the two
+      on-disk layouts, the TRSDOS 2.3 family (TRSDOS 2.x, LDOS, TRSDOS 6,
+      LS-DOS, DOSPLUS, NEWDOS/80, MultiDOS, VTOS) and Model III TRSDOS 1.x.
+      Something like `DosFamily` with members named after the layouts rather
+      than `V2_3` and `V1_3`, `Trsdos.version` to match (it's next to
+      `getNameAndVersion()`, which really is a version), and
+      `trsdosVersionToString()`, which still returns "Model I" and "Model III".
+      Those were machine names in name only: the report's `os.model` field was
+      dropped for it (report version 3), and the report's `rejections` entries
+      still carry the same label as `model`. The `Trsdos` class itself covers
+      every family, so it may want a broader name too.
 
 ## Unresolved disks
 

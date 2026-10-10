@@ -18,7 +18,7 @@ import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 
 // Bump when the structure of the report changes in a way that consumers must know about.
 // The trs80-floppy-regress repo keeps a copy of the types below; update it too.
-export const REPORT_VERSION = 2;
+export const REPORT_VERSION = 3;
 
 export type DensityName = "single" | "double";
 
@@ -72,7 +72,6 @@ export interface GatReport {
 export interface OsReport {
     // Name and version, e.g., "LDOS 5.3".
     name: string;
-    model: string;
     dirTrack: number;
     sideCount: number;
     sectorsPerTrack: number;
@@ -273,7 +272,6 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
 
     const os: OsReport = {
         name: trsdos.getNameAndVersion(),
-        model: trsdosVersionToString(trsdos.version),
         dirTrack: trsdos.dirLumpNumber,
         sideCount: trsdos.allocationSides,
         sectorsPerTrack: trsdos.geometry.modalDataSectorSpan,

@@ -1292,6 +1292,16 @@ export class Trsdos {
             dirEntry = dirEntry.nextDirEntry;
         }
 
+        // BOOT/SYS claims whole granules of the boot track, but on disks whose boot track is formatted
+        // with fewer sectors than the others (single density on a double-density disk), the sectors
+        // past the end of the track were never formatted. They aren't missing, they don't exist.
+        if (firstDirEntry.getFilename("/") === "BOOT/SYS") {
+            const bootTrack = this.geometry.bootTrack;
+            return sectorPositions.filter(sectorPosition =>
+                !sectorPosition.trackPosition.equals(bootTrack.trackPosition) ||
+                sectorPosition.sectorNumber <= bootTrack.lastSectorNumber);
+        }
+
         return sectorPositions;
     }
 
