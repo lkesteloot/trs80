@@ -16,22 +16,14 @@ for every family. Done: the linear mapping, `firstDataCylinder` (NEWDOS-style
 candidates only), TRSDOS-family `granulesPerLump` = granules per cylinder, the
 linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
-- [ ] **Allocation sides from the DOS, never `geometry.sideCount`.** Signals, in
-      order: on TRSDOS 6.2 and LS-DOS disks, the GAT's media block (bit 5 of
-      0xFA; see the next item); a GAT byte with a clear bit above the
-      single-sided granules; GAT
-      byte 0xCD bit 5, but only on the LDOS line and when the byte is consistent
-      (see "GAT bytes 0xCB-0xCD" in `FLOPPY_FORMATS.md`); any extent with granule
-      offset ≥ granules per track. A full
-      GAT gives no signal (`ldos-5.3.0-dsdd.dmk`). The 2.3 and NEWDOS
-      generators all still use `geometry.sideCount`, which corrupts six files on
-      each of `Cornsoft-Micro-SynthDev.dmk` and `...-newshell-bath6.dmk`:
-      double-sided images used single-sided (and see `DS023.DMK` below). Trying both side
-      counts as candidates may be simplest, letting the score and the GAT check
-      decide. On willus's LS-DOS disks the media block and 0xCD bit 5 agree with
-      each other where the decoder's sides don't: `willus/fractl5.dmk` (one side
-      allocated on double-sided media) and `willus/dwfontu8.dmk` (two sides
-      allocated, imaged single-sided).
+- [ ] **One side unless proven otherwise.** The 2.3 and NEWDOS generators try
+      both allocation sides, and `compareTo()` breaks ties toward one side (see
+      "Allocation sides are not media sides" in `FLOPPY_FORMATS.md`). So a double-sided disk with
+      nothing on side 1 reads as single-sided when its GAT is full or fails the
+      strict check. Reading is unaffected, but writing would never use side 1.
+      When writing arrives, the LDOS line's media block and 0xCD bit 5 can
+      settle it: they say one side on `willus/fractl5.dmk`, and two on
+      `ldos-5.3-dsdd-80-tracks.dmk`.
 - [ ] **Read the GAT's media block** (0xF5-0xFF, "\x03LSI" or "\x03631" then
       seven Drive Control Table bytes; see "What the TRSDOS 6 manuals add" in
       `FLOPPY_FORMATS.md`). It gives density, sides, sectors per track, granules
@@ -41,21 +33,17 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       decoder's side count, not with the disk). Use it as the
       first candidate's parameters, or as a score bonus for candidates that
       agree with it, like PDRIVE.
-- [ ] **Directory size from DIR/SYS's extent** (the `granulesPerDir` TODO in every
-      generator, which currently uses a whole lump): 3 granules on `dospls34.dmk`
-      (side 0 only), 6 on double-sided LDOS. Without DIR/SYS (TRSDOS 2.3B), try
-      both and break ties toward the smaller one. This is why `dospls34.dmk` is no
-      longer decoded: with 2 sides and 6 granules, the directory reaches side 1,
-      where SYS10-12 live, and their bytes look like garbage entries. With 3
-      granules it scores 38 and all 38 CMD/SYS files decode cleanly. Two NEWDOS
-      disks show the NEWDOS form: the German `NEWDOS-80 v2.0 ...` disk and
+- [ ] **NEWDOS directory size** (the `granulesPerDir` TODO in its generator,
+      which uses a whole lump). The 2.3-family generator now tries a side-0
+      directory on double-sided disks, as DOSPLUS writes (`dospls34.dmk`,
+      `willus/PRODUCER.dmk`, Cornsoft-Brix `bath4`), and a whole cylinder, as
+      LDOS does. NEWDOS still needs it: the German `NEWDOS-80 v2.0 ...` disk and
       `peter/2-06.dmk` have `GPL=6` GATs (bytes 0xC0, 0xCF), but the `GPL=6`
       candidate reads a whole lump (30 sectors) of directory where the real one
-      is 10 or 20, hits garbage and is rejected, so they decode as `GPL=2` and
-      3 instead (same directory, same files). NEWDOS records the directory size
-      itself, in HIT byte 0x1F (extra entry sectors beyond 8); use that.
-      `willus/PRODUCER.dmk` (DOSPLUS 3.4, double sided) is the same case: 58
-      hits with a side-0 directory, rejected with a whole-cylinder one.
+      is 10 or 20, hits garbage and is rejected, so they decode with smaller
+      lumps instead (same directory, same files, and the German disk now has 14
+      impossible extents). NEWDOS records the directory size itself, in HIT
+      byte 0x1F (extra entry sectors beyond 8); use that.
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
       on its pseudo-density disks; several non-NEWDOS disks (`BUSINESS`, `COMREF`,
@@ -162,10 +150,13 @@ against the layout found when the lump model was verified.
 - `peter/52VFRED.DMK`: decodes (`GPL=8`, double-sided, 9 code files clean), but
   its GAT reads 0x25 in every used lump, which isn't a granule bitmap. No
   candidate passes the strict GAT check, so it falls back to the best score.
-- `peter/DS023.DMK`: decodes with NEWDOS-style `GPL=2` lumps on two sides
-  (directory lump 72, 12 code files clean), although it was verified earlier as
-  a TRSDOS-family disk used single-sided. Check which reading is right once
-  allocation sides come from the DOS.
+- `peter/Super Dos  [VDISK OK] [IRA334].dmk`: side 1 of cylinder 17 holds a
+  second directory, left over from an earlier format, with 40 entries against
+  38 in the real one on side 0. Read double-sided with `GPL=2` lumps, that one
+  outscores the real one, and only 8 of its 31 CMD and SYS files are CMD
+  programs, against 27 read single-sided. The report calls all 40 files clean,
+  because bytes that aren't a CMD program at all get no decode error.
+  Preferring the directory the boot sector names would fix it.
 - Percom OS-80, OS-80 III and MicroDOS (17 disks): a different DOS altogether
   (boot `FE 00` at sector 1), not decoded.
 
@@ -209,6 +200,18 @@ Claude Code session scratchpad, which won't survive; the descriptions above are
 enough to rebuild them.
 
 ## Where things stand
+
+Latest, after trying both allocation sides (October 10, 2026), still before any
+`--update`: 56 same, 16 better, 0 worse, 32 changed and 197 new; 247 of 301
+disks decode. The three that were worse are fixed: the Cornsoft SynthDev disks
+read single-sided again and match their snapshots apart from the name, and
+`dospls34.dmk` decodes with all 38 files clean. Across the whole collection,
+`PRODUCER.dmk` and Cornsoft-Brix `bath4` decode now too. Three disks that
+allocate two sides but were imaged with one (`F05 - Monas Main Disk 2`, Brix
+`bath3`, `willus/dwfontu8.dmk`) now report the side-1 sectors as missing,
+where they used to read the wrong cylinder without complaint.
+
+The rest of this section is the state after the switch.
 
 `node regress.ts run --ignore-rejections` after the switch, before any
 `--update`, and after accepting TRSDOS 2.x's 0x2C DIR/SYS hash: 82 same, 15

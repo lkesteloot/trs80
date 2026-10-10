@@ -805,22 +805,46 @@ export class Trsdos {
     /**
      * Compare this candidate interpretation of the disk with another, for sorting best first:
      * negative if this one is better, positive if the other is, zero if they're equally good.
-     * A disqualified candidate (negative score) is worse than any other. Otherwise one whose
-     * GAT passes the strict check is better than one whose GAT doesn't, and after that the
-     * higher score wins.
+     * Each rule below only applies when all the rules before it are tied.
      */
     public compareTo(other: Trsdos): number {
+        // A negative score means "not this", so a disqualified candidate sorts after every
+        // candidate that isn't, whatever else it has going for it.
         const thisDisqualified = this.evaluation.score < 0;
         const otherDisqualified = other.evaluation.score < 0;
         if (thisDisqualified !== otherDisqualified) {
             return thisDisqualified ? 1 : -1;
         }
 
+        // A GAT whose unused high bits are what the DOS writes there is strong evidence that
+        // the granules per lump are right, which hash hits can't tell us (they come from the
+        // directory, not the allocation). Passing sorts first.
         if (this.gatPassesStrictCheck !== other.gatPassesStrictCheck) {
             return this.gatPassesStrictCheck ? -1 : 1;
         }
 
-        return other.evaluation.score - this.evaluation.score;
+        // Hash hits minus misses and impossible extents. Higher sorts first.
+        if (this.evaluation.score !== other.evaluation.score) {
+            return other.evaluation.score - this.evaluation.score;
+        }
+
+        // When nothing above tells one side from two, nothing on the disk uses side 1: it's
+        // double-sided media used single-sided, and side 1 may be left over from an earlier
+        // format. Fewer sides sort first.
+        if (this.allocationSides !== other.allocationSides) {
+            return this.allocationSides - other.allocationSides;
+        }
+
+        // Same for the directory: if its entries on side 1 of the directory cylinder add
+        // nothing, they aren't there (DOSPLUS keeps the directory on side 0). A directory that
+        // doesn't fill its lump sorts first.
+        const thisDirFillsLump = this.granulesPerDir === this.granulesPerLump;
+        const otherDirFillsLump = other.granulesPerDir === other.granulesPerLump;
+        if (thisDirFillsLump !== otherDirFillsLump) {
+            return thisDirFillsLump ? 1 : -1;
+        }
+
+        return 0;
     }
 
     /**
@@ -872,6 +896,10 @@ export class Trsdos {
 
         let hashHits = 0;
         let hashMisses = 0;
+        // Extents that start past the end of their lump or of the disk, which no DOS writes.
+        // Reading a double-sided disk single-sided makes every file that starts on side 1
+        // look like this.
+        let badExtents = 0;
 
         // console.log(`--- Computing score for track ${this.dirCylinderNumber}`)
 
@@ -897,6 +925,17 @@ export class Trsdos {
                         } else {
                             hashMisses += 1;
                         }
+                        for (const extent of dirEntry.extents) {
+                            if (extent.granuleOffset >= this.granulesPerLump || extent.cylinderNumber >= this.lumpCount) {
+                                badExtents += 1;
+                            }
+                        }
+                        // DIR/SYS is the directory itself.
+                        if (dirEntry.getFilename("/") === "DIR/SYS" && dirEntry.extents.length > 0 &&
+                            dirEntry.extents[0].cylinderNumber !== this.dirLumpNumber) {
+
+                            badExtents += 1;
+                        }
                     }
                 }
             }
@@ -907,8 +946,8 @@ export class Trsdos {
             return { score: -1, reason: "Didn't find required system files" };
         }
 
-        const score = hashHits - hashMisses;
-        const reason = `${hashHits} hash hits, ${hashMisses} hash misses`;
+        const score = hashHits - hashMisses - badExtents;
+        const reason = `${hashHits} hash hits, ${hashMisses} hash misses, ${badExtents} bad extents`;
 
         return { score, reason };
     }
@@ -1310,19 +1349,30 @@ function generateTrsdos23Candidates(disk: FloppyDisk): Trsdos[] {
 
     const version = TrsdosVersion.V2_3;
     const geometry = disk.getGeometry();
-    // TODO: The original TRSDOS 2.3 only supported one side, so we should ignore side 1 on the geometry because
-    // it might be garbage from a previous format, but it's possible that derivatives of TRSDOS 2.3 support
-    // two sides.
-    const allocationSides = geometry.sideCount;
     const sectorsPerTrack = geometry.modalDataSectorSpan;
     const density = geometry.modalDataDensity;
     const granulesPerTrack = density === Density.SINGLE ? 2 : 3;
-    const granulesPerLump = granulesPerTrack * allocationSides;
     const sectorsPerGranule = Math.floor(sectorsPerTrack / granulesPerTrack);
 
-    for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
-        candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
-            dirLumpNumber, granulesPerLump, 0));
+    // Allocation sides are the DOS's, not the image's: double-sided media can be used
+    // single-sided, and a double-sided disk can be imaged single-sided. Try both and let
+    // the evaluation decide. Don't clamp to geometry.sideCount: on a double-sided disk
+    // imaged single-sided (F05 - Monas Main Disk 2), reading one side silently pulls the
+    // wrong cylinder's data into every file that continues onto side 1, where reading two
+    // honestly reports those sectors as missing.
+    for (const allocationSides of [1, 2]) {
+        const granulesPerLump = granulesPerTrack * allocationSides;
+
+        // LDOS puts directory entries on both sides of the directory cylinder, DOSPLUS
+        // only on side 0.
+        const granulesPerDirOptions = allocationSides === 1 ? [granulesPerLump] : [granulesPerTrack, granulesPerLump];
+
+        for (const granulesPerDir of granulesPerDirOptions) {
+            for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
+                candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+                    dirLumpNumber, granulesPerDir, 0));
+            }
+        }
     }
 
     return candidates;
@@ -1351,20 +1401,22 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
 
     const version = TrsdosVersion.V2_3;
     const geometry = disk.getGeometry();
-    // TODO: Unclear whether to allow double-sided disks here, check if NEWDOS/80 ever supported double-sided:
-    const allocationSides = geometry.sideCount;
     const sectorsPerGranule = 5;
     const firstDataCylinder = geometry.cylinder0Differs ? 1 : 0;
 
-    for (let granulesPerLump = 2; granulesPerLump <= 8; granulesPerLump++) {
-        const sectorsPerLump = granulesPerLump * sectorsPerGranule;
-        const granulesPerDir = granulesPerLump; // TODO discover.
-        const sectorsPerCylinder = geometry.modalDataSectorSpan*allocationSides;
-        const lumpCount = computeLumpCount(geometry, firstDataCylinder, sectorsPerCylinder, sectorsPerLump);
+    // As with the 2.3 family, allocation sides are the DOS's, so try both, and don't clamp
+    // to geometry.sideCount (see generateTrsdos23Candidates()).
+    for (const allocationSides of [1, 2]) {
+        for (let granulesPerLump = 2; granulesPerLump <= 8; granulesPerLump++) {
+            const sectorsPerLump = granulesPerLump * sectorsPerGranule;
+            const granulesPerDir = granulesPerLump; // TODO discover.
+            const sectorsPerCylinder = geometry.modalDataSectorSpan*allocationSides;
+            const lumpCount = computeLumpCount(geometry, firstDataCylinder, sectorsPerCylinder, sectorsPerLump);
 
-        for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
-            candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
-                dirLumpNumber, granulesPerDir, firstDataCylinder));
+            for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
+                candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+                    dirLumpNumber, granulesPerDir, firstDataCylinder));
+            }
         }
     }
 

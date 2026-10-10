@@ -206,13 +206,29 @@ On a double-sided disk:
     side-1 data simply isn't in the file.
 
   So allocation sides must come from the DOS, never from `geometry.sideCount`.
-  In order of reliability: a GAT byte with a clear bit above the single-sided
-  granules proves double-sided allocation (`0xC0` free on double-sided double
-  density, against `0xF8` single-sided); LDOS's GAT byte 0xCD has bit 5 set on
-  double-sided disks; and any extent whose granule offset is at least the
-  granules per track proves it too. A completely full GAT carries no signal at
-  all (`ldos-5.3.0-dsdd.dmk` is `0xFF` throughout), which is when the other two
-  matter.
+  Two signals prove double-sided allocation without knowing which DOS wrote
+  the disk. One is a GAT byte with a clear bit above the single-sided granules
+  (`0xC0` free on double-sided double density, against `0xF8` single-sided).
+  The other is an extent whose granule offset is at least the granules per
+  track: read single-sided, every file that starts on side 1 has one. That
+  fired on 11 of the 34 double-sided images, including `ldos-5.3.0-dsdd.dmk`,
+  whose GAT is `0xFF` throughout and so carries no signal (21 such extents).
+  LDOS's GAT byte 0xCD has bit 5 set on double-sided disks too, but only on
+  that line. When neither signal fires, the two readings place every file the
+  same way, except where a multi-granule extent crosses from side 0. There, on
+  the Cornsoft disks, `DS023` and `willus/fractl5.dmk`, the single-sided
+  reading is the clean one: text files are 62-100% printable against 31-81%,
+  and code files are CMD programs. So the decoder assumes one side unless
+  something proves two.
+
+  Reading one side as NEWDOS-style lumps can mimic two: on the TRSDOS 6
+  double-sided disks (the TRSLink issues), six 5-sector granules per lump on
+  one side reach the same directory sectors as six 6-sector granules on two,
+  and every extent fits. DIR/SYS gives it away, because its extent names the
+  directory's lump (20) and that reading puts the directory in lump 12.
+  Comparing the directory sectors' interleave on the two sides doesn't help:
+  it's the same on every double-sided disk in the collection, including those
+  whose side 1 is left over from an earlier format.
 - **Whether the directory uses side 1 depends on the DOS.** LDOS uses the whole
   cylinder: the GAT and HIT are in sectors 0 and 1 of side 0, and every sector of
   side 1 holds directory entries. DOSPLUS 3.4 (`dospls34.dmk`) keeps the
@@ -839,7 +855,11 @@ For guessing a layout and directory location, strongest first:
    PDRIVE table says, every file now clean), `willus/ND80BIG.dmk` (`GPL=4`, as
    its PDRIVE table says) and `willus/rapds13.dmk` (31 clean files instead of
    24). The sixth, `DS023.DMK`, changes reading without getting better or
-   worse; neither reading decodes its CMD files.
+   worse; neither reading decodes its CMD files. (Since the decoder tries both
+   allocation sides, `DS023` reads single-sided with the directory on cylinder
+   20, where DIR/SYS says it is. Four of its CMD files then start with their
+   own names and dates in the header, but end mid-record at the size the
+   directory gives, so the truncation is in the directory.)
 3. **The boot sector's byte 2** (masked with 0x7F) names the directory cylinder
    on all 76 decoded Model I and 4 disks, and for NEWDOS it's the starting lump.
    It's how the DOS itself finds the directory, and TRSDOS 2.3B kept it even
@@ -966,8 +986,9 @@ SYS0 banner, the boot track and the GAT.
   isn't a granule bitmap at all — it reads `0x25` in every used lump — though
   every file reads cleanly. `73BFRED.DMK` has a PDRIVE `SPT` that doesn't match
   its media.
-- `dospls34.dmk`: the only DOSPLUS disk that allocates side 1, with the directory
-  on side 0 only and SYS10-12 on side 1 of the directory cylinder.
+- `dospls34.dmk`: DOSPLUS allocating side 1, with the directory on side 0 only
+  and SYS10-12 on side 1 of the directory cylinder. `willus/PRODUCER.dmk`
+  (DOSPLUS 3.4) and Cornsoft-Brix `bath4` (DOSPLUS 4.0) do the same.
 - The Cornsoft disks and `DS023.DMK`: double-sided images used single-sided.
   `Cornsoft-Brix-Development-newshell2-bath3.dmk` and `F05 - Monas Main Disk 2.dmk`
   are the reverse, double-sided allocations imaged with one side.
