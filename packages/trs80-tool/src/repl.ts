@@ -81,7 +81,7 @@ export function repl() {
             const isSet = (z80.regs.f & bit) !== 0;
             const wasSet = (before.f & bit) !== 0;
             const changed = isSet !== wasSet;
-            let color = changed ? chalk.whiteBright : chalk.dim;
+            let color = changed ? chalk.bold : chalk.dim;
             if (isSet) {
                 color = color.underline;
             }
@@ -103,7 +103,7 @@ export function repl() {
                 }
 
                 const changed = z80.regs.getValue(reg) !== before.getValue(reg);
-                const color = changed ? chalk.whiteBright : chalk.dim;
+                const color = changed ? chalk.bold : chalk.dim;
 
                 process.stdout.write(color(regLabel + "=" + toHexWord(z80.regs.getValue(reg))) + "  ");
                 if (i % 4 === 3) {

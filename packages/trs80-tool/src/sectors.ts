@@ -131,7 +131,7 @@ function printMap(file: Trs80Floppy) {
     const usedLetters = new Set<string>();
 
     const CHALK_FOR_LETTER: { [letter: string]: ChalkInstance } = {
-        "-": chalk.gray,
+        "-": chalk.dim,
         "?": chalk.red,
         "C": chalk.red,
         "X": chalk.yellow,

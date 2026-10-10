@@ -202,7 +202,7 @@ class TtyScreen extends Trs80Screen {
                 const ch = value >= 128 && value <= 191
                     ? TtyScreen.trs80ToBraille(value)
                     : value < 32 || value >= 127
-                        ? chalk.gray("?")
+                        ? chalk.dim("?")
                         : String.fromCodePoint(value);
 
                 // Draw at location.

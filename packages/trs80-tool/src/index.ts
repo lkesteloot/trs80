@@ -60,7 +60,7 @@ function setColorLevel(levelName: string): void {
 const COLORED_SINK = (level: LogLevel, message: string): void => {
     switch (level) {
         case LogLevel.TRACE:
-            console.log(chalk.gray(message));
+            console.log(chalk.dim(message));
             break;
 
         case LogLevel.INFO:
@@ -137,6 +137,12 @@ function parseBaud(baudString: string | undefined): CassetteSpeed | undefined {
 }
 
 async function main(): Promise<void> {
+    // Chalk doesn't honor NO_COLOR (https://no-color.org), so do it here. Like Node,
+    // let FORCE_COLOR take precedence. The --color option, if given, overrides both.
+    if ((process.env.NO_COLOR ?? "") !== "" && !("FORCE_COLOR" in process.env)) {
+        chalk.level = 0;
+    }
+
     TRS80_MAIN_SINK.delegatedSinks.splice(0);
     // Important that this is first, we might replace it in the run() command. Don't use
     // a batching sink for the terminal, since it won't have a chance to flush its last line.

@@ -1,6 +1,7 @@
 import { withCommas } from "teamten-ts-utils";
 import {expandFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
+import {colorError, colorFilename, colorSize} from "./lscolors.js";
 
 /**
  * Handle the "dir" command.
@@ -34,12 +35,13 @@ function dirFile(inFilename: string, showSystemFiles: boolean): void {
             const filename = inFile.filename;
             const size = inFile.binary.length;
             const parts = [
-                filename.padEnd(maxFilenameLength),
-                withCommas(size).padStart(8) + " ",
+                // Pad separately, since the color codes would throw off padEnd().
+                colorFilename(filename, inFile.trs80File) + " ".repeat(maxFilenameLength - filename.length),
+                colorSize(withCommas(size).padStart(8), size) + " ",
                 ... inFile.getDirExtras(),
             ];
             if (inFile.trs80File.error !== undefined) {
-                parts.push(inFile.trs80File.error);
+                parts.push(colorError(inFile.trs80File.error));
             }
 
             console.log(parts.join(" "));

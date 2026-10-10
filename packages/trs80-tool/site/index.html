@@ -161,6 +161,10 @@
             another program). For example:</p>
             <div><pre><code>% trs80-tool --color=16 hexdump in.cmd | grep 5200</code></pre>
             </div>
+            <p>The tool also honors the <a href="https://no-color.org"><code>NO_COLOR</code></a>
+            and <code>FORCE_COLOR</code> environment variables. The <code>dir</code>
+            command respects the <code>LS_COLORS</code> and
+            <code>EZA_COLORS</code> environment variables.</p>
 
             <p>Like <code>git</code>, the commands that can print a lot (<code>dir</code>,
             <code>info</code>, <code>sectors</code>, <code>hexdump</code>, and <code>disasm</code>)
@@ -168,10 +172,7 @@
             The pager is the <code>TRS80_TOOL_PAGER</code> environment variable if it's set,
             then <code>PAGER</code>, then <code>less</code> (except on Windows, which only pages
             if one of the variables is set). Set it to <code>cat</code> or to an empty string,
-            or use <code>--no-pager</code>, to turn paging off. If <code>LESS</code>
-            isn't set, the tool sets it to <code>FRX</code>, so that <code>less</code> quits right away
-            when the output fits on one screen, shows colors, and doesn't clear the screen
-            when you quit.</p>
+            or use <code>--no-pager</code>, to turn paging off.</p>
 
             <div><pre><code>--trace=MODULE    show trace logs for module (base, emulator, floppy).</code></pre></div>
 

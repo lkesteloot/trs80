@@ -7,6 +7,7 @@ import {
     Trsdos, TrsdosDirEntry, decodeTrs80CassetteFile, decodeTrs80File, decodeTrsdos, getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {ToolError} from "./utils.js";
+import {colorDate} from "./lscolors.js";
 
 /**
  * Information about each input file.
@@ -118,7 +119,7 @@ export class TrsdosInputFile extends InputFile {
 
     public override getDirExtras(): string[] {
         return [
-            this.dirEntry.getFullDateString(),
+            colorDate(this.dirEntry.getFullDateString()),
             trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.version),
         ];
     }

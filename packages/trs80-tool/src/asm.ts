@@ -106,7 +106,7 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
     let errorCount = 0;
     for (const line of asm.assembledLines) {
         if (line.error !== undefined) {
-            console.log(chalk.gray(line.line));
+            console.log(chalk.dim(line.line));
             console.log(chalk.red("error: " + line.error));
             console.log();
             errorCount += 1;
