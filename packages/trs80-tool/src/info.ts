@@ -4,7 +4,7 @@ import {pluralizeWithCount} from "./utils.js";
 import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
-import {decodeTrs80File, decodeTrsdos, Density, isFloppy, TrackGeometry} from "trs80-base";
+import {decodeTrs80File, decodeTrsdos, Density, densityToString, isFloppy, TrackGeometry} from "trs80-base";
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -69,29 +69,31 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                     const trsdos = decodeTrsdos(trs80File);
                     if (trsdos !== undefined) {
                         // Users don't care about system files.
-                        description += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
+                        description += ", " + trsdos.nameAndVersion +
                             " with " + pluralizeWithCount(trsdos.getDirEntries(false).length, "file");
                     }
 
                     if (verbose) {
                         function getTrackGeometryInfo(trackGeometry: TrackGeometry): string {
-                            return [`sectors ${trackGeometry.firstSector} to ${trackGeometry.lastSector}`,
-                                `sides ${trackGeometry.firstSide} to ${trackGeometry.lastSide}`,
-                                `${trackGeometry.density === Density.SINGLE ? "single" : "double"} density`,
-                                `${trackGeometry.sectorSize} bytes per sector`].join(", ");
+                            return [`sectors ${trackGeometry.firstSectorNumber} to ${trackGeometry.lastSectorNumber}`,
+                                `${densityToString(trackGeometry.modalDensity)} density`,
+                                `${trackGeometry.modalSectorSize} bytes per sector`].join(", ");
                         }
 
                         const geometry = trs80File.getGeometry();
-                        const firstTrack = geometry.firstTrack;
-                        const lastTrack = geometry.lastTrack;
-                        if (geometry.hasHomogenousGeometry()) {
-                            verboseLines.push(`Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}, ` +
-                                getTrackGeometryInfo(firstTrack));
+                        if (geometry.homogeneous) {
+                            verboseLines.push(
+                                `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
+                                `${pluralizeWithCount(geometry.sideCount, "side")}`,
+                                `On every track, ` + getTrackGeometryInfo(geometry.bootTrack));
                         } else {
                             verboseLines.push(
-                                `Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}`,
-                                `On track ${firstTrack.trackNumber}, ` + getTrackGeometryInfo(firstTrack),
-                                `On remaining tracks, ` + getTrackGeometryInfo(lastTrack));
+                                `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
+                                `${pluralizeWithCount(geometry.sideCount, "side")}`,
+                                `On the boot track, ` + getTrackGeometryInfo(geometry.bootTrack),
+                                `On most other tracks, ` + [`${geometry.modalDataSectorSpan} sectors`,
+                                    `${densityToString(geometry.modalDataDensity)} density`,
+                                    `${geometry.modalDataSectorSize} bytes per sector`].join(", "));
                         }
 
                         if (trsdos !== undefined) {
@@ -108,6 +110,12 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                                 if (gatInfo.autoCommand !== "") {
                                     verboseLines.push("Auto command: " + gatInfo.autoCommand);
                                 }
+                                if (trsdos.allocationSides < geometry.sideCount) {
+                                    verboseLines.push("Only uses side 0");
+                                }
+                                verboseLines.push(`Directory ${trsdos.lumpTerm}: ${trsdos.dirLumpNumber}`);
+                                verboseLines.push(`Sectors per granule: ${trsdos.sectorsPerGranule}`);
+                                verboseLines.push(`Granules per ${trsdos.lumpTerm}: ${trsdos.granulesPerLump}`);
                             }
                         }
                     }

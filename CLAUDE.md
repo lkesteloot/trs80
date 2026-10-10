@@ -24,7 +24,7 @@ own folder and package name, but none is built on its own:
 ## Commands (from the repo root)
 
     npm install
-    npm run build        # Every package's build, then the type check.
+    npm run build        # The type check, then every package's build.
     npm run typecheck    # Only tsc: fast, and the main correctness check.
     npm test             # z80-asm, z80-disasm, z80-emulator, z80-test. Nothing else has tests.
     npm start -w packages/trs80-ide          # Dev server (also my-trs-80, trs80-cassette-webapp, fp-215).
@@ -55,7 +55,8 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 ## Generated files
 
 - `src/build.ts` in trs80-tool and the three apps is written by `printBuildInfo`
-  on every build and is gitignored.
+  on every build and is gitignored. The root `pretypecheck` script writes them
+  too, since `tsc` needs them and a fresh checkout or worktree has none.
 - `trs80-tool/src/version.ts` comes from the tool's `package.json` version and
   is committed.
 - z80-inst's generator (`npm run generate`) writes `src/Opcodes.ts`, which is committed.
@@ -80,7 +81,51 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **Decoder changes:** after changing floppy decoding (mostly
   `trs80-base/src/Trsdos.ts`), run `node regress.ts run` in that repo. It builds
   this tree first. Accept improvements with `--update`, and commit the snapshots
-  there.
+  there. `--ignore-rejections` hides differences that are only in the reasons
+  each operating system was rejected, which is noisy after rewording them.
+
+## Floppy decoding
+
+- **Format reference:** `packages/trs80-base/FLOPPY_FORMATS.md` holds verified
+  notes on the image formats (JV1, JV3, DMK, SCP), the DOS layouts (TRSDOS 2.3
+  family, TRSDOS 1.3, NEWDOS/80 lumps), the HIT hash and its index layout,
+  cylinder/side conventions, and the quirky disks in the collection. It records
+  what was measured against real disks, so trust it over guesswork.
+- **Manuals:** the user's library of TRS-80 books, with searchable text
+  sidecars, is described in `~/Dropbox/Personal/Books/CLAUDE.md`; read it before
+  searching. The DOS manuals are in `~/Dropbox/Personal/Books/TRS-80/disk/`. Keep
+  their text out of this repo: cite the book and PDF page, and paraphrase.
+- **Known gaps:** `packages/trs80-base/FLOPPY_TODO.md` lists what we've learned
+  that the code doesn't do yet, with evidence disks. When you learn something,
+  put format facts in `FLOPPY_FORMATS.md` and code gaps in `FLOPPY_TODO.md`; when
+  asked what's been learned but isn't in the code, start there.
+- **Positions:** physical sectors are `SectorPosition` (cylinder, side, sector).
+  `FloppyDiskGeometry` describes every sector, plus per-track `TrackGeometry`
+  and modal values taken from side 0 only. It doesn't throw on odd disks:
+  mixed density and garbage address marks are data, not errors.
+- **The lump model.** Every DOS family addresses the disk as (lump, granule,
+  sector), which `Trsdos.logicalToPhysical()` maps to a linear sector index and
+  then to a physical position, as described in `FLOPPY_FORMATS.md`. Outside
+  NEWDOS/80 a lump is a whole cylinder (both allocated sides); `lumpTerm` says
+  which word to show. Only NEWDOS-style lumps skip an odd cylinder 0
+  (`firstDataCylinder`). Allocation sides are the DOS's, not the image's, so
+  never derive them from `geometry.sideCount` alone. `FLOPPY_TODO.md` lists
+  what's left, and how to re-run the verification.
+- **Decoding by score:** `decodeTrsdos()` generates candidate interpretations
+  (layout × directory location) and picks the best score rather than taking the
+  first that parses. The score is mainly HIT hash hits minus misses; negative
+  means "not this". Keep a floor so that unrecognized disks stay undecoded
+  instead of getting a garbage directory: at least one hash hit, or a strict GAT
+  pass for disks with no entries.
+- **Verify structural changes by content, not only by snapshot diffs.** Every
+  disk has a snapshot, but most (all of `disks/peter/`) only record what the
+  decoder produced when they were taken, not what's right, and that's where the
+  exceptions turned up. Judge changes by internal consistency, as described at
+  the end of `FLOPPY_TODO.md`.
+- **SCP is untested.** There are no SCP images in the suite, so that reader
+  compiles but nothing exercises it.
+- **JV1 deleted marks are synthesized** by our reader for track 17, so they must
+  never count as evidence for locating a directory.
 
 ## CI, releases, and deploys
 

@@ -1,15 +1,9 @@
-import { SimpleEventDispatcher } from "strongly-typed-events";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 
 // Determined by the floppy controller.
 export const BYTES_PER_SECTOR = 256;
-
-// Side of a floppy disk.
-export enum Side {
-    FRONT,
-    BACK,
-}
 
 // Whether single density (FM) or double density (MFM).
 export enum Density {
@@ -18,37 +12,152 @@ export enum Density {
 }
 
 /**
- * Convert a number to a side, where 0 maps to FRONT and 1 maps to BACK.
- * Other numbers throw an exception.
+ * A lowercase string for the density.
  */
-export function numberToSide(n: number): Side {
-    switch (n) {
-        case 0:
-            return Side.FRONT;
-
-        case 1:
-            return Side.BACK;
-
-        default:
-            throw new Error("Invalid side number " + n);
+export function densityToString(density: Density): string {
+    switch (density) {
+        case Density.SINGLE: return "single";
+        case Density.DOUBLE: return "double";
     }
 }
 
 /**
- * For side count (1 or 2), provide an array to iterate over for the sides.
+ * Returns the most common value (and its count) of a list of values. If more than one value is tied for max count,
+ * returns the one with the smallest value.
  */
-export const SIDE_COUNT_TO_SIDES: { [sideCount in 1|2]: Side[] } = {
-    1: [Side.FRONT],
-    2: [Side.FRONT, Side.BACK],
-};
+function modeOf(values: number[]): { value: number, count: number } {
+    // Map from value to count.
+    const counts = new Map<number,number>();
+
+    // Count how many of each.
+    for (const value of values) {
+        const count = counts.get(value) ?? 0;
+        counts.set(value, count + 1);
+    }
+
+    // Find the most common one.
+    let modalValue: number | undefined = undefined;
+    let modalCount = 0;
+
+    for (const [value, count] of counts.entries()) {
+        if (modalValue === undefined || count > modalCount || (count === modalCount && value < modalValue)) {
+            modalValue = value;
+            modalCount = count;
+        }
+    }
+
+    if (modalValue === undefined) {
+        throw new Error("Must have at least one value for modeOf()");
+    }
+
+    return { value: modalValue, count: modalCount };
+}
+
+/**
+ * Structure to keep track of a specific track on a disk.
+ */
+export class TrackPosition {
+    /**
+     * A cylinder is the set of all the tracks that are "on top" of one another. On a floppy, a cylinder
+     * will have 1 or 2 tracks. Cylinder numbering is zero-based.
+     */
+    public readonly cylinderNumber: number;
+    /**
+     * Which side this track is on.
+     */
+    public readonly side: number;
+
+    constructor(cylinderNumber: number, side: number) {
+        this.cylinderNumber = cylinderNumber;
+        this.side = side;
+    }
+
+    /**
+     * Whether this position is plausible on a floppy.
+     */
+    public isPlausible(): boolean {
+        return this.cylinderNumber < 100 && this.side <= 1;
+    }
+
+    /**
+     * Generates a string of the form "cylinder:side", like "4:0", usable for error messages
+     * or map keys.
+     */
+    public key(): string {
+        return `${this.cylinderNumber}:${this.side}`;
+    }
+
+    /**
+     * Whether the two track positions point to the same track.
+     */
+    public equals(other: TrackPosition): boolean {
+        return this.cylinderNumber === other.cylinderNumber && this.side === other.side;
+    }
+
+}
 
 /**
  * Structure to keep track of a specific sector position on a disk.
  */
-export interface SectorPosition {
-    trackNumber: number,
-    side: Side,
-    sectorNumber: number
+export class SectorPosition {
+    /**
+     * Which track this sector is on.
+     */
+    public readonly trackPosition: TrackPosition;
+    /**
+     * The sector number within the track. This is numbered from 1 on TRSDOS 1.3-based systems, and from
+     * 0 on the others. (Sectors mark their own numbers on the floppy, so they're labels not indices.)
+     */
+    public readonly sectorNumber: number;
+
+    constructor(trackPosition: TrackPosition, sectorNumber: number) {
+        this.trackPosition = trackPosition;
+        this.sectorNumber = sectorNumber;
+    }
+
+    /**
+     * Convenience factory that takes all three parameters.
+     */
+    public static make(cylinderNumber: number, side: number, sectorNumber: number): SectorPosition {
+        return new SectorPosition(new TrackPosition(cylinderNumber, side), sectorNumber);
+    }
+
+    /**
+     * Convenient property to get the cylinder number from the track.
+     */
+    public get cylinderNumber(): number {
+        return this.trackPosition.cylinderNumber;
+    }
+
+    /**
+     * Convenient property to get the side from the track.
+     */
+    public get side(): number {
+        return this.trackPosition.side;
+    }
+
+    /**
+     * Whether this position is plausible on a floppy.
+     */
+    public isPlausible(): boolean {
+        // Conservative numbers.
+        return this.trackPosition.isPlausible() && this.sectorNumber < 40;
+    }
+
+    /**
+     * Generates a string of the form "cylinder:side:sector", like "4:0:9", usable for error messages
+     * or map keys.
+     */
+    public key(): string {
+        return `${this.trackPosition.key()}:${this.sectorNumber}`;
+    }
+
+    /**
+     * Whether the two sector positions point to the same sector.
+     */
+    public equals(other: SectorPosition): boolean {
+        return this.trackPosition.equals(other.trackPosition) && this.sectorNumber === other.sectorNumber;
+    }
 }
 
 /**
@@ -105,13 +214,13 @@ export class SectorCrc {
 }
 
 /**
- * Data from a sector that was read from a disk.
+ * Data from a sector that was read from a disk, except the data.
  */
-export class SectorData {
+export class SectorInfo {
     /**
-     * The sector's data.
+     * Cylinder number, side, and sector number stored in the IDAM.
      */
-    public data: Uint8Array;
+    public sectorPosition: SectorPosition;
 
     /**
      * Whether the sector data is invalid. This is indicated on the floppy by having a 0xF8 data
@@ -136,204 +245,279 @@ export class SectorData {
     public density: Density;
 
     /**
-     * Track number stored in the IDAM.
+     * Number of bytes in the sector.
      */
-    public trackNumber: number;
+    public sectorSize: number;
 
-    /**
-     * Side stored in the IDAM.
-     */
-    public side: Side;
-
-    /**
-     * Sector number stored in the IDAM.
-     */
-    public sectorNumber: number;
-
-    constructor(data: Uint8Array, density: Density, trackNumber: number, side: Side, sectorNumber: number) {
-        this.data = data;
+    constructor(sectorPosition: SectorPosition, density: Density, sectorSize: number) {
+        this.sectorPosition = sectorPosition;
         this.density = density;
-        this.trackNumber = trackNumber;
-        this.side = side;
-        this.sectorNumber = sectorNumber;
+        this.sectorSize = sectorSize;
     }
 }
 
 /**
- * Geometry of a particular track. This typically applies either to the first track of the floppy, or
- * to the rest of the tracks.
+ * Data from a sector that was read from a disk.
+ */
+export class SectorData extends SectorInfo {
+    /**
+     * The sector's data.
+     */
+    public data: Uint8Array;
+
+    constructor(data: Uint8Array, sectorPosition: SectorPosition, density: Density) {
+        super(sectorPosition, density, data.length);
+        this.data = data;
+    }
+}
+
+/**
+ * What we know about a track (cylinder/side pair) on a floppy.
  */
 export class TrackGeometry {
-    public readonly trackNumber: number;
-    public readonly firstSide: number;
-    public readonly lastSide: number;
-    public readonly firstSector: number;
-    public readonly lastSector: number;
-    public readonly sectorSize: number;
-    public readonly density: Density;
+    public readonly trackPosition: TrackPosition;
+    public readonly firstSectorNumber: number;
+    public readonly lastSectorNumber: number;
+    public readonly modalDensity: Density;
+    public readonly modalSectorSize: number;
 
-    constructor(trackNumber: number, firstSide: number, lastSide: number, firstSector: number, lastSector: number,
-                sectorSize: number, density: Density) {
+    constructor(trackPosition: TrackPosition, firstSectorNumber: number, lastSectorNumber: number,
+                modalDensity: Density, modalSectorSize: number) {
 
-        this.trackNumber = trackNumber;
-        this.firstSide = firstSide;
-        this.lastSide = lastSide;
-        this.firstSector = firstSector;
-        this.lastSector = lastSector;
-        this.sectorSize = sectorSize;
-        this.density = density;
+        this.trackPosition = trackPosition;
+        this.firstSectorNumber = firstSectorNumber;
+        this.lastSectorNumber = lastSectorNumber;
+        this.modalDensity = modalDensity;
+        this.modalSectorSize = modalSectorSize;
     }
 
     /**
-     * Compute the number of sides in this track.
+     * Make the geometry of one track from all of its sectors.
      */
-    public numSides(): number {
-        return this.lastSide - this.firstSide + 1;
+    public static make(sectorInfos: SectorInfo[]): TrackGeometry {
+        if (sectorInfos.length === 0) {
+            throw new Error("Must have at least one sector in a track");
+        }
+        const trackPosition = sectorInfos[0].sectorPosition.trackPosition;
+        if (!sectorInfos.every(info => info.sectorPosition.trackPosition.equals(trackPosition))) {
+            throw new Error("Sectors of a track must all be on that track");
+        }
+
+        const firstSectorNumber = Math.min(... sectorInfos.map(info => info.sectorPosition.sectorNumber));
+        const lastSectorNumber = Math.max(... sectorInfos.map(info => info.sectorPosition.sectorNumber));
+        const modalDensity = modeOf(sectorInfos.map(info => info.density)).value;
+        const modalSectorSize = modeOf(sectorInfos.map(info => info.sectorSize)).value;
+
+        return new TrackGeometry(trackPosition, firstSectorNumber, lastSectorNumber, modalDensity, modalSectorSize);
+    }
+
+    public sectorSpan(): number {
+        return this.lastSectorNumber - this.firstSectorNumber + 1;
     }
 
     /**
-     * Return an array of available sides, in order.
+     * The position of the given sector on this track.
      */
-    public sides(): Side[] {
-        return this.numSides() === 1 ? [Side.FRONT] : [Side.FRONT, Side.BACK];
+    public sectorPosition(sectorNumber: number): SectorPosition {
+        return new SectorPosition(this.trackPosition, sectorNumber);
     }
 
     /**
-     * Compute the number of sectors in this track.
+     * The position of the lowest-numbered sector on this track, which on the boot track is
+     * the boot sector.
      */
-    public numSectors(): number {
-        return this.lastSector - this.firstSector + 1;
+    public firstSectorPosition(): SectorPosition {
+        return this.sectorPosition(this.firstSectorNumber);
     }
 
     /**
-     * Whether the sector number is valid for this track.
+     * The positions of every sector number from the first to the last. That's the range, not
+     * the sectors present: a track can have gaps, so reading some of these may find nothing.
      */
-    public isValidSectorNumber(sectorNumber: number): boolean {
-        return sectorNumber >= this.firstSector && sectorNumber <= this.lastSector;
+    public sectorPositions(): SectorPosition[] {
+        const positions: SectorPosition[] = [];
+        for (let sectorNumber = this.firstSectorNumber; sectorNumber <= this.lastSectorNumber; sectorNumber++) {
+            positions.push(this.sectorPosition(sectorNumber));
+        }
+        return positions;
     }
 
     /**
-     * Whether this track geometry equals the other, ignoring the "trackNumber" field.
+     * Whether the two tracks are laid out alike (sector range, density, and sector size),
+     * wherever they are on the disk.
      */
-    public equalsIgnoringTrack(other: TrackGeometry): boolean {
-        return this.firstSide === other.firstSide &&
-            this.lastSide === other.lastSide &&
-            this.firstSector === other.firstSector &&
-            this.lastSector === other.lastSector &&
-            this.sectorSize === other.sectorSize &&
-            this.density === other.density;
+    public hasSameLayoutAs(other: TrackGeometry): boolean {
+        return this.firstSectorNumber === other.firstSectorNumber &&
+            this.lastSectorNumber === other.lastSectorNumber &&
+            this.modalDensity === other.modalDensity &&
+            this.modalSectorSize === other.modalSectorSize;
     }
+
+    // firstSectorNumber, lastSectorNumber
+    // sectorCount          // distinct sector numbers actually present
+    // sectorSpan           // last - first + 1
+    // density, sectorSize  // modal
+    // mixedDensity, mixedSize: boolean
+    // hasSector(n): boolean
 }
 
 /**
- * A builder to help construct track geometry by giving it sector information one at a time.
- */
-export class TrackGeometryBuilder {
-    private firstSide: number | undefined = undefined;
-    private lastSide: number | undefined = undefined;
-    private firstSector: number | undefined = undefined;
-    private lastSector: number | undefined = undefined;
-    private sectorSize: number | undefined = undefined;
-    private density: Density | undefined = undefined;
-
-    public updateSide(side: number): void {
-        if (this.firstSide === undefined || side < this.firstSide) {
-            this.firstSide = side;
-        }
-        if (this.lastSide === undefined || side > this.lastSide) {
-            this.lastSide = side;
-        }
-    }
-
-    public updateSector(sector: number): void {
-        if (this.firstSector === undefined || sector < this.firstSector) {
-            this.firstSector = sector;
-        }
-        if (this.lastSector === undefined || sector > this.lastSector) {
-            this.lastSector = sector;
-        }
-    }
-
-    public updateSectorSize(sectorSize: number): void {
-        if (this.sectorSize === undefined) {
-            this.sectorSize = sectorSize;
-        } else if (this.sectorSize !== sectorSize) {
-            throw new Error(`Inconsistent sector sizes: ${this.sectorSize} vs. ${sectorSize}`);
-        }
-    }
-
-    public updateDensity(density: Density): void {
-        if (this.density === undefined) {
-            this.density = density;
-        } else if (this.density !== density) {
-            throw new Error(`Inconsistent densities: ${this.density} vs. ${density}`);
-        }
-    }
-
-    public build(trackNumber: number): TrackGeometry {
-        if (this.firstSide === undefined || this.lastSide === undefined ||
-            this.firstSector === undefined || this.lastSector === undefined ||
-            this.sectorSize === undefined || this.density === undefined) {
-
-            throw new Error("Track geometry is not fully initialized (" +
-                this.firstSide + ", " + this.lastSide + ", " + this.firstSector + ", " + this.lastSector + ", " +
-                this.sectorSize + ", " + this.density + ")");
-        }
-
-        return new TrackGeometry(trackNumber,
-            this.firstSide, this.lastSide,
-            this.firstSector, this.lastSector,
-            this.sectorSize, this.density);
-    }
-}
-
-/**
- * Describes the geometry of the floppy disk. Sometimes the first track has different geometry than
- * the rest, so these are split out.
+ * Information about the physical layout of tracks, sides, and sectors on a floppy.
  */
 export class FloppyDiskGeometry {
-    public readonly firstTrack: TrackGeometry;
-    // The track number is that of the last track, but the other parameters apply to all non-first tracks:
-    public readonly lastTrack: TrackGeometry;
+    public readonly cylinderCount: number;
+    public readonly sideCount: number;
+    public readonly sectorInfos: SectorInfo[];
+    // Map from SectorPosition key to SectorInfo.
+    public readonly sectorMap = new Map<string,SectorInfo>();
+    // Map from TrackPosition key to TrackGeometry.
+    public readonly trackMap = new Map<string,TrackGeometry>();
+    // These include all tracks, and are useful when displaying a table of sectors.
+    public readonly firstSectorNumber: number;
+    public readonly lastSectorNumber: number;
+    // Information about the boot track (cylinder 0 side 0).
+    public readonly bootTrack: TrackGeometry;
+    // Most common values across the side 0 tracks other than the boot track.
+    public readonly modalDataDensity: Density;
+    public readonly modalDataSectorSize: number;
+    public readonly modalDataSectorSpan: number;
+    // Whether all tracks on side 0 have the same geometry.
+    public readonly homogeneous: boolean;
+    // Whether cylinder 0 has different density or number of sectors than most other tracks.
+    public readonly cylinder0Differs: boolean;
 
-    constructor(firstTrack: TrackGeometry, lastTrack: TrackGeometry) {
-        this.firstTrack = firstTrack;
-        this.lastTrack = lastTrack;
+    // hasCylinder(n), getSectorInfo(position)
+    // isHomogeneous()           // every track matches dataTrack
+
+    constructor(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[]) {
+        this.cylinderCount = cylinderCount;
+        this.sideCount = sideCount;
+        this.sectorInfos = sectorInfos;
+
+        // Track position key to list of sectors on that track.
+        const trackSectorList = new Map<string,SectorInfo[]>();
+
+        for (const sectorInfo of sectorInfos) {
+            this.sectorMap.set(sectorInfo.sectorPosition.key(), sectorInfo);
+
+            const trackKey = sectorInfo.sectorPosition.trackPosition.key();
+            let sectorList = trackSectorList.get(trackKey);
+            if (sectorList === undefined) {
+                sectorList = [];
+                trackSectorList.set(trackKey, sectorList);
+            }
+            sectorList.push(sectorInfo);
+        }
+
+        // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
+        // below are computed from these, so that a disk whose second side is garbage (or holds a
+        // different file system, as MultiDOS disks do) still reports the geometry that matters.
+        const side0Tracks: TrackGeometry[] = [];
+
+        for (const [trackKey, sectors] of trackSectorList.entries()) {
+            const trackGeometry = TrackGeometry.make(sectors);
+            this.trackMap.set(trackKey, trackGeometry);
+            if (trackGeometry.trackPosition.side === 0) {
+                side0Tracks.push(trackGeometry);
+            }
+        }
+
+        const bootTrack = this.getTrack(new TrackPosition(0, 0));
+        if (bootTrack === undefined) {
+            throw new Error("Disk has no track 0 on side 0");
+        }
+        this.bootTrack = bootTrack;
+
+        // Every sector belongs to a track, so the min and max over the tracks are the min and max
+        // over the whole disk. We have at least one track, since we just found the boot track.
+        const tracks = [... this.trackMap.values()];
+        this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
+        this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
+
+        // Only look at side 0 tracks. Sometimes track 1 is garbage or leftover from a previous format.
+        const dataTracks = side0Tracks.filter(track => track !== bootTrack);
+        this.modalDataDensity = modeOf(dataTracks.map(track => track.modalDensity)).value;
+        this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
+        this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
+        this.homogeneous = dataTracks.every(track => track.hasSameLayoutAs(bootTrack));
+        this.cylinder0Differs = bootTrack.modalDensity !== this.modalDataDensity || bootTrack.sectorSpan() !== this.modalDataSectorSpan;
     }
 
     /**
-     * The number of tracks on this floppy.
+     * The geometry of the track at the given position, or undefined if the disk has no sectors there.
      */
-    public numTracks(): number {
-        return this.lastTrack.trackNumber - this.firstTrack.trackNumber + 1;
+    public getTrack(trackPosition: TrackPosition): TrackGeometry | undefined {
+        return this.trackMap.get(trackPosition.key());
     }
 
     /**
-     * The number of sides on this floppy.
+     * Returns a track position that's been advanced "advanceCount" times by one track. Takes into account
+     * disk geometry. The specified DOS side count can be less than the physical side count, which is useful for
+     * operating systems that only support one side but happen to be on a double-sided floppy. Returns undefined
+     * if it goes past the end of the disk.
      */
-    public numSides(): number {
-        return Math.max(this.firstTrack.numSides(), this.lastTrack.numSides());
+    public advanceTrackPosition(trackPosition: TrackPosition, dosSideCount: number, advanceCount: number): TrackPosition | undefined {
+        const sideCount = Math.min(this.sideCount, dosSideCount);
+        let cylinderNumber = trackPosition.cylinderNumber;
+        let side = trackPosition.side;
+
+        for (let i = 0; i < advanceCount; i++) {
+            if (side < sideCount - 1) {
+                // Move to the next side.
+                side += 1;
+            } else {
+                // Else go to side 0 of the next cylinder.
+                cylinderNumber += 1;
+                side = 0;
+            }
+        }
+
+        // TODO is this legit for lumps?
+        return cylinderNumber >= this.cylinderCount ? undefined : new TrackPosition(cylinderNumber, side);
     }
 
     /**
-     * Get the track geometry for the specified track.
+     * Returns a sector position that's been advanced "advanceCount" times by one sector. Takes into account
+     * disk geometry. The specified DOS side count can be less than the physical side count, which is useful for
+     * operating systems that only support one side but happen to be on a double-sided floppy. Returns undefined
+     * if it goes past the end of the disk.
      */
-    public getTrackGeometry(trackNumber: number): TrackGeometry {
-        return trackNumber === this.firstTrack.trackNumber ? this.firstTrack : this.lastTrack;
-    }
+    public advanceSectorPosition(sectorPosition: SectorPosition, dosSideCount: number, advanceCount: number): SectorPosition | undefined {
+        // Get track info.
+        let trackPosition = sectorPosition.trackPosition;
+        let trackGeometry = this.getTrack(trackPosition);
+        if (trackGeometry === undefined) {
+            return undefined;
+        }
 
-    /**
-     * Whether this track number is in a valid range for this floppy.
-     */
-    public isValidTrackNumber(trackNumber: number): boolean {
-        return trackNumber >= this.firstTrack.trackNumber && trackNumber <= this.lastTrack.trackNumber;
-    }
+        let sectorNumber = sectorPosition.sectorNumber;
 
-    /**
-     * Whether the first and subsequent tracks have the same geometry.
-     */
-    public hasHomogenousGeometry(): boolean {
-        return this.firstTrack.equalsIgnoringTrack(this.lastTrack);
+        for (let i = 0; i < advanceCount; i++) {
+            // Advance sector number.
+            sectorNumber += 1;
+
+            // Check if past the end of the sectors on this track.
+            if (sectorNumber > trackGeometry.lastSectorNumber) {
+                const newTrackPosition = this.advanceTrackPosition(trackPosition, dosSideCount, 1);
+                if (newTrackPosition === undefined) {
+                    // Past the end of the disk.
+                    return undefined;
+                }
+
+                // Fetch new track info.
+                trackPosition = newTrackPosition;
+                trackGeometry = this.getTrack(trackPosition);
+                if (trackGeometry === undefined) {
+                    // Past the end of the disk.
+                    return undefined;
+                }
+
+                // First sector on the new track.
+                sectorNumber = trackGeometry.firstSectorNumber;
+            }
+        }
+
+        return new SectorPosition(trackPosition, sectorNumber);
     }
 }
 
@@ -360,8 +544,12 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     public readonly supportsDoubleDensity: boolean;
     public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
     protected mountedWriteProtected = false;
+    // Cache for getBootTrackText(), cleared when the disk is written.
+    private bootTrackText: string | undefined = undefined;
 
-    protected constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
+    protected constructor(binary: Uint8Array,
+                          error: string | undefined,
+                          annotations: ProgramAnnotation[],
                           supportsDoubleDensity: boolean) {
 
         super(binary, error, annotations);
@@ -369,7 +557,7 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     }
 
     /**
-     * Get the geometry of the floppy.
+     * Get the geometry of the floppy. Subclasses should cache this, it may be called often.
      */
     public abstract getGeometry(): FloppyDiskGeometry;
 
@@ -392,23 +580,38 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     }
 
     /**
-     * Read a sector on the specified track, side, and sector.
+     * Read a sector at the specified position.
      *
-     * @param trackNumber the track the sector resides on.
-     * @param side the side the sector resides on.
-     * @param sectorNumber the sector on the track, or undefined to choose any sector on the track.
      * @return the sector, or undefined if an error occurs.
      */
-    public abstract readSector(trackNumber: number, side: Side,
-                               sectorNumber: number | undefined): SectorData | undefined;
+    public abstract readSector(sectorPosition: SectorPosition): SectorData | undefined;
 
     /**
-     * Write a sector to the specified track, side, and sector. Throw an exception
+     * The contents of the boot track as Latin-1 text, one character per byte, for finding strings that
+     * FORMAT wrote there, such as the DOS's name. Sectors that can't be read are skipped.
+     */
+    public getBootTrackText(): string {
+        if (this.bootTrackText === undefined) {
+            let text = "";
+            for (const sectorPosition of this.getGeometry().bootTrack.sectorPositions()) {
+                const data = this.readSector(sectorPosition)?.data;
+                if (data !== undefined) {
+                    for (const b of data) {
+                        text += String.fromCharCode(b);
+                    }
+                }
+            }
+            this.bootTrackText = text;
+        }
+
+        return this.bootTrackText;
+    }
+
+    /**
+     * Write a sector to the specified position. Throw an exception
      * if writing is not supported, so check first with isWriteProtected().
      */
-    public writeSector(trackNumber: number, side: Side,
-                       sectorNumber: number, data: SectorData): void {
-
+    public writeSector(_sectorPosition: SectorPosition, _data: SectorData): void {
         throw new Error(this.className + " does not support writing");
     }
 
@@ -431,6 +634,7 @@ export abstract class FloppyDisk extends AbstractTrs80File {
      */
     protected write(floppyWrite: FloppyWrite): void {
         this.binary.set(floppyWrite.data, floppyWrite.offset);
+        this.bootTrackText = undefined;
         this.onWrite.dispatch(floppyWrite);
     }
 }

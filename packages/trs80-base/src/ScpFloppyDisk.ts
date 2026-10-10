@@ -11,8 +11,9 @@ import {
     FloppyDiskGeometry,
     SectorCrc,
     SectorData,
-    Side,
-    TrackGeometryBuilder
+    SectorInfo,
+    SectorPosition,
+    TrackPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {CRC_16_CCITT} from "./Crc16.js";
@@ -162,14 +163,12 @@ class ScpRev {
 class ScpTrack {
     // Offset of start of track into binary.
     public readonly offset: number;
-    public readonly trackNumber: number;
-    public readonly side: Side;
+    public readonly trackPosition: TrackPosition;
     public readonly revs: ScpRev[];
 
-    constructor(offset: number, trackNumber: number, side: Side, revs: ScpRev[]) {
+    constructor(offset: number, trackPosition: TrackPosition, revs: ScpRev[]) {
         this.offset = offset;
-        this.trackNumber = trackNumber;
-        this.side = side;
+        this.trackPosition = trackPosition;
         this.revs = revs;
     }
 }
@@ -195,45 +194,33 @@ export class ScpFloppyDisk extends FloppyDisk {
 
     getGeometry(): FloppyDiskGeometry {
         if (this.geometry === undefined) {
-            const firstTrackBuilder = new TrackGeometryBuilder();
-            const lastTrackBuilder = new TrackGeometryBuilder();
+            const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.cylinderNumber)) + 1;
+            const sideCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.side)) + 1;
 
-            // First compute track span.
-            let firstTrack = 999;
-            let lastTrack = 0;
-            for (const track of this.tracks) {
-                firstTrack = Math.min(firstTrack, track.trackNumber);
-                lastTrack = Math.max(lastTrack, track.trackNumber);
-            }
+            // Where each sector physically is, which is what the geometry describes.
+            const sectorInfos = this.tracks.flatMap(track =>
+                track.revs[DEFAULT_REV_NUMBER].sectors.map(sector =>
+                    new SectorInfo(new SectorPosition(track.trackPosition, sector.getSectorNumber()),
+                        sector.getDensity(), sector.getLength())));
 
-            // Then other geometry.
-            for (const track of this.tracks) {
-                const builder = track.trackNumber === firstTrack ? firstTrackBuilder : lastTrackBuilder;
-                builder.updateSide(track.side);
-                for (const sector of track.revs[DEFAULT_REV_NUMBER].sectors) {
-                    builder.updateSector(sector.getSectorNumber());
-                    builder.updateSectorSize(sector.getLength());
-                    builder.updateDensity(sector.getDensity());
-                }
-            }
-
-            this.geometry = new FloppyDiskGeometry(
-                firstTrackBuilder.build(firstTrack),
-                lastTrackBuilder.build(lastTrack));
+            this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
         }
 
         return this.geometry;
     }
 
-    readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
+    readSector(sectorPosition: SectorPosition): SectorData | undefined {
         for (const track of this.tracks) {
-            if (track.trackNumber === trackNumber && track.side === side) {
+            if (track.trackPosition.equals(sectorPosition.trackPosition)) {
                 const rev = track.revs[DEFAULT_REV_NUMBER];
 
                 for (const sector of rev.sectors) {
-                    if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
-                        const sectorData = new SectorData(sector.getData(), sector.getDensity(),
-                            sector.getTrackNumber(), sector.getSideNumber(), sector.getSectorNumber());
+                    if (sector.getSectorNumber() === sectorPosition.sectorNumber) {
+                        // What the sector says about itself, which can differ from where it physically is.
+                        const logicalSectorPosition = SectorPosition.make(sector.getTrackNumber(),
+                            sector.getSideNumber(), sector.getSectorNumber());
+                        const sectorData = new SectorData(sector.getData(), logicalSectorPosition,
+                            sector.getDensity());
                         sectorData.crc = new SectorCrc(
                             new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
                             new CrcInfo(sector.getDataCrc(), sector.computeDataCrc()));
@@ -563,9 +550,10 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
     }
 
     // Number of the track.
-    const scpTrackNumber = binary[trackOffset + 3];
-    const trackNumber = Math.floor(scpTrackNumber / 2);
-    const side = scpTrackNumber % 2 === 0 ? Side.FRONT : Side.BACK;
+    const trackNumber = binary[trackOffset + 3];
+    const cylinderNumber = Math.floor(trackNumber / 2);
+    const side = trackNumber % 2;
+    const trackPosition = new TrackPosition(cylinderNumber, side);
 
     let offset = trackOffset + 4;
     const revs: ScpRev[] = [];
@@ -577,17 +565,17 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
         const revOffset = parseInteger(binary, offset, 4) + trackOffset;
         offset += 4;
 
-        // console.log(scpTrackNumber, revDurationNs, 60e9/revDurationNs, numBitcells, revOffset);
+        // console.log(trackNumber, revDurationNs, 60e9/revDurationNs, numBitcells, revOffset);
 
-        const scpRev = parseRev(binary, revOffset, numBitcells, resolutionTimeNs, rev, trackNumber);
+        const scpRev = parseRev(binary, revOffset, numBitcells, resolutionTimeNs, rev, cylinderNumber);
         if (scpRev === undefined) {
-            if (DEBUG) console.log("SCP: Can't parse rev " + rev + " for track " + scpTrackNumber);
+            if (DEBUG) console.log("SCP: Can't parse rev " + rev + " for track " + trackNumber);
             return undefined;
         }
         revs.push(scpRev);
     }
 
-    return new ScpTrack(trackOffset, trackNumber, side, revs);
+    return new ScpTrack(trackOffset, trackPosition, revs);
 }
 
 /**

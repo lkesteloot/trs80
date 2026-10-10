@@ -51,7 +51,7 @@ export function mount(diskfile: string, commands: string[]): void {
     if (VERBOSE) {
         // Users don't care about system files.
         console.log("Mounted \"" + diskfile + "\", " +
-            trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
+            trsdos.nameAndVersion +
             " with " + pluralizeWithCount(trsdos.getDirEntries(false).length, "file"));
     }
 

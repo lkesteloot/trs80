@@ -581,21 +581,6 @@ const GLYPH_CG4 = [
 ];
 
 /**
- * Options when rasterizing each glyph.
- */
-export interface GlyphOptions {
-    /**
-     * RGB (0-255) of "on" pixels.
-     */
-    color: number[];
-
-    /**
-     * Whether to draw fake scanlines.
-     */
-    scanLines: boolean;
-}
-
-/**
  * Class representing a font and able to generate its glyphs.
  */
 export class Font {
@@ -607,95 +592,12 @@ export class Font {
     public readonly height: number;
     // Index of each 64-character bank, or -1 for graphics characters.
     private readonly banks: number[];
-    // Cache from glyph key (see makeImage()) to the canvas element for it.
-    private readonly glyphCache = new Map<string,HTMLCanvasElement>();
 
     constructor(bits: number[], width: number, height: number, banks: number[]) {
         this.bits = bits;
         this.width = width;
         this.height = height;
         this.banks = banks;
-    }
-
-    /**
-     * Make a bitmap for the specified character (0-255). "on" pixels are the
-     * specified color, "off" pixels are fully transparent.
-     */
-    public makeImage(char: number, expanded: boolean, options: GlyphOptions): HTMLCanvasElement {
-        const key = {
-            char: char,
-            expanded: expanded,
-            options: options,
-        };
-        const stringKey = JSON.stringify(key);
-
-        // Cache the glyph since we create a set of these for each created canvas.
-        let glyph = this.glyphCache.get(stringKey);
-        if (glyph === undefined) {
-            glyph = this.makeImageInternal(char, expanded, options);
-            this.glyphCache.set(stringKey, glyph);
-        }
-
-        return glyph;
-    }
-
-    /**
-     * Actually creates the glyph.
-     */
-    private makeImageInternal(char: number, expanded: boolean, options: GlyphOptions): HTMLCanvasElement {
-        const canvas = document.createElement("canvas");
-        let expandedMultiplier = expanded ? 2 : 1;
-        canvas.width = this.width*expandedMultiplier;
-        canvas.height = this.height;
-
-        const ctx = canvas.getContext("2d");
-        if (ctx === null) {
-            throw new Error("2d context not supported");
-        }
-        const imageData = ctx.createImageData(canvas.width, canvas.height);
-
-        // Light pixel at (x,y) in imageData if bit "bit" of "byte" is on.
-        const lightPixel = (x: number, y: number, byte: number, bit: number): void => {
-            const pixel = (byte & (1 << bit)) !== 0;
-            if (pixel) {
-                const pixelOffset = (y * canvas.width + x) * 4;
-                const alpha = options.scanLines ? (y % 2 == 0 ? 0xFF : 0xAA) : 0xFF;
-
-                imageData.data[pixelOffset + 0] = options.color[0];
-                imageData.data[pixelOffset + 1] = options.color[1];
-                imageData.data[pixelOffset + 2] = options.color[2];
-                imageData.data[pixelOffset + 3] = alpha;
-            }
-        };
-
-        const bankOffset = this.banks[Math.floor(char/64)];
-        if (bankOffset === -1) {
-            // Graphical character.
-            const byte = char%64;
-            for (let y = 0; y < canvas.height; y++) {
-                const py = Math.floor(y/(canvas.height/3));
-                for (let x = 0; x < canvas.width; x++) {
-                    const px = Math.floor(x/(canvas.width/2));
-                    const bit = py*2 + px;
-                    lightPixel(x, y, byte, bit);
-                }
-            }
-        } else {
-            // Bitmap character.
-            const charOffset = bankOffset + char % 64;
-            const byteOffset = charOffset * 12;
-
-            for (let y = 0; y < canvas.height; y++) {
-                const byte = this.bits[byteOffset + Math.floor(y / 2)];
-                for (let x = 0; x < canvas.width; x++) {
-                    lightPixel(x, y, byte, Math.floor(x/expandedMultiplier));
-                }
-            }
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-
-        return canvas;
     }
 
     /**
