@@ -1,10 +1,11 @@
 import { withCommas } from "teamten-ts-utils";
 import {expandFile} from "./InputFile.js";
+import {pagerYield} from "./pager.js";
 
 /**
  * Handle the "dir" command.
  */
-export function dir(inFilenames: string[], showSystemFiles: boolean): void {
+export async function dir(inFilenames: string[], showSystemFiles: boolean): Promise<void> {
     const multipleInputFiles = inFilenames.length > 1;
     let firstFile = true;
 
@@ -17,6 +18,7 @@ export function dir(inFilenames: string[], showSystemFiles: boolean): void {
         }
         dirFile(inFilename, showSystemFiles);
         firstFile = false;
+        await pagerYield();
     }
 }
 

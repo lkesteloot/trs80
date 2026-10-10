@@ -255,6 +255,10 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock<any>[] = [
                 label: "Level 2",
                 value: BasicLevel.LEVEL2,
             },
+            {
+                label: "Compiled",
+                value: BasicLevel.COMPILED,
+            },
         ]
     },
     {

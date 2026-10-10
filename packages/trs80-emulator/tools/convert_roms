@@ -35,5 +35,6 @@ def convertRom(romFilename, tsFilename, variableName):
 convertRom("roms/model1-level1.rom", "src/Model1Level1Rom.ts", "model1Level1Rom")
 convertRom("roms/model1-level2.rom", "src/Model1Level2Rom.ts", "model1Level2Rom")
 convertRom("roms/model3.rom", "src/Model3Rom.ts", "model3Rom")
+convertRom("roms/model3-compiled.rom", "src/Model3CompiledRom.ts", "model3CompiledRom")
 convertRom("roms/model4.hex", "src/Model4Rom.ts", "model4Rom")
 

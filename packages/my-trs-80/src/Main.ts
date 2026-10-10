@@ -1,4 +1,4 @@
-import {Config, RunningState, Trs80} from "trs80-emulator";
+import {RunningState, Trs80} from "trs80-emulator";
 import {
     BasicEditor,
     CanvasScreen,

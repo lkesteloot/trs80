@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import chalk from "chalk";
-import {pluralizeWithCount} from "./utils.js";
+import {pluralizeWithCount, ToolError} from "./utils.js";
 import {Z80_KNOWN_LABELS, toHex, toHexWord } from "z80-base";
 import { asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary } from "trs80-asm";
 import {Asm, FileSystem} from "z80-asm";
@@ -115,15 +115,13 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
 
     // Don't generate output if we have errors.
     if (errorCount !== 0) {
-        console.log(pluralizeWithCount(errorCount, "error"));
-        process.exit(1);
+        throw new ToolError(pluralizeWithCount(errorCount, "error"));
     }
 
     // Guess the entry point if necessary.
     const { entryPoint, guessed } = asm.getEntryPoint();
     if (entryPoint === undefined) {
-        console.log("No entry point specified");
-        process.exit(1);
+        throw new ToolError("No entry point specified");
     }
 
     if (guessed) {

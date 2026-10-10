@@ -18,6 +18,8 @@ import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
 import {LogLevel, LogSink, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
 import { CassetteSpeed } from "trs80-base";
+import {ToolError} from "./utils.js";
+import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -106,6 +108,19 @@ function makeFileLogSink(pathname: string): LogSink {
 }
 
 /**
+ * Wrap a command's action so that its output goes to a pager, unless the user
+ * turned that off with --no-pager. See pager.ts.
+ */
+function paged<T extends any[]>(action: (...args: T) => void | Promise<void>): (...args: T) => Promise<void> {
+    return async (...args: T) => {
+        if (program.opts().pager) {
+            startPager();
+        }
+        await action(...args);
+    };
+}
+
+/**
  * Parse a baud rate string into a speed.
  */
 function parseBaud(baudString: string | undefined): CassetteSpeed | undefined {
@@ -115,14 +130,13 @@ function parseBaud(baudString: string | undefined): CassetteSpeed | undefined {
     const baud = parseInt(baudString);
     const speed = CassetteSpeed.fromNominalBaud(baud);
     if (speed === undefined) {
-        console.log("Baud rate must be 250, 500, or 1500: " + baud);
-        process.exit(1);
+        throw new ToolError("Baud rate must be 250, 500, or 1500: " + baud);
     }
 
     return speed;
 }
 
-function main() {
+async function main(): Promise<void> {
     TRS80_MAIN_SINK.delegatedSinks.splice(0);
     // Important that this is first, we might replace it in the run() command. Don't use
     // a batching sink for the terminal, since it won't have a chance to flush its last line.
@@ -144,24 +158,24 @@ function main() {
             .argParser(moduleName => {
                 const moduleLogger = TRS80_MODULE_NAME_TO_LOGGER[moduleName];
                 if (moduleLogger === undefined) {
-                    console.log("Unknown logger module: " + moduleName);
-                    process.exit(1);
+                    throw new ToolError("Unknown logger module: " + moduleName);
                 }
                 moduleLogger.minLevel = LogLevel.TRACE;
             }))
         .addOption(new Option("--log-file <pathname>", "write logs to the specified file")
             .argParser(pathname => {
                 TRS80_MAIN_SINK.delegatedSinks.push(makeFileLogSink(pathname));
-            }));
+            }))
+        .option("--no-pager", "don't send output to a pager");
     program
         .command("dir <infiles...>")
         .description("list files in the infiles", {
             infiles: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
         })
         .option("--system", "include floppy system files")
-        .action((infiles, options) => {
-            dir(infiles, options.system);
-        });
+        .action(paged(async (infiles, options) => {
+            await dir(infiles, options.system);
+        }));
     program
         .command("info <infiles...>")
         .description("show information about each file", {
@@ -169,9 +183,9 @@ function main() {
         })
         .option("--verbose", "output more information about each file")
         .option("--json", "output a detailed JSON report, for regression testing")
-        .action((infiles, options) => {
-            info(infiles, options.verbose, options.json);
-        });
+        .action(paged(async (infiles, options) => {
+            await info(infiles, options.verbose, options.json);
+        }));
     program
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
@@ -188,8 +202,7 @@ function main() {
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
             const includeSystemFiles = options.system;
             if (files.length < 2) {
-                console.log("Must specify at least one infile and exactly one outfile");
-                process.exit(1);
+                throw new ToolError("Must specify at least one infile and exactly one outfile");
             }
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
@@ -213,20 +226,21 @@ function main() {
         })
         .option("--contents", "show the contents of the sectors")
         .option("--bad", "show only the bad sectors and their files")
-        .action((infiles, options) => {
+        .action(paged(async (infiles, options) => {
             for (const infile of infiles) {
                 sectors(infile, options.contents, options.bad);
+                await pagerYield();
             }
-        });
+        }));
     program
         .command("hexdump <infile>")
         .description("display an annotated hexdump of infile", {
             infile: "WAV, CAS, CMD, 3BN, BAS, JV1, JV3, or DMK",
         })
         .option("--no-collapse", "collapse consecutive identical lines")
-        .action((infile, options) => {
+        .action(paged((infile, options) => {
             hexdump(infile, options.collapse);
-        });
+        }));
     program
         .command("asm <infile> <outfile>")
         .description("assemble a program", {
@@ -255,18 +269,17 @@ function main() {
         .option("--data-comment", "add comments for each instruction as ASCII")
         .option("--hex-format <format>", "format for hex numbers: c for 0x12, dollar for $12, and h for 12h",
             "c")
-        .action((infile, options) => {
+        .action(paged((infile, options) => {
             const org = options.org === undefined ? undefined : parseInt(options.org);
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
             const hexFormatString = options.hexFormat as string;
             if (hexFormatString !== "c" && hexFormatString !== "dollar" && hexFormatString !== "h") {
-                console.log("Invalid hex format: " + hexFormatString);
-                process.exit(1);
+                throw new ToolError("Invalid hex format: " + hexFormatString);
             }
             const hexFormat = hexFormatString === "c" ? HexFormat.C : hexFormatString === "dollar" ? HexFormat.DOLLAR : HexFormat.H;
             disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat,
                 options.upper, options.full, options.dataComment);
-        });
+        }));
     program
         .command("mcp")
         .description("run an MCP server on stdio, for driving the emulator from an AI assistant")
@@ -291,18 +304,15 @@ function main() {
 
             const modelType = modelTypeFromString(modelName);
             if (modelType === undefined) {
-                console.log("Invalid model: " + modelName);
-                process.exit(1);
+                throw new ToolError("Invalid model: " + modelName);
             }
             const basicLevel = basicLevelFromString(levelName);
             if (basicLevel === undefined) {
-                console.log("Invalid Basic level: " + levelName);
-                process.exit(1);
+                throw new ToolError("Invalid Basic level: " + levelName);
             }
 
             if (basicLevel === BasicLevel.LEVEL1 && modelType !== ModelType.MODEL1) {
-                console.log("Can only run Level 1 Basic with Model I");
-                process.exit(1);
+                throw new ToolError("Can only run Level 1 Basic with Model I");
             }
 
             const config = Config.makeDefault()
@@ -312,8 +322,7 @@ function main() {
                 .build();
             if (!config.isValid()) {
                 // Kinda generic!
-                console.log("Invalid model and Basic level configuration");
-                process.exit(1);
+                throw new ToolError("Invalid model and Basic level configuration");
             }
 
             run(program, options.mount ?? [], options.xray, options.writeProtected, config, printerPathname);
@@ -324,8 +333,25 @@ function main() {
         .action(() => {
             repl();
         });
-    program
-        .parse();
+
+    let error: unknown = undefined;
+    try {
+        await program.parseAsync();
+    } catch (e) {
+        if (e instanceof ToolError) {
+            console.log(e.message);
+            process.exitCode = 1;
+        } else if (!(e instanceof PagerClosedError)) {
+            error = e;
+        }
+    }
+
+    // Wait for the user to quit the pager, if any.
+    await stopPager();
+
+    if (error !== undefined) {
+        throw error;
+    }
 }
 
 main();
