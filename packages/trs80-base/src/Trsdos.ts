@@ -421,7 +421,11 @@ export class TrsdosGatInfo {
         const expectedValue = version === TrsdosVersion.V1_3 ? 0x00 : mask;
 
         for (let lump = 0; lump < lumpCount; lump++) {
+            // The GAT holds at most a sector's worth of lumps, so a candidate with more is wrong.
             const g = this.gat[lump];
+            if (g === undefined) {
+                return false;
+            }
             if ((g & mask) !== expectedValue) {
                 TRS80_BASE_LOGGER.trace("GAT: high bits are not correct: 0x" + toHexByte(g) +
                     " lump " + lump + " with " + granulesPerLump + " granules per lump");
@@ -438,6 +442,12 @@ export class TrsdosGatInfo {
  */
 function decodeGatInfo(binary: Uint8Array, lumpCount: number,
                        geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
+
+    // Its fields run to the end of a 256-byte sector. Disks with smaller sectors (CP/M's 128,
+    // for example) aren't any of these DOSes, and reading past the end would give undefined bytes.
+    if (binary.length < BYTES_PER_SECTOR) {
+        return `sector has only ${binary.length} bytes`;
+    }
 
     // One byte for each lump. Each bit is a granule, 0 means free and 1 means used.
     const gat = binary.subarray(0, lumpCount);

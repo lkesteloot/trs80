@@ -222,10 +222,10 @@ enough to rebuild them.
 
 ## Where things stand
 
-October 10, 2026, after merging `newdos80` into `floppy-decode`: the regression
-suite has 288 disks, every one with a sidecar and a snapshot, and all of them
-match (`node regress.ts run` is all `same`). 238 decode. Most of the 50 that
-don't are in `peter/`: the 20 Percom disks and the six TRSDOS 6 disks whose HIT
+October 11, 2026, after the 3.0.0 release: the regression suite has 289 disks,
+every one with a sidecar and a snapshot, and all of them match (`node
+regress.ts run` is all `same`). 238 decode. Most of the 51 that don't are in
+`peter/`: the 20 Percom disks and the six TRSDOS 6 disks whose HIT
 holds file data (see "Unresolved disks"), four with garbage directory slots
 (see that item), two with damaged directories, and a truncated DMK. `node
 regress.ts list` shows each disk's notes.

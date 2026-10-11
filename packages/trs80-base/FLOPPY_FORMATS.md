@@ -981,11 +981,14 @@ entirely untested.
 
 ## Disks worth remembering
 
-As of October 2026 the collection is 288 images: 266 DMK, 13 DSK, 5 JV1, 4 JV3,
+As of October 2026 the collection is 289 images: 267 DMK, 13 DSK, 5 JV1, 4 JV3,
 all with sidecars and snapshots. The biggest part is `peter/` (152): Ira's set
 of disks that trsread and trstools couldn't read but VDISK could (see its
 `README.md`). Thirteen byte-identical copies were removed when it was added,
-and their names kept as aliases.
+and their names kept as aliases. `quentin/` holds disks from Quentin Barnes;
+its first, `DISK-take3.dmk`, has 128-byte sectors (a CP/M-style layout, not a
+TRS-80 DOS) and made 3.0.0 throw, because the GAT sector was shorter than the
+lump count.
 
 **`willus/`** holds 25 disks picked from willus.com's archive of TRS-80
 software (`~/Dropbox/Personal/willus.com/trs80`, about 15,500 DMK files). Most
