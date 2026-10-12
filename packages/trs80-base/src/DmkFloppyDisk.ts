@@ -762,11 +762,15 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const alwaysUseStride1 = singleDensity || ignoreDensity;
     annotations.push(new ProgramAnnotation("Flags: [" + flagParts.join(",") + "]", 4, 5));
 
-    // Sanity check.
+    // Some writers leave off trailing tracks, such as the unformatted back of a single-sided
+    // disk in a double-sided image. Read the whole tracks that are there, and treat the
+    // rest as unformatted.
     const sideCount = singleSided ? 1 : 2;
-    const expectedLength = FILE_HEADER_SIZE + sideCount*trackCount*trackLength;
-    if (binary.length < expectedLength) {
-        TRS80_FLOPPY_LOGGER.trace(`DMK: File too short (${binary.length} < ${expectedLength} == ${FILE_HEADER_SIZE} + ${sideCount}*${trackCount}*${trackLength})`);
+    const expectedTrackCount = sideCount*trackCount;
+    const presentTrackCount = Math.min(expectedTrackCount,
+        Math.floor((binary.length - FILE_HEADER_SIZE)/trackLength));
+    if (presentTrackCount === 0) {
+        TRS80_FLOPPY_LOGGER.trace(`DMK: File too short for one track (${binary.length} < ${FILE_HEADER_SIZE} + ${trackLength})`);
         return undefined;
     }
 
@@ -796,6 +800,9 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     let binaryOffset = FILE_HEADER_SIZE;
     for (let cylinder = 0; cylinder < trackCount; cylinder++) {
         for (let side = 0; side < sideCount; side++) {
+            if (floppyDisk.tracks.length === presentTrackCount) {
+                break;
+            }
             const trackOffset = binaryOffset;
             const trackPosition = new TrackPosition(cylinder, side);
             const track = new DmkTrack(floppyDisk, trackPosition, trackOffset);
@@ -909,6 +916,11 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     if (!geometryValid) {
         TRS80_FLOPPY_LOGGER.trace("DMK: No sectors on cylinder 0 side 0");
         return undefined;
+    }
+
+    // Warn only now, so that files that turn out not to be DMK don't.
+    if (presentTrackCount < expectedTrackCount) {
+        TRS80_FLOPPY_LOGGER.warn(`DMK: File has ${presentTrackCount} of its ${expectedTrackCount} tracks; treating the rest as unformatted`);
     }
 
     return floppyDisk;

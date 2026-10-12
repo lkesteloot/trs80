@@ -1001,6 +1001,13 @@ entries after a terminator, none out of order, and every file's doubling matches
 its flags (checked by recomputing IDAM CRCs at both strides). Sector size codes
 are 128, 256, 512, 1024.
 
+Some DMK files are **one track short** of what the header promises. Five in the
+collection (`LD4-631.DSK`, the trs80gp sample, which is a DMK despite its
+extension; `willus/ND80M3V3.dmk`; and `mloewen/FORMAT5`, `6`, and `11`) are
+single-sided disks in images flagged double-sided. Every side-1 track is present
+but unformatted, except the last one, which is missing. The reader loads the
+whole tracks that are there, treats the rest as unformatted, and warns.
+
 **SCP** is raw flux. There are no SCP images in the collection, so that reader is
 entirely untested.
 
