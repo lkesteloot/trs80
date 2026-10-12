@@ -153,6 +153,17 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 None of these blocks anything. Each disk's sidecar in the regression suite says
 more.
 
+- `ira/no-extract/SmartNet ... [84-11-xx Drive 1].dmk`: the DMK header says 42
+  tracks, but the file holds a 43rd track's side 0 (cylinder 42, all 18 sectors
+  with good IDs) after them. Files reach cylinder 45, so reading that track would
+  recover 18 of the 156 missing sectors. Decide whether the reader should load
+  whole tracks past the header's count.
+- `ira/no-extract/Dot Writer ... [M4].dmk` (both): GAT byte 0xCB is 0x40 with no
+  "VTOS" or "DOSPLUS" on the boot track, so the DOS is "Unknown DOS". The files
+  read cleanly.
+- The NEWDOS-86 and NEWDOS-90 disks in `ira/no-extract` show as NEWDOS/80 v2.0.
+  A "NEWDOS86" banner could name them, if that's wanted.
+
 - `peter/Col 2 - 030 - No Box - No Label.dmk`: now decodes as NEWDOS/80, `GPL=2`,
   directory lump 17, with all 24 system files clean. Earlier notes said its boot
   byte names cylinder 61; reconcile that.

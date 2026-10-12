@@ -172,6 +172,15 @@ directory sector 10, three of them named like live files), on TRSDOS 2.3B (the
 second SYS5/SYS), and on `Maxi Manager` (a garbage `81 NFMT/CBF` whose extents
 reach lump 87, which made a two-sided reading win until it was ignored).
 
+**An extended entry's (FXDE's) HIT byte is the hash of its file's name**, though
+the FXDE itself has no name. `evaluate()` follows the FXDE's back links (byte 1)
+to the primary entry and compares that entry's hash. Comparing the FXDE's own
+blank name counted each one as a miss, which lost half a directory on two disks
+in `ira/no-extract`: `DiskMan` (LDOS 5.1.3, a 500 KB file `DIR` with seven
+FXDEs, all with HIT 0x5C) and `SmartNet ... [86-04-29 Drive 1]` (NEWDOS/80). The
+misses made a reading of only side 0 of the directory cylinder win, dropping five
+files and one.
+
 **System files sit at fixed DECs**, because the DOS loads its overlays by
 position rather than by name. The reservations differ:
 
@@ -895,7 +904,7 @@ The hash is the same one TRSDOS uses, a value from 1 to 255, and the byte's
 position is the DEC: bits 0-4 the directory sector (0-27, not counting the GAT
 and HIT sectors), bits 5-7 the entry within that sector. FXDEs get HIT entries
 too, so a hash match may land on a continuation rather than a primary entry, and
-the name still has to be compared.
+the name still has to be compared (see "The HIT").
 
 Two details worth having:
 
@@ -1095,6 +1104,16 @@ entries after a terminator, none out of order, and every file's doubling matches
 its flags (checked by recomputing IDAM CRCs at both strides). Sector size codes
 are 128, 256, 512, 1024.
 
+**An IDAM pointer can point past the end of its track.** On
+`ira/no-extract/TRSDOS v2.1 ... [Set 6].dmk`, track 17's last pointer is 4 bytes
+before the end, a partial re-read of sector 0. Its ID field runs into track 18's
+header, whose bytes decode as cylinder 17, sector 4, with no data mark, and
+replaced the real sector 4 (a directory sector holding SYS0/SYS). The reader
+drops pointers whose 7-byte ID field doesn't fit in the track. A real FDC would
+have found the real sector anyway, since it searches again when no data mark
+follows an ID. Of the 182 duplicate IDs in the collection, none other has a
+later copy that is worse than an earlier one.
+
 Some DMK files are **one track short** of what the header promises. Five in the
 collection (`LD4-631.DSK`, the trs80gp sample, which is a DMK despite its
 extension; `willus/ND80M3V3.dmk`; and `mloewen/FORMAT5`, `6`, and `11`) are
@@ -1223,3 +1242,13 @@ SYS0 banner, the boot track and the GAT.
   SYS13/SYS links to an extended entry (DEC 0x67) that is all zeros though the
   HIT still holds SYS13's hash there; both tools read the zeros as an extent
   (lump 0, granule 0) and append two sectors of the boot track.
+- `ira/no-extract/`: 42 disks that TRSREAD and VDISK extracted files from and
+  an older trs80-tool didn't. 2.9.1 found no OS on 13, threw on one, and found
+  the wrong layout on many more; by 3.2.0 all decoded, and the FXDE hash and DMK pointer fixes
+  above recovered the rest. What's left can't be read by any tool:
+  `Network 3 ... v2.1.4 [Incomplete]` has noise on tracks 8 and 9;
+  `SmartNet ... [84-11-xx Drive 1]` is an 80-cylinder file system imaged at 42
+  cylinders, so four files run off the end; and the hacked MultiDOS's DOS/SYS
+  claims 36 sectors from a 10-sector boot track, so it's read short (the
+  BOOT/SYS rule now covers DOS/SYS, MultiDOS's boot file). The NEWDOS-86 and
+  NEWDOS-90 disks are NEWDOS/80 v2.0 with an add-on ("NEWDOS86 installed").

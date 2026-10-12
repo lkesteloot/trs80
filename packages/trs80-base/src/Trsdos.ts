@@ -978,6 +978,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // Reading a double-sided disk single-sided makes every file that starts on side 1
         // look like this.
         let badExtents = 0;
+        // Reachable entries by DEC, and the extended entries (FXDEs) with their HIT bytes. An
+        // FXDE has no name, and its HIT byte is the hash of the file it continues, so it can
+        // only be checked once we've seen that file's primary entry.
+        const entriesByDec = new Map<number, TrsdosDirEntry>();
+        const extendedEntries: { dirEntry: TrsdosDirEntry, hitHash: number }[] = [];
 
         // console.log(`--- Computing score for track ${this.dirCylinderNumber}`)
 
@@ -1002,8 +1007,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         if (hitHash === 0) {
                             continue;
                         }
+                        entriesByDec.set(index, dirEntry);
                         // console.log(`Comparing hits at ${side}:${sectorIndex}:${i} = ${index}: ${computedHash} vs. ${hitHash} ${dirEntry.rawFilename}`);
-                        if (computedHash === hitHash || isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
+                        if (dirEntry.isExtendedEntry()) {
+                            extendedEntries.push({dirEntry, hitHash});
+                        } else if (computedHash === hitHash || isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
                             hashHits += 1;
                         } else {
                             hashMisses += 1;
@@ -1023,6 +1031,17 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         }
                     }
                 }
+            }
+        }
+
+        // An FXDE is a hit if its HIT byte is the hash of the primary entry that its chain of
+        // back links leads to.
+        for (const { dirEntry, hitHash } of extendedEntries) {
+            const primary = this.findPrimaryEntry(dirEntry, entriesByDec);
+            if (primary !== undefined && hashForFilename(primary.rawFilename) === hitHash) {
+                hashHits += 1;
+            } else {
+                hashMisses += 1;
             }
         }
 
@@ -1046,6 +1065,24 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         const reason = `${hashHits} hash hits, ${hashMisses} hash misses, ${badExtents} bad extents, ${shortFiles} short files`;
 
         return { score, reason };
+    }
+
+    /**
+     * Follow an extended entry's back links (each FXDE holds the DEC of the entry it extends)
+     * to the file's primary entry. Returns undefined if a link leads to an entry that isn't in
+     * the map or the links loop.
+     */
+    private findPrimaryEntry(dirEntry: TrsdosDirEntry, entriesByDec: Map<number, TrsdosDirEntry>): TrsdosDirEntry | undefined {
+        let entry: TrsdosDirEntry | undefined = dirEntry;
+        // Bounds the walk, since a garbage directory can link in a loop.
+        for (let i = 0; i <= entriesByDec.size && entry !== undefined; i++) {
+            if (!entry.isExtendedEntry()) {
+                return entry;
+            }
+            entry = entry.prevDec === undefined ? undefined : entriesByDec.get(entry.prevDec);
+        }
+
+        return undefined;
     }
 
     public summary(): string {
@@ -1486,7 +1523,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // BOOT/SYS claims whole granules of the boot track, but on disks whose boot track is formatted
         // with fewer sectors than the others (single density on a double-density disk), the sectors
         // past the end of the track were never formatted. They aren't missing, they don't exist.
-        if (firstDirEntry.getFilename("/") === "BOOT/SYS") {
+        // MultiDOS calls its boot file DOS/SYS.
+        const filename = firstDirEntry.getFilename("/");
+        if (filename === "BOOT/SYS" || filename === "DOS/SYS") {
             const bootTrack = this.geometry.bootTrack;
             return sectorPositions.filter(sectorPosition =>
                 !sectorPosition.trackPosition.equals(bootTrack.trackPosition) ||

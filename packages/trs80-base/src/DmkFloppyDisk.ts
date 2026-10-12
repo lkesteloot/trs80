@@ -846,7 +846,14 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             for (let sectorIndex = 0; sectorIndex < TRACK_HEADER_SIZE/2; sectorIndex++) {
                 const sectorInfo = getSectorInfo(binary, trackOffset, sectorIndex);
                 if (sectorInfo !== undefined) {
-                    track.sectors.push(new DmkSector(track, sectorInfo.density, alwaysUseStride1, sectorInfo.offset));
+                    // Skip a pointer whose ID field (the mark and six more bytes) runs past the end of
+                    // the track. Its bytes would come from the next track's header, and can decode as
+                    // a real sector's ID and then hide that sector.
+                    const byteStride = sectorInfo.density === Density.DOUBLE || alwaysUseStride1 ? 1 : 2;
+                    const idFieldFits = sectorInfo.offset + 7*byteStride <= trackLength;
+                    if (idFieldFits) {
+                        track.sectors.push(new DmkSector(track, sectorInfo.density, alwaysUseStride1, sectorInfo.offset));
+                    }
                 }
             }
             annotations.push(new ProgramAnnotation(`Track ${cylinder} header`,
