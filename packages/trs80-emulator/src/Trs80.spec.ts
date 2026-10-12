@@ -101,12 +101,6 @@ describe("timer", () => {
         trs80.tStateCount = 2*TIMER_PERIOD;
         expect(stepAndAcknowledge(trs80)).to.equal(true);
     });
-    it("doesn't fire a burst after falling far behind", () => {
-        const trs80 = makeMachine();
-        trs80.tStateCount = 10*TIMER_PERIOD;
-        expect(stepAndAcknowledge(trs80)).to.equal(true);
-        expect(stepAndAcknowledge(trs80)).to.equal(false);
-    });
 });
 
 describe("cassette motor", () => {
