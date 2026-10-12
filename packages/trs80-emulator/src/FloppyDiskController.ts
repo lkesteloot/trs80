@@ -547,6 +547,13 @@ export class FloppyDiskController {
             return;
         }
 
+        // Ignore any command but Force Interrupt while busy.
+        const busy = (this.status & STATUS_BUSY) !== 0;
+        if (busy && (cmd & COMMAND_MASK) !== COMMAND_FORCE_INTERRUPT) {
+            TRS80_EMULATOR_LOGGER.trace("FDC: ignoring command " + toHexByte(cmd) + " while busy");
+            return;
+        }
+
         const drive = this.drives[this.currentDrive];
 
         // Cancel "lost data" event.
