@@ -176,7 +176,7 @@ async function main(): Promise<void> {
     program
         .command("dir <infiles...>")
         .description("list files in the infiles", {
-            infiles: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
+            infiles: "WAV, CAS, JV1, JV3, DMK, or HFE file (TRSDOS floppies only)",
         })
         .option("--system", "include floppy system files")
         .action(paged(async (infiles, options) => {
@@ -241,7 +241,7 @@ async function main(): Promise<void> {
     program
         .command("hexdump <infile>")
         .description("display an annotated hexdump of infile", {
-            infile: "WAV, CAS, CMD, 3BN, BAS, JV1, JV3, or DMK",
+            infile: "WAV, CAS, CMD, 3BN, BAS, JV1, JV3, DMK, or HFE",
         })
         .option("--no-collapse", "collapse consecutive identical lines")
         .action(paged((infile, options) => {

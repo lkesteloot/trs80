@@ -26,7 +26,7 @@ const FLOPPY_FILES_DIR_ID = "floppy_files";
 
 // File extensions for various file types.
 const ASSEMBLY_LANGUAGE_EXTENSIONS = [".asm", ".s", ".z"];
-const FLOPPY_FILES_EXTENSIONS = [".jv1", ".jv3", ".dmk", ".dsk"];
+const FLOPPY_FILES_EXTENSIONS = [".jv1", ".jv3", ".dmk", ".dsk", ".hfe"];
 
 const minimalTemplate = `
         ; Where to load the program in memory.

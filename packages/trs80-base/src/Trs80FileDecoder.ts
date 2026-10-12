@@ -7,6 +7,7 @@ import {decodeJv3FloppyDisk, Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {decodeDmkFloppyDisk, DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {decodeSystemProgram, SystemProgram} from "./SystemProgram.js";
 import {decodeScpFloppyDisk, ScpFloppyDisk} from "./ScpFloppyDisk.js";
+import {decodeHfeFloppyDisk, HfeFloppyDisk} from "./HfeFloppyDisk.js";
 import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
 import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
 import {decodeBootSector, BootSector} from "./BootSector.js";
@@ -17,7 +18,8 @@ import {decodeBootSector, BootSector} from "./BootSector.js";
 export type Trs80Floppy = Jv1FloppyDisk |
     Jv3FloppyDisk |
     DmkFloppyDisk |
-    ScpFloppyDisk;
+    ScpFloppyDisk |
+    HfeFloppyDisk;
 
 /**
  * All the possible programs we can decode.
@@ -38,6 +40,7 @@ const CLASS_NAME_TO_EXTENSION = {
     CmdProgram: ".CMD",
     DmkFloppyDisk: ".DMK",
     ScpFloppyDisk: ".SCP",
+    HfeFloppyDisk: ".HFE",
     Jv1FloppyDisk: ".JV1",
     Jv3FloppyDisk: ".JV3",
     RawBinaryFile: ".BIN",
@@ -109,7 +112,8 @@ export function isFloppy(trs80File: Trs80File): trs80File is Trs80Floppy {
     return className === "Jv1FloppyDisk" ||
         className === "Jv3FloppyDisk" ||
         className === "DmkFloppyDisk" ||
-        className === "ScpFloppyDisk";
+        className === "ScpFloppyDisk" ||
+        className === "HfeFloppyDisk";
 }
 
 /**
@@ -161,6 +165,10 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
 
     if (extension === ".SCP") {
         return decodeScpFloppyDisk(binary) ?? new RawBinaryFile(binary);
+    }
+
+    if (extension === ".HFE") {
+        return decodeHfeFloppyDisk(binary) ?? new RawBinaryFile(binary);
     }
 
     // "Model III BiNary" format, invented by George Phillips for trs80gp.
