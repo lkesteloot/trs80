@@ -23,7 +23,11 @@ own folder and package name, but none is built on its own:
 
 ## Commands (from the repo root)
 
-    npm install
+Install with `npm ci`, not `npm install`, which rewrites `package-lock.json` as
+a side effect. Use `npm install` only when changing the lock file is the point,
+such as after adding a dependency.
+
+    npm ci               # Install exactly what package-lock.json says.
     npm run build        # The type check, then every package's build.
     npm run typecheck    # Only tsc: fast, and the main correctness check.
     npm test             # z80-asm, z80-disasm, z80-emulator, z80-test. Nothing else has tests.
@@ -150,4 +154,6 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   Readers skim `if`s when looking for what the code does.
 - **Commits:** short imperative subjects ending in a period, prefixed with the
   package when there's one, e.g. `trs80-tool: Add load_basic MCP tool.` Only
-  commit when asked.
+  commit when asked. Don't add a `Co-Authored-By` line for Claude.
+- **GitHub comments:** when commenting on an issue or pull request, start with a
+  note saying that Claude wrote it, since it's posted under the user's account.
