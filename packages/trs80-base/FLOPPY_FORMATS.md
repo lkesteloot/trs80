@@ -526,7 +526,11 @@ Strongest first. Measured on all 274 images.
   (also 2.5, "2.X" and "2/4") as text; Percom DoubleDOS says "DBLDOS - DISK
   OPERATING SYSTEM - VER 4.23"; VTOS 3.0.1, 4.0 and 4.0.1 are negated like
   TRSDOS 2.x; Cornsoft's DOSPLUS says "DOS PLUS 3.4a" (and writes 0x40 at
-  0xCB); DOSPLUS 3.5 says "3.50".
+  0xCB); DOSPLUS 3.5 says "3.50". NEWDOS/86 and NEWDOS/90 (W. S. and D. S.
+  Sands's extensions of NEWDOS/80 v2.0, 1984-1990) keep NEWDOS/80's banner and
+  disk format and add "a NewDos86 SYSTEM disk" (or "NewDos90") in SYS6/SYS, so
+  their system disks are named by that and their data disks stay NEWDOS/80
+  v2.0. They also add SYS22-SYS29 and SYS5HELP/SYS.
 - **A banner has to fit the layout.** `Manufacturing and Inventory Control`
   carries TRSDOS 2.3's SYS0 on a NEWDOS/80-formatted disk with `GPL=8` lumps,
   which TRSDOS 2.3 can't read. Lumps that aren't whole cylinders belong to
@@ -1216,9 +1220,8 @@ SYS0 banner, the boot track and the GAT.
   Disk I-O*, page 22), so a Model I disk can put anything there.
 - `NEWDOS90.dmk`: the NEWDOS/80 lump case described above. NEWDOS/90 is an
   update of NEWDOS/86, itself built on NEWDOS/80 v2, so the on-disk rules are
-  NEWDOS/80's. Its GAT byte 0xCB is 0x82, which the handbook documents as the
-  identifier for NEWDOS/80 itself rather than a version number; our code
-  misreports it as "version 8.2".
+  NEWDOS/80's. Its GAT byte 0xCB is 0x82, NEWDOS/80 v2's, and its SYS6/SYS
+  banner names it NEWDOS/90 (see "Identifying the DOS").
 - `trsdos-2.3B-sssd.dmk` (renamed from `trsdos-2.3-sssd.dmk`): the only TRSDOS
   2.3B disk, with no BOOT/SYS or DIR/SYS entries and a boot sector that loads
   SYS0 without the directory. See the TRSDOS 2.3B section.
@@ -1251,4 +1254,5 @@ SYS0 banner, the boot track and the GAT.
   cylinders, so four files run off the end; and the hacked MultiDOS's DOS/SYS
   claims 36 sectors from a 10-sector boot track, so it's read short (the
   BOOT/SYS rule now covers DOS/SYS, MultiDOS's boot file). The NEWDOS-86 and
-  NEWDOS-90 disks are NEWDOS/80 v2.0 with an add-on ("NEWDOS86 installed").
+  NEWDOS-90 system disks are named by their banners; their utility disks have
+  no system files and stay NEWDOS/80 v2.0.

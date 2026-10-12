@@ -35,6 +35,9 @@ const UNKNOWN_DOS = "Unknown DOS";
 const SYSTEM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[] = [
     // MultiDOS's version byte and banners are unreliable, so leave its version off.
     {pattern: /MULTIDOS|Cosmopolitan Electronics/, name: () => "MultiDOS"},
+    // W. S. and D. S. Sands's extensions of NEWDOS/80 v2.0, which keep its disk format, so only
+    // their system disks can be told apart. Must come before NEWDOS/80's banners, which they keep.
+    {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => `NEWDOS/${m[1]}`},
     {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => `NEWDOS/80 v${m[1]}`},
     // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text.
     {pattern: /APPARAT, INC\.[\s\S]{0,60}?VERSION (\d\.[\dX])/, name: m => `NEWDOS/80 v${m[1]}`},
@@ -1333,10 +1336,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
 
         // A banner only counts if its DOS could have written this layout: lumps that aren't whole
-        // cylinders are NEWDOS/80's, MultiDOS's and DoubleDOS's. (A NEWDOS/80 disk can carry
-        // another DOS's system files, which then can't boot it.)
+        // cylinders are NEWDOS/80's (and so NEWDOS/86's and /90's), MultiDOS's and DoubleDOS's. (A
+        // NEWDOS/80 disk can carry another DOS's system files, which then can't boot it.)
         const banner = this.findSystemBanner();
-        if (banner !== undefined && (this.lumpTerm === "cylinder" || /^(NEWDOS\/80|MultiDOS|DoubleDOS)/.test(banner))) {
+        if (banner !== undefined && (this.lumpTerm === "cylinder" || /^(NEWDOS\/(80|86|90)|MultiDOS|DoubleDOS)/.test(banner))) {
             return banner;
         }
 
