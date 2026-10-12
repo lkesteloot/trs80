@@ -217,7 +217,6 @@ export class Config {
             displayType: this.displayType,
             phosphor: this.phosphor,
             reflection: this.reflection,
-            grid: this.grid,
             printerModel: this.printerModel,
             inkColor: this.inkColor,
         });
@@ -249,9 +248,6 @@ export class Config {
         }
         if (v.reflection !== undefined) {
             builder.withReflection(v.reflection);
-        }
-        if (v.grid !== undefined) {
-            builder.withGrid(v.grid);
         }
         if (v.printerModel !== undefined) {
             builder.withPrinterModel(v.printerModel);
@@ -330,7 +326,6 @@ export class Config {
             this.displayType === other.displayType &&
             this.phosphor === other.phosphor &&
             this.reflection === other.reflection &&
-            this.grid === other.grid &&
             this.customRom === other.customRom &&
             this.romSize === other.romSize &&
             this.printerModel === other.printerModel &&
