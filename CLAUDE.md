@@ -153,8 +153,11 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 
 ## Conventions
 
-- **Code:** 4-space indentation, double quotes, and JSDoc comments on functions
-  and classes. There's no Prettier or linter; match the surrounding code.
+- **Code:** 4-space indentation and double quotes. There's no Prettier or
+  linter; match the surrounding code.
+- **Comment every class, method, and function** with JSDoc, including overrides
+  (say what this version does differently) and test helpers. Skip only the
+  extremely trivial, like a one-line getter.
 - **Conditions don't act:** don't put a call with side effects in an `if`
   condition. Store its result in a well-named variable, then test that:
   `const geometryValid = disk.computeGeometry(); if (!geometryValid) ...`.
