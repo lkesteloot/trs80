@@ -127,28 +127,47 @@ export const TRS80_CONSOLE_SINK: LogSink = (level: LogLevel, message: string): v
 };
 
 /**
- * Make a sink that batches identical sequential messages.
+ * How long to wait, after the last message, before printing a message that's being held
+ * back in case it repeats.
+ */
+const BATCHING_FLUSH_DELAY_MS = 100;
+
+/**
+ * Make a sink that batches identical sequential messages. A message is held back until
+ * a different one arrives or until no message has arrived for a short while, so the last
+ * message is always printed.
  */
 export function makeBatchingSink(delegatedSink: LogSink): LogSink {
     let lastLevel: LogLevel = LogLevel.TRACE;
     let lastMessage = "";
     let lastCount = 0;
+    let flushTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+    /**
+     * Print the held message, if any, with its repeat count.
+     */
+    function flush(): void {
+        if (lastCount > 0) {
+            let message = lastMessage;
+            if (lastCount > 1) {
+                message += " (x" + lastCount + ")";
+            }
+            lastCount = 0;
+            delegatedSink(lastLevel, message);
+        }
+    }
 
     return (level: LogLevel, message: string): void => {
-        if (level === lastLevel && message === lastMessage) {
+        clearTimeout(flushTimer);
+        if (lastCount > 0 && level === lastLevel && message === lastMessage) {
             lastCount += 1;
         } else {
-            if (lastCount > 0) {
-                if (lastCount > 1) {
-                    lastMessage += " (x" + lastCount + ")";
-                }
-                delegatedSink(lastLevel, lastMessage);
-            }
-
+            flush();
             lastLevel = level;
             lastMessage = message;
             lastCount = 1;
         }
+        flushTimer = setTimeout(flush, BATCHING_FLUSH_DELAY_MS);
     };
 }
 
