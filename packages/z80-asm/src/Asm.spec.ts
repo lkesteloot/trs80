@@ -1,24 +1,9 @@
-import {expect} from "chai";
-import {Asm, FileSystem} from "./Asm";
-import {AsmTokenizer} from "./AsmTokenizer";
+import {describe, expect, it} from "vitest";
+import {Asm, FileSystem} from "./Asm.js";
+import {AsmTokenizer} from "./AsmTokenizer.js";
 import {mnemonicMap, opcodeVariantToString } from "z80-inst";
 import {Disasm} from "z80-disasm";
 import {hi, lo} from "z80-base";
-
-// I can't get mocha to work with TypeScript and ESM, so just provide their
-// functions.
-let testCount = 0;
-let successCount = 0;
-function describe(name: string, f: () => void): void {
-    testCount++
-    try {
-        f();
-        successCount += 1;
-    } catch (e) {
-        console.log(name + ": " + e);
-    }
-}
-const it = describe;
 
 // Test tokenizer.
 describe("tokenizer", () => {
@@ -718,8 +703,8 @@ foo     macro #abc
             "    foo 0",
         ], [0x21, 0x00, 0x00, 0x11, 0x00, 0x00]);
     })
-    /*
-    it("rept in macro", ()=>{
+    // The assembler doesn't support these yet.
+    it.skip("rept in macro", ()=>{
         runMacroTest([
             "incs macro &n",
             "     rept &n",
@@ -729,7 +714,7 @@ foo     macro #abc
             "    incs 5",
         ], [0x23, 0x23, 0x23, 0x23, 0x23]);
     })
-    it("macro arg concat", ()=>{
+    it.skip("macro arg concat", ()=>{
         runMacroTest([
             "test macro &aa, &bb",
             "     ld a, &aa.&bb",
@@ -737,7 +722,5 @@ foo     macro #abc
             "    foo.bar equ 5",
             "    test foo, bar",
         ], [0x3e, 0x05]);
-    })*/
+    })
 });
-
-console.log(successCount + " successful out of " + testCount, successCount === testCount ? "✅" : "❌");

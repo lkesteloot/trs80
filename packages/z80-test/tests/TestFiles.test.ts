@@ -1,3 +1,4 @@
+import {expect, it} from "vitest";
 import {Register, toHex} from "z80-base";
 import {CpuEvent} from "../src/CpuEvent.js";
 import {Delegate} from "../src/Delegate.js";
@@ -42,16 +43,15 @@ class DelegateImpl implements Delegate {
 // Check that the test files load and that every test has expected results.
 // Actually running the tests needs a real Z80; z80-emulator's tests use this
 // runner to do that.
-const runner = new Runner(new DelegateImpl());
-runner.loadTests(); // Throws if a file is malformed.
+it("test files load and are complete", () => {
+    const runner = new Runner(new DelegateImpl());
+    runner.loadTests(); // Throws if a file is malformed.
+    expect(runner.tests.size).to.be.greaterThan(0);
 
-// Every instruction takes at least four t-states, so zero means that the
-// "expected" file had nothing for that test.
-const incomplete = [...runner.tests.values()].filter(test => test.postTStateCount === 0);
-if (runner.tests.size === 0 || incomplete.length > 0) {
-    console.log(`Found ${runner.tests.size} tests, ${incomplete.length} without expected results: ` +
-        incomplete.slice(0, 10).map(test => test.name).join(", "));
-    process.exitCode = 1;
-} else {
-    console.log(`All ${runner.tests.size} tests have expected results`);
-}
+    // Every instruction takes at least four t-states, so zero means that the
+    // "expected" file had nothing for that test.
+    const incomplete = [...runner.tests.values()]
+        .filter(test => test.postTStateCount === 0)
+        .map(test => test.name);
+    expect(incomplete).to.eql([]);
+});

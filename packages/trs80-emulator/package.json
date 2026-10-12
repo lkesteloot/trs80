@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "tsx src/Screenshot.spec.ts"
+    "test": "vitest run"
   },
   "keywords": [
     "trs-80",
@@ -15,11 +15,6 @@
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^24.13.4",
-    "chai": "^6.2.2",
-    "tsx": "^4.7.0"
-  },
   "dependencies": {
     "strongly-typed-events": "^3.0.0",
     "trs80-base": "*",

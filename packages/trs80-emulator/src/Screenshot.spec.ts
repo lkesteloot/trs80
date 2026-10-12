@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import {describe, expect, it} from "vitest";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Config} from "./Config.js";
@@ -8,20 +8,6 @@ import {Trs80} from "./Trs80.js";
 import {Trs80Screen} from "./Trs80Screen.js";
 
 // Tests for Trs80.getScreenshot() and Trs80Screen.displayScreenshot().
-
-// Same mocha-like shim as the other packages' tests.
-let testCount = 0;
-let successCount = 0;
-function describe(name: string, f: () => void): void {
-    testCount++
-    try {
-        f();
-        successCount += 1;
-    } catch (e) {
-        console.log(name + ": " + e);
-    }
-}
-const it = describe;
 
 const SCREEN_SIZE = TRS80_SCREEN_END - TRS80_SCREEN_BEGIN;
 
@@ -170,6 +156,3 @@ describe("screenshot decoding", () => {
         expect(displayScreenshot(screenshot).chars).to.eql(makeScreen([[0x80, SCREEN_SIZE]]));
     });
 });
-
-console.log(successCount + " successful out of " + testCount, successCount === testCount ? "✅" : "❌");
-process.exitCode = successCount === testCount ? 0 : 1;

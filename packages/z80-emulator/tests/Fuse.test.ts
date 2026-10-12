@@ -1,5 +1,6 @@
-// Regression test for the Z80.
+// Runs the FUSE Z80 tests (from z80-test) against our emulator, one Vitest test per case.
 
+import {describe, expect, it} from "vitest";
 import {hi, Register, toHex} from "z80-base";
 import {CpuEvent, CpuEventType, Delegate, Runner} from "z80-test";
 import {Hal} from "../src/Hal.js";
@@ -97,21 +98,21 @@ class DelegateImpl implements Delegate {
     }
 }
 
-// Run the test.
-const delegate = new DelegateImpl();
-const runner = new Runner(delegate);
+const runner = new Runner(new DelegateImpl());
 runner.checkEvents = false;
 runner.checkTStates = true;
 runner.checkContend = false;
 runner.loadTests();
-if (true) {
-    runner.runAll();
-} else {
-    runner.checkEvents = true;
-    runner.runOne("ed7a");
-}
-for (const error of runner.errors) {
-    console.log(error);
-}
-console.log(`Passed ${runner.successfulTests} of ${runner.tests.size} (${Math.round(runner.successfulTests*100/runner.tests.size)}%) with ${runner.errors.length} errors`);
-process.exit(runner.errors.length === 0 ? 0 : 1);
+
+describe("FUSE Z80 tests", () => {
+    it("loaded the tests", () => {
+        expect(runner.tests.size).to.be.greaterThan(0);
+    });
+
+    // Run a single one with "vitest run -t ed7a".
+    for (const test of runner.tests.values()) {
+        it(test.name, () => {
+            expect(runner.runTest(test)).to.eql([]);
+        });
+    }
+});

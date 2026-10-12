@@ -1,22 +1,7 @@
-import { expect } from "chai";
+import {describe, expect, it} from "vitest";
 import { Z80_KNOWN_LABELS } from "z80-base";
 import { Disasm } from "./Disasm.js";
 import {Instruction} from "./Instruction.js";
-
-// I can't get mocha to work with TypeScript and ESM, so just provide their
-// functions.
-let testCount = 0;
-let successCount = 0;
-function describe(name: string, f: () => void): void {
-    testCount++
-    try {
-        f();
-        successCount += 1;
-    } catch (e) {
-        console.log(name + ": " + e);
-    }
-}
-const it = describe;
 
 function disasm(bin: ArrayLike<number>, org: number = 0): Instruction[] {
     const d = new Disasm();
@@ -107,5 +92,3 @@ describe("label", () => {
         expect(result.map((i) => i.toText(true))).to.eql(["JR LABEL1", "DEFB 0X00", "NOP"]);
     });
 });
-
-console.log(successCount + " successful out of " + testCount);
