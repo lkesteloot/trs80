@@ -342,8 +342,10 @@ export class Trs80 implements Hal, Machine, Configurable {
      * Restore the complete state of the machine, saved by {@link #save()}.
      */
     public restore(state: Trs80State): void {
-        this.reset();
         this.config = state.config;
+        this.screen.setConfig(this.config);
+        this.updateFromConfig();
+        this.reset();
         this.z80.restore(state.z80State);
 
         // Restore ROM.
