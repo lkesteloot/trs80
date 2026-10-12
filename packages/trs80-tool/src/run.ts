@@ -546,8 +546,10 @@ export function run(programFilename: string | undefined,
         trs80.runTrs80File(program);
     }
 
-    // Mount floppies or cassettes.
-    let driveNumber = 0;
+    // Mount floppies or cassettes. If the program was a floppy, it's the boot disk in drive 0,
+    // so the mounted floppies go in the next drives.
+    const bootDiskMounted = trs80.getFloppyDisk(0) !== undefined;
+    let driveNumber = bootDiskMounted ? 1 : 0;
     let mountedCassette = false;
     for (const mountedFilename of mountedFilenames) {
         const program = readTrs80File(mountedFilename);

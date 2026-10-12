@@ -38,7 +38,6 @@ import {Disasm} from "z80-disasm";
 const SCREEN_BEGIN = 0x3C00;
 const SCREEN_WIDTH = 64;
 const SCREEN_HEIGHT = 16;
-const ROM_END = 0x3800;
 const MAX_READ = 1024;
 const PROTOCOL_VERSION = "2024-11-05";
 
@@ -288,23 +287,32 @@ class Machine {
     public recorder: Recorder | undefined = undefined;
 
     constructor(cmdPathname: string | undefined, modelType: ModelType, basicLevel: BasicLevel) {
-        // A .cmd that replaces the ROM has blocks below ROM_END (the ROM itself) and
-        // above (data the ROM expects to find in RAM). The emulator write-protects the
+        // A .cmd that replaces the ROM has blocks below the end of the ROM (the ROM itself)
+        // and above (data the ROM expects to find in RAM). The emulator write-protects the
         // ROM, so the low blocks have to go in as a custom ROM image and the rest gets
         // poked into RAM once we've booted.
+        const configBuilder = Config.makeDefault().edit()
+            .withModelType(modelType)
+            .withBasicLevel(basicLevel);
+        const romSize = configBuilder.build().romSize;
         let customRom: string | undefined = undefined;
         const ramBlocks: {address: number, data: Uint8Array}[] = [];
         if (cmdPathname !== undefined) {
             const file = decodeTrs80File(new Uint8Array(fs.readFileSync(cmdPathname)),
                 {filename: cmdPathname});
             const chunks = (file as any).chunks ?? [];
-            const rom = new Uint8Array(ROM_END);
+            const rom = new Uint8Array(romSize);
             let sawRom = false;
             for (const chunk of chunks) {
                 if (chunk.className !== "CmdLoadBlockChunk") {
                     continue;
                 }
-                if (chunk.address < ROM_END) {
+                if (chunk.address < romSize) {
+                    if (chunk.address + chunk.loadData.length > romSize) {
+                        throw new Error(`${cmdPathname} has a block at 0x${chunk.address.toString(16)} ` +
+                            `of ${chunk.loadData.length} bytes that crosses the end of the ` +
+                            `${romSize} byte ROM (0x${romSize.toString(16)})`);
+                    }
                     rom.set(chunk.loadData, chunk.address);
                     sawRom = true;
                 } else {
@@ -312,17 +320,13 @@ class Machine {
                 }
             }
             if (!sawRom) {
-                throw new Error(`${cmdPathname} has no data below 0x${ROM_END.toString(16)}, ` +
+                throw new Error(`${cmdPathname} has no data below 0x${romSize.toString(16)}, ` +
                     `so it's not a replacement ROM`);
             }
             customRom = String.fromCharCode(...rom);
         }
 
-        const config = Config.makeDefault().edit()
-            .withModelType(modelType)
-            .withBasicLevel(basicLevel)
-            .withCustomRom(customRom)
-            .build();
+        const config = configBuilder.withCustomRom(customRom).build();
         this.rst8IsSyntaxCheck = customRom === undefined && basicLevel === BasicLevel.LEVEL2;
         this.trs80 = new Trs80(config, this.screen, this.keyboard,
             new CassettePlayer(), new SilentSoundPlayer());
