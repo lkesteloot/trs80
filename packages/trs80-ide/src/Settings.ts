@@ -38,9 +38,17 @@ const DEFAULT_SETTINGS: Settings = {
  * Load the settings object from local storage.
  */
 export function loadSettings(): Settings {
+    let savedSettings = {};
+    try {
+        savedSettings = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY) ?? "{}");
+    } catch (e) {
+        // Corrupt local storage, use the defaults.
+        console.error("Could not load settings", e);
+    }
+
     return {
         ... DEFAULT_SETTINGS,
-        ... JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY) ?? "{}"),
+        ... savedSettings,
     };
 }
 
