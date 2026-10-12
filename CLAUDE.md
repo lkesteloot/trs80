@@ -156,6 +156,16 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **trs80-tool releases:** bump `version` in its `package.json`, and add a
   change log entry in `site/index.html`.
 
+## Starting a session in a worktree
+
+The desktop app may make a session's worktree ahead of time, or from a stale
+fetch, so a brand-new branch can start behind the local master. At the start
+of a session whose branch or worktree was just created, check before doing
+anything else: `git rev-list --count HEAD..master` should print 0. If it
+doesn't, bring the branch up to date first. The app's sync-with-base-branch
+tool merges from `origin`, so it misses unpushed commits on the local master;
+in that case run `git merge master`.
+
 ## Delegating to agents
 
 - The Agent tool's `isolation: "worktree"` branches from `origin/HEAD` (the
