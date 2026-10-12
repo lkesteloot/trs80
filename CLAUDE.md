@@ -158,6 +158,14 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **Comment every class, method, and function** with JSDoc, including overrides
   (say what this version does differently) and test helpers. Skip only the
   extremely trivial, like a one-line getter.
+- **Enum names:** to show an enum value, write a `fooToString()` right after the
+  enum (like `trsdosVersionToString()` in `Trsdos.ts`), rather than spelling out
+  the names wherever it's displayed.
+- **Exhaustive enums:** branch on an enum with a `switch` that has a case for
+  every value and ends with `default: assertNever(value);` (from z80-base), so
+  that adding a value is a compile error everywhere it needs handling. Don't
+  write `if (x === A) ... else ...`, which quietly sends a new value to the
+  `else`.
 - **Conditions don't act:** don't put a call with side effects in an `if`
   condition. Store its result in a well-named variable, then test that:
   `const geometryValid = disk.computeGeometry(); if (!geometryValid) ...`.

@@ -3,6 +3,7 @@ import {
     CRC_16_CCITT,
     CRC_PRESET,
     DATA_ADDRESS_MARK,
+    DELETED_DATA_ADDRESS_MARK,
     decodeTrs80File,
     FloppyDisk,
     FM_GAP,
@@ -12,11 +13,19 @@ import {
     MFM_SYNC,
     SectorPosition,
     TrackPosition,
+    USER_DATA_ADDRESS_MARK_F9,
+    USER_DATA_ADDRESS_MARK_FA,
 } from "trs80-base";
 import {hi, lo} from "z80-base";
+import {CassettePlayer} from "./CassettePlayer.js";
+import {Config, ModelType} from "./Config.js";
 import {EventScheduler} from "./EventScheduler.js";
-import {FloppyDiskController} from "./FloppyDiskController.js";
+import {FdcChip, FloppyDiskController} from "./FloppyDiskController.js";
+import {Keyboard} from "./Keyboard.js";
 import {Machine} from "./Machine.js";
+import {SilentSoundPlayer} from "./SoundPlayer.js";
+import {Trs80} from "./Trs80.js";
+import {Trs80Screen} from "./Trs80Screen.js";
 
 // Commands.
 const RESTORE = 0x00;
@@ -29,6 +38,10 @@ const READ = 0x80;
 const READ_MULTIPLE = 0x90;
 const WRITE = 0xA0;
 const WRITE_DELETED = 0xA1;
+// Type II command bits that differ between the chips.
+const WD1791_SIDE_1 = 0x08;
+const WD1791_COMPARE_SIDE = 0x02;
+const WD1771_IBM_SIZES = 0x08;
 const WRITE_MULTIPLE = 0xB0;
 const READ_ADDRESS = 0xC0;
 const READ_TRACK = 0xE0;
@@ -42,6 +55,7 @@ const TRACK_ZERO = 0x04;
 const NOT_FOUND = 0x10;
 const SEEK_ERROR = 0x10;
 const DELETED = 0x20;
+const RECORD_TYPE = 0x60;
 const FAULT = 0x20;
 const WRITE_PROTECTED = 0x40;
 
@@ -99,7 +113,8 @@ class Setup {
     public readonly machine = new FakeMachine();
     public readonly fdc = new FloppyDiskController(this.machine);
 
-    constructor(public readonly disk: FloppyDisk, select = SELECT_DRIVE_0) {
+    constructor(public readonly disk: FloppyDisk, select = SELECT_DRIVE_0, chip = FdcChip.WD1791) {
+        this.fdc.setChip(chip);
         this.fdc.loadFloppyDisk(disk, 0);
         this.fdc.writeSelect(select);
     }
@@ -595,5 +610,86 @@ describe("force interrupt and drive select", () => {
         // Drive 1 has the JV3, whose sectors are filled the same way.
         expect(setup.read(READ)[0]).to.equal(0);
         expect(setup.fdc.save().currentDrive).to.equal(1);
+    });
+});
+
+/**
+ * A screen that ignores what's written to it.
+ */
+class NullScreen extends Trs80Screen {
+    setConfig(config: Config): void {
+        // Nothing.
+    }
+
+    writeChar(address: number, value: number): void {
+        // Nothing.
+    }
+}
+
+describe("WD1771 and WD1791", () => {
+    it("writes and reports the WD1771's four data address marks", () => {
+        const disk = makeJv3();
+        const setup = new Setup(disk, SELECT_DRIVE_0, FdcChip.WD1771);
+        setup.fdc.writeSector(3);
+        const cases = [
+            [0x00, DATA_ADDRESS_MARK, 0x00],
+            [0x01, USER_DATA_ADDRESS_MARK_FA, 0x20],
+            [0x02, USER_DATA_ADDRESS_MARK_F9, 0x40],
+            [0x03, DELETED_DATA_ADDRESS_MARK, 0x60],
+        ];
+        for (const [bits, dataAddressMark, recordType] of cases) {
+            setup.write(WRITE | WD1771_IBM_SIZES | bits, [], 0x33);
+            expect(disk.readSector(SectorPosition.make(0, 0, 3))!.getDataAddressMark()).to.equal(dataAddressMark);
+            expect(setup.read(READ | WD1771_IBM_SIZES)[0]).to.equal(0x33);
+            expect(setup.status() & RECORD_TYPE).to.equal(recordType);
+        }
+    });
+    it("reports any mark but 0xFB as deleted on the WD1791", () => {
+        const setup = new Setup(makeJv1(20), SELECT_DRIVE_0, FdcChip.WD1771);
+        setup.seek(17);
+        setup.fdc.writeSector(0);
+        // JV1's directory track has the 0xFA mark.
+        setup.read(READ);
+        expect(setup.status() & RECORD_TYPE).to.equal(0x20);
+        setup.fdc.setChip(FdcChip.WD1791);
+        setup.read(READ);
+        expect(setup.status() & RECORD_TYPE).to.equal(DELETED);
+    });
+    it("handles double-density sectors as a WD1791 even on a Model I", () => {
+        // A WD1771 can't do double density, so these went through an adapter's WD1791,
+        // where bit 1 is side compare rather than part of the data address mark.
+        const disk = makeDmk();
+        const setup = new Setup(disk, SELECT_DRIVE_0 | SELECT_MFM, FdcChip.WD1771);
+        setup.fdc.writeSector(5);
+        expect(setup.write(WRITE_DELETED | WD1791_COMPARE_SIDE, [], 0x44)).to.equal(256);
+        expect(disk.readSector(SectorPosition.make(0, 0, 5))!.getDataAddressMark()).to.equal(DELETED_DATA_ADDRESS_MARK);
+        setup.read(READ);
+        expect(setup.status() & RECORD_TYPE).to.equal(DELETED);
+    });
+    it("compares sides on the WD1791 when asked", () => {
+        const setup = new Setup(makeJv1());
+        setup.fdc.writeSector(2);
+        expect(setup.read(READ | WD1791_COMPARE_SIDE | WD1791_SIDE_1)).to.eql([]);
+        expect(setup.status() & NOT_FOUND).to.equal(NOT_FOUND);
+        expect(setup.read(READ | WD1791_COMPARE_SIDE)[0]).to.equal(2);
+    });
+    it("doesn't compare sides on the WD1771", () => {
+        const setup = new Setup(makeJv1(), SELECT_DRIVE_0, FdcChip.WD1771);
+        setup.fdc.writeSector(2);
+        expect(setup.read(READ | WD1771_IBM_SIZES | 0x02)[0]).to.equal(2);
+    });
+    it("follows the machine's model", () => {
+        const model1 = Config.makeDefault().edit().withModelType(ModelType.MODEL1).build();
+        const trs80 = new Trs80(model1, new NullScreen(), new Keyboard(), new CassettePlayer(), new SilentSoundPlayer());
+        expect(trs80.getFdcState().chip).to.equal(FdcChip.WD1771);
+        trs80.setConfig(model1.edit().withModelType(ModelType.MODEL3).build());
+        expect(trs80.getFdcState().chip).to.equal(FdcChip.WD1791);
+
+        // Restoring a saved state brings back its chip too.
+        const model3State = trs80.save();
+        trs80.setConfig(model1);
+        expect(trs80.getFdcState().chip).to.equal(FdcChip.WD1771);
+        trs80.restore(model3State);
+        expect(trs80.getFdcState().chip).to.equal(FdcChip.WD1791);
     });
 });

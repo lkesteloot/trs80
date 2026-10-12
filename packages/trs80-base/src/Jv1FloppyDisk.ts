@@ -10,6 +10,7 @@ import {
     SectorInfo, SectorPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {USER_DATA_ADDRESS_MARK_FA} from "./TrackBytes.js";
 
 const SECTORS_PER_TRACK = 10;
 const BYTES_PER_TRACK = BYTES_PER_SECTOR * SECTORS_PER_TRACK;
@@ -43,6 +44,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
             if (cylinderNumber === DIRECTORY_CYLINDER) {
                 // Directory sectors are marked as deleted in TRSDOS 2.3.
                 sectorInfo.deleted = true;
+                sectorInfo.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
             }
             sectorInfos.push(sectorInfo);
         }
@@ -91,8 +93,9 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
         const sectorData = new SectorData(data, sectorPosition, Density.SINGLE);
         if (sectorPosition.cylinderNumber === DIRECTORY_CYLINDER) {
-            // Directory sectors are marked as deleted in TRSDOS 2.3.
+            // Directory sectors are marked as deleted in TRSDOS 2.3, with the Model I's mark.
             sectorData.deleted = true;
+            sectorData.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
         }
 
         return sectorData;

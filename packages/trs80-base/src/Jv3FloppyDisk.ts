@@ -9,6 +9,13 @@ import {
     SectorInfo, SectorPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {
+    DATA_ADDRESS_MARK,
+    DELETED_DATA_ADDRESS_MARK,
+    isDeletedDataAddressMark,
+    USER_DATA_ADDRESS_MARK_F9,
+    USER_DATA_ADDRESS_MARK_FA,
+} from "./TrackBytes.js";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
 
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
@@ -148,19 +155,54 @@ class Jv3SectorInfo {
     }
 
     /**
-     * The flags for this sector once it's written in the given density with the given
-     * data address mark, and so with a good CRC. If the existing mark already means the same
-     * thing (deleted or not), it's kept, so that single density's 0xFA mark survives a write.
+     * The sector's data address mark. Single density records all four; double density only
+     * has normal and deleted.
      */
-    public flagsAfterWrite(doubleDensity: boolean, deleted: boolean): Flags {
-        let flags = this.flags & ~Flags.BAD_CRC;
+    public getDataAddressMark(): number {
+        const dam = this.flags & Flags.DAM_MASK;
+        if (this.isDoubleDensity()) {
+            return dam === Flags.DAM_DD_F8 ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK;
+        }
 
-        if (doubleDensity !== this.isDoubleDensity() || deleted !== this.isDeleted()) {
-            flags &= ~(Flags.DAM_MASK | Flags.DOUBLE_DENSITY);
-            if (doubleDensity) {
-                flags |= Flags.DOUBLE_DENSITY | (deleted ? Flags.DAM_DD_F8 : Flags.DAM_DD_FB);
-            } else {
-                flags |= deleted ? Flags.DAM_SD_F8 : Flags.DAM_SD_FB;
+        switch (dam) {
+            case Flags.DAM_SD_FB:
+            default:
+                return DATA_ADDRESS_MARK;
+            case Flags.DAM_SD_FA:
+                return USER_DATA_ADDRESS_MARK_FA;
+            case Flags.DAM_SD_F9:
+                return USER_DATA_ADDRESS_MARK_F9;
+            case Flags.DAM_SD_F8:
+                return DELETED_DATA_ADDRESS_MARK;
+        }
+    }
+
+    /**
+     * The flags for this sector once it's written in the given density with the given
+     * data address mark, and so with a good CRC. Double density can only record normal and
+     * deleted marks, so the others become whichever they mean.
+     */
+    public flagsAfterWrite(doubleDensity: boolean, dataAddressMark: number): Flags {
+        let flags = this.flags & ~(Flags.BAD_CRC | Flags.DAM_MASK | Flags.DOUBLE_DENSITY);
+
+        if (doubleDensity) {
+            const deleted = isDeletedDataAddressMark(dataAddressMark);
+            flags |= Flags.DOUBLE_DENSITY | (deleted ? Flags.DAM_DD_F8 : Flags.DAM_DD_FB);
+        } else {
+            switch (dataAddressMark) {
+                case DATA_ADDRESS_MARK:
+                default:
+                    flags |= Flags.DAM_SD_FB;
+                    break;
+                case USER_DATA_ADDRESS_MARK_FA:
+                    flags |= Flags.DAM_SD_FA;
+                    break;
+                case USER_DATA_ADDRESS_MARK_F9:
+                    flags |= Flags.DAM_SD_F9;
+                    break;
+                case DELETED_DATA_ADDRESS_MARK:
+                    flags |= Flags.DAM_SD_F8;
+                    break;
             }
         }
 
@@ -180,6 +222,7 @@ class Jv3SectorInfo {
     public toSectorInfo(): SectorInfo {
         const sectorInfo = new SectorInfo(this.sectorPosition, this.getDensity(), this.size);
         sectorInfo.deleted = this.isDeleted();
+        sectorInfo.dataAddressMark = this.getDataAddressMark();
         sectorInfo.crcError = this.hasCrcError();
         return sectorInfo;
     }
@@ -190,6 +233,7 @@ class Jv3SectorInfo {
     public toSectorData(data: Uint8Array): SectorData {
         const sectorData = new SectorData(data, this.sectorPosition, this.getDensity());
         sectorData.deleted = this.isDeleted();
+        sectorData.dataAddressMark = this.getDataAddressMark();
         sectorData.crcError = this.hasCrcError();
         return sectorData;
     }
@@ -272,13 +316,14 @@ export class Jv3FloppyDisk extends FloppyDisk {
         }
 
         this.write(new FloppyWrite(data.data, sectorInfo.offset));
-        this.setFlags(sectorInfo, sectorInfo.flagsAfterWrite(sectorInfo.isDoubleDensity(), data.deleted));
+        this.setFlags(sectorInfo, sectorInfo.flagsAfterWrite(sectorInfo.isDoubleDensity(), data.getDataAddressMark()));
 
         // Keep the geometry's copy in sync. The density didn't change, so the rest of the
         // geometry is still right.
         const geometrySectorInfo = this.geometry.sectorMap.get(sectorPosition.key());
         if (geometrySectorInfo !== undefined) {
             geometrySectorInfo.deleted = sectorInfo.isDeleted();
+            geometrySectorInfo.dataAddressMark = sectorInfo.getDataAddressMark();
             geometrySectorInfo.crcError = sectorInfo.hasCrcError();
         }
     }
@@ -323,7 +368,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
 
         for (const {sectorInfo, sector} of matches) {
             this.write(new FloppyWrite(sector.data, sectorInfo.offset));
-            this.setFlags(sectorInfo, sectorInfo.flagsAfterWrite(formattedTrack.doubleDensity, sector.deleted));
+            this.setFlags(sectorInfo, sectorInfo.flagsAfterWrite(formattedTrack.doubleDensity, sector.getDataAddressMark()));
         }
 
         // The density may have changed, so rebuild the geometry.

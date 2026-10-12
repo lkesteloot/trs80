@@ -24,6 +24,14 @@ export const DATA_ADDRESS_MARK = 0xFB;
 export const DELETED_DATA_ADDRESS_MARK = 0xF8;
 
 /**
+ * The other two data address marks, which only single density has. The WD1771 data sheet
+ * calls them user-defined. Model I TRSDOS marks its directory with 0xFA, which the Model III's
+ * WD1793 can't tell from 0xFB.
+ */
+export const USER_DATA_ADDRESS_MARK_FA = 0xFA;
+export const USER_DATA_ADDRESS_MARK_F9 = 0xF9;
+
+/**
  * In double density, three of these precede every address mark. The CRC includes them.
  */
 export const MFM_SYNC = 0xA1;

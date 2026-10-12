@@ -4,6 +4,7 @@
  * References:
  *
  * https://hansotten.file-hunter.com/technical-info/wd1793/
+ * xtrs's trs_disk.c, for how the WD1771 and WD1791 differ.
  */
 
 import {
@@ -29,7 +30,7 @@ import {
 } from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
-import {hi, lo, toHexByte} from "z80-base";
+import {assertNever, hi, lo, toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler.js";
 import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
 
@@ -82,9 +83,9 @@ const STATUS_DRQ = 0x02;                // Data is ready to be read or written.
 const STATUS_LOST_DATA = 0x04;          // CPU was too slow to read.
 //    STATUS_CRC_ERROR = 0x08;
 const STATUS_NOT_FOUND = 0x10;          // Track, sector, or side were not found.
-const STATUS_DELETED = 0x20;            // On read: Sector was deleted (data is invalid, 0xF8 DAM).
+const STATUS_DELETED = 0x20;            // On read by a WD1791: Sector was deleted (0xF8 DAM).
 const STATUS_FAULT = 0x20;              // On write: Indicates a write fault.
-const STATUS_REC_TYPE = 0x60;
+const STATUS_REC_TYPE = 0x60;           // On read by a WD1771: Which of the four DAMs (see getRecordTypeStatus()).
 //    STATUS_WRITE_PROTECTED = 0x40;
 //    STATUS_NOT_READY = 0x80;
 
@@ -134,13 +135,16 @@ const STEP_RATE_TO_MS = new Map<number, number>([
     [ 0x03, 40 ],
 ]);
 
-// Type II commands: ccccbecd, where
+// Type II commands on the WD1791: ccccbecd, where
 //     cccc = command number
 //     e = delay for head engage (10ms)
 //     b = side expected
 //     c = side compare (0=disable, 1=enable)
 //     d = select data address mark (writes only, 0 for reads):
 //         0=FB (normal), 1=F8 (deleted)
+// On the WD1771 they're ccccbeaa, where
+//     b = 1 for IBM sector sizes (128 to 1024 bytes); 0 for non-IBM ones, which we don't support
+//     aa = select data address mark (writes only, 00 for reads): 00=FB, 01=FA, 10=F9, 11=F8
 const COMMAND_READ = 0x80; // Single sector.
 const COMMAND_READM = 0x90; // Multiple sectors.
 const COMMAND_WRITE = 0xA0;
@@ -149,8 +153,7 @@ const MASK_B = 0x08; // Side (0 = front, 1 = back).
 const MASK_E = 0x04;
 const MASK_C = 0x02; // Whether side (MASK_B) is defined.
 const MASK_D = 0x01; // Deleted: 0 = Data is valid, DAM is 0xFB; 1 = Data is invalid, DAM is 0xF8.
-// (The Model I's WD1771 uses bits 1 and 0 of a write to pick one of four marks: 00=FB, 01=FA,
-// 10=F9, 11=F8. Bit 0 set means FA or F8, both of which mean deleted.)
+const MASK_WD1771_DAM = 0x03;
 
 // Type III commands: ccccxxxs (?), where
 //     cccc = command number
@@ -242,9 +245,92 @@ function getCommandType(command: number): CommandType {
 }
 
 /**
+ * Which controller chip we're emulating. They differ in a few bits of the Type II commands
+ * and their status.
+ */
+export enum FdcChip {
+    // The Model I's. Single density only.
+    WD1771,
+    // The Models III and 4 have a WD1793, which is a WD1791 with an inverted data bus, so
+    // the same to software. Double-density adapters for the Model I have a WD1791.
+    WD1791,
+}
+
+/**
+ * The chip's name, like "WD1771".
+ */
+export function fdcChipToString(chip: FdcChip): string {
+    switch (chip) {
+        case FdcChip.WD1771:
+            return "WD1771";
+
+        case FdcChip.WD1791:
+            return "WD1791";
+
+        default:
+            assertNever(chip);
+    }
+}
+
+/**
+ * Whether the chip's Type II commands can ask it to check the side in each ID field.
+ */
+function canCompareSides(chip: FdcChip): boolean {
+    switch (chip) {
+        case FdcChip.WD1771:
+            return false;
+
+        case FdcChip.WD1791:
+            return true;
+
+        default:
+            assertNever(chip);
+    }
+}
+
+/**
+ * The data address mark that a write command asks for. The WD1771 picks one of four with
+ * the command's low two bits. The WD1791 uses bit 1 for side compare, so it only has normal
+ * and deleted.
+ */
+function getWriteDataAddressMark(chip: FdcChip, command: number): number {
+    switch (chip) {
+        case FdcChip.WD1771:
+            // 00, 01, 10, and 11 select 0xFB, 0xFA, 0xF9, and 0xF8.
+            return DATA_ADDRESS_MARK - (command & MASK_WD1771_DAM);
+
+        case FdcChip.WD1791:
+            return (command & MASK_D) !== 0 ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK;
+
+        default:
+            assertNever(chip);
+    }
+}
+
+/**
+ * The status bits with which a read reports the sector's data address mark. The WD1771 says
+ * which of the four marks it found. The WD1791 only has a deleted bit, which we set for any
+ * mark but 0xFB, the way xtrs does by default. (The real chip doesn't set it for 0xFA, so a
+ * Model III can't see Model I TRSDOS's directory marks.)
+ */
+function getRecordTypeStatus(chip: FdcChip, dataAddressMark: number): number {
+    switch (chip) {
+        case FdcChip.WD1771:
+            // 0xFB, 0xFA, 0xF9, and 0xF8 report 0x00, 0x20, 0x40, and 0x60.
+            return ((DATA_ADDRESS_MARK - dataAddressMark) << 5) & STATUS_REC_TYPE;
+
+        case FdcChip.WD1791:
+            return dataAddressMark === DATA_ADDRESS_MARK ? 0 : STATUS_DELETED;
+
+        default:
+            assertNever(chip);
+    }
+}
+
+/**
  * Make a string to describe the command.
  */
-function getCommandDescription(command: number): string {
+function getCommandDescription(command: number, chip: FdcChip): string {
     if (command === PERCOM_DOUBLER_FM) {
         return "Percom Doubler to FM";
     }
@@ -268,14 +354,20 @@ function getCommandDescription(command: number): string {
 
         case CommandType.TYPE_II:
             if ((command & MASK_E) !== 0) parts.push("delay 10ms for head engage");
-            if ((command & MASK_B) !== 0) parts.push("side expected");
-            if ((command & MASK_C) !== 0) parts.push("side compare");
+            switch (chip) {
+                case FdcChip.WD1771:
+                    if ((command & MASK_B) === 0) parts.push("non-IBM sector size");
+                    break;
+
+                case FdcChip.WD1791:
+                    if ((command & MASK_C) !== 0) parts.push("compare side " + ((command & MASK_B) !== 0 ? 1 : 0));
+                    break;
+
+                default:
+                    assertNever(chip);
+            }
             if (isWriteCommand(command)) {
-                if ((command & MASK_D) === 0) {
-                    parts.push("set DAM to FB normal");
-                } else {
-                    parts.push("set DAM to F8 deleted");
-                }
+                parts.push("set DAM to " + toHexByte(getWriteDataAddressMark(chip, command)));
             }
             break;
 
@@ -294,7 +386,7 @@ function getCommandDescription(command: number): string {
 /**
  * Make a string to describe the status.
  */
-function getStatusDescription(command: number, status: number): string {
+function getStatusDescription(command: number, status: number, chip: FdcChip): string {
     const parts: string[] = [];
 
     if ((status & STATUS_BUSY) !== 0) parts.push("busy");
@@ -315,14 +407,28 @@ function getStatusDescription(command: number, status: number): string {
             if ((status & STATUS_LOST_DATA) !== 0) parts.push("lost data");
             if ((status & STATUS_CRC_ERROR) !== 0) parts.push("CRC error");
             if ((status & STATUS_NOT_FOUND) !== 0) parts.push("not found");
-            if ((status & STATUS_DELETED) !== 0) {
-                if (isReadCommand(command)) parts.push("deleted");
-                if (isWriteCommand(command)) parts.push("fault");
+            if (isReadCommand(command)) {
+                switch (chip) {
+                    case FdcChip.WD1771: {
+                        const recordType = status & STATUS_REC_TYPE;
+                        if (recordType !== 0) parts.push("DAM " + toHexByte(DATA_ADDRESS_MARK - (recordType >> 5)));
+                        break;
+                    }
+
+                    case FdcChip.WD1791:
+                        if ((status & STATUS_DELETED) !== 0) parts.push("deleted");
+                        break;
+
+                    default:
+                        assertNever(chip);
+                }
             }
+            if (isWriteCommand(command) && (status & STATUS_FAULT) !== 0) parts.push("fault");
             break;
     }
 
-    if ((status & STATUS_WRITE_PROTECTED) !== 0) parts.push("write protected");
+    // Reads use this bit for the record type instead.
+    if ((status & STATUS_WRITE_PROTECTED) !== 0 && !isReadCommand(command)) parts.push("write protected");
     if ((status & STATUS_NOT_READY) !== 0) parts.push("not ready");
 
     if (parts.length === 0) {
@@ -531,7 +637,8 @@ class TrackWriter {
 
             const sector = new SectorData(new Uint8Array(bytes.slice(dataIndex + 1, dataIndex + 1 + size)),
                 SectorPosition.make(bytes[idIndex + 1], bytes[idIndex + 2], bytes[idIndex + 3]), density);
-            sector.deleted = isDeletedDataAddressMark(bytes[dataIndex]);
+            sector.dataAddressMark = bytes[dataIndex];
+            sector.deleted = isDeletedDataAddressMark(sector.dataAddressMark);
             sectors.push(sector);
         }
 
@@ -566,21 +673,22 @@ export class FdcState {
         public readonly sectorData: SectorData | undefined,
         public readonly stepDirection: number,
         // Where each drive's head is.
-        public readonly physicalTracks: number[]) {
+        public readonly physicalTracks: number[],
+        public readonly chip: FdcChip) {
     }
 
     /**
      * User-friendly description of the status.
      */
     public getStatusDescription(): string {
-        return getStatusDescription(this.currentCommand, this.status);
+        return getStatusDescription(this.currentCommand, this.status, this.chip);
     }
 
     /**
      * User-friendly description of the command.
      */
     public getCommandDescription(): string {
-        return getCommandDescription(this.currentCommand);
+        return getCommandDescription(this.currentCommand, this.chip);
     }
 }
 
@@ -589,6 +697,8 @@ export class FdcState {
  */
 export class FloppyDiskController {
     private readonly machine: Machine;
+    // Which chip, which depends on the model. Set with setChip().
+    private chip = FdcChip.WD1791;
 
     // Registers.
     private status = STATUS_TRACK_ZERO | STATUS_NOT_READY;
@@ -643,6 +753,13 @@ export class FloppyDiskController {
     }
 
     /**
+     * Set which chip to emulate. The machine calls this when its model changes.
+     */
+    public setChip(chip: FdcChip): void {
+        this.chip = chip;
+    }
+
+    /**
      * Put a floppy in the specified drive (0 to 3).
      */
     public loadFloppyDisk(floppyDisk: FloppyDisk | undefined, driveNumber: number): void {
@@ -669,7 +786,7 @@ export class FloppyDiskController {
         return new FdcState(this.status, this.track, this.sector, this.data, this.currentCommand, this.side,
             this.doubleDensity, this.currentDrive, this.motorOn, this.lastReadAddress,
             this.dataIndex, this.sectorData, this.stepDirection,
-            this.drives.map(drive => drive.physicalTrack));
+            this.drives.map(drive => drive.physicalTrack), this.chip);
     }
 
     /**
@@ -689,6 +806,7 @@ export class FloppyDiskController {
         this.dataIndex = fdcState.dataIndex;
         this.sectorData = fdcState.sectorData;
         this.stepDirection = fdcState.stepDirection;
+        this.chip = fdcState.chip;
         for (let i = 0; i < this.drives.length; i++) {
             this.drives[i].physicalTrack = fdcState.physicalTracks[i] ?? 0;
         }
@@ -718,7 +836,7 @@ export class FloppyDiskController {
 
         if (TRS80_EMULATOR_LOGGER.isTraceEnabled()) {
             TRS80_EMULATOR_LOGGER.trace("FDC: readStatus() = " + toHexByte(status) + " "
-                + getStatusDescription(this.currentCommand, status));
+                + getStatusDescription(this.currentCommand, status, this.chip));
         }
 
         return status;
@@ -794,7 +912,7 @@ export class FloppyDiskController {
      */
     public writeCommand(cmd: number): void {
         if (TRS80_EMULATOR_LOGGER.isTraceEnabled()) {
-            TRS80_EMULATOR_LOGGER.trace("FDC: writeCommand(" + toHexByte(cmd) + "), " + getCommandDescription(cmd));
+            TRS80_EMULATOR_LOGGER.trace("FDC: writeCommand(" + toHexByte(cmd) + "), " + getCommandDescription(cmd, this.chip));
         }
 
         if (cmd === PERCOM_DOUBLER_FM || cmd === PERCOM_DOUBLER_MFM) {
@@ -1101,8 +1219,6 @@ export class FloppyDiskController {
         TRS80_EMULATOR_LOGGER.trace("FDC: reading track " + drive.physicalTrack +
             ", side " + this.side + ", sector " + this.sector);
 
-        // TODO If MASK_C is specified, then the side byte in the IDAM must match MASK_B.
-        // On the Model I's WD1771 those bits mean something else, so we'd need to know the model.
         const sectorData = drive.floppyDisk?.readSector(this.getHeadPosition(drive));
         if (sectorData === undefined || !this.idMatches(sectorData)) {
             TRS80_EMULATOR_LOGGER.trace(`FDC: Didn't find sector ${this.sector} with track ${this.track} ` +
@@ -1111,10 +1227,7 @@ export class FloppyDiskController {
             return;
         }
 
-        let newStatus = 0;
-        if (sectorData.deleted) {
-            newStatus |= STATUS_DELETED;
-        }
+        let newStatus = getRecordTypeStatus(this.getChipFor(sectorData), sectorData.getDataAddressMark());
         if (sectorData.crcError) {
             newStatus |= STATUS_CRC_ERROR;
         }
@@ -1145,7 +1258,8 @@ export class FloppyDiskController {
         }
 
         this.sectorData = new SectorData(new Uint8Array(existing.data.length), position, existing.density);
-        this.sectorData.deleted = (this.currentCommand & MASK_D) !== 0;
+        this.sectorData.dataAddressMark = getWriteDataAddressMark(this.getChipFor(existing), this.currentCommand);
+        this.sectorData.deleted = isDeletedDataAddressMark(this.sectorData.dataAddressMark);
         this.dataIndex = 0;
         this.firstDrq(0);
     }
@@ -1247,11 +1361,35 @@ export class FloppyDiskController {
     }
 
     /**
-     * Whether a sector's ID field matches the track and sector registers.
+     * Whether a sector's ID field matches the track and sector registers, and the side if the
+     * command asks for that.
      */
     private idMatches(sectorData: SectorData): boolean {
-        return sectorData.sectorPosition.cylinderNumber === this.track &&
-            sectorData.sectorPosition.sectorNumber === this.sector;
+        const id = sectorData.sectorPosition;
+
+        // A WD1791 can also be asked to check the side.
+        const compareSide = canCompareSides(this.getChipFor(sectorData)) && (this.currentCommand & MASK_C) !== 0;
+        const expectedSide = (this.currentCommand & MASK_B) !== 0 ? 1 : 0;
+        const sideMatches = !compareSide || id.side === expectedSide;
+
+        return id.cylinderNumber === this.track && id.sectorNumber === this.sector && sideMatches;
+    }
+
+    /**
+     * The chip that reads and writes the sector. On a Model I, a double-density sector can only
+     * be from a double-density adapter's WD1791.
+     */
+    private getChipFor(sectorInfo: SectorInfo): FdcChip {
+        switch (sectorInfo.density) {
+            case Density.SINGLE:
+                return this.chip;
+
+            case Density.DOUBLE:
+                return FdcChip.WD1791;
+
+            default:
+                assertNever(sectorInfo.density);
+        }
     }
 
     /**
@@ -1322,7 +1460,7 @@ export class FloppyDiskController {
             const sectorData = floppyDisk.readSector(sectorInfo.sectorPosition);
             if (sectorData !== undefined) {
                 addSync(sectorDoubleDensity);
-                const dam = sectorInfo.deleted ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK;
+                const dam = sectorInfo.getDataAddressMark();
                 bytes.push(dam, ...sectorData.data);
                 let crc: number;
                 if (sectorInfo.crc !== undefined) {

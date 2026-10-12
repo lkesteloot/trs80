@@ -85,7 +85,14 @@ class ScpSector {
     }
 
     public isDeleted(): boolean {
-        return this.binary[this.damIndex] === DELETED_DATA_ADDRESS_MARK;
+        return this.getDam() === DELETED_DATA_ADDRESS_MARK;
+    }
+
+    /**
+     * The data address mark.
+     */
+    public getDam(): number {
+        return this.binary[this.damIndex];
     }
 
     /**
@@ -259,6 +266,7 @@ export class ScpFloppyDisk extends FloppyDisk {
                             new CrcInfo(sector.getDataCrc(), sector.computeDataCrc()));
                         sectorData.crcError = !sectorData.crc.valid();
                         sectorData.deleted = sector.isDeleted();
+                        sectorData.dataAddressMark = sector.getDam();
                         return sectorData;
                     }
                 }

@@ -24,8 +24,6 @@ import {
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {
     CRC_PRESET,
-    DATA_ADDRESS_MARK,
-    DELETED_DATA_ADDRESS_MARK,
     FM_GAP,
     isDataAddressMark,
     isDeletedDataAddressMark,
@@ -334,6 +332,7 @@ class DmkSector {
             new CrcInfo(this.getDataCrc() ?? 0, this.computeDataCrc() ?? 0));
         sectorInfo.crcError = !sectorInfo.crc.valid();
         sectorInfo.deleted = this.isDeleted();
+        sectorInfo.dataAddressMark = this.getDam();
     }
 
     /**
@@ -518,12 +517,7 @@ export class DmkFloppyDisk extends FloppyDisk {
             const byteStride = sector.getByteStride();
             const length = sector.getSectorSize();
 
-            // Keep the existing data address mark if it means the same thing (deleted or
-            // not), so that single density's 0xFA mark survives a write.
-            let dam = sector.getDam() ?? DATA_ADDRESS_MARK;
-            if (sector.isDeleted() !== data.deleted) {
-                dam = data.deleted ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK;
-            }
+            const dam = data.getDataAddressMark();
 
             // Lay out the bytes: the DAM, the data, and the CRC (two bytes).
             const bytes = new Uint8Array((1 + length + 2)*byteStride);
@@ -570,6 +564,7 @@ export class DmkFloppyDisk extends FloppyDisk {
             if (geometrySectorInfo !== undefined) {
                 const newSectorInfo = sector.toPhysicalSectorInfo();
                 geometrySectorInfo.deleted = newSectorInfo.deleted;
+                geometrySectorInfo.dataAddressMark = newSectorInfo.dataAddressMark;
                 geometrySectorInfo.crcError = newSectorInfo.crcError;
                 geometrySectorInfo.crc = newSectorInfo.crc;
             }

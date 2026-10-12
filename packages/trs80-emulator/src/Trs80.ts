@@ -1,4 +1,4 @@
-import {hi, lo, toHex, toHexByte, toHexWord, word} from "z80-base";
+import {assertNever, hi, lo, toHex, toHexByte, toHexWord, word} from "z80-base";
 import {Hal, Z80, Z80State} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Keyboard} from "./Keyboard.js";
@@ -24,7 +24,7 @@ import {
     Trs80File
 } from "trs80-base";
 import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
-import {FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
+import {FdcChip, FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
 import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";
 import {SoundPlayer} from "./SoundPlayer.js";
@@ -110,6 +110,23 @@ function computeVideoBit6(value: number): number {
     const bit6 = (bit5 | bit7) ^ 1;
 
     return (value & 0xBF) | (bit6 << 6);
+}
+
+/**
+ * The floppy disk controller chip that the model has.
+ */
+function getFdcChip(modelType: ModelType): FdcChip {
+    switch (modelType) {
+        case ModelType.MODEL1:
+            return FdcChip.WD1771;
+
+        case ModelType.MODEL3:
+        case ModelType.MODEL4:
+            return FdcChip.WD1791;
+
+        default:
+            assertNever(modelType);
+    }
 }
 
 /**
@@ -276,6 +293,8 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.memory = new Uint8Array(RAM_START + this.config.getRamSize());
         this.memory.fill(0);
         this.loadRom();
+
+        this.fdc.setChip(getFdcChip(this.config.modelType));
 
         switch (this.config.modelType) {
             case ModelType.MODEL1:

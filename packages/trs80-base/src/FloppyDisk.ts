@@ -1,6 +1,7 @@
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
+import {DATA_ADDRESS_MARK, DELETED_DATA_ADDRESS_MARK} from "./TrackBytes.js";
 
 // Determined by the floppy controller.
 export const BYTES_PER_SECTOR = 256;
@@ -229,6 +230,13 @@ export class SectorInfo {
     public deleted = false;
 
     /**
+     * The exact data address mark (0xF8 to 0xFB), if the format records it. Single density has
+     * two marks besides normal and deleted, which the Model I's controller can tell apart.
+     * Use getDataAddressMark() to read it.
+     */
+    public dataAddressMark: number | undefined = undefined;
+
+    /**
      * Whether there was a CRC error when reading the physical disk. Sometimes we only have this information
      * without having the actual CRCs.
      */
@@ -253,6 +261,14 @@ export class SectorInfo {
         this.sectorPosition = sectorPosition;
         this.density = density;
         this.sectorSize = sectorSize;
+    }
+
+    /**
+     * The data address mark: the exact one if the format records it, otherwise the standard
+     * mark for whether the sector is deleted.
+     */
+    public getDataAddressMark(): number {
+        return this.dataAddressMark ?? (this.deleted ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK);
     }
 }
 
