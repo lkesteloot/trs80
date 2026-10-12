@@ -602,6 +602,19 @@ describe("force interrupt and drive select", () => {
         setup.fdc.writeCommand(FORCE_INTERRUPT | 0x08);
         expect(setup.machine.intrq).to.be.true;
     });
+    it("abandons a command and stops the motor on reset", () => {
+        // The machine cancels all scheduled events on reset, so nothing would end the command.
+        const setup = new Setup(makeJv1());
+        setup.fdc.writeCommand(READ);
+        expect(setup.isBusy()).to.be.true;
+        setup.machine.eventScheduler.cancelAll();
+        setup.fdc.reset();
+        expect(setup.isBusy()).to.be.false;
+        expect(setup.fdc.save().motorOn).to.be.false;
+        // And it works again once the drive is selected.
+        setup.fdc.writeSelect(SELECT_DRIVE_0);
+        expect(setup.read(READ)[0]).to.equal(0);
+    });
     it("handles selecting more than one drive", () => {
         const setup = new Setup(makeJv1());
         setup.fdc.loadFloppyDisk(makeJv3(), 1);

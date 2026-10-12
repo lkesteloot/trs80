@@ -753,6 +753,23 @@ export class FloppyDiskController {
     }
 
     /**
+     * Abandon any command in progress and stop the motor, as when the machine is reset. The
+     * machine has already canceled our scheduled events, so nothing would ever finish the
+     * command. The drives keep their disks and head positions.
+     */
+    public reset(): void {
+        this.status &= ~(STATUS_BUSY | STATUS_DRQ);
+        this.sectorData = undefined;
+        this.trackWriter = undefined;
+        this.interruptConditions = 0;
+        this.motorOffTimeoutHandle = undefined;
+        this.machine.diskIntrqInterrupt(false);
+        this.machine.diskDrqInterrupt(false);
+        this.setReady(false);
+        this.setMotorOn(false);
+    }
+
+    /**
      * Set which chip to emulate. The machine calls this when its model changes.
      */
     public setChip(chip: FdcChip): void {
