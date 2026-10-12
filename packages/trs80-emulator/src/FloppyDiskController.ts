@@ -1220,7 +1220,7 @@ export class FloppyDiskController {
             ", side " + this.side + ", sector " + this.sector);
 
         const sectorData = drive.floppyDisk?.readSector(this.getHeadPosition(drive));
-        if (sectorData === undefined || !this.idMatches(sectorData)) {
+        if (sectorData === undefined || !this.canSee(sectorData) || !this.idMatches(sectorData)) {
             TRS80_EMULATOR_LOGGER.trace(`FDC: Didn't find sector ${this.sector} with track ${this.track} ` +
                 `on physical track ${drive.physicalTrack}`);
             this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
@@ -1250,7 +1250,7 @@ export class FloppyDiskController {
         // whatever size and density the sector was formatted with.
         const position = this.getHeadPosition(drive);
         const existing = drive.floppyDisk?.readSector(position);
-        if (existing === undefined || !this.idMatches(existing)) {
+        if (existing === undefined || !this.canSee(existing) || !this.idMatches(existing)) {
             TRS80_EMULATOR_LOGGER.trace(`FDC: Didn't find sector ${this.sector} with track ${this.track} ` +
                 `on physical track ${drive.physicalTrack} to write`);
             this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
@@ -1393,12 +1393,34 @@ export class FloppyDiskController {
     }
 
     /**
-     * The sectors on the track under the head, in the order they're on the track.
+     * The sectors on the track under the head that the controller can see, in the order
+     * they're on the track.
      */
     private getTrackSectorInfos(floppyDisk: FloppyDisk, drive: FloppyDrive): SectorInfo[] {
         const trackPosition = new TrackPosition(drive.physicalTrack, this.side);
         return floppyDisk.getGeometry().sectorInfos.filter(sectorInfo =>
-            sectorInfo.sectorPosition.trackPosition.equals(trackPosition));
+            sectorInfo.sectorPosition.trackPosition.equals(trackPosition) && this.canSee(sectorInfo));
+    }
+
+    /**
+     * Whether the controller can see the sector at all, which it can only in the density
+     * that's selected. The Models III and 4 select it in the drive select register. A Model I
+     * selects it through a double-density adapter, which we don't emulate, so there we
+     * accept either.
+     */
+    private canSee(sectorInfo: SectorInfo): boolean {
+        switch (this.chip) {
+            case FdcChip.WD1771:
+                return true;
+
+            case FdcChip.WD1791: {
+                const selectedDensity = this.doubleDensity ? Density.DOUBLE : Density.SINGLE;
+                return sectorInfo.density === selectedDensity;
+            }
+
+            default:
+                assertNever(this.chip);
+        }
     }
 
     /**
@@ -1486,7 +1508,7 @@ export class FloppyDiskController {
     private verify(drive: FloppyDrive): void {
         const floppyDisk = drive.floppyDisk;
         let found = false;
-        if (floppyDisk !== undefined && (!this.doubleDensity || floppyDisk.supportsDoubleDensity)) {
+        if (floppyDisk !== undefined) {
             for (const sectorInfo of this.getTrackSectorInfos(floppyDisk, drive)) {
                 if (this.getIdField(floppyDisk, sectorInfo)[0] === this.track) {
                     found = true;

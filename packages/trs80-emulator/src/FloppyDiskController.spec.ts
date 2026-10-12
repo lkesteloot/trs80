@@ -693,3 +693,40 @@ describe("WD1771 and WD1791", () => {
         expect(trs80.getFdcState().chip).to.equal(FdcChip.WD1791);
     });
 });
+
+describe("density", () => {
+    it("finds sectors only in the density selected", () => {
+        const setup = new Setup(makeJv1());
+        setup.fdc.writeSector(3);
+        setup.fdc.writeSelect(SELECT_DRIVE_0 | SELECT_MFM);
+        expect(setup.read(READ)).to.eql([]);
+        expect(setup.status() & NOT_FOUND).to.equal(NOT_FOUND);
+        setup.fdc.writeSelect(SELECT_DRIVE_0);
+        expect(setup.read(READ)[0]).to.equal(3);
+    });
+    it("doesn't write a sector in the wrong density", () => {
+        const disk = makeDmk();
+        const setup = new Setup(disk);
+        setup.fdc.writeSector(4);
+        expect(setup.write(WRITE, [], 0x66)).to.equal(0);
+        expect(setup.status() & NOT_FOUND).to.equal(NOT_FOUND);
+        expect(disk.readSector(SectorPosition.make(0, 0, 4))!.data[0]).to.equal(0);
+    });
+    it("reads addresses and verifies only in the density selected", () => {
+        const setup = new Setup(makeDmk());
+        expect(setup.read(READ_ADDRESS)).to.eql([]);
+        expect(setup.status() & NOT_FOUND).to.equal(NOT_FOUND);
+        setup.fdc.writeData(1);
+        setup.command(SEEK | VERIFY);
+        expect(setup.status() & SEEK_ERROR).to.equal(SEEK_ERROR);
+        setup.fdc.writeSelect(SELECT_DRIVE_0 | SELECT_MFM);
+        setup.command(SEEK | VERIFY);
+        expect(setup.status() & SEEK_ERROR).to.equal(0);
+    });
+    it("accepts either density on a Model I, which selects it through an adapter", () => {
+        const setup = new Setup(makeDmk(), SELECT_DRIVE_0, FdcChip.WD1771);
+        setup.fdc.writeSector(4);
+        expect(setup.read(READ | WD1771_IBM_SIZES)[0]).to.equal(0);
+        expect(setup.status() & NOT_FOUND).to.equal(0);
+    });
+});
