@@ -6,10 +6,30 @@
  * https://hansotten.file-hunter.com/technical-info/wd1793/
  */
 
-import {Density, FloppyDisk, SectorData, SectorPosition} from "trs80-base";
+import {
+    CRC_16_CCITT,
+    CRC_PRESET,
+    DATA_ADDRESS_MARK,
+    DELETED_DATA_ADDRESS_MARK,
+    Density,
+    FloppyDisk,
+    FM_GAP,
+    FormattedTrack,
+    ID_ADDRESS_MARK,
+    isDataAddressMark,
+    isDeletedDataAddressMark,
+    MFM_GAP,
+    MFM_INDEX_SYNC,
+    MFM_SYNC,
+    MFM_SYNC_COUNT,
+    SectorData,
+    SectorInfo,
+    SectorPosition,
+    TrackPosition,
+} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
-import {toHexByte} from "z80-base";
+import {hi, lo, toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler.js";
 import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
 
@@ -24,6 +44,20 @@ const RPM = 300;
 
 // How long the disk motor stays on after drive selected, in seconds.
 const MOTOR_TIME_AFTER_SELECT = 2;
+
+// Bytes in a track at 300 RPM: 250 kbps in single density, 500 kbps in double density.
+const SINGLE_DENSITY_TRACK_BYTES = 3125;
+const DOUBLE_DENSITY_TRACK_BYTES = 6250;
+
+// The most bytes between an ID address mark and its data address mark when parsing a
+// formatted track. The usual gaps are about 30 bytes in single density and 50 in double.
+const MAX_ID_TO_DATA_GAP = 64;
+
+// Delays, in clock cycles, for how long things take. These are much faster than real
+// hardware, which isn't necessary to make software work.
+const TYPE_I_DELAY = 2000;
+const NOT_FOUND_DELAY = 512;
+const DRQ_DELAY = 64;
 
 /**
  * Converts boolean for "back" to a Side.
@@ -92,6 +126,7 @@ const COMMAND_STEP_OUTU = 0x70;
 const MASK_H = 0x08;
 const MASK_V = 0x04;
 const MASK_STEP_RATE = 0x03;
+const MASK_U = 0x10; // On STEP, STEP_IN, and STEP_OUT: also update the track register.
 const STEP_RATE_TO_MS = new Map<number, number>([
     [ 0x00, 6 ],
     [ 0x01, 12 ],
@@ -114,6 +149,8 @@ const MASK_B = 0x08; // Side (0 = front, 1 = back).
 const MASK_E = 0x04;
 const MASK_C = 0x02; // Whether side (MASK_B) is defined.
 const MASK_D = 0x01; // Deleted: 0 = Data is valid, DAM is 0xFB; 1 = Data is invalid, DAM is 0xF8.
+// (The Model I's WD1771 uses bits 1 and 0 of a write to pick one of four marks: 00=FB, 01=FA,
+// 10=F9, 11=F8. Bit 0 set means FA or F8, both of which mean deleted.)
 
 // Type III commands: ccccxxxs (?), where
 //     cccc = command number
@@ -123,13 +160,28 @@ const COMMAND_READ_ADDRESS = 0xC0;
 const COMMAND_READ_TRACK = 0xE0;
 const COMMAND_WRITE_TRACK = 0xF0;
 
+// Values the CPU writes during WRITE_TRACK that the controller writes as something else.
+const WRITE_TRACK_MFM_SYNC = 0xF5; // MFM only: an MFM_SYNC byte. The first of a run presets the CRC.
+const WRITE_TRACK_MFM_INDEX_SYNC = 0xF6; // MFM only: an MFM_INDEX_SYNC byte.
+const WRITE_TRACK_CRC = 0xF7; // The two CRC bytes.
+// In FM, these and the values between them are written as address marks, with missing clock
+// bits, and preset the CRC.
+const WRITE_TRACK_FM_FIRST_MARK = 0xF8;
+const WRITE_TRACK_FM_LAST_MARK = 0xFE;
+
+// The CRC after a double-density field's sync bytes, before its address mark.
+const MFM_SYNC_CRC = crcOf(new Array<number>(MFM_SYNC_COUNT).fill(MFM_SYNC));
+
 // Type IV command: cccciiii, where
 //     cccc = command number
 //     iiii = bitmask of events to terminate and interrupt on (unused on TRS-80).
 //            0000 for immediate terminate with no interrupt.
 const COMMAND_FORCE_INTERRUPT = 0xD0;
-const MASK_CONDITIONAL_INTERRUPT = 0x07;
+const MASK_INTERRUPT_ON_READY = 0x01; // When the drive goes from not ready to ready.
+const MASK_INTERRUPT_ON_NOT_READY = 0x02; // When the drive goes from ready to not ready.
+const MASK_INTERRUPT_ON_INDEX = 0x04; // On every index pulse.
 const MASK_IMMEDIATE_INTERRUPT = 0x08;
+const MASK_READY_INTERRUPTS = MASK_INTERRUPT_ON_READY | MASK_INTERRUPT_ON_NOT_READY;
 
 // Set the Percom Doubler into FM mode.
 const PERCOM_DOUBLER_FM = 0xFE;
@@ -330,6 +382,169 @@ class FloppyDrive {
     public floppyDisk: FloppyDisk | undefined = undefined;
 }
 
+
+/**
+ * Collects what the CPU writes during a Write Track (format) command, interpreting the
+ * values that stand for address marks and CRCs, the way the controller does.
+ */
+class TrackWriter {
+    // The bytes as they'd be read back.
+    public readonly bytes: number[] = [];
+    // Indices into "bytes" of the ID and data address marks.
+    private readonly marks: number[] = [];
+    // Whether we're writing MFM. Only a guess (single density) until densityKnown is true.
+    private doubleDensity: boolean;
+    private densityKnown: boolean;
+    private crc = CRC_PRESET;
+    private previousValue = 0;
+
+    /**
+     * @param doubleDensity whether the drive select says double density. On the Model I that
+     * comes from a doubler instead, so if this is false we look at what's written.
+     */
+    constructor(doubleDensity: boolean) {
+        this.doubleDensity = doubleDensity;
+        this.densityKnown = doubleDensity;
+    }
+
+    /**
+     * Whether we've written a whole track's worth of bytes.
+     */
+    public isFull(): boolean {
+        return this.bytes.length >= (this.doubleDensity
+            ? DOUBLE_DENSITY_TRACK_BYTES
+            : SINGLE_DENSITY_TRACK_BYTES);
+    }
+
+    /**
+     * Handle a byte written by the CPU.
+     */
+    public write(value: number): void {
+        // The first special value tells us the density: MFM formats write sync bytes before
+        // their marks, and FM formats write their marks directly.
+        if (!this.densityKnown) {
+            if (value === WRITE_TRACK_MFM_SYNC || value === WRITE_TRACK_MFM_INDEX_SYNC) {
+                this.doubleDensity = true;
+                this.densityKnown = true;
+            } else if (isFmMark(value)) {
+                this.densityKnown = true;
+            }
+        }
+
+        if (this.doubleDensity) {
+            this.writeMfm(value);
+        } else {
+            this.writeFm(value);
+        }
+        this.previousValue = value;
+    }
+
+    /**
+     * Handle a byte written in double density.
+     */
+    private writeMfm(value: number): void {
+        switch (value) {
+            case WRITE_TRACK_MFM_SYNC:
+                if (this.previousValue !== WRITE_TRACK_MFM_SYNC) {
+                    this.crc = CRC_PRESET;
+                }
+                this.addByte(MFM_SYNC);
+                break;
+
+            case WRITE_TRACK_MFM_INDEX_SYNC:
+                this.bytes.push(MFM_INDEX_SYNC);
+                break;
+
+            case WRITE_TRACK_CRC:
+                this.addCrc();
+                break;
+
+            default:
+                // A mark follows the sync bytes.
+                if (this.previousValue === WRITE_TRACK_MFM_SYNC && isSectorMark(value)) {
+                    this.marks.push(this.bytes.length);
+                }
+                this.addByte(value);
+                break;
+        }
+    }
+
+    /**
+     * Handle a byte written in single density.
+     */
+    private writeFm(value: number): void {
+        if (value === WRITE_TRACK_CRC) {
+            this.addCrc();
+            return;
+        }
+
+        if (isFmMark(value)) {
+            this.crc = CRC_PRESET;
+            if (isSectorMark(value)) {
+                this.marks.push(this.bytes.length);
+            }
+        }
+        this.addByte(value);
+    }
+
+    /**
+     * Add a byte to the track and the CRC.
+     */
+    private addByte(value: number): void {
+        this.bytes.push(value);
+        this.crc = CRC_16_CCITT.update(this.crc, value);
+    }
+
+    /**
+     * Add the two CRC bytes.
+     */
+    private addCrc(): void {
+        const crc = this.crc;
+        this.bytes.push(hi(crc), lo(crc));
+    }
+
+    /**
+     * Parse what was written into sectors.
+     */
+    public makeFormattedTrack(trackPosition: TrackPosition): FormattedTrack {
+        const doubleDensity = this.doubleDensity;
+        const density = doubleDensity ? Density.DOUBLE : Density.SINGLE;
+        const bytes = this.bytes;
+        const sectors: SectorData[] = [];
+
+        for (let m = 0; m < this.marks.length; m++) {
+            // An ID field: the mark, then cylinder, side, sector, size code, and CRC.
+            const idIndex = this.marks[m];
+            if (bytes[idIndex] !== ID_ADDRESS_MARK || idIndex + 4 >= bytes.length) {
+                continue;
+            }
+
+            // Its data field is the next mark, if that's a data address mark, and close enough.
+            const dataIndex = this.marks[m + 1];
+            if (dataIndex === undefined || bytes[dataIndex] === ID_ADDRESS_MARK || dataIndex - idIndex > MAX_ID_TO_DATA_GAP) {
+                continue;
+            }
+            const size = 128 << (bytes[idIndex + 4] & 0x03);
+            if (dataIndex + 1 + size > bytes.length) {
+                continue;
+            }
+
+            const sector = new SectorData(new Uint8Array(bytes.slice(dataIndex + 1, dataIndex + 1 + size)),
+                SectorPosition.make(bytes[idIndex + 1], bytes[idIndex + 2], bytes[idIndex + 3]), density);
+            sector.deleted = isDeletedDataAddressMark(bytes[dataIndex]);
+            sectors.push(sector);
+        }
+
+        return {
+            trackPosition,
+            doubleDensity,
+            bytes: new Uint8Array(bytes),
+            idamIndices: this.marks.filter(index => bytes[index] === ID_ADDRESS_MARK),
+            sectors,
+        };
+    }
+}
+
 /**
  * Snapshot of FDC state, for save() and restore().
  */
@@ -348,7 +563,10 @@ export class FdcState {
         public readonly motorOn: boolean,
         public readonly lastReadAddress: number | undefined,
         public readonly dataIndex: number,
-        public readonly sectorData: SectorData | undefined) {
+        public readonly sectorData: SectorData | undefined,
+        public readonly stepDirection: number,
+        // Where each drive's head is.
+        public readonly physicalTracks: number[]) {
     }
 
     /**
@@ -376,8 +594,9 @@ export class FloppyDiskController {
     private status = STATUS_TRACK_ZERO | STATUS_NOT_READY;
     // The track register keeps track of where the FDC thinks the physical head is (which is
     // stored in drive.physicalTrack). These can get out of sync because the track register
-    // can be written to directly, in which case the next read sector will fail because the
-    // track number found in the IDAM will be wrong.
+    // can be written to directly. The controller never knows where the head really is: it
+    // reads and writes whatever sector passes under the head, but only once that sector's
+    // ID field matches the track register.
     private track = 0;
     private sector = 0;
     private data = 0;
@@ -388,18 +607,26 @@ export class FloppyDiskController {
     private doubleDensity = false;
     private currentDrive = 0;
     private motorOn = false;
-    // ID index found in by last COMMAND_READ_ADDRESS.
+    // Index, into the track's sectors, of the ID field last returned by COMMAND_READ_ADDRESS.
     private lastReadAddress: number | undefined = undefined;
+    // Direction of the last step: 1 for in (toward higher tracks), -1 for out.
+    private stepDirection = 1;
+    // Force Interrupt conditions (MASK_READY_INTERRUPTS) waiting to happen.
+    private interruptConditions = 0;
 
     // State for current command.
     public dataIndex = 0;
     private sectorData: SectorData | undefined = undefined;
+    private trackWriter: TrackWriter | undefined = undefined;
 
     // Floppy drives.
     private readonly drives: FloppyDrive[] = [];
 
     // Timeout handle for turning off the motor.
     private motorOffTimeoutHandle: number | undefined = undefined;
+
+    // Warnings already given, so that a program repeating something doesn't flood the log.
+    private readonly warnOnceSet = new Set<string>();
 
     // Which drive is currently active, for lighting up an LED.
     public readonly onActiveDrive = new SimpleEventDispatcher<number | undefined>();
@@ -441,7 +668,8 @@ export class FloppyDiskController {
     public save(): FdcState {
         return new FdcState(this.status, this.track, this.sector, this.data, this.currentCommand, this.side,
             this.doubleDensity, this.currentDrive, this.motorOn, this.lastReadAddress,
-            this.dataIndex, this.sectorData);
+            this.dataIndex, this.sectorData, this.stepDirection,
+            this.drives.map(drive => drive.physicalTrack));
     }
 
     /**
@@ -460,8 +688,17 @@ export class FloppyDiskController {
         this.lastReadAddress = fdcState.lastReadAddress;
         this.dataIndex = fdcState.dataIndex;
         this.sectorData = fdcState.sectorData;
+        this.stepDirection = fdcState.stepDirection;
+        for (let i = 0; i < this.drives.length; i++) {
+            this.drives[i].physicalTrack = fdcState.physicalTracks[i] ?? 0;
+        }
+        this.trackWriter = undefined;
+        this.interruptConditions = 0;
     }
 
+    /**
+     * Read the status register, which also clears the interrupt request.
+     */
     public readStatus(): number {
         let status;
 
@@ -487,12 +724,18 @@ export class FloppyDiskController {
         return status;
     }
 
+    /**
+     * Read the track register.
+     */
     public readTrack(): number {
         TRS80_EMULATOR_LOGGER.trace("FDC: readTrack() = " + toHexByte(this.track));
 
         return this.track;
     }
 
+    /**
+     * Read the sector register.
+     */
     public readSector(): number {
         TRS80_EMULATOR_LOGGER.trace("FDC: readSector() = " + toHexByte(this.sector));
 
@@ -500,15 +743,17 @@ export class FloppyDiskController {
     }
 
     /**
-     * Read a byte of data from the sector.
+     * Read a byte of data from the sector, ID field, or track being read.
      */
     public readData(): number {
         const drive = this.drives[this.currentDrive];
+        const command = this.currentCommand & COMMAND_MASK;
 
-        // The read command can do various things depending on the specific
-        // current command, but we only support reading from the diskette.
-        switch (this.currentCommand & COMMAND_MASK) {
+        switch (command) {
             case COMMAND_READ:
+            case COMMAND_READM:
+            case COMMAND_READ_ADDRESS:
+            case COMMAND_READ_TRACK:
                 // Keep reading from the buffer.
                 if (this.sectorData !== undefined && (this.status & STATUS_DRQ) !== 0 && drive.floppyDisk !== undefined) {
                     this.data = this.sectorData.data[this.dataIndex];
@@ -520,8 +765,18 @@ export class FloppyDiskController {
                         this.status &= ~STATUS_DRQ;
                         this.machine.diskDrqInterrupt(false);
                         this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_LOST_DATA);
-                        this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 64,
-                            () => this.done(0));
+                        if (command === COMMAND_READM && (this.status & STATUS_CRC_ERROR) === 0) {
+                            // Go on to the next sector. When there isn't one, the command ends with
+                            // "not found", which is how multi-sector reads end.
+                            this.machine.eventScheduler.add(EventType.DISK_FIRST_DRQ, this.machine.tStateCount + DRQ_DELAY,
+                                () => {
+                                    this.sector = (this.sector + 1) & 0xFF;
+                                    this.startReadSector(drive);
+                                });
+                        } else {
+                            this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + DRQ_DELAY,
+                                () => this.done(0));
+                        }
                     }
                 }
                 break;
@@ -559,153 +814,114 @@ export class FloppyDiskController {
         // Cancel "lost data" event.
         this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_LOST_DATA);
 
+        // A new command replaces any Force Interrupt conditions.
+        this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_INDEX);
+        this.interruptConditions = 0;
+
         this.machine.diskIntrqInterrupt(false);
         this.sectorData = undefined;
+        this.trackWriter = undefined;
         this.currentCommand = cmd;
 
         // Kick off anything that's based on the command.
-        switch (cmd & COMMAND_MASK) {
-            case COMMAND_RESTORE:
-                this.lastReadAddress = undefined;
-                drive.physicalTrack = 0;
-                this.track = 0; // trs80gp sets this to 255?
-                this.status = STATUS_TRACK_ZERO | STATUS_BUSY;
-                if ((cmd & MASK_V) != 0) {
-                    this.verify();
-                }
-                this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 2000,
-                    () => this.done(0));
+        switch (getCommandType(cmd)) {
+            case CommandType.TYPE_I:
+                this.startTypeI(cmd, drive);
                 break;
 
-            case COMMAND_SEEK:
-                this.lastReadAddress = undefined;
-                const moveCount = this.data - this.track;
-                if (moveCount !== 0) {
-                    this.onTrackMove.dispatch(moveCount);
-                }
-                TRS80_EMULATOR_LOGGER.trace("FDC: before seek: track " + this.track +
-                    ", physical track " + drive.physicalTrack + ", move count " + moveCount);
-                drive.physicalTrack += moveCount;
-                this.track = this.data;
-                TRS80_EMULATOR_LOGGER.trace("FDC: seeking to track " + this.track +
-                    ", physical track " + drive.physicalTrack + ", move count " + moveCount);
-                if (drive.physicalTrack <= 0) {
-                    // this.track too?
-                    drive.physicalTrack = 0;
-                    this.status = STATUS_TRACK_ZERO | STATUS_BUSY;
-                } else {
-                    this.status = STATUS_BUSY;
-                }
-                // Should this set lastDirection?
-                if ((cmd & MASK_V) != 0) {
-                    this.verify();
-                }
-                this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 2000,
-                    () => this.done(0));
-                break;
-
-            case COMMAND_READ: {
-                // Read the sector. The bytes will be read later.
-                this.lastReadAddress = undefined;
-                this.status = STATUS_BUSY;
-                // TODO If MASK_C is specified, then the side byte in the IDAM must match MASK_B.
-                const goalSide = (cmd & MASK_C) === 0 ? undefined : booleanToSide((cmd & MASK_B) !== 0);
-                TRS80_EMULATOR_LOGGER.trace("FDC: reading track " + drive.physicalTrack +
-                    ", side " + this.side + ", sector " + this.sector);
-
-                const sectorData = drive.floppyDisk === undefined
-                    ? undefined
-                    : drive.floppyDisk.readSector(SectorPosition.make(drive.physicalTrack, this.side, this.sector));
-
-                if (sectorData === undefined) {
-                    this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 512,
-                        () => this.done(0));
-                    TRS80_EMULATOR_LOGGER.warn(`FDC: Didn't find sector ${this.sector} on track ${drive.physicalTrack}`);
-                } else {
-                    let newStatus = 0;
-                    // TODO use C flag to also check side if requested.
-                    if (sectorData.sectorPosition.cylinderNumber !== this.track || sectorData.sectorPosition.sectorNumber !== this.sector) {
-                        newStatus |= STATUS_NOT_FOUND;
-                    } else {
-                        if (sectorData.deleted) {
-                            newStatus |= STATUS_DELETED;
-                        }
-                        if (sectorData.crcError) {
-                            newStatus |= STATUS_CRC_ERROR;
-                        }
-                    }
-                    this.sectorData = sectorData;
-                    this.dataIndex = 0;
-                    this.machine.eventScheduler.add(EventType.DISK_FIRST_DRQ, this.machine.tStateCount + 64,
-                        () => this.firstDrq(newStatus));
-                }
-                break;
-            }
-
-            case COMMAND_WRITE: {
-                // console.log(`Sector write: ${drive.physicalTrack}, ${this.sector}, ${this.side}`);
-                this.lastReadAddress = undefined;
-                this.status = 0;
-
-                // TODO If MASK_C is specified, then the side byte in the IDAM must match MASK_B.
-                const goalSide = (cmd & MASK_C) === 0 ? undefined : booleanToSide((cmd & MASK_B) !== 0);
-
-                if (drive.floppyDisk === undefined) {
-                    this.status |= STATUS_NOT_FOUND | STATUS_BUSY;
-                    this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 512,
-                        () => this.done(0));
+            case CommandType.TYPE_II:
+                if (isReadCommand(cmd)) {
+                    this.startReadSector(drive);
+                } else if (drive.floppyDisk === undefined) {
+                    this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
                 } else if (drive.floppyDisk.isWriteProtected()) {
-                    this.status = STATUS_WRITE_PROTECTED;
+                    this.endWithError(STATUS_WRITE_PROTECTED, DRQ_DELAY);
                 } else {
-                    const deleted = (cmd & MASK_D) !== 0;
-                    this.dataIndex = 0;
-                    // TODO get size and density from somewhere:
-                    this.sectorData = new SectorData(new Uint8Array(256),
-                        SectorPosition.make(this.track, this.side, this.sector), Density.SINGLE);
-                    this.firstDrq(STATUS_BUSY);
+                    this.startWriteSector(drive);
                 }
                 break;
-            }
 
-            case COMMAND_FORCE_INTERRUPT:
+            case CommandType.TYPE_III:
+                switch (cmd & COMMAND_MASK) {
+                    case COMMAND_READ_ADDRESS:
+                        this.startReadAddress(drive);
+                        break;
+
+                    case COMMAND_READ_TRACK:
+                        this.startReadTrack(drive);
+                        break;
+
+                    case COMMAND_WRITE_TRACK:
+                        if (drive.floppyDisk === undefined) {
+                            this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
+                        } else if (drive.floppyDisk.isWriteProtected()) {
+                            this.endWithError(STATUS_WRITE_PROTECTED, DRQ_DELAY);
+                        } else {
+                            this.lastReadAddress = undefined;
+                            this.trackWriter = new TrackWriter(this.doubleDensity);
+                            this.status = STATUS_BUSY;
+                            this.firstDrq(0);
+                        }
+                        break;
+                }
+                break;
+
+            case CommandType.TYPE_IV:
                 // Stop whatever is going on and forget it.
                 this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_ALL);
                 this.status = 0;
                 this.updateStatus();
-                if ((cmd & MASK_CONDITIONAL_INTERRUPT) !== 0) {
-                    // Apparently not used on TRS-80.
-                    throw new Error("Conditional interrupt features not implemented");
+                this.interruptConditions = cmd & MASK_READY_INTERRUPTS;
+                if ((cmd & MASK_INTERRUPT_ON_INDEX) !== 0) {
+                    this.scheduleIndexInterrupt();
                 }
                 this.machine.diskIntrqInterrupt((cmd & MASK_IMMEDIATE_INTERRUPT) !== 0);
                 break;
-
-            default:
-                throw new Error("Don't handle FDC command 0x" + toHexByte(cmd));
         }
     }
 
+    /**
+     * Write the track register.
+     */
     public writeTrack(track: number): void {
         TRS80_EMULATOR_LOGGER.trace("FDC: writeTrack(" + toHexByte(track) + ")");
 
         this.track = track;
     }
 
+    /**
+     * Write the sector register.
+     */
     public writeSector(sector: number): void {
         TRS80_EMULATOR_LOGGER.trace("FDC: writeSector(" + toHexByte(sector) + ")");
 
         this.sector = sector;
     }
 
+    /**
+     * Write the data register. During a write command this is the next byte of the sector or
+     * track being written.
+     */
     public writeData(data: number): void {
-        switch (this.currentCommand & COMMAND_MASK) {
+        const drive = this.drives[this.currentDrive];
+        const command = this.currentCommand & COMMAND_MASK;
+
+        switch (command) {
             case COMMAND_WRITE:
+            case COMMAND_WRITEM:
                 if (this.sectorData !== undefined && this.dataIndex < this.sectorData.data.length) {
                     this.sectorData.data[this.dataIndex] = data;
                     this.dataIndex += 1;
                     if (this.dataIndex === this.sectorData.data.length) {
-                        const floppyDisk = this.drives[this.currentDrive].floppyDisk;
+                        const floppyDisk = drive.floppyDisk;
+                        let errorBits = 0;
                         if (floppyDisk !== undefined) {
-                            floppyDisk.writeSector(this.sectorData.sectorPosition, this.sectorData);
+                            try {
+                                floppyDisk.writeSector(this.sectorData.sectorPosition, this.sectorData);
+                            } catch (e) {
+                                this.warnOnce("FDC: Can't write sector: " + (e instanceof Error ? e.message : String(e)));
+                                errorBits = STATUS_FAULT;
+                            }
                         }
 
                         this.sectorData = undefined;
@@ -714,8 +930,27 @@ export class FloppyDiskController {
                         this.status &= ~STATUS_DRQ;
                         this.machine.diskDrqInterrupt(false);
                         this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_LOST_DATA);
-                        this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 64,
-                            () => this.done(0));
+                        if (command === COMMAND_WRITEM && errorBits === 0) {
+                            // Go on to the next sector. When there isn't one, the command ends with
+                            // "not found", which is how multi-sector writes end.
+                            this.machine.eventScheduler.add(EventType.DISK_FIRST_DRQ, this.machine.tStateCount + DRQ_DELAY,
+                                () => {
+                                    this.sector = (this.sector + 1) & 0xFF;
+                                    this.startWriteSector(drive);
+                                });
+                        } else {
+                            this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + DRQ_DELAY,
+                                () => this.done(errorBits));
+                        }
+                    }
+                }
+                break;
+
+            case COMMAND_WRITE_TRACK:
+                if (this.trackWriter !== undefined) {
+                    this.trackWriter.write(data);
+                    if (this.trackWriter.isFull()) {
+                        this.finishWriteTrack(drive, this.trackWriter);
                     }
                 }
                 break;
@@ -734,7 +969,6 @@ export class FloppyDiskController {
     public writeSelect(value: number): void {
         TRS80_EMULATOR_LOGGER.trace("FDC: writeSelect(" + toHexByte(value) + ")");
 
-        this.status &= ~STATUS_NOT_READY;
         this.side = booleanToSide((value & SELECT_SIDE) !== 0);
         this.doubleDensity = (value & SELECT_MFM) != 0;
         if ((value & SELECT_WAIT) != 0) {
@@ -749,33 +983,22 @@ export class FloppyDiskController {
             }
         }
 
-        // Which drive is being enabled?
+        // Which drive is being enabled? Selecting more than one is a program error, and would
+        // garble reads on real hardware; use the lowest.
         const previousDrive = this.currentDrive;
-        switch (value & SELECT_DRIVE_MASK) {
-            case 0:
-                this.status |= STATUS_NOT_READY;
-                break;
-
-            case SELECT_DRIVE_0:
-                this.currentDrive = 0;
-                break;
-
-            case SELECT_DRIVE_1:
-                this.currentDrive = 1;
-                break;
-
-            case SELECT_DRIVE_2:
-                this.currentDrive = 2;
-                break;
-
-            case SELECT_DRIVE_3:
-                this.currentDrive = 3;
-                break;
-
-            default:
-                // Or multiple drives!
-                throw new Error("No drive specified in select: 0x" + toHexByte(value));
+        const driveBits = value & SELECT_DRIVE_MASK;
+        if (driveBits !== 0) {
+            if ((driveBits & (driveBits - 1)) !== 0) {
+                this.warnOnce("FDC: More than one drive selected (0x" + toHexByte(value) + "), using the lowest");
+            }
+            for (let drive = 0; drive < FLOPPY_DRIVE_COUNT; drive++) {
+                if ((driveBits & (1 << drive)) !== 0) {
+                    this.currentDrive = drive;
+                    break;
+                }
+            }
         }
+        this.setReady(driveBits !== 0);
 
         if (this.currentDrive !== previousDrive) {
             this.updateMotorOn();
@@ -792,39 +1015,352 @@ export class FloppyDiskController {
             this.motorOffTimeoutHandle = this.machine.eventScheduler.add(undefined,
                 this.machine.tStateCount + MOTOR_TIME_AFTER_SELECT*this.machine.clockHz, () => {
                 this.motorOffTimeoutHandle = undefined;
-                this.status |= STATUS_NOT_READY;
+                this.setReady(false);
                 this.setMotorOn(false);
             });
         }
     }
 
     /**
-     * Verify that head is on the expected track. Set either STATUS_NOT_FOUND or
-     * STATUS_SEEK_ERROR if a problem is found.
+     * Start a type I (head movement) command.
      */
-    private verify(): void {
-        const beforeStatus = this.status;
-        const drive = this.drives[this.currentDrive];
-        if (drive.floppyDisk === undefined) {
-            this.status |= STATUS_NOT_FOUND;
-        } else if (drive.physicalTrack !== this.track) {
-            this.status |= STATUS_SEEK_ERROR;
-        } else {
-            // Make sure a sector exists on this track. Sector 1 almost certainly exists. If this causes
-            // problems, we can iterate from 0 to 20 or something.
-            const sectorPosition = SectorPosition.make(this.track, 0, 1);
-            const sectorData = drive.floppyDisk.readSector(sectorPosition);
-            if (sectorData === undefined) {
-                this.status |= STATUS_NOT_FOUND;
+    private startTypeI(cmd: number, drive: FloppyDrive): void {
+        this.lastReadAddress = undefined;
+
+        // How far to move the head. The controller doesn't know where the head is, it just
+        // sends step pulses.
+        const commandHigh = cmd & COMMAND_MASK;
+        let moveCount: number;
+        switch (commandHigh) {
+            case COMMAND_RESTORE:
+            default:
+                // Step out until the drive says it's on track 0.
+                moveCount = -drive.physicalTrack;
+                this.stepDirection = -1;
+                this.track = 0; // trs80gp sets this to 255?
+                break;
+
+            case COMMAND_SEEK:
+                // Step until the track register matches the data register.
+                moveCount = this.data - this.track;
+                if (moveCount !== 0) {
+                    this.stepDirection = Math.sign(moveCount);
+                }
+                this.track = this.data;
+                break;
+
+            case COMMAND_STEP:
+            case COMMAND_STEPU:
+                // Same direction as last time.
+                moveCount = this.stepDirection;
+                break;
+
+            case COMMAND_STEP_IN:
+            case COMMAND_STEP_INU:
+                moveCount = 1;
+                this.stepDirection = 1;
+                break;
+
+            case COMMAND_STEP_OUT:
+            case COMMAND_STEP_OUTU:
+                moveCount = -1;
+                this.stepDirection = -1;
+                break;
+        }
+
+        // The step commands can also update the track register.
+        if (commandHigh >= COMMAND_STEP && (cmd & MASK_U) !== 0) {
+            this.track = (this.track + this.stepDirection) & 0xFF;
+        }
+
+        // The head stops at track 0.
+        TRS80_EMULATOR_LOGGER.trace("FDC: before move: track " + this.track +
+            ", physical track " + drive.physicalTrack + ", move count " + moveCount);
+        const physicalTrack = Math.max(drive.physicalTrack + moveCount, 0);
+        if (physicalTrack !== drive.physicalTrack) {
+            this.onTrackMove.dispatch(physicalTrack - drive.physicalTrack);
+            drive.physicalTrack = physicalTrack;
+        }
+        TRS80_EMULATOR_LOGGER.trace("FDC: after move: track " + this.track +
+            ", physical track " + drive.physicalTrack);
+
+        this.status = STATUS_BUSY | (drive.physicalTrack === 0 ? STATUS_TRACK_ZERO : 0);
+        if ((cmd & MASK_V) != 0) {
+            this.verify(drive);
+        }
+        this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + TYPE_I_DELAY,
+            () => this.done(0));
+    }
+
+    /**
+     * Start reading the sector in the sector register, for a READ or READM command.
+     */
+    private startReadSector(drive: FloppyDrive): void {
+        this.lastReadAddress = undefined;
+        this.status = STATUS_BUSY;
+        TRS80_EMULATOR_LOGGER.trace("FDC: reading track " + drive.physicalTrack +
+            ", side " + this.side + ", sector " + this.sector);
+
+        // TODO If MASK_C is specified, then the side byte in the IDAM must match MASK_B.
+        // On the Model I's WD1771 those bits mean something else, so we'd need to know the model.
+        const sectorData = drive.floppyDisk?.readSector(this.getHeadPosition(drive));
+        if (sectorData === undefined || !this.idMatches(sectorData)) {
+            TRS80_EMULATOR_LOGGER.trace(`FDC: Didn't find sector ${this.sector} with track ${this.track} ` +
+                `on physical track ${drive.physicalTrack}`);
+            this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
+            return;
+        }
+
+        let newStatus = 0;
+        if (sectorData.deleted) {
+            newStatus |= STATUS_DELETED;
+        }
+        if (sectorData.crcError) {
+            newStatus |= STATUS_CRC_ERROR;
+        }
+        this.sectorData = sectorData;
+        this.dataIndex = 0;
+        this.machine.eventScheduler.add(EventType.DISK_FIRST_DRQ, this.machine.tStateCount + DRQ_DELAY,
+            () => this.firstDrq(newStatus));
+    }
+
+    /**
+     * Start writing the sector in the sector register, for a WRITE or WRITEM command. The
+     * caller has checked that there's a writable disk.
+     */
+    private startWriteSector(drive: FloppyDrive): void {
+        this.lastReadAddress = undefined;
+        this.status = STATUS_BUSY;
+
+        // Like a read, the controller looks for the sector under the head whose ID field
+        // matches the registers, and then writes its data field. It writes the data in
+        // whatever size and density the sector was formatted with.
+        const position = this.getHeadPosition(drive);
+        const existing = drive.floppyDisk?.readSector(position);
+        if (existing === undefined || !this.idMatches(existing)) {
+            TRS80_EMULATOR_LOGGER.trace(`FDC: Didn't find sector ${this.sector} with track ${this.track} ` +
+                `on physical track ${drive.physicalTrack} to write`);
+            this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
+            return;
+        }
+
+        this.sectorData = new SectorData(new Uint8Array(existing.data.length), position, existing.density);
+        this.sectorData.deleted = (this.currentCommand & MASK_D) !== 0;
+        this.dataIndex = 0;
+        this.firstDrq(0);
+    }
+
+    /**
+     * Start reading the next ID field under the head, for a READ_ADDRESS command.
+     */
+    private startReadAddress(drive: FloppyDrive): void {
+        this.status = STATUS_BUSY;
+
+        const floppyDisk = drive.floppyDisk;
+        const sectorInfos = floppyDisk === undefined ? [] : this.getTrackSectorInfos(floppyDisk, drive);
+        if (floppyDisk === undefined || sectorInfos.length === 0) {
+            this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
+            return;
+        }
+
+        // Go around the track one sector at a time.
+        this.lastReadAddress = ((this.lastReadAddress ?? -1) + 1) % sectorInfos.length;
+        const sectorInfo = sectorInfos[this.lastReadAddress];
+        const idField = this.getIdField(floppyDisk, sectorInfo);
+
+        // The controller puts the cylinder from the ID field into the sector register.
+        this.sector = idField[0];
+
+        this.sectorData = new SectorData(new Uint8Array(idField), sectorInfo.sectorPosition, sectorInfo.density);
+        this.dataIndex = 0;
+        const newStatus = sectorInfo.crc !== undefined && !sectorInfo.crc.idCrc.valid() ? STATUS_CRC_ERROR : 0;
+        this.machine.eventScheduler.add(EventType.DISK_FIRST_DRQ, this.machine.tStateCount + DRQ_DELAY,
+            () => this.firstDrq(newStatus));
+    }
+
+    /**
+     * Start reading the whole track under the head, for a READ_TRACK command.
+     */
+    private startReadTrack(drive: FloppyDrive): void {
+        this.lastReadAddress = undefined;
+        this.status = STATUS_BUSY;
+
+        const floppyDisk = drive.floppyDisk;
+        if (floppyDisk === undefined) {
+            this.endWithError(STATUS_NOT_FOUND, NOT_FOUND_DELAY);
+            return;
+        }
+
+        const sectorInfos = this.getTrackSectorInfos(floppyDisk, drive);
+        const bytes = this.synthesizeTrack(floppyDisk, sectorInfos);
+        this.sectorData = new SectorData(bytes, SectorPosition.make(drive.physicalTrack, this.side, 0),
+            this.doubleDensity ? Density.DOUBLE : Density.SINGLE);
+        this.dataIndex = 0;
+        this.machine.eventScheduler.add(EventType.DISK_FIRST_DRQ, this.machine.tStateCount + DRQ_DELAY,
+            () => this.firstDrq(0));
+    }
+
+    /**
+     * Hand the track that the CPU wrote to the disk.
+     */
+    private finishWriteTrack(drive: FloppyDrive, trackWriter: TrackWriter): void {
+        const trackPosition = new TrackPosition(drive.physicalTrack, this.side);
+        const formattedTrack = trackWriter.makeFormattedTrack(trackPosition);
+        this.trackWriter = undefined;
+
+        this.status &= ~STATUS_DRQ;
+        this.machine.diskDrqInterrupt(false);
+        this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_LOST_DATA);
+
+        let success = false;
+        const floppyDisk = drive.floppyDisk;
+        if (floppyDisk !== undefined) {
+            try {
+                success = floppyDisk.formatTrack(formattedTrack);
+            } catch (e) {
+                this.warnOnce("FDC: Can't format track: " + (e instanceof Error ? e.message : String(e)));
             }
-            if (this.doubleDensity && !drive.floppyDisk.supportsDoubleDensity) {
-                this.status |= STATUS_NOT_FOUND;
+            if (!success) {
+                this.warnOnce(`FDC: Can't format track ${trackPosition.key()} ` +
+                    `(${formattedTrack.sectors.length} sectors) of a ${floppyDisk.getDescription()}`);
             }
         }
-        if (this.status === beforeStatus) {
+
+        this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + DRQ_DELAY,
+            () => this.done(success ? 0 : STATUS_FAULT));
+    }
+
+    /**
+     * End the current command after a delay with the given error bits.
+     */
+    private endWithError(bits: number, delay: number): void {
+        this.status = STATUS_BUSY;
+        this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + delay,
+            () => this.done(bits));
+    }
+
+    /**
+     * Position of the sector in the sector register on the track under the head.
+     */
+    private getHeadPosition(drive: FloppyDrive): SectorPosition {
+        return SectorPosition.make(drive.physicalTrack, this.side, this.sector);
+    }
+
+    /**
+     * Whether a sector's ID field matches the track and sector registers.
+     */
+    private idMatches(sectorData: SectorData): boolean {
+        return sectorData.sectorPosition.cylinderNumber === this.track &&
+            sectorData.sectorPosition.sectorNumber === this.sector;
+    }
+
+    /**
+     * The sectors on the track under the head, in the order they're on the track.
+     */
+    private getTrackSectorInfos(floppyDisk: FloppyDisk, drive: FloppyDrive): SectorInfo[] {
+        const trackPosition = new TrackPosition(drive.physicalTrack, this.side);
+        return floppyDisk.getGeometry().sectorInfos.filter(sectorInfo =>
+            sectorInfo.sectorPosition.trackPosition.equals(trackPosition));
+    }
+
+    /**
+     * The six bytes of a sector's ID field: cylinder, side, sector, size code, and CRC.
+     */
+    private getIdField(floppyDisk: FloppyDisk, sectorInfo: SectorInfo): number[] {
+        // The geometry has where the sector is. What its ID field says comes from reading it.
+        const id = floppyDisk.readSector(sectorInfo.sectorPosition)?.sectorPosition ?? sectorInfo.sectorPosition;
+        const sizeCode = Math.max(0, Math.min(3, Math.round(Math.log2(sectorInfo.sectorSize/128))));
+        const fields = [id.cylinderNumber, id.side, id.sectorNumber, sizeCode];
+
+        let crc: number;
+        if (sectorInfo.crc !== undefined) {
+            crc = sectorInfo.crc.idCrc.written;
+        } else {
+            crc = sectorInfo.density === Density.DOUBLE ? MFM_SYNC_CRC : CRC_PRESET;
+            crc = crcOf([ID_ADDRESS_MARK, ...fields], crc);
+        }
+
+        return [...fields, hi(crc), lo(crc)];
+    }
+
+    /**
+     * Make the bytes that a READ_TRACK command returns, from the track's sectors. The image
+     * formats don't keep the gaps, so we make up the standard ones.
+     */
+    private synthesizeTrack(floppyDisk: FloppyDisk, sectorInfos: SectorInfo[]): Uint8Array {
+        const doubleDensityCount = sectorInfos.filter(info => info.density === Density.DOUBLE).length;
+        const doubleDensity = sectorInfos.length === 0 ? this.doubleDensity : doubleDensityCount*2 > sectorInfos.length;
+        const trackLength = doubleDensity ? DOUBLE_DENSITY_TRACK_BYTES : SINGLE_DENSITY_TRACK_BYTES;
+        const bytes: number[] = [];
+
+        const addGap = (doubleDensity: boolean, count: number): void => {
+            for (let i = 0; i < count; i++) {
+                bytes.push(doubleDensity ? MFM_GAP : FM_GAP);
+            }
+        };
+        const addSync = (doubleDensity: boolean): void => {
+            for (let i = 0; i < (doubleDensity ? 12 : 6); i++) {
+                bytes.push(0x00);
+            }
+            if (doubleDensity) {
+                for (let i = 0; i < MFM_SYNC_COUNT; i++) {
+                    bytes.push(MFM_SYNC);
+                }
+            }
+        };
+
+        addGap(doubleDensity, doubleDensity ? 32 : 16);
+        for (const sectorInfo of sectorInfos) {
+            const sectorDoubleDensity = sectorInfo.density === Density.DOUBLE;
+
+            // ID field.
+            addSync(sectorDoubleDensity);
+            bytes.push(ID_ADDRESS_MARK, ...this.getIdField(floppyDisk, sectorInfo));
+            addGap(sectorDoubleDensity, sectorDoubleDensity ? 22 : 11);
+
+            // Data field.
+            const sectorData = floppyDisk.readSector(sectorInfo.sectorPosition);
+            if (sectorData !== undefined) {
+                addSync(sectorDoubleDensity);
+                const dam = sectorInfo.deleted ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK;
+                bytes.push(dam, ...sectorData.data);
+                let crc: number;
+                if (sectorInfo.crc !== undefined) {
+                    crc = sectorInfo.crc.dataCrc.written;
+                } else {
+                    crc = sectorDoubleDensity ? MFM_SYNC_CRC : CRC_PRESET;
+                    crc = crcOf([dam], crc);
+                    crc = crcOf(sectorData.data, crc);
+                }
+                bytes.push(hi(crc), lo(crc));
+            }
+            addGap(sectorDoubleDensity, sectorDoubleDensity ? 24 : 12);
+        }
+        addGap(doubleDensity, trackLength - bytes.length);
+
+        return new Uint8Array(bytes.slice(0, trackLength));
+    }
+
+    /**
+     * Verify that head is on the expected track: some ID field on the track under the head
+     * must match the track register. Set STATUS_SEEK_ERROR if none does.
+     */
+    private verify(drive: FloppyDrive): void {
+        const floppyDisk = drive.floppyDisk;
+        let found = false;
+        if (floppyDisk !== undefined && (!this.doubleDensity || floppyDisk.supportsDoubleDensity)) {
+            for (const sectorInfo of this.getTrackSectorInfos(floppyDisk, drive)) {
+                if (this.getIdField(floppyDisk, sectorInfo)[0] === this.track) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (found) {
             TRS80_EMULATOR_LOGGER.trace(`FDC: Verify found track ${this.track}`);
         } else {
-            TRS80_EMULATOR_LOGGER.trace(`FDC: Verify failed to find track ${this.track}, status changed from ${toHexByte(beforeStatus)} to ${toHexByte(this.status)}`);
+            this.status |= STATUS_SEEK_ERROR;
+            TRS80_EMULATOR_LOGGER.trace(`FDC: Verify failed to find track ${this.track}`);
         }
     }
 
@@ -874,6 +1410,37 @@ export class FloppyDiskController {
     }
 
     /**
+     * Set whether the drive is ready, interrupting if a Force Interrupt asked for that change.
+     */
+    private setReady(ready: boolean): void {
+        const wasReady = (this.status & STATUS_NOT_READY) === 0;
+        if (ready) {
+            this.status &= ~STATUS_NOT_READY;
+        } else {
+            this.status |= STATUS_NOT_READY;
+        }
+
+        if (ready !== wasReady &&
+            (this.interruptConditions & (ready ? MASK_INTERRUPT_ON_READY : MASK_INTERRUPT_ON_NOT_READY)) !== 0) {
+
+            this.machine.diskIntrqInterrupt(true);
+        }
+    }
+
+    /**
+     * Interrupt at the next index pulse, and every one after, until the next command.
+     */
+    private scheduleIndexInterrupt(): void {
+        const clocksPerRevolution = this.getClocksPerRevolution();
+        const nextIndex = this.machine.tStateCount + clocksPerRevolution -
+            this.machine.tStateCount % clocksPerRevolution;
+        this.machine.eventScheduler.add(EventType.DISK_INDEX, nextIndex, () => {
+            this.machine.diskIntrqInterrupt(true);
+            this.scheduleIndexInterrupt();
+        });
+    }
+
+    /**
      * Turn motor on or off.
      */
     private setMotorOn(motorOn: boolean): void {
@@ -891,12 +1458,19 @@ export class FloppyDiskController {
         this.onActiveDrive.dispatch(this.motorOn ? this.currentDrive : undefined);
     }
 
+    /**
+     * Number of clock cycles in one revolution of the disk.
+     */
+    private getClocksPerRevolution(): number {
+        return Math.round(this.machine.clockHz / (RPM/60));
+    }
+
     // Return a value in [0,1) indicating how far we've rotated
     // from the leading edge of the index hole. For the first HOLE_WIDTH we're
     // on the hole itself.
     private angle(): number {
         // Use simulated time.
-        const clocksPerRevolution = Math.round(this.machine.clockHz / (RPM/60));
+        const clocksPerRevolution = this.getClocksPerRevolution();
         return (this.machine.tStateCount % clocksPerRevolution) / clocksPerRevolution;
     }
 
@@ -920,6 +1494,7 @@ export class FloppyDiskController {
             this.status &= ~STATUS_BUSY;
             this.status |= STATUS_LOST_DATA;
             this.sectorData = undefined;
+            this.trackWriter = undefined;
             this.machine.diskIntrqInterrupt(true);
         }
     }
@@ -939,4 +1514,38 @@ export class FloppyDiskController {
         this.machine.eventScheduler.add(EventType.DISK_LOST_DATA, this.machine.tStateCount + this.machine.clockHz/2,
             () => this.lostData(currentCommand));
     }
+
+    /**
+     * Log a warning, but only the first time we see it.
+     */
+    private warnOnce(message: string): void {
+        if (!this.warnOnceSet.has(message)) {
+            this.warnOnceSet.add(message);
+            TRS80_EMULATOR_LOGGER.warn(message);
+        }
+    }
+}
+
+/**
+ * Compute the CRC-16-CCITT of the bytes, starting with the given CRC.
+ */
+function crcOf(bytes: ArrayLike<number>, crc = CRC_PRESET): number {
+    for (let i = 0; i < bytes.length; i++) {
+        crc = CRC_16_CCITT.update(crc, bytes[i]);
+    }
+    return crc;
+}
+
+/**
+ * Whether WRITE_TRACK writes the value as an address mark in FM.
+ */
+function isFmMark(value: number): boolean {
+    return value >= WRITE_TRACK_FM_FIRST_MARK && value <= WRITE_TRACK_FM_LAST_MARK;
+}
+
+/**
+ * Whether the address mark starts one of a sector's two fields, ID or data.
+ */
+function isSectorMark(value: number): boolean {
+    return value === ID_ADDRESS_MARK || isDataAddressMark(value);
 }

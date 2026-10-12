@@ -534,6 +534,24 @@ export class FloppyDiskGeometry {
 }
 
 /**
+ * A track as written by the floppy controller's Write Track (format) command.
+ */
+export interface FormattedTrack {
+    // Physical position of the track.
+    trackPosition: TrackPosition;
+    // Whether the track was written in double density (MFM).
+    doubleDensity: boolean;
+    // The bytes as they'd be read back, with the controller's special values replaced
+    // by the address marks and CRCs they stand for.
+    bytes: Uint8Array;
+    // Indices into "bytes" of each sector's ID address mark (its 0xFE byte).
+    idamIndices: number[];
+    // The sectors in the order they were written. Their positions are what their ID
+    // fields say, which needn't match where the track is.
+    sectors: SectorData[];
+}
+
+/**
  * Represents a write to an underlying disk file.
  */
 export class FloppyWrite {
@@ -625,6 +643,16 @@ export abstract class FloppyDisk extends AbstractTrs80File {
      */
     public writeSector(_sectorPosition: SectorPosition, _data: SectorData): void {
         throw new Error(this.className + " does not support writing");
+    }
+
+    /**
+     * Replace a track with a newly formatted one. Check first with isWriteProtected().
+     *
+     * @return whether successful. A file format that can't represent the new layout,
+     * or can't grow to hold it, returns false and leaves the disk unchanged.
+     */
+    public formatTrack(_formattedTrack: FormattedTrack): boolean {
+        return false;
     }
 
     /**

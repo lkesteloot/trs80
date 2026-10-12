@@ -4,6 +4,7 @@ import {
     FloppyDisk,
     FloppyDiskGeometry,
     FloppyWrite,
+    FormattedTrack,
     SectorData,
     SectorInfo, SectorPosition,
 } from "./FloppyDisk.js";
@@ -55,19 +56,24 @@ const FREE = 0xFF;
  */
 class Jv3SectorInfo {
     public readonly sectorPosition: SectorPosition;
-    public readonly flags: Flags;
+    // Changes when the sector is written.
+    public flags: Flags;
 
-    // Offset into the binary.
+    // Offset into the binary of the sector's data.
     public readonly offset: number;
+
+    // Offset into the binary of the flags byte of the sector's directory entry.
+    public readonly flagsOffset: number;
 
     // Number of bytes in sector.
     public readonly size: number;
 
-    constructor(cylinderNumber: number, sectorNumber: number, flags: Flags, offset: number) {
+    constructor(cylinderNumber: number, sectorNumber: number, flags: Flags, offset: number, flagsOffset: number) {
         const side = (flags & Flags.SIDE) === 0 ? 0 : 1;
         this.sectorPosition = SectorPosition.make(cylinderNumber, side, sectorNumber);
         this.flags = flags;
         this.offset = offset;
+        this.flagsOffset = flagsOffset;
 
         // In used sectors: 0=256,1=128,2=1024,3=512
         // In free sectors: 0=512,1=1024,2=128,3=256
@@ -142,6 +148,26 @@ class Jv3SectorInfo {
     }
 
     /**
+     * The flags for this sector once it's written in the given density with the given
+     * data address mark, and so with a good CRC. If the existing mark already means the same
+     * thing (deleted or not), it's kept, so that single density's 0xFA mark survives a write.
+     */
+    public flagsAfterWrite(doubleDensity: boolean, deleted: boolean): Flags {
+        let flags = this.flags & ~Flags.BAD_CRC;
+
+        if (doubleDensity !== this.isDoubleDensity() || deleted !== this.isDeleted()) {
+            flags &= ~(Flags.DAM_MASK | Flags.DOUBLE_DENSITY);
+            if (doubleDensity) {
+                flags |= Flags.DOUBLE_DENSITY | (deleted ? Flags.DAM_DD_F8 : Flags.DAM_DD_FB);
+            } else {
+                flags |= deleted ? Flags.DAM_SD_F8 : Flags.DAM_SD_FB;
+            }
+        }
+
+        return flags as Flags;
+    }
+
+    /**
      * Whether the floppy had a bar CRC when reading it.
      */
     public hasCrcError(): boolean {
@@ -176,7 +202,8 @@ export class Jv3FloppyDisk extends FloppyDisk {
     public readonly className = "Jv3FloppyDisk";
     private readonly sectorInfos: Jv3SectorInfo[];
     public readonly writeProtected: boolean;
-    private readonly geometry: FloppyDiskGeometry;
+    // Rebuilt when a track is formatted.
+    private geometry: FloppyDiskGeometry;
     // From sector position key string to our sector info.
     private readonly sectorInfoMap: Map<string,Jv3SectorInfo>;
 
@@ -204,6 +231,9 @@ export class Jv3FloppyDisk extends FloppyDisk {
         return this.writeProtected || this.mountedWriteProtected;
     }
 
+    /**
+     * Read a sector, or return undefined if the disk doesn't have it or the file is truncated.
+     */
     public readSector(sectorPosition: SectorPosition): SectorData | undefined {
         const sectorInfo = this.findSectorInfo(sectorPosition);
         if (sectorInfo === undefined) {
@@ -220,6 +250,10 @@ export class Jv3FloppyDisk extends FloppyDisk {
         return sectorInfo.toSectorData(data);
     }
 
+    /**
+     * Write a sector's data, and record its data address mark and good CRC in its directory
+     * entry. The data must be the sector's size.
+     */
     public writeSector(sectorPosition: SectorPosition, data: SectorData) {
         if (this.isWriteProtected()) {
             // Shouldn't happen, failure upstream.
@@ -238,6 +272,77 @@ export class Jv3FloppyDisk extends FloppyDisk {
         }
 
         this.write(new FloppyWrite(data.data, sectorInfo.offset));
+        this.setFlags(sectorInfo, sectorInfo.flagsAfterWrite(sectorInfo.isDoubleDensity(), data.deleted));
+
+        // Keep the geometry's copy in sync. The density didn't change, so the rest of the
+        // geometry is still right.
+        const geometrySectorInfo = this.geometry.sectorMap.get(sectorPosition.key());
+        if (geometrySectorInfo !== undefined) {
+            geometrySectorInfo.deleted = sectorInfo.isDeleted();
+            geometrySectorInfo.crcError = sectorInfo.hasCrcError();
+        }
+    }
+
+    /**
+     * Format a track. Since we can't change the directory's entries, this only works if the
+     * new track has the same sectors as the old one, which is the case when reformatting a disk
+     * the same way.
+     *
+     * @return whether successful.
+     */
+    public formatTrack(formattedTrack: FormattedTrack): boolean {
+        if (this.isWriteProtected()) {
+            return false;
+        }
+
+        // We can't add, remove, or resize directory entries, so the new track must have
+        // exactly the sectors (positions and sizes) that the old one did. JV3 records each
+        // sector's ID field as its position, so the IDs must also match where the track is.
+        const oldSectorCount = this.sectorInfos.filter(info =>
+            !info.isFree() && info.sectorPosition.trackPosition.equals(formattedTrack.trackPosition)).length;
+        if (formattedTrack.sectors.length !== oldSectorCount) {
+            return false;
+        }
+        const matches: {sectorInfo: Jv3SectorInfo, sector: SectorData}[] = [];
+        const keys = new Set<string>();
+        for (const sector of formattedTrack.sectors) {
+            const sectorInfo = this.findSectorInfo(sector.sectorPosition);
+            if (!sector.sectorPosition.trackPosition.equals(formattedTrack.trackPosition) ||
+                sectorInfo === undefined ||
+                sectorInfo.size !== sector.data.length) {
+
+                return false;
+            }
+            matches.push({sectorInfo, sector});
+            keys.add(sector.sectorPosition.key());
+        }
+        if (keys.size !== matches.length) {
+            // Duplicate sector IDs.
+            return false;
+        }
+
+        for (const {sectorInfo, sector} of matches) {
+            this.write(new FloppyWrite(sector.data, sectorInfo.offset));
+            this.setFlags(sectorInfo, sectorInfo.flagsAfterWrite(formattedTrack.doubleDensity, sector.deleted));
+        }
+
+        // The density may have changed, so rebuild the geometry.
+        const geometry = makeGeometry(this.sectorInfos);
+        if (geometry !== undefined) {
+            this.geometry = geometry;
+        }
+
+        return true;
+    }
+
+    /**
+     * Update a sector's flags in its directory entry.
+     */
+    private setFlags(sectorInfo: Jv3SectorInfo, flags: Flags): void {
+        if (flags !== sectorInfo.flags) {
+            sectorInfo.flags = flags;
+            this.write(new FloppyWrite(new Uint8Array([flags]), sectorInfo.flagsOffset));
+        }
     }
 
     /**
@@ -246,6 +351,18 @@ export class Jv3FloppyDisk extends FloppyDisk {
     private findSectorInfo(sectorPosition: SectorPosition): Jv3SectorInfo | undefined {
         return this.sectorInfoMap.get(sectorPosition.key());
     }
+}
+
+/**
+ * Make the geometry from the sectors, or undefined if there's no boot track.
+ */
+function makeGeometry(sectorInfos: Jv3SectorInfo[]): FloppyDiskGeometry | undefined {
+    // Only consider used (non-free) sectors.
+    const usedSectors = sectorInfos.filter(info => !info.isFree());
+
+    const cylinderCount = Math.max(-1, ... usedSectors.map(info => info.sectorPosition.cylinderNumber)) + 1;
+    const sideCount = Math.max(-1, ... usedSectors.map(info => info.sectorPosition.side)) + 1;
+    return FloppyDiskGeometry.make(cylinderCount, sideCount, usedSectors.map(info => info.toSectorInfo()));
 }
 
 /**
@@ -274,7 +391,7 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk | undefin
             const sectorNumber = binary[dirOffset + 1];
             const flags = binary[dirOffset + 2] as Flags;
 
-            const sectorInfo = new Jv3SectorInfo(cylinderNumber, sectorNumber, flags, sectorOffset);
+            const sectorInfo = new Jv3SectorInfo(cylinderNumber, sectorNumber, flags, sectorOffset, dirOffset + 2);
 
             // See if we have a plausible disk, instead of a file that just happens to be large enough.
             if (!sectorInfo.isPlausible()) {
@@ -329,16 +446,13 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk | undefin
     }
 
 
-    // For computing geometry, only consider used (non-free) sectors.
-    const usedSectors = sectorInfos.filter(info => !info.isFree());
-
-    const cylinderCount = Math.max(-1, ... usedSectors.map(info => info.sectorPosition.cylinderNumber)) + 1;
-    const sideCount = Math.max(-1, ... usedSectors.map(info => info.sectorPosition.side)) + 1;
-    const geometry = FloppyDiskGeometry.make(cylinderCount, sideCount,
-        usedSectors.map(info => info.toSectorInfo()));
+    const geometry = makeGeometry(sectorInfos);
     if (geometry === undefined) {
         return undefined;
     }
+
+    // Only consider used (non-free) sectors.
+    const usedSectors = sectorInfos.filter(info => !info.isFree());
 
     // Build our map.
     const sectorInfoMap = new Map(usedSectors.map(info => [info.sectorPosition.key(), info]));
