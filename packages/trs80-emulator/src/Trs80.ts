@@ -143,7 +143,13 @@ export class Trs80State {
                 public readonly memory: Uint8Array,
                 public readonly printerState: any,
                 public readonly fdcState: FdcState,
-                public readonly screenState: Trs80ScreenState) {
+                public readonly screenState: Trs80ScreenState,
+                public readonly modeImage: number,
+                public readonly irqMask: number,
+                public readonly irqLatch: number,
+                public readonly nmiMask: number,
+                public readonly nmiLatch: number,
+                public readonly nmiSeen: boolean) {
 
         // Nothing.
     }
@@ -210,6 +216,8 @@ export class Trs80 implements Hal, Machine, Configurable {
     // When we turned on the motor (started reading the file) and how many samples
     // we've read since then.
     private cassetteMotorOnClock = 0;
+    // Scheduled event that kicks off the cassette after the motor starts, if any.
+    private kickOffCassetteHandle: number | undefined = undefined;
     private cassetteSamplesRead = 0;
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
@@ -323,15 +331,23 @@ export class Trs80 implements Hal, Machine, Configurable {
             new Uint8Array(this.memory),
             this.printer.save(),
             this.fdc.save(),
-            this.screen.save());
+            this.screen.save(),
+            this.modeImage,
+            this.irqMask,
+            this.irqLatch,
+            this.nmiMask,
+            this.nmiLatch,
+            this.nmiSeen);
     }
 
     /**
      * Restore the complete state of the machine, saved by {@link #save()}.
      */
     public restore(state: Trs80State): void {
-        this.reset();
         this.config = state.config;
+        this.screen.setConfig(this.config);
+        this.updateFromConfig();
+        this.reset();
         this.z80.restore(state.z80State);
 
         // Restore ROM.
@@ -345,6 +361,13 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.printer.restore(state.printerState);
         this.fdc.restore(state.fdcState);
         this.screen.restore(state.screenState);
+        // Restore the interrupt and port state, which reset() cleared.
+        this.modeImage = state.modeImage;
+        this.irqMask = state.irqMask;
+        this.irqLatch = state.irqLatch;
+        this.nmiMask = state.nmiMask;
+        this.nmiLatch = state.nmiLatch;
+        this.nmiSeen = state.nmiSeen;
     }
 
     /**
@@ -464,6 +487,7 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.resetCassette();
         this.keyboard.clearKeyboard();
         this.setTimerInterrupt(false);
+        this.eventScheduler.cancelAll();
         this.z80.reset();
     }
 
@@ -610,9 +634,16 @@ export class Trs80 implements Hal, Machine, Configurable {
         }
 
         // Set off a timer interrupt.
-        if (this.tStateCount > this.previousTimerClock + this.clockHz / this.timerHz) {
+        const timerPeriod = this.clockHz / this.timerHz;
+        if (this.tStateCount > this.previousTimerClock + timerPeriod) {
             this.handleTimer();
-            this.previousTimerClock = this.tStateCount;
+            // Advance by exactly one period so that the ticks don't drift, but if we're
+            // still more than a period behind (such as after a restore) skip ahead
+            // instead of firing a burst of catch-up interrupts.
+            this.previousTimerClock += timerPeriod;
+            if (this.tStateCount > this.previousTimerClock + timerPeriod) {
+                this.previousTimerClock = this.tStateCount;
+            }
         }
 
         // Update cassette state.
@@ -1239,12 +1270,16 @@ export class Trs80 implements Hal, Machine, Configurable {
                 this.cassetteLastNonZeroValue = CassetteValue.NEUTRAL;
 
                 // Waits a second before kicking off the cassette.
-                // TODO this should be in CPU cycles, not browser cycles.
                 if (this.config.modelType !== ModelType.MODEL1) {
-                    setTimeout(() => this.kickOffCassette(), 1000);
+                    this.kickOffCassetteHandle = this.eventScheduler.add(undefined,
+                        this.tStateCount + this.clockHz, () => this.kickOffCassette());
                 }
             } else {
                 this.setCassetteState(CassetteState.CLOSE);
+                if (this.kickOffCassetteHandle !== undefined) {
+                    this.eventScheduler.cancel(this.kickOffCassetteHandle);
+                    this.kickOffCassetteHandle = undefined;
+                }
             }
             this.cassetteMotorOn = cassetteMotorOn;
 
