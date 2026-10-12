@@ -36,7 +36,7 @@ function decodePdsFile(trs80File: CmdProgram, createLabels: boolean, useKnownLab
 
     for (const chunk of trs80File.chunks) {
         if (chunk instanceof CmdIsamDirectoryEntryChunk) {
-            const offset = chunk.sectorNumber*BYTES_PER_SECTOR + chunk.offset;
+            const offset = chunk.sectorNumber*BYTES_PER_SECTOR + chunk.sectorOffset;
             const dirEntries = offsetToDirEntries.get(offset);
             if (dirEntries === undefined) {
                 offsetToDirEntries.set(offset, [chunk]);
