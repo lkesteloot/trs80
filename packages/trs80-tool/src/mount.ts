@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import {decodeTrsdos, FloppyDisk} from "trs80-base";
+import {decodeFloppyFileSystem, FloppyDisk, Trsdos} from "trs80-base";
 import {loadFile, pluralizeWithCount, readTrs80File} from "./utils.js";
 
 const VERBOSE = true;
@@ -42,11 +42,16 @@ export function mount(diskfile: string, commands: string[]): void {
     }
 
     // Parse the file system.
-    const trsdos = decodeTrsdos(disk);
-    if (trsdos === undefined) {
+    const fileSystem = decodeFloppyFileSystem(disk);
+    if (fileSystem === undefined) {
         console.log("Operating system not recognized");
         return;
     }
+    if (!(fileSystem instanceof Trsdos)) {
+        console.log("Can't modify " + fileSystem.nameAndVersion + " floppies");
+        return;
+    }
+    const trsdos = fileSystem;
 
     if (VERBOSE) {
         // Users don't care about system files.

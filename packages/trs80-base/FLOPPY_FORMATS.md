@@ -42,6 +42,10 @@ quoted documentation; guesses are labeled as such.
     the source of a password finder (pages 116-118, checked on the scan), the
     fact that TRSDOS and VTOS store their SYS0 boot messages negated (page 93),
     and the Model I and III track formats (pages 18-28, 96-97).
+- **CP/M**: the library has no CP/M manuals. The directory entry and disk
+  parameter block are as in Digital Research's *CP/M 2.2 Alteration Guide* and
+  the cpmtools package. Montezuma Micro's parameters come from `PROBE.TXT` on
+  each of mloewen's disks, a dump that the PROBE utility made of the DPB.
 
 ## Which DOSes share a layout
 
@@ -65,8 +69,8 @@ layout with different parameters.
 
 **Tandy's Model II lineage** — Model III TRSDOS 1.x, Model I TRSDOS 2.7DD/2.8,
 and Model II TRSDOS — are related to each other and can't read each other's
-disks. CP/M isn't read yet (see "New formats" in `FLOPPY_TODO.md`), and game
-disks with no file system are out of scope.
+disks. CP/M is a separate decoder (see "CP/M" below), and game disks with no
+file system are out of scope.
 
 **TRSDOS 2.7DD** (Model I, 1982) came with Radio Shack's Double-Density Disk Kit
 (26-1143) and was its only double-density Model I TRSDOS; 2.8 replaced it later
@@ -969,6 +973,74 @@ strict GAT pass, since a blank 2.3B data disk may offer no hashes at all. A blan
 1.3 disk (`m3-trsdos-blank.dmk`) has no directory entries either, and is carried
 by the Tandy string and the GAT instead. A GAT full of zeros is not an
 empty disk, it's the wrong cylinder — that was the old bug on `NEWDOS90.dmk`.
+
+## CP/M
+
+Every CP/M has the same directory and allocation; only the disk parameter block
+(DPB) differs, and it lives in the BIOS, not on the disk. So the decoder keeps a
+table of known formats (`CPM_FORMATS` in `Cpm.ts`) and scores each candidate
+layout by how consistent its directory is.
+
+**Directory entries** are 32 bytes, filling the first blocks of the data area
+(the blocks AL0/AL1 mark). Byte 0 is the user number, 0-15, or 0xE5 for unused.
+CP/M 3 also uses 16-31 for passwords, 0x20 for the disk label, and 0x21 for date
+stamps. Bytes 1-11 are the name and extension in 7-bit ASCII, padded with
+spaces; the high bits of the extension are R/O, SYS (hidden from DIR), and
+archived. Byte 12 (EX) holds the low 5 bits of the extent number and byte 14
+(S2) the rest. Byte 15 (RC) is the number of 128-byte records in the entry's
+last logical extent. Bytes 16-31 are 16 8-bit block numbers, or 8 16-bit
+little-endian ones when the disk has more than 256 blocks.
+
+**Extents**: a logical extent is 16K, and one entry holds EXM+1 of them. EXM is
+the block size in K minus 1 with 8-bit pointers, or the block size in 2K minus
+1 with 16-bit ones. A file's size is (extent number × 128 + RC) × 128 from its
+last entry, so sizes are whole records, and text files end at the first Ctrl-Z
+(0x1A). The blocks of every entry must hold exactly the records it claims:
+ceil(((EX & EXM) × 128 + RC) / (block size / 128)). That rule rejects wrong
+layouts reliably.
+
+**Skew** can't be measured from the directory. With 128 entries the directory
+is 4K, and a sparse directory has all its entries in the first logical sector,
+so any skew finds them. It has to come from the format table.
+
+**Montezuma Micro CP/M 2.2** (Model 4). mloewen's 12 disks are one of each
+format the system offers, and each one's `PROBE.TXT` has the DPB. All 12 follow
+the same rules:
+
+- 2K blocks, 128 directory entries (2 blocks), skew 2 on both 256- and 512-byte
+  sectors (physical order 1, 3, 5, ..., 2, 4, 6, ...), sectors numbered from 1.
+- System disks reserve 2 tracks (OFF = 2) and data disks none. Each side counts
+  as a track: SPT is one side's sectors in records (36 for 18 × 256, 40 for
+  10 × 512), and double-sided disks alternate sides track by track.
+- DSM is the data area divided into 2K blocks, rounded down, minus 1. EXM is 1
+  on 40-track disks and 0 on 80-track double-sided ones, whose DSM is over 255.
+
+| File | Format | Sectors | Sides × tracks | OFF | DSM | EXM |
+|---|---|---|---|---|---|---|
+| FORMAT1 | Standard system | 18 × 256 | 1 × 40 | 2 | 84 | 1 |
+| FORMAT2 | Standard data | 10 × 512 | 1 × 40 | 0 | 99 | 1 |
+| FORMAT3 | Standard DS system | 18 × 256 | 2 × 40 | 2 | 174 | 1 |
+| FORMAT4 | Standard DS data | 10 × 512 | 2 × 40 | 0 | 199 | 1 |
+| FORMAT5 | 80T system | 18 × 256 | 1 × 80 | 2 | 174 | 1 |
+| FORMAT6 | 80T data | 10 × 512 | 1 × 80 | 0 | 199 | 1 |
+| FORMAT7 | 80T DS system | 18 × 256 | 2 × 80 | 2 | 354 | 0 |
+| FORMAT8 | 80T DS data | 10 × 512 | 2 × 80 | 0 | 399 | 0 |
+| FORMAT9 | Extended system | 10 × 512 | 1 × 40 | 2 | 94 | 1 |
+| FORMAT10 | Extended DS system | 10 × 512 | 2 × 40 | 2 | 194 | 1 |
+| FORMAT11 | Extended 80T system | 10 × 512 | 1 × 80 | 2 | 194 | 1 |
+| FORMAT12 | Extended 80T DS system | 10 × 512 | 2 × 80 | 2 | 394 | 0 |
+
+The decoder's parameters match all 12 DPBs, and the six utilities copied onto
+every disk (`D`, `NULU`, `PIP`, `PROBE`, `SWEEP`, and `VDO.COM`) read
+byte-identical from all 12. `PROBE.COM` takes two entries on the 80-track
+double-sided formats. FORMAT5, 6, and 11 are single-sided disks in images
+flagged double-sided (see "Image formats"). Ira's two DBTools disks
+(`[DSDD40 Data]`) are in the Standard DS data format.
+
+`PROBE.TXT` is damaged on the disk on 11 of the 12 (all but FORMAT1): its block
+list repeats its first blocks, as in `34,35,34`, and block 34 holds the end of
+the text, so the first 2K is gone. Whatever captured PROBE's output wrote it
+that way; the DPB at its end survives.
 
 ## Image formats
 

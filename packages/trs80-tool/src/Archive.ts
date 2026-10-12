@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { withCommas } from "teamten-ts-utils";
-import {CassetteFile, CassetteSpeed, Trsdos, TrsdosDirEntry, decodeLevel1Program, decodeSystemProgram,
-    decodeTrs80File, decodeTrsdos, getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
+import {CassetteFile, CassetteSpeed, Cpm, CpmFile, Trsdos, TrsdosDirEntry, decodeFloppyFileSystem, decodeLevel1Program,
+    decodeSystemProgram, decodeTrs80File, getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 
 /**
@@ -105,6 +105,31 @@ export class TrsdosFile extends ArchiveFile {
 }
 
 /**
+ * Nested file that came from a CP/M floppy.
+ */
+export class CpmArchiveFile extends ArchiveFile {
+    public readonly cpm: Cpm;
+    public readonly file: CpmFile;
+
+    constructor(cpm: Cpm, file: CpmFile) {
+        super(file.getFilename("."), undefined);
+        this.cpm = cpm;
+        this.file = file;
+    }
+
+    public getDirString(): string {
+        return this.file.getFilename(".").padEnd(12) + " " +
+            withCommas(this.file.getSize()).padStart(8) + " " +
+            "user " + this.file.user + " " +
+            this.file.getAttributesString();
+    }
+
+    public getBinary(): Uint8Array {
+        return this.cpm.readFile(this.file);
+    }
+}
+
+/**
  * List of nested files in an archive (floppy or cassette).
  * TODO: I think we can get rid of this and use an array of InputFile objects instead.
  */
@@ -138,10 +163,14 @@ export class Archive {
             const file = decodeTrs80File(buffer, { filename });
 
             if (isFloppy(file)) {
-                const trsdos = decodeTrsdos(file);
-                if (trsdos !== undefined) {
-                    for (const dirEntry of trsdos.getDirEntries(false)) {
-                        this.files.push(new TrsdosFile(trsdos, dirEntry));
+                const fileSystem = decodeFloppyFileSystem(file);
+                if (fileSystem instanceof Trsdos) {
+                    for (const dirEntry of fileSystem.getDirEntries(false)) {
+                        this.files.push(new TrsdosFile(fileSystem, dirEntry));
+                    }
+                } else if (fileSystem instanceof Cpm) {
+                    for (const cpmFile of fileSystem.getDirEntries(false)) {
+                        this.files.push(new CpmArchiveFile(fileSystem, cpmFile));
                     }
                 } else {
                     this.error = "Operating system of floppy is unrecognized.";

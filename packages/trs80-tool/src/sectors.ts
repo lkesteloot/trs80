@@ -2,14 +2,15 @@ import * as fs from "fs";
 import type {ChalkInstance} from "chalk";
 import chalk from "chalk";
 import {
+    decodeFloppyFileSystem,
     decodeTrs80File,
-    decodeTrsdos,
     Density,
+    FloppyDirEntry,
+    FloppyFileSystem,
     isFloppy,
     SectorPosition,
     TrackPosition,
     Trs80Floppy,
-    TrsdosDirEntry
 } from "trs80-base";
 import {toHexWord} from "z80-base";
 import {hexdumpBinary} from "./hexdump.js";
@@ -58,11 +59,11 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
     }
 
     let title = filename + ": " + file.getDescription();
-    const trsdos = decodeTrsdos(file);
-    if (trsdos === undefined) {
+    const fileSystem: FloppyFileSystem | undefined = decodeFloppyFileSystem(file);
+    if (fileSystem === undefined) {
         title += ", unknown operating system";
     } else {
-        title += ", " + trsdos.nameAndVersion;
+        title += ", " + fileSystem.nameAndVersion;
     }
 
     console.log(title);
@@ -119,11 +120,11 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
                             hexdumpBinary(sector.data, false, []);
                         }
 
-                        if (onlyShowBad && trsdos !== undefined) {
-                            const files = trsdos.getDirEntries(true);
-                            let fileAtSector: TrsdosDirEntry | undefined = undefined;
+                        if (onlyShowBad && fileSystem !== undefined) {
+                            const files = fileSystem.getDirEntries(true);
+                            let fileAtSector: FloppyDirEntry | undefined = undefined;
                             for (const file of files) {
-                                const sectorPositions = trsdos.getFileSectorPositions(file);
+                                const sectorPositions = fileSystem.getFileSectorPositions(file);
                                 for (const filePosition of sectorPositions) {
                                     if (filePosition.equals(sectorPosition)) {
                                         fileAtSector = file;
@@ -138,7 +139,7 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
                             if (fileAtSector === undefined) {
                                 console.log("There is no file at this sector.");
                             } else {
-                                console.log("File at this sector: " + fileAtSector.getFilename("/"));
+                                console.log("File at this sector: " + fileAtSector.getFilename("."));
                             }
                         }
 

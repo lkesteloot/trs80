@@ -4,7 +4,8 @@ import {
     CassetteFile,
     CassetteSpeed,
     Trs80File,
-    Trsdos, TrsdosDirEntry, decodeTrs80CassetteFile, decodeTrs80File, decodeTrsdos, getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
+    Cpm, CpmFile, Trsdos, TrsdosDirEntry, decodeFloppyFileSystem, decodeTrs80CassetteFile, decodeTrs80File,
+    getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {ToolError} from "./utils.js";
 import {colorDate} from "./lscolors.js";
@@ -130,6 +131,35 @@ export class TrsdosInputFile extends InputFile {
 }
 
 /**
+ * Input file that came from a CP/M floppy.
+ */
+export class CpmInputFile extends InputFile {
+    public readonly cpm: Cpm;
+    public readonly cpmFile: CpmFile;
+    // Whether to list the user number, which only matters if some files aren't user 0.
+    private readonly showUser: boolean;
+
+    constructor(cpm: Cpm, cpmFile: CpmFile, showUser: boolean) {
+        const filename = cpmFile.getFilename(".");
+        const binary = cpm.readFile(cpmFile);
+        const trs80File = decodeTrs80File(binary, { filename });
+        super(filename, binary, trs80File);
+        this.cpm = cpm;
+        this.cpmFile = cpmFile;
+        this.showUser = showUser;
+    }
+
+    public override getDirExtras(): string[] {
+        const extras: string[] = [];
+        if (this.showUser) {
+            extras.push(("user " + this.cpmFile.user).padEnd(7));
+        }
+        extras.push(this.cpmFile.getAttributesString());
+        return extras;
+    }
+}
+
+/**
  * Load the file. If the file can contain other files (floppies, cassettes, and wav files),
  * then expand the file and return the contained files. Otherwise just return the file.
  */
@@ -161,14 +191,22 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
         }
 
         if (isFloppy(trs80File)) {
-            const trsdos = decodeTrsdos(trs80File);
-            if (trsdos === undefined) {
+            const fileSystem = decodeFloppyFileSystem(trs80File);
+            if (fileSystem === undefined) {
                 throw new ToolError("Can't find a DOS directory on \"" + inFilename + "\"");
             }
 
             // Expand floppy.
-            for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
-                inFiles.push(new TrsdosInputFile(trsdos, dirEntry));
+            if (fileSystem instanceof Trsdos) {
+                for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
+                    inFiles.push(new TrsdosInputFile(fileSystem, dirEntry));
+                }
+            } else {
+                const cpmFiles = fileSystem.getDirEntries(includeSystemFiles);
+                const showUser = cpmFiles.some(cpmFile => cpmFile.user !== 0);
+                for (const cpmFile of cpmFiles) {
+                    inFiles.push(new CpmInputFile(fileSystem, cpmFile, showUser));
+                }
             }
         } else if (trs80File.className === "Cassette") {
             // Expand .CAS file.

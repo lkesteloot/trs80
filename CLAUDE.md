@@ -140,6 +140,10 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   decoder produced when they were taken, not what's right, and that's where the
   exceptions turned up. Judge changes by internal consistency, as described at
   the end of `FLOPPY_TODO.md`.
+- **CP/M** has its own decoder, `trs80-base/src/Cpm.ts`, with a table of known
+  formats, because CP/M disks don't record their layout. `decodeFloppyFileSystem()`
+  tries TRSDOS, then CP/M; call it rather than `decodeTrsdos()` wherever any
+  file system will do, and use the `FloppyFileSystem` interface.
 - **SCP is untested.** There are no SCP images in the suite, so that reader
   compiles but nothing exercises it.
 - **JV1 deleted marks are synthesized** by our reader for track 17, so they must

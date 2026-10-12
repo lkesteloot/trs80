@@ -495,6 +495,14 @@ export class DmkFloppyDisk extends FloppyDisk {
     }
 
     /**
+     * Whether readSector() would return the sector. Unlike the base class, also checks that the
+     * sector has a data field.
+     */
+    public override hasSectorData(sectorPosition: SectorPosition): boolean {
+        return this.sectorMap.get(sectorPosition.key())?.dataIndex !== undefined;
+    }
+
+    /**
      * Write the data field of the sector at a physical position: its data address mark, data,
      * and a new CRC. The sector's ID field and size don't change.
      */

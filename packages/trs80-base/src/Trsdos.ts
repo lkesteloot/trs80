@@ -11,6 +11,7 @@ import {BYTES_PER_SECTOR, Density, FloppyDisk, FloppyDiskGeometry, SectorPositio
 import {toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
+import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -527,7 +528,7 @@ function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
 /**
  * Single (valid) directory entry for a file.
  */
-export class TrsdosDirEntry {
+export class TrsdosDirEntry implements FloppyDirEntry {
     public readonly version: TrsdosVersion;
     public readonly flags: number;
     public readonly day: number;
@@ -800,7 +801,7 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
  *
  * See the {@link Trsdos.logicalToPhysical} method for the mapping from logical to physical sectors.
  */
-export class Trsdos {
+export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     public readonly disk: FloppyDisk;
     public readonly geometry: FloppyDiskGeometry;
     public readonly version: TrsdosVersion;

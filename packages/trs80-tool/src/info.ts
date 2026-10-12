@@ -4,7 +4,7 @@ import {pluralizeWithCount} from "./utils.js";
 import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
-import {decodeTrs80File, decodeTrsdos, Density, densityToString, isFloppy, TrackGeometry} from "trs80-base";
+import {Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, TrackGeometry, Trsdos} from "trs80-base";
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -66,11 +66,11 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                 }
 
                 if (isFloppy(trs80File)) {
-                    const trsdos = decodeTrsdos(trs80File);
-                    if (trsdos !== undefined) {
+                    const fileSystem = decodeFloppyFileSystem(trs80File);
+                    if (fileSystem !== undefined) {
                         // Users don't care about system files.
-                        description += ", " + trsdos.nameAndVersion +
-                            " with " + pluralizeWithCount(trsdos.getDirEntries(false).length, "file");
+                        description += ", " + fileSystem.nameAndVersion +
+                            " with " + pluralizeWithCount(fileSystem.getDirEntries(false).length, "file");
                     }
 
                     if (verbose) {
@@ -96,7 +96,8 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                                     `${geometry.modalDataSectorSize} bytes per sector`].join(", "));
                         }
 
-                        if (trsdos !== undefined) {
+                        if (fileSystem instanceof Trsdos) {
+                            const trsdos = fileSystem;
                             const gatInfo = trsdos.getGatInfo();
                             if (typeof gatInfo === "string") {
                                 verboseLines.push("Error: " + gatInfo);
@@ -117,6 +118,16 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                                 verboseLines.push(`Sectors per granule: ${trsdos.sectorsPerGranule}`);
                                 verboseLines.push(`Granules per ${trsdos.lumpTerm}: ${trsdos.granulesPerLump}`);
                             }
+                        } else if (fileSystem instanceof Cpm) {
+                            const cpm = fileSystem;
+                            if (cpm.allocationSides < geometry.sideCount) {
+                                verboseLines.push("Only uses side 0");
+                            }
+                            verboseLines.push(`Reserved tracks: ${cpm.reservedTrackCount}`);
+                            verboseLines.push(`Sector skew: ${cpm.format.skew}`);
+                            verboseLines.push(`Block size: ${cpm.format.blockSize} bytes`);
+                            verboseLines.push(`Blocks: ${cpm.blockCount}`);
+                            verboseLines.push(`Directory entries: ${cpm.format.dirEntryCount}`);
                         }
                     }
                 }

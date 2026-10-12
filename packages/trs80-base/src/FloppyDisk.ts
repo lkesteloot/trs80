@@ -630,6 +630,14 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     public abstract readSector(sectorPosition: SectorPosition): SectorData | undefined;
 
     /**
+     * Whether readSector() would return the sector, without reading it or logging anything,
+     * for checking guesses about where things are on the disk.
+     */
+    public hasSectorData(sectorPosition: SectorPosition): boolean {
+        return this.getGeometry().sectorMap.has(sectorPosition.key());
+    }
+
+    /**
      * The contents of the boot track as Latin-1 text, one character per byte, for finding strings that
      * FORMAT wrote there, such as the DOS's name. Sectors that can't be read are skipped.
      */

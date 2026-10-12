@@ -111,13 +111,6 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       `BasicProgram`, because the GAT's first byte is 0xFF, and zero-length files
       (`TESTDAT4` on `NEWDOS1D.dmk`) are too. That's `decodeTrs80File()`'s
       sniffing, not the DOS decoder, but it shows up in every NEWDOS/80 report.
-- [ ] **Truncated DMKs aren't read.** `trs80gp/LD4-631.DSK` (LS-DOS 6.3.1,
-      Model 4) and `willus/ND80M3V3.dmk` (NEWDOS/80) both have headers saying
-      40 tracks double sided but hold 79 tracks, one short; willus's archive
-      has a third (`pwrtol03`, 35 tracks, also one short). Read the tracks that
-      are there instead of rejecting the file. `peter/104 Elephant ... CP-M
-      2.2 ...` is far shorter (39,184 bytes of a promised 287,248), and CP/M
-      anyway.
 - [ ] **A `.dmk` extension only tries the DMK reader**, while `.dsk` sniffs.
       `willus/ld1-531.dmk` is really JV1 and `willus/l808709a.dmk` JV3; about 30
       of willus's `.dmk` files are like that. Fall back to `decodeDsk()`.
@@ -195,26 +188,27 @@ more.
 In planned order, though HFE may come before CP/M. People on a TRS-80 Discord
 asked for all of these after the 3.0.0 release.
 
-- [ ] **CP/M file systems.** Two were requested: Montezuma Micro CP/M 2.2 on
-      the Model 4, which has many users, and Omikron CP/M on the Model I, which
-      is more of a novelty. Omikron needed the Omikron Mapper board, which
-      rearranges the Model I's memory map so CP/M gets RAM at address 0. The
-      directory and allocation are the same on every CP/M: 32-byte extent
-      entries with a user number, allocated in blocks. Only the disk parameters
-      differ (sector size, skew, reserved tracks, block size, directory size).
-      So once one format reads, each further one is mostly a parameter table.
-      - Unlike TRSDOS, the disk doesn't record those parameters. Tools such as
-        22DISK keep a table of known formats, so expect to try each known one
-        and score it as we do the TRSDOS candidates.
-      - Montezuma's usual format, from Larry Kraemer's 22DISK definitions
-        (third-party, so verify against a real disk): 40 cylinders, one side,
-        double density, 18 sectors of 256 bytes, interleaved, 170K, 2 reserved
-        tracks, 2K blocks, 128 directory entries. There's also a 200K "data"
-        variant, and archive listings mention 288K and 352K ones.
-      - `quentin/DISK-take3.dmk` has 128-byte sectors and may be a CP/M disk.
-        Check it once this works.
-      - We have no CP/M disks in the suite yet. Ask the Discord
-        for Montezuma and Omikron images.
+- [ ] **More CP/M formats.** `Cpm.ts` reads Montezuma Micro CP/M 2.2 (see
+      "CP/M" in `FLOPPY_FORMATS.md`); each further format is mostly a new
+      entry in `CPM_FORMATS`, checked against real disks.
+      - Omikron CP/M on the Model I was also requested, though it's more of a
+        novelty: it needed the Omikron Mapper board, which rearranges the
+        Model I's memory map so CP/M gets RAM at address 0. We have no Omikron
+        disks; ask the Discord.
+      - telanoc's HFE images include Lifeboat CP/M 1.4 (`m1_cpm14_ss_sd_35.hfe`),
+        which needs the HFE reader first.
+      - Archive listings mention 288K and 352K Montezuma disks, which match
+        none of the 12 formats in the table. They may be other BIOSes'
+        formats that Montezuma could read.
+      - The table assumes double-sided disks alternate sides track by track.
+        Other BIOSes go up side 0 and back down side 1, or use side 0 then
+        side 1; add a field to `CpmFormat` when one turns up.
+      - CP/M 3 date stamps (user 0x21 entries) aren't read, so files have no dates.
+      - My TRS-80's file panel still shows only TRSDOS disks' files
+        (`FilePanel.ts` calls `decodeTrsdos()`).
+      - `peter/104 Elephant ... CP-M 2.2 ...` is far shorter than its header
+        says (39,184 bytes of a promised 287,248), and its six tracks have no
+        sectors, so there's nothing to read.
 - [ ] **HFE images** (HxC Floppy Emulator, also used by Gotek drives running
       HxC or FlashFloppy firmware). One person has many. Each track is stored as
       its FM/MFM bit-cell stream, so gaps, address marks and CRCs survive. There

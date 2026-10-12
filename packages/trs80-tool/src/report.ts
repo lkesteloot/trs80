@@ -1,10 +1,15 @@
 import * as fs from "fs";
 import * as crypto from "crypto";
 import {
+    Cpm,
+    CpmFile,
+    decodeCpm,
     decodeTrs80File,
     decodeTrsdosWithRejections,
     Density,
+    FloppyDirEntry,
     FloppyDisk,
+    FloppyFileSystem,
     isFloppy,
     TrackGeometry,
     Trsdos,
@@ -18,7 +23,7 @@ import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 
 // Bump when the structure of the report changes in a way that consumers must know about.
 // The trs80-floppy-regress repo keeps a copy of the types below; update it too.
-export const REPORT_VERSION = 3;
+export const REPORT_VERSION = 4;
 
 export type DensityName = "single" | "double";
 
@@ -67,21 +72,41 @@ export interface GatReport {
 }
 
 /**
+ * The parameters of a CP/M file system.
+ */
+export interface CpmReport {
+    // Whose BIOS's layout, e.g., "Montezuma Micro".
+    format: string;
+    reservedTracks: number;
+    sectorSize: number;
+    skew: number;
+    blockSize: number;
+    // Including the directory's blocks.
+    blockCount: number;
+    dirEntryCount: number;
+}
+
+/**
  * The operating system we decided the floppy has, and the parameters of its file system.
  */
 export interface OsReport {
     // Name and version, e.g., "LDOS 5.3".
     name: string;
-    dirTrack: number;
+    // TRSDOS family only.
+    dirTrack?: number;
+    // Sides the file system uses.
     sideCount: number;
     sectorsPerTrack: number;
-    granulesPerTrack: number;
-    sectorsPerGranule: number;
-    dirEntryLength: number;
-    dirEntriesPerSector: number;
-    // Exactly one of these:
+    // TRSDOS family only.
+    granulesPerTrack?: number;
+    sectorsPerGranule?: number;
+    dirEntryLength?: number;
+    dirEntriesPerSector?: number;
+    // TRSDOS family only, exactly one of these:
     gatError?: string;
     gat?: GatReport;
+    // CP/M only.
+    cpm?: CpmReport;
 }
 
 /**
@@ -91,14 +116,20 @@ export interface OsReport {
 export interface FileReport {
     filename: string;
     size: number;
+    // Empty if the operating system doesn't record dates.
     date: string;
+    // Empty on CP/M, which has attributes (in "flags") instead.
     protection: string;
     flags: string;
     isSystem: boolean;
     isHidden: boolean;
+    // CP/M only.
+    user?: number;
     dirEntryCount?: number;
-    // Track, granule offset, and granule count of each extent.
+    // TRSDOS family only: track, granule offset, and granule count of each extent.
     extents?: [number, number, number][];
+    // CP/M only: allocation blocks.
+    blocks?: number[];
     sectorCount?: number;
     missingSectors?: number;
     crcErrorSectors?: number;
@@ -179,6 +210,41 @@ function reportTrackGeometry(trackGeometry: TrackGeometry): TrackGeometryReport 
 }
 
 /**
+ * Fill in the parts of a file's report that don't depend on the operating system: the
+ * health of its sectors and what its contents decode as.
+ */
+function reportFileContents<T extends FloppyDirEntry>(fileSystem: FloppyFileSystem<T>, dirEntry: T,
+                                                      report: FileReport): void {
+
+    // Check the health of the sectors.
+    const sectorPositions = fileSystem.getFileSectorPositions(dirEntry);
+    let missingSectors = 0;
+    let crcErrorSectors = 0;
+    for (const sectorPosition of sectorPositions) {
+        const sector = fileSystem.disk.readSector(sectorPosition);
+        if (sector === undefined) {
+            missingSectors += 1;
+        } else if (sector.crcError) {
+            crcErrorSectors += 1;
+        }
+    }
+    report.sectorCount = sectorPositions.length;
+    report.missingSectors = missingSectors;
+    report.crcErrorSectors = crcErrorSectors;
+
+    // Read and decode the contents.
+    const binary = fileSystem.readFile(dirEntry);
+    report.readSize = binary.length;
+    report.sha256 = sha256(binary);
+    const trs80File = decodeTrs80File(binary, { filename: dirEntry.getFilename(".") });
+    report.type = trs80File.className;
+    report.description = trs80File.getDescription();
+    if (trs80File.error !== undefined) {
+        report.decodeError = trs80File.error;
+    }
+}
+
+/**
  * Report on one file within a TRSDOS floppy.
  */
 function reportTrsdosFile(trsdos: Trsdos, dirEntry: TrsdosDirEntry): FileReport {
@@ -205,32 +271,7 @@ function reportTrsdosFile(trsdos: Trsdos, dirEntry: TrsdosDirEntry): FileReport 
         report.dirEntryCount = extentEntryCount;
         report.extents = extents;
 
-        // Check the health of the sectors.
-        const sectorPositions = trsdos.getFileSectorPositions(dirEntry);
-        let missingSectors = 0;
-        let crcErrorSectors = 0;
-        for (const sectorPosition of sectorPositions) {
-            const sector = trsdos.disk.readSector(sectorPosition);
-            if (sector === undefined) {
-                missingSectors += 1;
-            } else if (sector.crcError) {
-                crcErrorSectors += 1;
-            }
-        }
-        report.sectorCount = sectorPositions.length;
-        report.missingSectors = missingSectors;
-        report.crcErrorSectors = crcErrorSectors;
-
-        // Read and decode the contents.
-        const binary = trsdos.readFile(dirEntry);
-        report.readSize = binary.length;
-        report.sha256 = sha256(binary);
-        const trs80File = decodeTrs80File(binary, { filename: dirEntry.getFilename(".") });
-        report.type = trs80File.className;
-        report.description = trs80File.getDescription();
-        if (trs80File.error !== undefined) {
-            report.decodeError = trs80File.error;
-        }
+        reportFileContents(trsdos, dirEntry, report);
     } catch (e) {
         report.exception = exceptionToString(e);
     }
@@ -239,7 +280,34 @@ function reportTrsdosFile(trsdos: Trsdos, dirEntry: TrsdosDirEntry): FileReport 
 }
 
 /**
- * Report on the TRSDOS-like file system of the floppy.
+ * Report on one file within a CP/M floppy.
+ */
+function reportCpmFile(cpm: Cpm, file: CpmFile): FileReport {
+    const report: FileReport = {
+        filename: file.getFilename("."),
+        size: file.getSize(),
+        date: "",
+        protection: "",
+        flags: file.getAttributesString(),
+        isSystem: file.isSystemFile(),
+        isHidden: file.isHidden(),
+        user: file.user,
+    };
+
+    try {
+        report.dirEntryCount = file.extents.length;
+        report.blocks = file.getBlocks();
+
+        reportFileContents(cpm, file, report);
+    } catch (e) {
+        report.exception = exceptionToString(e);
+    }
+
+    return report;
+}
+
+/**
+ * Report on the file system of the floppy.
  */
 function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): void {
     const geometry = disk.getGeometry();
@@ -265,11 +333,25 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         model: trsdosVersionToString(r.version),
         reason: r.reason,
     }));
-    if (trsdos === undefined) {
-        report.os = null;
+    if (trsdos !== undefined) {
+        reportTrsdos(trsdos, report);
         return;
     }
 
+    // In the order of decodeFloppyFileSystem().
+    const cpm = decodeCpm(disk);
+    if (cpm !== undefined) {
+        reportCpm(cpm, report);
+        return;
+    }
+
+    report.os = null;
+}
+
+/**
+ * Report on a TRSDOS-family file system.
+ */
+function reportTrsdos(trsdos: Trsdos, report: Omit<DiskReport, "warnings">): void {
     const os: OsReport = {
         name: trsdos.nameAndVersion,
         dirTrack: trsdos.dirLumpNumber,
@@ -295,6 +377,28 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
     }
 
     report.files = trsdos.getDirEntries(true).map(dirEntry => reportTrsdosFile(trsdos, dirEntry));
+}
+
+/**
+ * Report on a CP/M file system.
+ */
+function reportCpm(cpm: Cpm, report: Omit<DiskReport, "warnings">): void {
+    report.os = {
+        name: cpm.nameAndVersion,
+        sideCount: cpm.allocationSides,
+        sectorsPerTrack: cpm.sectorsPerTrack,
+        cpm: {
+            format: cpm.format.name,
+            reservedTracks: cpm.reservedTrackCount,
+            sectorSize: cpm.sectorSize,
+            skew: cpm.format.skew,
+            blockSize: cpm.format.blockSize,
+            blockCount: cpm.blockCount,
+            dirEntryCount: cpm.format.dirEntryCount,
+        },
+    };
+
+    report.files = cpm.getDirEntries(true).map(file => reportCpmFile(cpm, file));
 }
 
 /**
