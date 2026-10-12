@@ -1123,7 +1123,8 @@ collection (`LD4-631.DSK`, the trs80gp sample, which is a DMK despite its
 extension; `willus/ND80M3V3.dmk`; and `mloewen/FORMAT5`, `6`, and `11`) are
 single-sided disks in images flagged double-sided. Every side-1 track is present
 but unformatted, except the last one, which is missing. The reader loads the
-whole tracks that are there, treats the rest as unformatted, and warns.
+whole tracks that are there and treats the rest as unformatted, without a
+warning, since it's harmless.
 
 **SCP** is raw flux. There are no SCP images in the collection, so that reader is
 entirely untested.

@@ -1,11 +1,13 @@
 
 import {File} from "./File";
 import {Context} from "./Context";
-import {BasicProgram, Cassette, CmdProgram, decodeTrs80File, decodeTrsdos, FloppyDisk, SystemProgram} from "trs80-base";
+import {BasicProgram, Cassette, CmdProgram, Cpm, decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, SystemProgram,
+    Trsdos} from "trs80-base";
 import {HexdumpTab} from "./HexdumpTab";
 import {FileInfoTab} from "./FileInfoTab";
 import {IFilePanel} from "./IFilePanel";
 import {TrsdosTab} from "./TrsdosTab";
+import {CpmTab} from "./CpmTab";
 import {BasicTab} from "./BasicTab";
 import {CmdTab} from "./CmdTab";
 import {DisassemblyTab} from "./DisassemblyTab";
@@ -48,9 +50,11 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
             case "Jv1FloppyDisk":
             case "Jv3FloppyDisk":
             case "DmkFloppyDisk":
-                const trsdos = decodeTrsdos(trs80File);
-                if (trsdos !== undefined) {
-                    this.pageTabs.addTab(new TrsdosTab(this, trs80File, trsdos));
+                const fileSystem = decodeFloppyFileSystem(trs80File);
+                if (fileSystem instanceof Trsdos) {
+                    this.pageTabs.addTab(new TrsdosTab(this, trs80File, fileSystem));
+                } else if (fileSystem instanceof Cpm) {
+                    this.pageTabs.addTab(new CpmTab(this, trs80File, fileSystem));
                 }
                 this.pageTabs.addTab(new MountTab(this.context, trs80File));
                 break;

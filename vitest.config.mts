@@ -5,5 +5,8 @@ import {defineConfig} from "vitest/config";
 export default defineConfig({
     test: {
         include: ["packages/*/{src,tests}/**/*.{test,spec}.ts"],
+        // Vitest suggests turning this on after every run, unless it's set explicitly.
+        // The tests take a second, so caching isn't worth it.
+        fsModuleCache: false,
     },
 });

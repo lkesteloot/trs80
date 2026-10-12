@@ -172,6 +172,16 @@ in that case run `git merge master`.
 
 ## Delegating to agents
 
+- **Plan, then delegate to Sonnet.** For a change beyond a few lines, write the
+  plan yourself, then hand it to an agent running Sonnet 5.5 (`model: "sonnet"`),
+  and review its diff when it's done. Its context starts with only the plan, so it
+  costs far less than doing the work in a long session. The plan must stand
+  alone: the working directory, the files to read, each change and the reason
+  for it, what not to do (don't commit), how to verify, and what to report.
+  Review the result for judgment calls, not only for whether it builds; the
+  agent tends to copy the nearest existing code even where it doesn't fit.
+  Do small fixes yourself, since writing a plan for them costs as much as the
+  fix.
 - The Agent tool's `isolation: "worktree"` branches from `origin/HEAD` (the
   remote's master), not from the current branch or the local master. When the
   work builds on unpushed commits, make the worktrees yourself:

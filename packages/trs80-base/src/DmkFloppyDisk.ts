@@ -933,10 +933,5 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
         return undefined;
     }
 
-    // Warn only now, so that files that turn out not to be DMK don't.
-    if (presentTrackCount < expectedTrackCount) {
-        TRS80_FLOPPY_LOGGER.warn(`DMK: File has ${presentTrackCount} of its ${expectedTrackCount} tracks; treating the rest as unformatted`);
-    }
-
     return floppyDisk;
 }
