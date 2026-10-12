@@ -1466,7 +1466,8 @@ export class Trsdos {
                 if (warn) {
                     TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.key()}`);
                 }
-                // TODO
+                // Keep the rest of the file in place.
+                sectors.push(new Uint8Array(this.geometry.modalDataSectorSize));
             } else {
                 if (sector.crcError && warn) {
                     TRS80_BASE_LOGGER.warn("Sector has CRC error");
