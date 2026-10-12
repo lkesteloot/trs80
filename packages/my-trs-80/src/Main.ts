@@ -341,14 +341,21 @@ export function main() {
 
         library.removeAll();
         if (user !== undefined) {
-            // Fetch all files.
-            context.db.getAllFiles(userId ?? user.uid)
+            // Fetch all files. Only admins can see another user's unshared files.
+            const libraryUid = userId ?? user.uid;
+            const sharedOnly = libraryUid !== user.uid && !user.admin;
+            context.db.getAllFiles(libraryUid, sharedOnly)
                 .then((querySnapshot) => {
                     // Sort files before adding them to the library so that they show up in the UI in order
                     // and the screenshots get loaded with the visible ones first.
                     const files: File[] = [];
                     for (const doc of querySnapshot.docs) {
-                        files.push(FileBuilder.fromDoc(doc).build());
+                        const file = FileBuilder.fromDoc(doc).build();
+                        // Deleted files are private, but the security rules can't filter them
+                        // out of the query, so do it here.
+                        if (!sharedOnly || !file.isDeleted) {
+                            files.push(file);
+                        }
                     }
                     files.sort(File.compare);
                     for (const file of files) {

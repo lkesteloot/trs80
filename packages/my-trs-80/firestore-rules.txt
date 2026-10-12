@@ -1,19 +1,43 @@
-
+// To upload this file, sign in to the Firestore console, go to the "my-trs-80" project, the "Databases & Storage" tab,
+// "Firestore" entry, "Rules" tab, paste this file into the editor, then click "Publish".
 rules_version = '2';
 service cloud.firestore {
     match /databases/{database}/documents {
+        // Whether the signed-in user is marked as an admin in their user record.
+        // Check that the record exists first, since get() fails on a missing document.
+        function isAdmin() {
+            return request.auth != null &&
+                exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+        }
+
         // Rules for files.
         match /files/{fileId} {
-            // Allow reads and list for owner and public items.
-            allow read: if
+            // Allow fetching a single file for owner, admins, and shared items that aren't in
+            // the trash. Older files may have no tags field, so default it.
+            allow get: if
+                // We match an existing resource.
+                resource != null &&
+                // Allow if file is shared and not deleted.
+                ((resource.data.shared == true && !("Trash" in resource.data.get("tags", []))) ||
+                 // Or the user is signed in and owns the file.
+                 (request.auth != null && resource.data.uid == request.auth.uid) ||
+                 // Or the user is an admin.
+                 isAdmin());
+
+            // Allow queries for owner, admins, and shared items. Rules aren't filters, so a
+            // query for another user's files must ask for shared ones only. A query can't
+            // exclude trashed files (there's no "array doesn't contain"), so the client drops
+            // those itself.
+            allow list: if
                 // We match an existing resource.
                 resource != null &&
                 // Allow if file is shared.
-                (resource.data.shared ||
-                 // Currently allow all resources to be read.
-                 true ||
-                 // Else the user must be signed in and owner of file.
-                 (request.auth != null && resource.data.uid == request.auth.uid));
+                (resource.data.shared == true ||
+                 // Or the user is signed in and owns the file.
+                 (request.auth != null && resource.data.uid == request.auth.uid) ||
+                 // Or the user is an admin.
+                 isAdmin());
 
             // Allow create by owner.
             allow create: if
@@ -39,8 +63,11 @@ service cloud.firestore {
 
         // Rules for users.
         match /users/{userId} {
-            // User can read and delete their own data.
-            allow read, delete: if request.auth != null &&
+            // User can read their own data, and admins can read anyone's.
+            allow read: if request.auth != null &&
+                (request.auth.uid == userId || isAdmin());
+            // User can delete their own data.
+            allow delete: if request.auth != null &&
                 request.auth.uid == userId;
             // Can create your own record, but can't be admin.
             allow create: if request.auth != null &&
@@ -53,4 +80,3 @@ service cloud.firestore {
         }
     }
 }
-

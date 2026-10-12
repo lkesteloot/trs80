@@ -36,9 +36,17 @@ export class Database {
 
     /**
      * Get all files for this user.
+     *
+     * @param uid the user whose files to get.
+     * @param sharedOnly whether to get only the shared files. The security rules require this
+     * when fetching another user's files, unless the signed-in user is an admin.
      */
-    public getAllFiles(uid: string): Promise<QuerySnapshot<DocumentData>> {
-        return getDocs(query(this.filesCollection, where("uid", "==", uid)));
+    public getAllFiles(uid: string, sharedOnly: boolean): Promise<QuerySnapshot<DocumentData>> {
+        const constraints = [where("uid", "==", uid)];
+        if (sharedOnly) {
+            constraints.push(where("shared", "==", true));
+        }
+        return getDocs(query(this.filesCollection, ...constraints));
     }
 
     /**
