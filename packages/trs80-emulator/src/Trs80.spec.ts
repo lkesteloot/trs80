@@ -75,3 +75,36 @@ describe("reset", () => {
         expect(fired).to.equal(false);
     });
 });
+
+describe("timer", () => {
+    const TIMER_IRQ_MASK = 0x04;
+    const TIMER_PERIOD = 2_027_520/30;
+
+    /**
+     * Step the machine once and return whether the timer interrupt latch is set, clearing it.
+     */
+    function stepAndAcknowledge(trs80: Trs80): boolean {
+        trs80.step();
+        const fired = (trs80.save().irqLatch & TIMER_IRQ_MASK) !== 0;
+        // Reading the Model III's timer port acknowledges the interrupt.
+        trs80.readPort(0xEC);
+        return fired;
+    }
+
+    it("doesn't drift", () => {
+        const trs80 = makeMachine();
+        trs80.tStateCount = TIMER_PERIOD + 20;
+        expect(stepAndAcknowledge(trs80)).to.equal(true);
+
+        // The next tick is due exactly one period after the first, not one period after the step
+        // that noticed it. Take a step that's due but would not be if the tick had been delayed.
+        trs80.tStateCount = 2*TIMER_PERIOD;
+        expect(stepAndAcknowledge(trs80)).to.equal(true);
+    });
+    it("doesn't fire a burst after falling far behind", () => {
+        const trs80 = makeMachine();
+        trs80.tStateCount = 10*TIMER_PERIOD;
+        expect(stepAndAcknowledge(trs80)).to.equal(true);
+        expect(stepAndAcknowledge(trs80)).to.equal(false);
+    });
+});

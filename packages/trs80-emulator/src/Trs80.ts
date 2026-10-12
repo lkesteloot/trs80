@@ -632,9 +632,16 @@ export class Trs80 implements Hal, Machine, Configurable {
         }
 
         // Set off a timer interrupt.
-        if (this.tStateCount > this.previousTimerClock + this.clockHz / this.timerHz) {
+        const timerPeriod = this.clockHz / this.timerHz;
+        if (this.tStateCount > this.previousTimerClock + timerPeriod) {
             this.handleTimer();
-            this.previousTimerClock = this.tStateCount;
+            // Advance by exactly one period so that the ticks don't drift, but if we're
+            // still more than a period behind (such as after a restore) skip ahead
+            // instead of firing a burst of catch-up interrupts.
+            this.previousTimerClock += timerPeriod;
+            if (this.tStateCount > this.previousTimerClock + timerPeriod) {
+                this.previousTimerClock = this.tStateCount;
+            }
         }
 
         // Update cassette state.
