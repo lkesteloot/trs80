@@ -152,6 +152,16 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **trs80-tool releases:** bump `version` in its `package.json`, and add a
   change log entry in `site/index.html`.
 
+## Delegating to agents
+
+- The Agent tool's `isolation: "worktree"` branches from `origin/HEAD` (the
+  remote's master), not from the current branch or the local master. When the
+  work builds on unpushed commits, make the worktrees yourself:
+  `git worktree add -b claude/fix-foo .claude/worktrees/fix-foo <commit>` from
+  the repo, then `npm ci` there (not `npm install`, which rewrites
+  `package-lock.json`). Start the agent without isolation and tell it to work
+  only in that directory, with absolute paths.
+
 ## Conventions
 
 - **Code:** 4-space indentation and double quotes. There's no Prettier or
