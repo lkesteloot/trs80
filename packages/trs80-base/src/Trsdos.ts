@@ -1496,7 +1496,8 @@ export class Trsdos {
             return `The file "${filename}" already exists; delete it first`;
         }
 
-        return undefined;
+        // TODO actually write the file.
+        return "Writing files isn't implemented";
     }
 }
 
