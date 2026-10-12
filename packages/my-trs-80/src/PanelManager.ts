@@ -39,8 +39,8 @@ export class PanelManager {
                 handled = true;
             }
 
-            // Ctrl-Backspace to pop a panel.
-            if (!handled && this.panels.length > 1 && e.ctrlKey && !e.metaKey && !e.shiftKey &&
+            // Ctrl-Backspace to pop a panel, only when the panels are open so that the emulator gets the key.
+            if (!handled && this.isOpen && this.panels.length > 1 && e.ctrlKey && !e.metaKey && !e.shiftKey &&
                 !e.altKey && e.key === "Backspace") {
 
                 this.popPanel();

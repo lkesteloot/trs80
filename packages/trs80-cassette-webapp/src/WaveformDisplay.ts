@@ -1020,9 +1020,12 @@ export class WaveformDisplay {
         const wav = writeWavFile(samples.subarray(startFrame, endFrame + 1), this.sampleRate);
         const a = document.createElement("a");
         const blob = new Blob([wav], {type: "audio/wav"});
-        a.href = window.URL.createObjectURL(blob);
+        const url = window.URL.createObjectURL(blob);
+        a.href = url;
         a.download = "clip.wav";
         a.click();
+        // Give the download time to start.
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     }
 }
 

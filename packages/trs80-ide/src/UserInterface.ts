@@ -1097,9 +1097,12 @@ export class UserInterface {
      */
     private exportFile(contents: Uint8Array, name: string, extension: string) {
         const a = document.createElement("a");
-        a.href = this.arrayToBlobUrl(contents, extension);
+        const url = this.arrayToBlobUrl(contents, extension);
+        a.href = url;
         a.download = name + "." + extension.toLowerCase();
         a.click();
+        // Give the download time to start.
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     }
 
     /**

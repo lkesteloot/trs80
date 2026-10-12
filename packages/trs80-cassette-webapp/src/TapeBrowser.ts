@@ -409,10 +409,13 @@ export class TapeBrowser {
                 }
 
                 const blob = new Blob([new Uint8Array(contents)], {type: type});
-                a.href = window.URL.createObjectURL(blob);
+                const url = window.URL.createObjectURL(blob);
+                a.href = url;
 
                 a.download = (this.tape.name + "-" + program.getShortLabel()).replace(/ /g, "-") + extension;
                 a.click();
+                // Give the download time to start.
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
             });
             if (basicPane !== undefined) {
                 addKeyValue("Type", "Basic program", () => this.showPane(basicPane));
@@ -444,9 +447,12 @@ export class TapeBrowser {
                 }
 
                 const blob = new Blob([new Uint8Array(contents)], {type: type});
-                a.href = window.URL.createObjectURL(blob);
+                const url = window.URL.createObjectURL(blob);
+                a.href = url;
                 a.download = (this.tape.name).replace(/ /g, "-") + extension;
                 a.click();
+                // Give the download time to start.
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
             });
         }
 

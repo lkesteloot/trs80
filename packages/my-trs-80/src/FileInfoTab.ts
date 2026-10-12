@@ -167,9 +167,12 @@ export class FileInfoTab extends PageTab {
             const a = document.createElement("a");
             const contents = this.filePanel.file.binary;
             const blob = new Blob([new Uint8Array(contents)], {type: "application/octet-stream"});
-            a.href = window.URL.createObjectURL(blob);
+            const url = window.URL.createObjectURL(blob);
+            a.href = url;
             a.download = this.filePanel.file.filename;
             a.click();
+            // Give the download time to start.
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         });
         actionBar.append(exportButton);
         if (this.trs80File.className === "Cassette") {
@@ -275,7 +278,9 @@ export class FileInfoTab extends PageTab {
 
         if (isSame) {
             this.filePanel.context.panelManager.popPanel();
-        } else {
+        } else if (!this.saveButton.disabled) {
+            // Only if the Save button could be clicked: the name and filename must be filled in, and a
+            // save can't already be in progress.
             this.save(() => {
                 this.filePanel.context.panelManager.popPanel();
             });
@@ -351,7 +356,9 @@ export class FileInfoTab extends PageTab {
             this.tags.add(...file.tags);
             this.updateTagsInput();
         }
-        this.sharedInput.checked = file.shared;
+        if (updateData === undefined || updateData.hasOwnProperty("shared")) {
+            this.sharedInput.checked = file.shared;
+        }
         if (updateData === undefined || updateData.hasOwnProperty("modelType")) {
             const selector = `input[name="modelType"][value="${file.modelType}"]`;
             const modelType = this.computer.querySelector(selector) as HTMLInputElement;
@@ -438,7 +445,7 @@ export class FileInfoTab extends PageTab {
         } else if (count === 0) {
             const instructions = document.createElement("div");
             instructions.classList.add("tags-instructions");
-            instructions.innerText = "There are to tags for this file.";
+            instructions.innerText = "There are no tags for this file.";
             tagListElement.append(instructions);
 
         }

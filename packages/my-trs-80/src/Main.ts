@@ -135,10 +135,21 @@ export function main() {
 
             const authUser = AuthUser.fromFirebaseUser(firebaseUser);
 
+            // The user may sign out (or in as someone else) while we're loading the account.
+            const isStillSignedIn = () => firebaseAuth.currentUser?.uid === firebaseUser.uid;
+
             db.userFromAuthUser(authUser)
-                .then(user => context.user = user)
+                .then(user => {
+                    if (isStillSignedIn()) {
+                        context.user = user;
+                    }
+                })
                 .catch(error => {
                     reportError("Couldn't load your account. Try signing in again.", error);
+                    if (isStillSignedIn()) {
+                        // Mark the user as resolved (as signed out) so that a pending runFile still runs.
+                        context.user = undefined;
+                    }
                 });
 
             if (signInDialog !== undefined) {
