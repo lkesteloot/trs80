@@ -65,7 +65,8 @@ layout with different parameters.
 
 **Tandy's Model II lineage** — Model III TRSDOS 1.x, Model I TRSDOS 2.7DD/2.8,
 and Model II TRSDOS — are related to each other and can't read each other's
-disks. CP/M and game disks with no file system are out of scope.
+disks. CP/M isn't read yet (see "New formats" in `FLOPPY_TODO.md`), and game
+disks with no file system are out of scope.
 
 **TRSDOS 2.7DD** (Model I, 1982) came with Radio Shack's Double-Density Disk Kit
 (26-1143) and was its only double-density Model I TRSDOS; 2.8 replaced it later

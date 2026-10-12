@@ -190,6 +190,59 @@ more.
   sizes will tell), and treating cylinder 0 as 18 sectors of which only 10
   exist, as the BOOT/SYS rule in `getFileSectorPositions()` already does.
 
+## New formats
+
+In planned order, though HFE may come before CP/M. People on a TRS-80 Discord
+asked for all of these after the 3.0.0 release.
+
+- [ ] **CP/M file systems.** Two were requested: Montezuma Micro CP/M 2.2 on
+      the Model 4, which has many users, and Omikron CP/M on the Model I, which
+      is more of a novelty. Omikron needed the Omikron Mapper board, which
+      rearranges the Model I's memory map so CP/M gets RAM at address 0. The
+      directory and allocation are the same on every CP/M: 32-byte extent
+      entries with a user number, allocated in blocks. Only the disk parameters
+      differ (sector size, skew, reserved tracks, block size, directory size).
+      So once one format reads, each further one is mostly a parameter table.
+      - Unlike TRSDOS, the disk doesn't record those parameters. Tools such as
+        22DISK keep a table of known formats, so expect to try each known one
+        and score it as we do the TRSDOS candidates.
+      - Montezuma's usual format, from Larry Kraemer's 22DISK definitions
+        (third-party, so verify against a real disk): 40 cylinders, one side,
+        double density, 18 sectors of 256 bytes, interleaved, 170K, 2 reserved
+        tracks, 2K blocks, 128 directory entries. There's also a 200K "data"
+        variant, and archive listings mention 288K and 352K ones.
+      - `quentin/DISK-take3.dmk` has 128-byte sectors and may be a CP/M disk.
+        Check it once this works.
+      - We have no CP/M disks in the suite yet. Ask the Discord
+        for Montezuma and Omikron images.
+- [ ] **HFE images** (HxC Floppy Emulator, also used by Gotek drives running
+      HxC or FlashFloppy firmware). One person has many. Each track is stored as
+      its FM/MFM bit-cell stream, so gaps, address marks and CRCs survive. There
+      is a 512-byte header (`HXCPICFE`, or `HXCHFEV3` for v3) with track and
+      side counts, encoding, bit rate and RPM, then a track offset table, then
+      the tracks.
+      - Unlike SCP's flux timings, the bits are already clocked. So this could
+        skip `decodeFlux()`'s timing step in `ScpFloppyDisk.ts` and reuse the
+        clocked-bytes-to-sectors part.
+      - Mixed density must work: Model I doubler disks have a single-density
+        boot track.
+      - The official spec is thin and v3 is documented only in the HxC source.
+        MAME's `hxchfe_dsk.cpp` is a second reference.
+      - We'd need some of that person's images for the suite.
+- [ ] **Finish SCP.** The reader in `ScpFloppyDisk.ts` is untested (no SCP
+      images in the suite). Flux transitions that are slightly out of spec
+      make it hard. Three known limits:
+      - It reads only one revolution (`DEFAULT_REV_NUMBER`), though SCP
+        files usually hold several. The first cheap win is to try each
+        revolution and keep the first copy of each sector whose CRCs pass.
+      - When no revolution passes, the CRC can guide the decoding. Try
+        reassigning the most ambiguous transitions (those nearest a cell
+        boundary) to the neighbouring cell length until the CRC matches.
+      - `guessDensity()` picks one density per track, so a mixed-density track
+        (a single-density sector 0 followed by double-density sectors, as on
+        Model I doubler disks and Moon Rover's dual boot) probably loses
+        some of its sectors.
+
 ## Regression suite housekeeping
 
 - [ ] The five `newdos80/` disks with PDRIVE sidecars decode to exactly their
