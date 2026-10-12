@@ -64,3 +64,14 @@ describe("save and restore", () => {
         expect(trs80.save().memory.length).to.equal(model1State.memory.length);
     });
 });
+
+describe("reset", () => {
+    it("cancels scheduled events", () => {
+        const trs80 = makeMachine();
+        let fired = false;
+        trs80.eventScheduler.add(undefined, trs80.tStateCount + 100, () => fired = true);
+        trs80.reset();
+        trs80.eventScheduler.dispatch(trs80.tStateCount + 1000);
+        expect(fired).to.equal(false);
+    });
+});

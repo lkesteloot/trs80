@@ -98,6 +98,13 @@ export class EventScheduler {
     }
 
     /**
+     * Cancel all events.
+     */
+    public cancelAll(): void {
+        this.events = [];
+    }
+
+    /**
      * Cancel all events that are included in the mask.
      */
     public cancelByEventTypeMask(eventTypeMask: EventType): void {

@@ -485,6 +485,7 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.resetCassette();
         this.keyboard.clearKeyboard();
         this.setTimerInterrupt(false);
+        this.eventScheduler.cancelAll();
         this.z80.reset();
     }
 
