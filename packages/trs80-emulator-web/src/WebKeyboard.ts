@@ -60,10 +60,10 @@ export class WebKeyboard extends Keyboard {
         const body = document.querySelector("body") as HTMLBodyElement;
         body.addEventListener("keydown", keyDownEvent);
         body.addEventListener("keyup", keyUpEvent);
-        // We won't see the key releases while we're not focused, so release everything.
+        // We won't see the key releases while we're not focused, so release everything. Keep
+        // the queue, which may hold the rest of a paste.
         window.addEventListener("blur", () => {
             this.heldKeys.clear();
-            this.keyQueue.length = 0;
             this.clearKeyboard();
         });
         body.addEventListener("paste", event => {
