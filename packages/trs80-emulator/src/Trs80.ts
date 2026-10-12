@@ -143,7 +143,13 @@ export class Trs80State {
                 public readonly memory: Uint8Array,
                 public readonly printerState: any,
                 public readonly fdcState: FdcState,
-                public readonly screenState: Trs80ScreenState) {
+                public readonly screenState: Trs80ScreenState,
+                public readonly modeImage: number,
+                public readonly irqMask: number,
+                public readonly irqLatch: number,
+                public readonly nmiMask: number,
+                public readonly nmiLatch: number,
+                public readonly nmiSeen: boolean) {
 
         // Nothing.
     }
@@ -323,7 +329,13 @@ export class Trs80 implements Hal, Machine, Configurable {
             new Uint8Array(this.memory),
             this.printer.save(),
             this.fdc.save(),
-            this.screen.save());
+            this.screen.save(),
+            this.modeImage,
+            this.irqMask,
+            this.irqLatch,
+            this.nmiMask,
+            this.nmiLatch,
+            this.nmiSeen);
     }
 
     /**
@@ -345,6 +357,13 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.printer.restore(state.printerState);
         this.fdc.restore(state.fdcState);
         this.screen.restore(state.screenState);
+        // Restore the interrupt and port state, which reset() cleared.
+        this.modeImage = state.modeImage;
+        this.irqMask = state.irqMask;
+        this.irqLatch = state.irqLatch;
+        this.nmiMask = state.nmiMask;
+        this.nmiLatch = state.nmiLatch;
+        this.nmiSeen = state.nmiSeen;
     }
 
     /**
