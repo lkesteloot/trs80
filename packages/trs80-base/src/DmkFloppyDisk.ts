@@ -386,6 +386,7 @@ export class DmkFloppyDisk extends FloppyDisk {
     public readonly trackLength: number;
     public readonly flags: number;
     public readonly tracks: DmkTrack[] = [];
+    // Set by computeGeometry(), which the decoder calls.
     private geometry: FloppyDiskGeometry | undefined = undefined;
     // Map from physical sector string to its sector.
     private readonly sectorMap = new Map<string,DmkSector>();
@@ -418,21 +419,29 @@ export class DmkFloppyDisk extends FloppyDisk {
         return "Floppy disk (DMK)";
     }
 
+    /**
+     * Compute the geometry from the tracks. Call this after having finished updating the track array.
+     *
+     * @return whether successful, which it isn't if the disk has no sectors on cylinder 0 side 0.
+     */
+    public computeGeometry(): boolean {
+        const cylinderCount = Math.max(-1, ... this.tracks.map(
+            track => track.trackPosition.cylinderNumber)) + 1;
+        const sideCount = Math.max(-1, ... this.tracks.map(
+            track => track.trackPosition.side)) + 1;
+
+        const sectorInfos = this.tracks.flatMap(track =>
+            track.sectors.map(sector => sector.toPhysicalSectorInfo()));
+
+        this.geometry = FloppyDiskGeometry.make(cylinderCount, sideCount, sectorInfos);
+
+        return this.geometry !== undefined;
+    }
+
     public getGeometry(): FloppyDiskGeometry {
         if (this.geometry === undefined) {
-            if (this.tracks.length === 0) {
-                throw new Error("Can't compute geometry without any tracks");
-            }
-
-            const cylinderCount = Math.max(-1, ... this.tracks.map(
-                track => track.trackPosition.cylinderNumber)) + 1;
-            const sideCount = Math.max(-1, ... this.tracks.map(
-                track => track.trackPosition.side)) + 1;
-
-            const sectorInfos = this.tracks.flatMap(track =>
-                track.sectors.map(sector => sector.toPhysicalSectorInfo()));
-
-            this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
+            // The decoder rejects disks whose geometry can't be computed.
+            throw new Error("DMK geometry was not computed");
         }
 
         return this.geometry;
@@ -593,6 +602,12 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const trackLength = word(binary[3], binary[2]);
     if (trackLength > MAX_TRACK_LENGTH) {
         TRS80_FLOPPY_LOGGER.trace("DMK: Track length too long (" + trackLength + " > " + MAX_TRACK_LENGTH + ")");
+        return undefined;
+    }
+    // Each track starts with its table of IDAM pointers. This also rejects all-zero files,
+    // which would otherwise pass every header check as a disk with no tracks.
+    if (trackLength < TRACK_HEADER_SIZE) {
+        TRS80_FLOPPY_LOGGER.trace("DMK: Track length too short (" + trackLength + " < " + TRACK_HEADER_SIZE + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackLength + " bytes per track", 2, 4));
@@ -783,6 +798,11 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     }
 
     floppyDisk.computeSectorMap();
+    const geometryValid = floppyDisk.computeGeometry();
+    if (!geometryValid) {
+        TRS80_FLOPPY_LOGGER.trace("DMK: No sectors on cylinder 0 side 0");
+        return undefined;
+    }
 
     return floppyDisk;
 }

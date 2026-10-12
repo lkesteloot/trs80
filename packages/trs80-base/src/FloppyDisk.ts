@@ -371,13 +371,14 @@ export class FloppyDiskGeometry {
     // Map from SectorPosition key to SectorInfo.
     public readonly sectorMap = new Map<string,SectorInfo>();
     // Map from TrackPosition key to TrackGeometry.
-    public readonly trackMap = new Map<string,TrackGeometry>();
+    public readonly trackMap: Map<string,TrackGeometry>;
     // These include all tracks, and are useful when displaying a table of sectors.
     public readonly firstSectorNumber: number;
     public readonly lastSectorNumber: number;
     // Information about the boot track (cylinder 0 side 0).
     public readonly bootTrack: TrackGeometry;
-    // Most common values across the side 0 tracks other than the boot track.
+    // Most common values across the side 0 tracks other than the boot track, or of the boot
+    // track if it's the only one on side 0.
     public readonly modalDataDensity: Density;
     public readonly modalDataSectorSize: number;
     public readonly modalDataSectorSpan: number;
@@ -389,17 +390,15 @@ export class FloppyDiskGeometry {
     // hasCylinder(n), getSectorInfo(position)
     // isHomogeneous()           // every track matches dataTrack
 
-    constructor(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[]) {
-        this.cylinderCount = cylinderCount;
-        this.sideCount = sideCount;
-        this.sectorInfos = sectorInfos;
-
+    /**
+     * Make the geometry of a disk from all of its sectors, or return undefined if it has no
+     * boot track (no sectors on cylinder 0 side 0), as with a blank or unformatted disk.
+     */
+    public static make(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[]): FloppyDiskGeometry | undefined {
         // Track position key to list of sectors on that track.
         const trackSectorList = new Map<string,SectorInfo[]>();
 
         for (const sectorInfo of sectorInfos) {
-            this.sectorMap.set(sectorInfo.sectorPosition.key(), sectorInfo);
-
             const trackKey = sectorInfo.sectorPosition.trackPosition.key();
             let sectorList = trackSectorList.get(trackKey);
             if (sectorList === undefined) {
@@ -409,33 +408,46 @@ export class FloppyDiskGeometry {
             sectorList.push(sectorInfo);
         }
 
-        // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
-        // below are computed from these, so that a disk whose second side is garbage (or holds a
-        // different file system, as MultiDOS disks do) still reports the geometry that matters.
-        const side0Tracks: TrackGeometry[] = [];
-
+        // Map from TrackPosition key to TrackGeometry.
+        const trackMap = new Map<string,TrackGeometry>();
         for (const [trackKey, sectors] of trackSectorList.entries()) {
-            const trackGeometry = TrackGeometry.make(sectors);
-            this.trackMap.set(trackKey, trackGeometry);
-            if (trackGeometry.trackPosition.side === 0) {
-                side0Tracks.push(trackGeometry);
-            }
+            trackMap.set(trackKey, TrackGeometry.make(sectors));
         }
 
-        const bootTrack = this.getTrack(new TrackPosition(0, 0));
+        const bootTrack = trackMap.get(new TrackPosition(0, 0).key());
         if (bootTrack === undefined) {
-            throw new Error("Disk has no track 0 on side 0");
+            return undefined;
         }
+
+        return new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos, trackMap, bootTrack);
+    }
+
+    private constructor(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[],
+                        trackMap: Map<string,TrackGeometry>, bootTrack: TrackGeometry) {
+
+        this.cylinderCount = cylinderCount;
+        this.sideCount = sideCount;
+        this.sectorInfos = sectorInfos;
+        this.trackMap = trackMap;
         this.bootTrack = bootTrack;
 
+        for (const sectorInfo of sectorInfos) {
+            this.sectorMap.set(sectorInfo.sectorPosition.key(), sectorInfo);
+        }
+
         // Every sector belongs to a track, so the min and max over the tracks are the min and max
-        // over the whole disk. We have at least one track, since we just found the boot track.
-        const tracks = [... this.trackMap.values()];
+        // over the whole disk. We have at least one track, the boot track.
+        const tracks = [... trackMap.values()];
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
 
-        // Only look at side 0 tracks. Sometimes track 1 is garbage or leftover from a previous format.
-        const dataTracks = side0Tracks.filter(track => track !== bootTrack);
+        // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
+        // below are computed from these, so that a disk whose second side is garbage (or holds a
+        // different file system, as MultiDOS disks do) still reports the geometry that matters.
+        // Sometimes track 1 is garbage or leftover from a previous format. If the boot track is
+        // the only one, use it.
+        const otherTracks = tracks.filter(track => track.trackPosition.side === 0 && track !== bootTrack);
+        const dataTracks = otherTracks.length > 0 ? otherTracks : [bootTrack];
         this.modalDataDensity = modeOf(dataTracks.map(track => track.modalDensity)).value;
         this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;

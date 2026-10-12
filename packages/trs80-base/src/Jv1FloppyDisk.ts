@@ -46,7 +46,12 @@ export class Jv1FloppyDisk extends FloppyDisk {
             sectorInfos.push(sectorInfo);
         }
 
-        this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
+        const geometry = FloppyDiskGeometry.make(cylinderCount, sideCount, sectorInfos);
+        if (geometry === undefined) {
+            // The decoder rejects empty files.
+            throw new Error("JV1 disk has no sectors on cylinder 0");
+        }
+        this.geometry = geometry;
     }
 
     public getDescription(): string {
@@ -129,8 +134,8 @@ export function decodeJv1FloppyDisk(binary: Uint8Array): Jv1FloppyDisk | undefin
     const annotations: ProgramAnnotation[] = [];
     const length = binary.length;
 
-    // Length check.
-    if (length > 0 && length % BYTES_PER_TRACK !== 0) {
+    // Length check. An empty file isn't a disk.
+    if (length === 0 || length % BYTES_PER_TRACK !== 0) {
         return undefined;
     }
 

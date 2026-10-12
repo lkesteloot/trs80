@@ -178,6 +178,7 @@ class ScpTrack {
  */
 export class ScpFloppyDisk extends FloppyDisk {
     readonly className = "ScpFloppyDisk";
+    // Set by computeGeometry(), which the decoder calls.
     private geometry: FloppyDiskGeometry | undefined = undefined;
     public readonly tracks: ScpTrack[];
 
@@ -192,18 +193,30 @@ export class ScpFloppyDisk extends FloppyDisk {
         return "Floppy disk (SCP)";
     }
 
+    /**
+     * Compute the geometry from the tracks.
+     *
+     * @return whether successful, which it isn't if the disk has no sectors on cylinder 0 side 0.
+     */
+    public computeGeometry(): boolean {
+        const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.cylinderNumber)) + 1;
+        const sideCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.side)) + 1;
+
+        // Where each sector physically is, which is what the geometry describes.
+        const sectorInfos = this.tracks.flatMap(track =>
+            track.revs[DEFAULT_REV_NUMBER].sectors.map(sector =>
+                new SectorInfo(new SectorPosition(track.trackPosition, sector.getSectorNumber()),
+                    sector.getDensity(), sector.getLength())));
+
+        this.geometry = FloppyDiskGeometry.make(cylinderCount, sideCount, sectorInfos);
+
+        return this.geometry !== undefined;
+    }
+
     getGeometry(): FloppyDiskGeometry {
         if (this.geometry === undefined) {
-            const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.cylinderNumber)) + 1;
-            const sideCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.side)) + 1;
-
-            // Where each sector physically is, which is what the geometry describes.
-            const sectorInfos = this.tracks.flatMap(track =>
-                track.revs[DEFAULT_REV_NUMBER].sectors.map(sector =>
-                    new SectorInfo(new SectorPosition(track.trackPosition, sector.getSectorNumber()),
-                        sector.getDensity(), sector.getLength())));
-
-            this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
+            // The decoder rejects disks whose geometry can't be computed.
+            throw new Error("SCP geometry was not computed");
         }
 
         return this.geometry;
@@ -648,5 +661,12 @@ export function decodeScpFloppyDisk(binary: Uint8Array): ScpFloppyDisk | undefin
         }
     }
 
-    return new ScpFloppyDisk(binary, undefined, [], true, tracks);
+    const floppyDisk = new ScpFloppyDisk(binary, undefined, [], true, tracks);
+    const geometryValid = floppyDisk.computeGeometry();
+    if (!geometryValid) {
+        if (DEBUG) console.log("SCP: No sectors on cylinder 0 side 0");
+        return undefined;
+    }
+
+    return floppyDisk;
 }

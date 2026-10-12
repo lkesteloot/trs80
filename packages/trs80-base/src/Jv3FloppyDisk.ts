@@ -334,12 +334,11 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk | undefin
 
     const cylinderCount = Math.max(-1, ... usedSectors.map(info => info.sectorPosition.cylinderNumber)) + 1;
     const sideCount = Math.max(-1, ... usedSectors.map(info => info.sectorPosition.side)) + 1;
-    if (cylinderCount === 0 || sideCount === 0) {
+    const geometry = FloppyDiskGeometry.make(cylinderCount, sideCount,
+        usedSectors.map(info => info.toSectorInfo()));
+    if (geometry === undefined) {
         return undefined;
     }
-
-    const geometry = new FloppyDiskGeometry(cylinderCount, sideCount,
-        usedSectors.map(info => info.toSectorInfo()));
 
     // Build our map.
     const sectorInfoMap = new Map(usedSectors.map(info => [info.sectorPosition.key(), info]));

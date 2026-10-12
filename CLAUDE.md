@@ -102,7 +102,9 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **Positions:** physical sectors are `SectorPosition` (cylinder, side, sector).
   `FloppyDiskGeometry` describes every sector, plus per-track `TrackGeometry`
   and modal values taken from side 0 only. It doesn't throw on odd disks:
-  mixed density and garbage address marks are data, not errors.
+  mixed density and garbage address marks are data, not errors. The decoders
+  reject an image with no sectors on cylinder 0 side 0 (blank, unformatted, or
+  missing its boot track), so every floppy has a geometry and a boot track.
 - **The lump model.** Every DOS family addresses the disk as (lump, granule,
   sector), which `Trsdos.logicalToPhysical()` maps to a linear sector index and
   then to a physical position, as described in `FLOPPY_FORMATS.md`. Outside
@@ -142,6 +144,10 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 
 - **Code:** 4-space indentation, double quotes, and JSDoc comments on functions
   and classes. There's no Prettier or linter; match the surrounding code.
+- **Conditions don't act:** don't put a call with side effects in an `if`
+  condition. Store its result in a well-named variable, then test that:
+  `const geometryValid = disk.computeGeometry(); if (!geometryValid) ...`.
+  Readers skim `if`s when looking for what the code does.
 - **Commits:** short imperative subjects ending in a period, prefixed with the
   package when there's one, e.g. `trs80-tool: Add load_basic MCP tool.` Only
   commit when asked.
