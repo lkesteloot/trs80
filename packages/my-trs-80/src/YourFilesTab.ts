@@ -233,7 +233,7 @@ export class YourFilesTab extends PageTab {
     private uploadFile(): void {
         const uploadElement = document.createElement("input");
         uploadElement.type = "file";
-        uploadElement.accept = ".cas, .bas, .cmd, .dmk, .dsk, .jv1, .jv3, .3bn, .scp";
+        uploadElement.accept = ".cas, .bas, .cmd, .dmk, .dsk, .jv1, .jv3, .3bn, .scp, .hfe";
         uploadElement.multiple = true;
         uploadElement.addEventListener("change", () => {
             const user = this.context.user;

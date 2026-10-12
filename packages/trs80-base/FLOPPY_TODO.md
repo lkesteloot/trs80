@@ -193,8 +193,8 @@ more.
 
 ## New formats
 
-In planned order, though HFE may come before CP/M. People on a TRS-80 Discord
-asked for all of these after the 3.0.0 release.
+In planned order. People on a TRS-80 Discord asked for all of these after the
+3.0.0 release.
 
 - [ ] **More CP/M formats.** `Cpm.ts` reads Montezuma Micro CP/M 2.2 (see
       "CP/M" in `FLOPPY_FORMATS.md`); each further format is mostly a new
@@ -203,8 +203,13 @@ asked for all of these after the 3.0.0 release.
         novelty: it needed the Omikron Mapper board, which rearranges the
         Model I's memory map so CP/M gets RAM at address 0. We have no Omikron
         disks; ask the Discord.
-      - telanoc's HFE images include Lifeboat CP/M 1.4 (`m1_cpm14_ss_sd_35.hfe`),
-        which needs the HFE reader first.
+      - telanoc's HFE images include Lifeboat CP/M 1.4 (`m1_cpm14_ss_sd_35.hfe`
+        and `_data`), and `HfeFloppyDisk.ts` now reads them, but `Cpm.ts`
+        doesn't know the format. Single-sided, 35 cylinders, all single
+        density. Tracks 0-2 are 10 sectors of 256 bytes (the system tracks).
+        Tracks 3 and up are 18 sectors of 128 bytes, numbered 1-18. The
+        directory starts at track 3 sector 1 (STAT, SYSGEN, PIP) and is
+        skewed: sectors 2 and 3 are empty.
       - Archive listings mention 288K and 352K Montezuma disks, which match
         none of the 12 formats in the table. They may be other BIOSes'
         formats that Montezuma could read.
@@ -215,20 +220,12 @@ asked for all of these after the 3.0.0 release.
       - `peter/104 Elephant ... CP-M 2.2 ...` is far shorter than its header
         says (39,184 bytes of a promised 287,248), and its six tracks have no
         sectors, so there's nothing to read.
-- [ ] **HFE images** (HxC Floppy Emulator, also used by Gotek drives running
-      HxC or FlashFloppy firmware). One person has many. Each track is stored as
-      its FM/MFM bit-cell stream, so gaps, address marks and CRCs survive. There
-      is a 512-byte header (`HXCPICFE`, or `HXCHFEV3` for v3) with track and
-      side counts, encoding, bit rate and RPM, then a track offset table, then
-      the tracks.
-      - Unlike SCP's flux timings, the bits are already clocked. So this could
-        skip `decodeFlux()`'s timing step in `ScpFloppyDisk.ts` and reuse the
-        clocked-bytes-to-sectors part.
-      - Mixed density must work: Model I doubler disks have a single-density
-        boot track.
-      - The official spec is thin and v3 is documented only in the HxC source.
-        MAME's `hxchfe_dsk.cpp` is a second reference.
-      - We'd need some of that person's images for the suite.
+- [ ] **HFE leftovers.** `HfeFloppyDisk.ts` reads version 1 images (see
+      "Image formats" in `FLOPPY_FORMATS.md`). Not done:
+      - Version 3 (`HXCHFEV3`) is rejected. It interleaves opcodes with the
+        track data (index, bit-rate changes, skips, random bits), and is
+        documented only in the HxC source.
+      - Writing. The reader is read-only, so a mounted HFE disk can't be written to.
 - [ ] **Finish SCP.** The reader in `ScpFloppyDisk.ts` is untested (no SCP
       images in the suite). Flux transitions that are slightly out of spec
       make it hard. Three known limits:
@@ -241,7 +238,9 @@ asked for all of these after the 3.0.0 release.
       - `guessDensity()` picks one density per track, so a mixed-density track
         (a single-density sector 0 followed by double-density sectors, as on
         Model I doubler disks and Moon Rover's dual boot) probably loses
-        some of its sectors.
+        some of its sectors. The HFE reader doesn't have this limit, since it
+        decides density per sector. SCP could turn its flux into a cell
+        stream (one bit per half-cell) and reuse the HFE mark finder.
 
 ## Regression suite housekeeping
 

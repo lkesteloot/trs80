@@ -1129,13 +1129,52 @@ warning, since it's harmless.
 **SCP** is raw flux. There are no SCP images in the collection, so that reader is
 entirely untested.
 
+**HFE** (HxC Floppy Emulator, also written by Gotek drives running HxC or
+FlashFloppy) stores each track as its raw cell stream, one bit per half-cell,
+already clocked. All 31 images in the collection (`telanoc/model{1,3,4}`) are
+version 1 (`HXCPICFE`, format revision 0); v3 (`HXCHFEV3`) isn't supported. The
+512-byte header is followed by a track list at `trackListOffset * 512` (u16 at
+offset 18, in 512-byte blocks) of 4-byte entries: track data offset (u16, in
+blocks) and track length (u16, bytes, both sides together). The sides are
+interleaved in 512-byte blocks, 256 bytes of side 0 and then 256 of side 1, and
+each side gets `floor(length/2)` bytes. Bits are stored least significant first.
+Track lengths differ from track to track (24,932-25,006 on one image), so use
+each track's own.
+
+**Every image is clocked at 250 kbit/s, so one HFE bit is one MFM half-cell, even
+on single-density disks.** A double-density byte is 16 cells, alternating clock
+and data; the sync byte 0xA1 with its missing clock is the raw pattern 0x4489.
+A single-density byte is 32 cells, four per data bit (clock, 0, data, 0), and an
+address mark is a byte whose clock is 0xC7 instead of 0xFF. Since the cells are
+already clocked, marks are found by pattern at every bit offset, which decides
+the density per sector, not per track. That reads the single-density boot track
+followed by double-density data tracks (Model I doublers) with no special case.
+Treat each side's stream as circular: a sector whose data runs past the end
+continues from the start.
+
+**The header lies about everything but the layout.** The encoding field says
+MFM on every single-density disk, and one image says FM at 249 kbps and 0 RPM.
+Four single-sided images say 2 sides with side 1 blank, and several say 41 tracks
+with the last one empty. So the geometry comes from the decoded sectors, not
+the header. With that, all 31 images decode with every ID and data CRC valid.
+
+**MFM data can contain a false FM address mark.** The bytes F5 7E followed by a
+byte of 0x80 or more produce exactly the raw cells of an FM ID mark, and this
+happens for real on 4 tracks of 2 images, producing fake sectors with bad CRCs.
+Once a sector is accepted, the reader ignores every mark that starts before the
+end of its data CRC. It must not instead drop sectors with bad CRCs, because
+copy-protected disks have them on purpose.
+
 ## Disks worth remembering
 
-As of October 2026 the collection is 291 images: 269 DMK, 13 DSK, 5 JV1, 4 JV3,
-all with sidecars and snapshots. The biggest part is `peter/` (152): Ira's set
+As of October 2026 the collection is 387 images: 334 DMK, 31 HFE, 13 DSK, 5 JV1,
+4 JV3, all with sidecars and snapshots. The biggest part is `peter/` (152): Ira's set
 of disks that trsread and trstools couldn't read but VDISK could (see its
 `README.md`). Thirteen byte-identical copies were removed when it was added,
-and their names kept as aliases. `quentin/` holds disks from Quentin Barnes;
+and their names kept as aliases. `telanoc/` holds all 31 HFE images, made by
+Discord user telanoc with each DOS on a Model I, III, or 4; the file names say
+the DOS, sides, density, and cylinders, and the `README.md` says which boot.
+`quentin/` holds disks from Quentin Barnes;
 its first, `DISK-take3.dmk`, has 128-byte sectors (a CP/M-style layout, not a
 TRS-80 DOS) and made 3.0.0 throw, because the GAT sector was shorter than the
 lump count. `Moon Rover ... [Dual Boot].dmk` boots on both the Model I and III:
