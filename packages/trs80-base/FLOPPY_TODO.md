@@ -131,7 +131,8 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       Those were machine names in name only: the report's `os.model` field was
       dropped for it (report version 3), and the report's `rejections` entries
       still carry the same label as `model`. The `Trsdos` class itself covers
-      every family, so it may want a broader name too.
+      every family, so it may want a broader name too. TRSDOS 2.7DD would be a
+      third family (see "Unresolved disks").
 - [ ] **`TODO` comments in `Trsdos.ts` and `FloppyDisk.ts`** (October 2026):
   - `readFile()` skips a sector it can't read, so everything after it in the
     file shifts. Fill the gap (with zeros, say) so that offsets stay right.
@@ -176,18 +177,18 @@ more.
   matches and nothing decodes. Ira says VDISK reads them, so a disk whose HIT
   matches nothing but whose entries all decode cleanly might deserve a
   fallback that scores the entries without the HIT.
-- Percom's double-density TRSDOS ("TRSDOS 2.7"; `simple/trsdos-2.7-ssmd.dmk`
-  and `difficult/TRSDOS27-Percom-Double-Dos.DSK` are the same disk): a layout
-  of its own. Its data tracks number their sectors 1-18 (cylinder 0 is 0-9,
-  single density), the GAT is at cylinder 17 sector 1, granules are 3 sectors
-  (six per track, GAT bytes 0x3F), the HIT lists entries in directory order
-  rather than TRSDOS 2.3's interleaved order, and the GAT's unused high bits
-  are clear. Taking the first sector number from the data tracks instead of
-  the family (the boot track's own for cylinder 0, the most common one
-  elsewhere) gets as far as decoding the GAT and changes nothing else in the
-  collection; the rest would need granule size as a candidate parameter (see
-  that item) and a second HIT order. Percom's DoubleDOS 4.2x disks, by
-  contrast, read fine.
+- Tandy's TRSDOS 2.7DD (`quentin/TRSDOS v2.7DD ...`, `simple/trsdos-2.7-ssmd.dmk`,
+  and its byte-identical copy `difficult/TRSDOS27-Percom-Double-Dos.DSK`, whose
+  "Percom" is wrong): a third layout, mixing TRSDOS 1.3's sector numbering,
+  granules, GAT and HIT with the 2.3 family's 32-byte entries and extents (see
+  "TRSDOS 2.7DD" in `FLOPPY_FORMATS.md`). Neither family reads it: as 1.3 the
+  GAT decodes and passes the strict check, but 1.3 expects 48-byte entries and
+  "(c) 1980 Tandy" in each directory sector; as 2.3 the GAT is looked for in
+  sector 0, which these tracks don't have. Do it as a third family when
+  `TrsdosVersion` becomes a family (see that item). To settle then: whether the
+  extent count is stored minus one, as in the 2.3 family (the directory's file
+  sizes will tell), and treating cylinder 0 as 18 sectors of which only 10
+  exist, as the BOOT/SYS rule in `getFileSectorPositions()` already does.
 
 ## Regression suite housekeeping
 
@@ -222,9 +223,9 @@ enough to rebuild them.
 
 ## Where things stand
 
-October 11, 2026, after the 3.0.0 release: the regression suite has 289 disks,
+October 11, 2026, after the 3.0.0 release: the regression suite has 291 disks,
 every one with a sidecar and a snapshot, and all of them match (`node
-regress.ts run` is all `same`). 238 decode. Most of the 51 that don't are in
+regress.ts run` is all `same`). 239 decode. Most of the 52 that don't are in
 `peter/`: the 20 Percom disks and the six TRSDOS 6 disks whose HIT
 holds file data (see "Unresolved disks"), four with garbage directory slots
 (see that item), two with damaged directories, and a truncated DMK. `node

@@ -65,8 +65,32 @@ layout with different parameters.
 
 **Tandy's Model II lineage** — Model III TRSDOS 1.x, Model I TRSDOS 2.7DD/2.8,
 and Model II TRSDOS — are related to each other and can't read each other's
-disks. 2.7DD reportedly has the `FE` boot prefix of the 1.3 family but 32-byte
-entries. Out of scope for now, as are CP/M and game disks with no file system.
+disks. CP/M and game disks with no file system are out of scope.
+
+**TRSDOS 2.7DD** (Model I, 1982) came with Radio Shack's Double-Density Disk Kit
+(26-1143) and was its only double-density Model I TRSDOS; 2.8 replaced it later
+in 1982, fixing a bug in single-drive copies from single to double density. It
+wasn't a revision of 2.3 but a new system that, like Model III TRSDOS, came
+partly from Model II TRSDOS, and it can't read double-density Model III disks
+(trs-80.org, "Model I TRSDOS Versions" and "The Radio Shack Double-Density
+Disk Kit"). Its disks are a hybrid, measured on two (`quentin/TRSDOS
+v2.7DD ...`, and `simple/trsdos-2.7-ssmd.dmk`, of which
+`difficult/TRSDOS27-Percom-Double-Dos.DSK` is a byte-identical copy despite its
+name). From the 1.3 side: data tracks number their 18 sectors from 1; granules
+are 3 sectors, six per track, so a lump is a cylinder; the GAT is in sector 1
+of the directory cylinder (17) and its unused high bits are clear (bytes 0x3F);
+the HIT lists entries in directory order (E2 F0 3C E8 for the first four); the
+directory holds no system files; and the boot track says "TRSDOS version 2.7DD
+Thu May 20, 1982" and "TANDY CORP.", the way 1.3 says "TRSDOS version 1.3".
+From the 2.3 side: 32-byte directory entries with the name at offset 5, and
+extents with the cylinder byte first (`04 21`). Cylinder 0 is single density,
+sectors 0-9, with a boot sector starting `FE`. The NEWDOS/80 Version 2.0 Manual
+(ZAP 078, PDF page 235) reads these disks with `SPT=18`, `GPL=6`, `DDSL=17` and
+interface flag M ("TRSDOS Model I 2.3B or higher, or Model III"), and says the
+directory counts cylinder 0 from its first sector as though it were double
+density, so BOOT owns the whole cylinder though only 10 sectors exist; NEWDOS/80
+can read and copy these disks but not format them. Not decoded yet; see
+`FLOPPY_TODO.md`.
 
 ## Boot sector prefixes
 
@@ -981,14 +1005,19 @@ entirely untested.
 
 ## Disks worth remembering
 
-As of October 2026 the collection is 289 images: 267 DMK, 13 DSK, 5 JV1, 4 JV3,
+As of October 2026 the collection is 291 images: 269 DMK, 13 DSK, 5 JV1, 4 JV3,
 all with sidecars and snapshots. The biggest part is `peter/` (152): Ira's set
 of disks that trsread and trstools couldn't read but VDISK could (see its
 `README.md`). Thirteen byte-identical copies were removed when it was added,
 and their names kept as aliases. `quentin/` holds disks from Quentin Barnes;
 its first, `DISK-take3.dmk`, has 128-byte sectors (a CP/M-style layout, not a
 TRS-80 DOS) and made 3.0.0 throw, because the GAT sector was shorter than the
-lump count.
+lump count. `Moon Rover ... [Dual Boot].dmk` boots on both the Model I and III:
+cylinder 0 has a single-density sector 0, which the Model I ROM boots, followed
+by double-density sectors 1-17, of which the Model III ROM boots sector 1; the
+other cylinders are single density, 10 sectors. Its file system is an empty
+LDOS 5.1 data disk (directory on cylinder 20), and the game lives in raw
+sectors the GAT doesn't mark as used.
 
 **`willus/`** holds 25 disks picked from willus.com's archive of TRS-80
 software (`~/Dropbox/Personal/willus.com/trs80`, about 15,500 DMK files). Most
