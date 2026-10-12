@@ -16,6 +16,7 @@ import {
     USER_DATA_ADDRESS_MARK_F9,
     USER_DATA_ADDRESS_MARK_FA,
 } from "trs80-base";
+import {LogLevel, TRS80_MAIN_SINK} from "trs80-logger";
 import {hi, lo} from "z80-base";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Config, ModelType} from "./Config.js";
@@ -355,6 +356,25 @@ function range(begin: number, end: number): number[] {
     return Array.from({length: end - begin}, (_, i) => begin + i);
 }
 
+/**
+ * Run the function, and return what it logged as warnings instead of printing them.
+ */
+function captureWarnings(f: () => void): string[] {
+    const warnings: string[] = [];
+    const savedSinks = TRS80_MAIN_SINK.delegatedSinks.splice(0);
+    TRS80_MAIN_SINK.delegatedSinks.push((level, message) => {
+        if (level === LogLevel.WARN) {
+            warnings.push(message);
+        }
+    });
+    try {
+        f();
+    } finally {
+        TRS80_MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
+    }
+    return warnings;
+}
+
 describe("read sector", () => {
     it("reads a sector", () => {
         const setup = new Setup(makeJv1());
@@ -558,7 +578,9 @@ describe("write track (format)", () => {
         const disk = makeJv1();
         const setup = new Setup(disk, SELECT_DRIVE_0 | SELECT_MFM);
         setup.seek(1);
-        setup.write(WRITE_TRACK, makeFormat(true, 1, range(1, 19)), MFM_GAP);
+        const warnings = captureWarnings(() =>
+            setup.write(WRITE_TRACK, makeFormat(true, 1, range(1, 19)), MFM_GAP));
+        expect(warnings).to.eql(["FDC: Can't format track 1:0 (18 sectors) of a Floppy disk (JV1)"]);
         expect(setup.status() & FAULT).to.equal(FAULT);
         expect(setup.machine.intrq).to.be.true;
         expect(disk.readSector(SectorPosition.make(1, 0, 6))!.data[0]).to.equal(16);
@@ -618,7 +640,8 @@ describe("force interrupt and drive select", () => {
     it("handles selecting more than one drive", () => {
         const setup = new Setup(makeJv1());
         setup.fdc.loadFloppyDisk(makeJv3(), 1);
-        setup.fdc.writeSelect(0x06);
+        const warnings = captureWarnings(() => setup.fdc.writeSelect(0x06));
+        expect(warnings).to.eql(["FDC: More than one drive selected (0x06), using the lowest"]);
         setup.fdc.writeSector(0);
         // Drive 1 has the JV3, whose sectors are filled the same way.
         expect(setup.read(READ)[0]).to.equal(0);
