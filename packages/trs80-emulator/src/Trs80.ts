@@ -216,6 +216,8 @@ export class Trs80 implements Hal, Machine, Configurable {
     // When we turned on the motor (started reading the file) and how many samples
     // we've read since then.
     private cassetteMotorOnClock = 0;
+    // Scheduled event that kicks off the cassette after the motor starts, if any.
+    private kickOffCassetteHandle: number | undefined = undefined;
     private cassetteSamplesRead = 0;
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
@@ -1268,12 +1270,16 @@ export class Trs80 implements Hal, Machine, Configurable {
                 this.cassetteLastNonZeroValue = CassetteValue.NEUTRAL;
 
                 // Waits a second before kicking off the cassette.
-                // TODO this should be in CPU cycles, not browser cycles.
                 if (this.config.modelType !== ModelType.MODEL1) {
-                    setTimeout(() => this.kickOffCassette(), 1000);
+                    this.kickOffCassetteHandle = this.eventScheduler.add(undefined,
+                        this.tStateCount + this.clockHz, () => this.kickOffCassette());
                 }
             } else {
                 this.setCassetteState(CassetteState.CLOSE);
+                if (this.kickOffCassetteHandle !== undefined) {
+                    this.eventScheduler.cancel(this.kickOffCassetteHandle);
+                    this.kickOffCassetteHandle = undefined;
+                }
             }
             this.cassetteMotorOn = cassetteMotorOn;
 

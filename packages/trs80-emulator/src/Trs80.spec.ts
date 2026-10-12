@@ -108,3 +108,36 @@ describe("timer", () => {
         expect(stepAndAcknowledge(trs80)).to.equal(false);
     });
 });
+
+describe("cassette motor", () => {
+    const CASSETTE_RISE_IRQ_MASK = 0x01;
+    const CASSETTE_FALL_IRQ_MASK = 0x02;
+    const MOTOR_ON = 0x02;
+
+    /**
+     * Make a machine with the cassette interrupts enabled and the motor just turned on.
+     */
+    function makeMachineWithMotorOn(): Trs80 {
+        const trs80 = makeMachine();
+        trs80.setIrqMask(CASSETTE_RISE_IRQ_MASK | CASSETTE_FALL_IRQ_MASK);
+        trs80.writePort(0xEC, MOTOR_ON);
+        return trs80;
+    }
+
+    it("kicks off the cassette one second of t-states after starting", () => {
+        const trs80 = makeMachineWithMotorOn();
+        trs80.eventScheduler.dispatch(trs80.tStateCount + trs80.clockHz - 1);
+        expect(trs80.save().irqLatch & CASSETTE_RISE_IRQ_MASK).to.equal(0);
+        trs80.eventScheduler.dispatch(trs80.tStateCount + trs80.clockHz);
+        expect(trs80.save().irqLatch & CASSETTE_RISE_IRQ_MASK).to.equal(CASSETTE_RISE_IRQ_MASK);
+    });
+    it("doesn't kick off the cassette if the motor stops first", () => {
+        const trs80 = makeMachineWithMotorOn();
+        trs80.writePort(0xEC, 0);
+        // Starting again must not leave the first kick-off pending.
+        trs80.writePort(0xEC, MOTOR_ON);
+        trs80.writePort(0xEC, 0);
+        trs80.eventScheduler.dispatch(trs80.tStateCount + 2*trs80.clockHz);
+        expect(trs80.save().irqLatch & CASSETTE_RISE_IRQ_MASK).to.equal(0);
+    });
+});
