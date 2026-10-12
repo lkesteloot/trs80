@@ -168,9 +168,12 @@ export class TrsdosTab extends PageTab {
                     filename += ".zip";
 
                     const a = document.createElement("a");
-                    a.href = window.URL.createObjectURL(blob);
+                    const url = window.URL.createObjectURL(blob);
+                    a.href = url;
                     a.download = filename;
                     a.click();
+                    // Give the download time to start.
+                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
                 });
         });
         actionBar.append(exportZipButton);

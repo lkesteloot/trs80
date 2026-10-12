@@ -224,9 +224,12 @@ export class YourFilesTab extends PageTab {
         const blob = new Blob([contents], {type: "application/json"});
 
         const a = document.createElement("a");
-        a.href = window.URL.createObjectURL(blob);
+        const url = window.URL.createObjectURL(blob);
+        a.href = url;
         a.download = "my-trs-80.json";
         a.click();
+        // Give the download time to start.
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     }
 
     /**

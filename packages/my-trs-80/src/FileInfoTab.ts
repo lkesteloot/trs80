@@ -167,9 +167,12 @@ export class FileInfoTab extends PageTab {
             const a = document.createElement("a");
             const contents = this.filePanel.file.binary;
             const blob = new Blob([new Uint8Array(contents)], {type: "application/octet-stream"});
-            a.href = window.URL.createObjectURL(blob);
+            const url = window.URL.createObjectURL(blob);
+            a.href = url;
             a.download = this.filePanel.file.filename;
             a.click();
+            // Give the download time to start.
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         });
         actionBar.append(exportButton);
         if (this.trs80File.className === "Cassette") {
