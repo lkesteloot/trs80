@@ -26,7 +26,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
     private readonly geometry: FloppyDiskGeometry;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
-        super(binary, error, annotations, false);
+        super(binary, error, annotations);
 
         // Figure out geometry.
         const sectorCount = binary.length / BYTES_PER_SECTOR;

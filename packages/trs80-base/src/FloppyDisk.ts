@@ -587,7 +587,6 @@ export class FloppyWrite {
  * Abstract class for virtual floppy disk file formats.
  */
 export abstract class FloppyDisk extends AbstractTrs80File {
-    public readonly supportsDoubleDensity: boolean;
     public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
     protected mountedWriteProtected = false;
     // Cache for getBootTrackText(), cleared when the disk is written.
@@ -595,11 +594,9 @@ export abstract class FloppyDisk extends AbstractTrs80File {
 
     protected constructor(binary: Uint8Array,
                           error: string | undefined,
-                          annotations: ProgramAnnotation[],
-                          supportsDoubleDensity: boolean) {
+                          annotations: ProgramAnnotation[]) {
 
         super(binary, error, annotations);
-        this.supportsDoubleDensity = supportsDoubleDensity;
     }
 
     /**

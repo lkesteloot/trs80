@@ -411,10 +411,9 @@ export class DmkFloppyDisk extends FloppyDisk {
     private readonly sectorMap = new Map<string,DmkSector>();
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
-                supportsDoubleDensity: boolean, writeProtected: boolean, trackCount: number,
-                trackLength: number, flags: number) {
+                writeProtected: boolean, trackCount: number, trackLength: number, flags: number) {
 
-        super(binary, error, annotations, supportsDoubleDensity);
+        super(binary, error, annotations);
         this.writeProtected = writeProtected;
         this.trackCount = trackCount;
         this.trackLength = trackLength;
@@ -790,7 +789,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     }
     annotations.push(new ProgramAnnotation("Virtual disk", 12, 16));
 
-    const floppyDisk = new DmkFloppyDisk(binary, error, annotations, true,
+    const floppyDisk = new DmkFloppyDisk(binary, error, annotations,
         writeProtected, trackCount, trackLength, flags);
 
     // Read the tracks.

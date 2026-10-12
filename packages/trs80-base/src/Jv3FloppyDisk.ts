@@ -255,7 +255,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
                 jv3SectorInfos: Jv3SectorInfo[], writeProtected: boolean,
                 geometry: FloppyDiskGeometry, sectorInfoMap: Map<string,Jv3SectorInfo>) {
 
-        super(binary, error, annotations, true);
+        super(binary, error, annotations);
         this.sectorInfos = jv3SectorInfos;
         this.writeProtected = writeProtected;
         this.geometry = geometry;

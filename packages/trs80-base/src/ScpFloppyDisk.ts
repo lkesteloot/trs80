@@ -210,9 +210,9 @@ export class ScpFloppyDisk extends FloppyDisk {
     public readonly tracks: ScpTrack[];
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
-                supportsDoubleDensity: boolean, tracks: ScpTrack[]) {
+                tracks: ScpTrack[]) {
 
-        super(binary, error, annotations, supportsDoubleDensity);
+        super(binary, error, annotations);
         this.tracks = tracks;
     }
 
@@ -688,7 +688,7 @@ export function decodeScpFloppyDisk(binary: Uint8Array): ScpFloppyDisk | undefin
         }
     }
 
-    const floppyDisk = new ScpFloppyDisk(binary, undefined, [], true, tracks);
+    const floppyDisk = new ScpFloppyDisk(binary, undefined, [], tracks);
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
         if (DEBUG) console.log("SCP: No sectors on cylinder 0 side 0");
