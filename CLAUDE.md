@@ -26,7 +26,7 @@ own folder and package name, but none is built on its own:
     npm install
     npm run build        # The type check, then every package's build.
     npm run typecheck    # Only tsc: fast, and the main correctness check.
-    npm test             # z80-asm, z80-disasm, z80-emulator, z80-test. Nothing else has tests.
+    npm test             # z80-asm, z80-disasm, z80-emulator, z80-test, trs80-emulator. Nothing else has tests.
     npm start -w packages/trs80-ide          # Dev server (also my-trs-80, trs80-cassette-webapp, fp-215).
     npm run build -w packages/trs80-tool     # Bundle the tool; needed before running it.
     node packages/trs80-tool/bin/trs80-tool.js ...

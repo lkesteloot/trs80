@@ -1004,18 +1004,23 @@ export class Trs80 implements Hal, Machine, Configurable {
 
         // Run-length encode bytes with (value,count) pairs, with a max count of 255. Bytes
         // in the range 33 to 127 inclusive have an implicit count of 1.
+        // Index in buf of the count of the run we're in, or undefined if the last entry was
+        // a byte without a count. We can't just look at the last two bytes of buf, since they
+        // might not be a (value,count) pair.
+        let runCountIndex: number | undefined = undefined;
         for (let address = TRS80_SCREEN_BEGIN; address < TRS80_SCREEN_END; address++) {
             const value = this.memory[address];
             if (value > 32 && value < 128) {
                 // Bytes in this range don't store a count.
                 buf.push(value);
-            } else if (buf.length < 2 || buf[buf.length - 1] === 255 || buf[buf.length - 2] !== value) {
-                // New entry.
-                buf.push(value);
-                buf.push(1);
-            } else {
+                runCountIndex = undefined;
+            } else if (runCountIndex !== undefined && buf[runCountIndex - 1] === value && buf[runCountIndex] < 255) {
                 // Increment existing count.
-                buf[buf.length - 1] += 1;
+                buf[runCountIndex] += 1;
+            } else {
+                // New entry.
+                buf.push(value, 1);
+                runCountIndex = buf.length - 1;
             }
         }
 

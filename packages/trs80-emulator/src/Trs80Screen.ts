@@ -104,8 +104,12 @@ export class Trs80Screen {
         // Set expanded mode.
         this.setExpandedCharacters(s.charCodeAt(0) === 1);
 
+        // Until October 2026 the encoder in Trs80.getScreenshot() could corrupt the
+        // run-length encoding, so some saved screenshots decode to the wrong length.
+        // Rather than throw, show what we can: drop anything past the end of the screen
+        // and pad a short one with spaces.
         let address = TRS80_SCREEN_BEGIN;
-        for (let i = 1; i < s.length; i++) {
+        for (let i = 1; i < s.length && address < TRS80_SCREEN_END; i++) {
             const value = s.charCodeAt(i);
             let count = 1;
             if (value > 32 && value < 128) {
@@ -113,19 +117,21 @@ export class Trs80Screen {
             } else {
                 i++;
                 if (i === s.length) {
-                    throw new Error("Missing count in RLE");
+                    // Missing count, stop here and pad below.
+                    break;
                 }
                 count = s.charCodeAt(i);
             }
 
             // Emit "count" values.
-            while (count--) {
+            while (count-- > 0 && address < TRS80_SCREEN_END) {
                 this.writeChar(address++, value);
             }
         }
 
-        if (address !== TRS80_SCREEN_END) {
-            throw new Error("Screenshot was of the wrong length");
+        // Pad a short screenshot.
+        while (address < TRS80_SCREEN_END) {
+            this.writeChar(address++, 32);
         }
     }
 }
