@@ -1416,8 +1416,11 @@ export class Trsdos {
         const sectorsInFile = Math.ceil(firstDirEntry.getSize() / BYTES_PER_SECTOR);
 
         // Loop through all the directory entries for this file.
+        // Corrupt directories can have entries that point to each other, so don't revisit any.
+        const visitedDirEntries = new Set<TrsdosDirEntry>();
         let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
-        while (dirEntry !== undefined) {
+        while (dirEntry !== undefined && !visitedDirEntries.has(dirEntry)) {
+            visitedDirEntries.add(dirEntry);
             for (const extent of dirEntry.extents) {
                 const sectorCount = extent.granuleCount * this.sectorsPerGranule;
                 for (let i = 0; i < sectorCount && sectorPositions.length < sectorsInFile; i++) {
@@ -1463,7 +1466,8 @@ export class Trsdos {
                 if (warn) {
                     TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.key()}`);
                 }
-                // TODO
+                // Keep the rest of the file in place.
+                sectors.push(new Uint8Array(this.geometry.modalDataSectorSize));
             } else {
                 if (sector.crcError && warn) {
                     TRS80_BASE_LOGGER.warn("Sector has CRC error");
@@ -1492,7 +1496,8 @@ export class Trsdos {
             return `The file "${filename}" already exists; delete it first`;
         }
 
-        return undefined;
+        // TODO actually write the file.
+        return "Writing files isn't implemented";
     }
 }
 
