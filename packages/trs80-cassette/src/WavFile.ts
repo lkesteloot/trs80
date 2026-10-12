@@ -206,13 +206,22 @@ class ArrayBufferReader {
     }
 
     /**
-     * Read a buffer of Int16 numbers.
+     * Read a buffer of Int16 numbers, honoring the current endianness. Any odd trailing byte is skipped.
      */
     public readInt16Array(byteLength: number): Int16Array {
-        const array = new Int16Array(this.dataView.buffer,
-            this.dataView.byteOffset + this.index, byteLength/2);
+        const array = new Int16Array(Math.floor(byteLength/2));
+        for (let i = 0; i < array.length; i++) {
+            array[i] = this.dataView.getInt16(this.index + i*2, this.littleEndian);
+        }
         this.index += byteLength;
         return array;
+    }
+
+    /**
+     * Number of bytes left in the buffer.
+     */
+    public remaining(): number {
+        return Math.max(this.dataView.byteLength - this.index, 0);
     }
 }
 
@@ -262,7 +271,12 @@ export function readWavFile(arrayBuffer: ArrayBuffer | Uint8Array): AudioFile {
                 + chunkId.length + " char " + chunkId.charCodeAt(0) + " index " + reader.index);
             break;
         }
-        const chunkSize = reader.readUint32();
+        const declaredChunkSize = reader.readUint32();
+
+        // Recordings are often truncated, so the chunk may claim to be bigger than what's left. Use
+        // what's there.
+        const chunkSize = Math.min(declaredChunkSize, reader.remaining());
+        const chunkStart = reader.index;
 
         switch (chunkId) {
             case "fmt ": {
@@ -316,7 +330,8 @@ export function readWavFile(arrayBuffer: ArrayBuffer | Uint8Array): AudioFile {
                     throw new Error("We don't handle 0-sized data");
                 }
                 if (bitDepth === 8) {
-                    const samples8 = reader.readUint8Array(chunkSize);
+                    // Drop any partial frame at the end of a truncated chunk.
+                    const samples8 = reader.readUint8Array(chunkSize - chunkSize % channels);
 
                     // Convert from 8-bit unsigned to 16-bit signed; pick first channel.
                     samples = new Int16Array(samples8.length/channels);
@@ -324,7 +339,8 @@ export function readWavFile(arrayBuffer: ArrayBuffer | Uint8Array): AudioFile {
                         samples[i] = (samples8[i*channels] - 128)*255;
                     }
                 } else if (bitDepth === 16) {
-                    const samples16 = reader.readInt16Array(chunkSize);
+                    // Drop any partial frame at the end of a truncated chunk.
+                    const samples16 = reader.readInt16Array(chunkSize - chunkSize % (2*channels));
 
                     if (channels === 1) {
                         samples = samples16;
@@ -372,9 +388,12 @@ export function readWavFile(arrayBuffer: ArrayBuffer | Uint8Array): AudioFile {
 
             default:
                 // console.log("Skipping unknown WAV chunk " + chunkId + " of " + chunkSize + " bytes");
-                reader.skip(chunkSize);
                 break;
         }
+
+        // Chunks are padded to an even size. Always continue from the end of the chunk, no matter
+        // how much of it we consumed.
+        reader.index = chunkStart + chunkSize + chunkSize%2;
     }
 
     if (samples === undefined || rate === undefined) {
