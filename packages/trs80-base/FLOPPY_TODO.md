@@ -204,8 +204,6 @@ asked for all of these after the 3.0.0 release.
         Other BIOSes go up side 0 and back down side 1, or use side 0 then
         side 1; add a field to `CpmFormat` when one turns up.
       - CP/M 3 date stamps (user 0x21 entries) aren't read, so files have no dates.
-      - My TRS-80's file panel still shows only TRSDOS disks' files
-        (`FilePanel.ts` calls `decodeTrsdos()`).
       - `peter/104 Elephant ... CP-M 2.2 ...` is far shorter than its header
         says (39,184 bytes of a promised 287,248), and its six tracks have no
         sectors, so there's nothing to read.

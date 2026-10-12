@@ -1238,50 +1238,54 @@ button i {
 
 /* ----------------------------------------------------------------------------------------------------- */
 
-.trsdos-tab {
+.dos-tab {
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
 }
 
-.trsdos-tab .action-bar {
+.dos-tab .action-bar {
     justify-content: flex-end;
     gap: 20px;
 }
 
-.trsdos {
+.dos {
     background-color: var(--background);
     padding: var(--side-padding);
     overflow-y: auto;
 }
 
-.trsdos .info {
+.dos .info {
     display: grid;
     grid-template-columns: auto auto;
     column-gap: 15px;
     width: fit-content;
 }
 
-.trsdos .info .label {
+.dos .info .label {
     font-weight: bold;
     text-align: right;
     color: var(--cyan);
 }
 
-.trsdos .info .value {
+.dos .info .value {
     color: var(--blue);
 }
 
-.trsdos .info .empty-field {
+.dos .info .empty-field {
     opacity: 30%;
 }
 
-.trsdos .dir {
+.dos .dir {
     margin-top: 30px;
     display: grid;
     width: fit-content;
-    grid-template-columns: auto auto auto auto auto auto;
     column-gap: 25px;
     align-items: center;
+}
+
+.trsdos .dir {
+    /* Filename, size, date, permission, run, import. */
+    grid-template-columns: auto auto auto auto auto auto;
 }
 
 /* Untested */
@@ -1290,57 +1294,79 @@ body.signed-out .trsdos .dir {
     grid-template-columns: auto auto auto auto auto;
 }
 
-.trsdos .dir .filename {
+.cpm .dir {
+    /* Filename, size, user, attributes. */
+    grid-template-columns: auto auto auto auto;
+}
+
+.dos .dir .filename {
     color: var(--magenta);
 }
 
-.trsdos .dir .size {
+.dos .dir .size {
     text-align: right;
     color: var(--cyan);
 }
 
-.trsdos .dir .date {
+.dos .dir .date {
     color: var(--blue);
 }
 
-.trsdos .dir .protection-level {
+.dos .dir .protection-level {
     color: var(--violet);
 }
 
-.trsdos .dir .run,
-.trsdos .dir .import {
+.dos .dir .user {
+    color: var(--blue);
+}
+
+.dos .dir .attributes {
+    color: var(--violet);
+}
+
+.dos .dir .run,
+.dos .dir .import {
     cursor: pointer;
     text-align: center;
 }
 
-.trsdos .dir .header {
+.dos .dir .header {
     font-weight: bold;
     margin-bottom: 6px;
     padding-bottom: 2px;
 }
 
-.trsdos .dir .filename.header {
+.dos .dir .filename.header {
     border-bottom: 1px solid var(--magenta);
 }
 
-.trsdos .dir .size.header {
+.dos .dir .size.header {
     border-bottom: 1px solid var(--cyan);
 }
 
-.trsdos .dir .date.header {
+.dos .dir .date.header {
     border-bottom: 1px solid var(--blue);
 }
 
-.trsdos .dir .protection-level.header {
+.dos .dir .protection-level.header {
     border-bottom: 1px solid var(--violet);
 }
 
-.trsdos .dir .run.header,
-.trsdos .dir .import.header {
+.dos .dir .user.header {
+    border-bottom: 1px solid var(--blue);
+}
+
+.dos .dir .attributes.header {
+    border-bottom: 1px solid var(--violet);
+}
+
+.dos .dir .run.header,
+.dos .dir .import.header {
     border-bottom: 1px solid var(--icon-color);
 }
 
-.trsdos .dir .hidden-file {
+.dos .dir .hidden-file,
+.dos .dir .empty-field {
     opacity: 30%;
 }
 

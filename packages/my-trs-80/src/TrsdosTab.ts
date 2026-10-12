@@ -2,11 +2,10 @@
 import {decodeTrs80File, Trs80File, Trsdos, trsdosProtectionLevelToString} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {withCommas} from "teamten-ts-utils";
-import {makeIcon, makeTextButton, reportError} from "./Utils";
+import {makeIcon, reportError} from "./Utils";
 import {IFilePanel} from "./IFilePanel";
 import {FileBuilder} from "./File";
-import JSZip from "jszip";
-import {downloadBlob} from "trs80-emulator-web";
+import {makeExportZipButton} from "./FloppyZip";
 
 /**
  * Handles the TRSDOS tab in the file panel.
@@ -15,10 +14,10 @@ export class TrsdosTab extends PageTab {
     constructor(filePanel: IFilePanel, trs80File: Trs80File, trsdos: Trsdos) {
         super("DOS");
 
-        this.element.classList.add("trsdos-tab");
+        this.element.classList.add("dos-tab");
 
         const mainContents = document.createElement("div");
-        mainContents.classList.add("trsdos");
+        mainContents.classList.add("dos", "trsdos");
         this.element.append(mainContents);
 
         const infoDiv = document.createElement("div");
@@ -139,38 +138,7 @@ export class TrsdosTab extends PageTab {
         this.element.append(actionBar);
 
         // Make a ZIP file for export.
-        const exportZipButton = makeTextButton("Export ZIP", "get_app", "export-zip-button", () => {
-            const zip = new JSZip();
-
-            for (const dirEntry of dirEntries) {
-                zip.file(dirEntry.getFilename("."), trsdos.readFile(dirEntry), {
-                    date: dirEntry.getDate(),
-                });
-            }
-
-            zip.generateAsync({
-                type: "blob",
-            })
-                .then(blob => {
-                    let filename = filePanel.file.filename;
-                    let i = filename.lastIndexOf("/");
-                    if (i >= 0) {
-                        // Strip path.
-                        filename = filename.substring(i + 1);
-                    }
-                    i = filename.lastIndexOf(".");
-                    if (i > 0) {
-                        // Strip existing extension.
-                        filename = filename.substring(0, i);
-                    }
-                    if (filename === "") {
-                        filename = "trsdos"
-                    }
-                    filename += ".zip";
-
-                    downloadBlob(blob, filename);
-                });
-        });
+        const exportZipButton = makeExportZipButton(filePanel.file.filename, trsdos, dirEntries, "trsdos");
         actionBar.append(exportZipButton);
     }
 }
