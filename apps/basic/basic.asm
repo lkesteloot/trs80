@@ -2381,7 +2381,7 @@ compile_command_dispatch:
 #endlocal				; End compile_line local block.
 
 ; Throws a compile error if we're not currently expecting a unary, in
-; which case we also shouldn't be expecting things like numbereric literals,
+; which case we also shouldn't be expecting things like numeric literals,
 ; variables, and open parentheses.
 error_if_not_expecting_unary:
 #local

@@ -145,7 +145,7 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
         throw new ToolError("Can't open \"" + inFilename + "\": " + e.message);
     }
 
-    if (ext.toLowerCase() == ".wav") {
+    if (ext.toLowerCase() === ".wav") {
         // Parse a cassette WAV file.
         const wavFile = readWavFile(buffer);
         const tape = new Tape(base, wavFile);
@@ -163,14 +163,12 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
         if (isFloppy(trs80File)) {
             const trsdos = decodeTrsdos(trs80File);
             if (trsdos === undefined) {
-                // Should probably fail here. Having the floppy disk itself is probably not
-                // what the user wants.
-                inFiles.push(new InputFile(base, buffer, trs80File));
-            } else {
-                // Expand floppy.
-                for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new TrsdosInputFile(trsdos, dirEntry));
-                }
+                throw new ToolError("Can't find a DOS directory on \"" + inFilename + "\"");
+            }
+
+            // Expand floppy.
+            for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
+                inFiles.push(new TrsdosInputFile(trsdos, dirEntry));
             }
         } else if (trs80File.className === "Cassette") {
             // Expand .CAS file.

@@ -1,4 +1,3 @@
-import * as fs from "fs";
 import * as path from "path";
 import {
     BYTES_PER_SECTOR,
@@ -7,7 +6,6 @@ import {
     CmdLoadBlockChunk, CmdProgram, SystemProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
 import {toHex, toHexByte } from "z80-base";
 import {Disasm, HexFormat, instructionsToText, InstructionsToTextConfig } from "z80-disasm";
-import {loadFile} from "./utils.js";
 import {expandFile} from "./InputFile.js";
 
 /**
@@ -69,7 +67,7 @@ function decodePdsFile(trs80File: CmdProgram, createLabels: boolean, useKnownLab
         }
 
         // Add labels for the various entry points.
-        const dirEntries = offsetToDirEntries.get(offset)!!;
+        const dirEntries = offsetToDirEntries.get(offset)!;
         for (const dirEntry of dirEntries) {
             const key = dirEntry.key;
             const transferAddress = dirEntry.transferAddress;
@@ -126,17 +124,9 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
         hexByteCount: 4,
     };
 
-    // Read the file.
-    const buffer = loadFile(filename);
-    if (typeof buffer === "string") {
-        console.log(buffer);
-        return;
-    }
-
     // Create and configure the disassembler.
     let disasm: Disasm;
     let mainEntryPoint: number | undefined = undefined;
-    const ext = path.extname(filename).toUpperCase();
     const inputFiles = expandFile(filename, false);
     if (inputFiles.length === 0) {
         console.log("No file to disassemble");
@@ -147,6 +137,8 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     }
     const inputFile = inputFiles[0];
     const trs80File = inputFile.trs80File;
+    // Use the contained file's extension, not the container's.
+    const ext = path.extname(inputFile.filename).toUpperCase();
     switch (trs80File.className) {
         case "CmdProgram":
             // Special case to handle SYS6.SYS and SYS7.SYS in LDOS/VTOS.
@@ -165,7 +157,7 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
         case "RawBinaryFile":
             if (ext === ".ROM" || ext === ".BIN") {
                 disasm = disasmForTrs80();
-                disasm.addChunk(buffer, org ?? 0);
+                disasm.addChunk(inputFile.binary, org ?? 0);
                 if (org !== undefined || entryPoints.length === 0) {
                     disasm.addEntryPoint(org ?? 0);
                 }
@@ -173,13 +165,13 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
                 // Do this with a flag, the ROM might not be from a Model 3:
                 // addModel3RomEntryPoints(disasm);
             } else {
-                console.log("Can't disassemble files of type " + ext);
+                console.log("Can't disassemble " + inputFile.filename);
                 return;
             }
             break;
 
         default:
-            console.log("Can't disassemble files of type " + ext);
+            console.log("Can't disassemble " + trs80File.getDescription());
             return;
     }
 
