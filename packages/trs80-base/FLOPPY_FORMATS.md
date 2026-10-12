@@ -46,6 +46,7 @@ quoted documentation; guesses are labeled as such.
   parameter block are as in Digital Research's *CP/M 2.2 Alteration Guide* and
   the cpmtools package. Montezuma Micro's parameters come from `PROBE.TXT` on
   each of mloewen's disks, a dump that the PROBE utility made of the DPB.
+  Lifeboat's were measured on telanoc's system disk.
 
 ## Which DOSes share a layout
 
@@ -1034,9 +1035,11 @@ last entry, so sizes are whole records, and text files end at the first Ctrl-Z
 ceil(((EX & EXM) × 128 + RC) / (block size / 128)). That rule rejects wrong
 layouts reliably.
 
-**Skew** can't be measured from the directory. With 128 entries the directory
-is 4K, and a sparse directory has all its entries in the first logical sector,
-so any skew finds them. It has to come from the format table.
+**Skew** usually can't be measured from the directory. On 256- or 512-byte
+sectors, a sparse directory has all its entries in the first logical sector, so
+any skew finds them, and it has to come from the format table. A 128-byte
+sector holds only 4 entries, so a few files spread over several sectors and
+show the skew (see Lifeboat).
 
 **Montezuma Micro CP/M 2.2** (Model 4). mloewen's 12 disks are one of each
 format the system offers, and each one's `PROBE.TXT` has the DPB. All 12 follow
@@ -1076,6 +1079,27 @@ flagged double-sided (see "Image formats"). Ira's two DBTools disks
 list repeats its first blocks, as in `34,35,34`, and block 34 holds the end of
 the text, so the first 2K is gone. Whatever captured PROBE's output wrote it
 that way; the DPB at its end survives.
+
+**Lifeboat CP/M 1.4** (Model I; telanoc's README adds "Small Systems
+Software"). telanoc's system disk (`m1_cpm14_ss_sd_35.hfe`) is single-sided,
+35 cylinders, all single density. Its 3 system tracks have 10 sectors of 256 bytes, numbered 0-9; the
+rest have 18 sectors of 128 bytes, numbered 1-18. No DPB was available, so the
+layout was worked out from the disk:
+
+- 1K blocks and 64 directory entries (2 blocks), 3 reserved tracks, so 72
+  blocks and 8-bit pointers. STAT.COM's 24 records take 3 blocks, which fixes
+  the block size.
+- Skew 4, wrapping to the next free sector as cpmtools does: physical order 1,
+  5, 9, 13, 17, 3, 7, 11, 15, 2, 6, 10, 14, 18, 4, 8, 12, 16. The directory's
+  four used sectors are physical 1, 5, 9, and 13, and STAT's first block
+  (logical sector 16, its `JP` and the Digital Research copyright) is physical
+  12.
+- All 13 files read, matching `DIR` in trs80gp (`cpm_dir.gif`) in order. Most
+  `.COM` files start with a jump to 43xxH-46xxH, which fits a TPA at 4200H (a
+  guess: the Model I has ROM at 0, so CP/M can't load programs at 100H).
+
+The blank data disk (`_data`) has an empty directory, so it stays undecoded
+like any blank CP/M disk.
 
 ## Image formats
 

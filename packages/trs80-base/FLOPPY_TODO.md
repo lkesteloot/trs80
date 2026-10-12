@@ -196,20 +196,15 @@ more.
 In planned order. People on a TRS-80 Discord asked for all of these after the
 3.0.0 release.
 
-- [ ] **More CP/M formats.** `Cpm.ts` reads Montezuma Micro CP/M 2.2 (see
-      "CP/M" in `FLOPPY_FORMATS.md`); each further format is mostly a new
-      entry in `CPM_FORMATS`, checked against real disks.
+- [ ] **More CP/M formats.** `Cpm.ts` reads Montezuma Micro CP/M 2.2 and
+      Lifeboat CP/M 1.4 (see "CP/M" in `FLOPPY_FORMATS.md`); each further
+      format is mostly a new entry in `CPM_FORMATS`, checked against real disks.
       - Omikron CP/M on the Model I was also requested, though it's more of a
         novelty: it needed the Omikron Mapper board, which rearranges the
         Model I's memory map so CP/M gets RAM at address 0. We have no Omikron
         disks; ask the Discord.
-      - telanoc's HFE images include Lifeboat CP/M 1.4 (`m1_cpm14_ss_sd_35.hfe`
-        and `_data`), and `HfeFloppyDisk.ts` now reads them, but `Cpm.ts`
-        doesn't know the format. Single-sided, 35 cylinders, all single
-        density. Tracks 0-2 are 10 sectors of 256 bytes (the system tracks).
-        Tracks 3 and up are 18 sectors of 128 bytes, numbered 1-18. The
-        directory starts at track 3 sector 1 (STAT, SYSGEN, PIP) and is
-        skewed: sectors 2 and 3 are empty.
+      - Lifeboat's parameters come from one system disk, not a DPB. Check
+        other Lifeboat disks against the entry when any turn up.
       - Archive listings mention 288K and 352K Montezuma disks, which match
         none of the 12 formats in the table. They may be other BIOSes'
         formats that Montezuma could read.

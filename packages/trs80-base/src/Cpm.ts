@@ -39,7 +39,7 @@ const BAD_FILENAME_CHARACTERS = "<>.,;:=?*[]";
  * the disk can't tell us. The rest (sectors per track, disk size) comes from the geometry.
  */
 export interface CpmFormat {
-    // Who made the BIOS, such as "Montezuma Micro".
+    // Who made the BIOS, such as "Montezuma Micro" or "Lifeboat".
     readonly name: string;
     // Physical sector sizes this format uses.
     readonly sectorSizes: readonly number[];
@@ -73,6 +73,17 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         reservedTrackCounts: [0, 2],
         blockSize: 2048,
         dirEntryCount: 128,
+    },
+    // Lifeboat CP/M 1.4 for the Model I, measured on telanoc's system disk. Single density,
+    // 18 sectors of 128 bytes after 3 system tracks of 10 sectors of 256 bytes.
+    {
+        name: "Lifeboat",
+        sectorSizes: [128],
+        firstSectorNumber: 1,
+        skew: 4,
+        reservedTrackCounts: [3],
+        blockSize: 1024,
+        dirEntryCount: 64,
     },
 ];
 
