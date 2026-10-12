@@ -119,3 +119,12 @@ export function sub16(a: number, b: number): number {
 export function signedByte(value: number): number {
     return value >= 128 ? value - 256 : value;
 }
+
+/**
+ * For the default branch of a switch over an enum, so that leaving out a value is a compile
+ * error: once every value has a case, the value can only be "never" here. Throws if it's
+ * reached anyway, such as with a number that isn't one of the enum's values.
+ */
+export function assertNever(value: never): never {
+    throw new Error("Unexpected value: " + value);
+}

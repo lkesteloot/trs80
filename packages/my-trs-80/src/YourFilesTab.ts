@@ -9,6 +9,7 @@ import {TagSet} from "./TagSet.js";
 import {PageTabs} from "./PageTabs.js";
 import {TRS80_BLINK_PERIOD_MS} from "trs80-base";
 import {withCanvasScreen} from "./ScreenPool.js";
+import {downloadBlob} from "trs80-emulator-web";
 
 const FILE_ID_ATTR = "data-file-id";
 const IMPORT_FILE_LABEL = "Import File";
@@ -223,10 +224,7 @@ export class YourFilesTab extends PageTab {
         const contents = JSON.stringify(allFiles);
         const blob = new Blob([contents], {type: "application/json"});
 
-        const a = document.createElement("a");
-        a.href = window.URL.createObjectURL(blob);
-        a.download = "my-trs-80.json";
-        a.click();
+        downloadBlob(blob, "my-trs-80.json");
     }
 
     /**

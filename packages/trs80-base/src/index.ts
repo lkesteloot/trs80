@@ -6,6 +6,8 @@ export * from "./SystemProgram.js";
 export * from "./RawBinaryFile.js";
 export * from "./Trs80FileDecoder.js";
 export * from "./FloppyDisk.js";
+export * from "./Crc16.js";
+export * from "./TrackBytes.js";
 export * from "./Jv1FloppyDisk.js";
 export * from "./Trsdos.js";
 export * from "./Constants.js";

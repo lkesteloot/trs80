@@ -1,6 +1,7 @@
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
+import {DATA_ADDRESS_MARK, DELETED_DATA_ADDRESS_MARK} from "./TrackBytes.js";
 
 // Determined by the floppy controller.
 export const BYTES_PER_SECTOR = 256;
@@ -229,6 +230,13 @@ export class SectorInfo {
     public deleted = false;
 
     /**
+     * The exact data address mark (0xF8 to 0xFB), if the format records it. Single density has
+     * two marks besides normal and deleted, which the Model I's controller can tell apart.
+     * Use getDataAddressMark() to read it.
+     */
+    public dataAddressMark: number | undefined = undefined;
+
+    /**
      * Whether there was a CRC error when reading the physical disk. Sometimes we only have this information
      * without having the actual CRCs.
      */
@@ -253,6 +261,14 @@ export class SectorInfo {
         this.sectorPosition = sectorPosition;
         this.density = density;
         this.sectorSize = sectorSize;
+    }
+
+    /**
+     * The data address mark: the exact one if the format records it, otherwise the standard
+     * mark for whether the sector is deleted.
+     */
+    public getDataAddressMark(): number {
+        return this.dataAddressMark ?? (this.deleted ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK);
     }
 }
 
@@ -534,6 +550,24 @@ export class FloppyDiskGeometry {
 }
 
 /**
+ * A track as written by the floppy controller's Write Track (format) command.
+ */
+export interface FormattedTrack {
+    // Physical position of the track.
+    trackPosition: TrackPosition;
+    // Whether the track was written in double density (MFM).
+    doubleDensity: boolean;
+    // The bytes as they'd be read back, with the controller's special values replaced
+    // by the address marks and CRCs they stand for.
+    bytes: Uint8Array;
+    // Indices into "bytes" of each sector's ID address mark (its 0xFE byte).
+    idamIndices: number[];
+    // The sectors in the order they were written. Their positions are what their ID
+    // fields say, which needn't match where the track is.
+    sectors: SectorData[];
+}
+
+/**
  * Represents a write to an underlying disk file.
  */
 export class FloppyWrite {
@@ -553,7 +587,6 @@ export class FloppyWrite {
  * Abstract class for virtual floppy disk file formats.
  */
 export abstract class FloppyDisk extends AbstractTrs80File {
-    public readonly supportsDoubleDensity: boolean;
     public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
     protected mountedWriteProtected = false;
     // Cache for getBootTrackText(), cleared when the disk is written.
@@ -561,11 +594,9 @@ export abstract class FloppyDisk extends AbstractTrs80File {
 
     protected constructor(binary: Uint8Array,
                           error: string | undefined,
-                          annotations: ProgramAnnotation[],
-                          supportsDoubleDensity: boolean) {
+                          annotations: ProgramAnnotation[]) {
 
         super(binary, error, annotations);
-        this.supportsDoubleDensity = supportsDoubleDensity;
     }
 
     /**
@@ -625,6 +656,16 @@ export abstract class FloppyDisk extends AbstractTrs80File {
      */
     public writeSector(_sectorPosition: SectorPosition, _data: SectorData): void {
         throw new Error(this.className + " does not support writing");
+    }
+
+    /**
+     * Replace a track with a newly formatted one. Check first with isWriteProtected().
+     *
+     * @return whether successful. A file format that can't represent the new layout,
+     * or can't grow to hold it, returns false and leaves the disk unchanged.
+     */
+    public formatTrack(_formattedTrack: FormattedTrack): boolean {
+        return false;
     }
 
     /**

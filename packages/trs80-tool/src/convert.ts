@@ -9,6 +9,17 @@ import { concatByteArrays } from "teamten-ts-utils";
 import {disassemble} from "./disasm.js";
 
 /**
+ * Return a filename that's safe to create in the output directory. Filenames can come
+ * from a disk image, which can hold anything, so replace the characters that would let
+ * a name leave the directory (path separators, and the colon, which starts a drive on
+ * Windows) and don't allow a name that's empty or only dots. Normal TRS-80 names, like
+ * "FOO.CMD", are unchanged.
+ */
+function safeOutputFilename(filename: string): string {
+    return filename.replace(/[\/\\:\0]/g, "_").replace(/^\.*$/, "_");
+}
+
+/**
  * Handle the "convert" command.
  *
  * @param inFilenames list of input filenames.
@@ -54,7 +65,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
     // If output is existing directory, put all input files there.
     if (outputIsDirectory) {
         for (const infile of inFiles) {
-            const outpath = path.join(outFilename, infile.filename);
+            const outpath = path.join(outFilename, safeOutputFilename(infile.filename));
             const binary = infile.binary;
             fs.writeFileSync(outpath, binary);
             const date = infile.getDate();

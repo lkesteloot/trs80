@@ -1,6 +1,7 @@
 import {EditorView} from '@codemirror/view';
 import {
     CassettePlayer,
+    fdcChipToString,
     FdcState,
     RunningState,
     Trs80,
@@ -1050,6 +1051,9 @@ export class Emulator {
         }));
         addRowToColumn("Command", fdcState => ({
             value: toHexByte(fdcState.currentCommand) + "h",
+        }));
+        addRowToColumn("Chip", fdcState => ({
+            value: fdcChipToString(fdcState.chip),
         }));
         addRowToContainer(bottomSection, "Status", fdcState => ({
             extra: fdcState.getStatusDescription(),

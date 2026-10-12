@@ -4,6 +4,9 @@
   "exports": "./src/index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
   "keywords": [
     "trs-80",
     "trs80",

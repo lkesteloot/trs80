@@ -11,14 +11,13 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "tsx tests/Test.ts"
+    "test": "vitest run"
   },
   "keywords": [
     "z80"
   ],
   "devDependencies": {
-    "@types/node": "^24.13.4",
-    "tsx": "^4.7.0"
+    "@types/node": "^24.13.4"
   },
   "dependencies": {
     "z80-base": "*"

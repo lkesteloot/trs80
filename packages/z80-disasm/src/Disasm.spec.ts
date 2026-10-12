@@ -1,22 +1,7 @@
-import { expect } from "chai";
+import {describe, expect, it} from "vitest";
 import { Z80_KNOWN_LABELS } from "z80-base";
 import { Disasm } from "./Disasm.js";
 import {Instruction} from "./Instruction.js";
-
-// I can't get mocha to work with TypeScript and ESM, so just provide their
-// functions.
-let testCount = 0;
-let successCount = 0;
-function describe(name: string, f: () => void): void {
-    testCount++
-    try {
-        f();
-        successCount += 1;
-    } catch (e) {
-        console.log(name + ": " + e);
-    }
-}
-const it = describe;
 
 function disasm(bin: ArrayLike<number>, org: number = 0): Instruction[] {
     const d = new Disasm();
@@ -46,6 +31,12 @@ describe("disassemble", () => {
     it("nop di nop di", () => {
         const result = disasmToText([0x00, 0xF3, 0x00, 0xF3]);
         expect(result).to.eql(["nop", "di", "nop", "di"]);
+    });
+    it("chunk that wraps past 0xFFFF", () => {
+        // This used to throw. Tracing the code doesn't follow the wrap yet, so the bytes at
+        // the top come out as data, after the code at 0x0000.
+        const result = disasmToText([0x00, 0xF3, 0x00, 0xF3], 0xFFFE);
+        expect(result).to.eql(["defb 0x00,0xF3", "nop", "di"]);
     });
     it("nop di nop di with org", () => {
         const result = disasmToText([0x00, 0xF3, 0x00, 0xF3], 0x100);
@@ -107,5 +98,3 @@ describe("label", () => {
         expect(result.map((i) => i.toText(true))).to.eql(["JR LABEL1", "DEFB 0X00", "NOP"]);
     });
 });
-
-console.log(successCount + " successful out of " + testCount);

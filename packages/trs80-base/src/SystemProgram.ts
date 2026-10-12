@@ -264,7 +264,7 @@ export function decodeSystemProgram(binary: Uint8Array, disassemble: boolean): S
         }
 
         const checksum = b.read();
-        if (loadAddress === EOF) {
+        if (checksum === EOF) {
             return makeSystemProgram("File is truncated at checksum");
         }
 

@@ -50,14 +50,6 @@ export class Runner {
      */
     public tests: Map<string, Test> = new Map();
     /**
-     * All errors found when running the tests.
-     */
-    public errors: string[] = [];
-    /**
-     * Number of passed tests.
-     */
-    public successfulTests: number = 0;
-    /**
      * Whether to check that the t-state count is correct after each test.
      */
     public checkTStates: boolean = true;
@@ -87,41 +79,8 @@ export class Runner {
         const expectedPathname = path.join(testDir, EXPECTED_FILENAME);
 
         this.tests = new Map();
-        this.errors = [];
         this.parseFile(inPathname, false);
         this.parseFile(expectedPathname, true);
-        console.log("Loaded " + this.tests.size + " tests");
-    }
-
-    /**
-     * Run all tests.
-     */
-    public runAll(): void {
-        this.successfulTests = 0;
-        for (const test of this.tests.values()) {
-            const success = this.runTest(test);
-            if (success) {
-                this.successfulTests += 1;
-            }
-        }
-    }
-
-    /**
-     * Run one particular test by name.
-     */
-    public runOne(name: string): boolean {
-        const test = this.tests.get(name);
-        if (test === undefined) {
-            console.log("Can't find test \"" + name + "\"");
-            return false;
-        } else {
-            const success =  this.runTest(test);
-            if (success) {
-                this.successfulTests += 1;
-                console.log("Passed " + test.name);
-            }
-            return success;
-        }
     }
 
     /**
@@ -142,10 +101,10 @@ export class Runner {
                         const name = line;
                         if (isExpected) {
                             const possibleTest = this.tests.get(name);
-                            if (test === undefined) {
+                            if (possibleTest === undefined) {
                                 throw new Error("Test " + name + " in \"expected\" file not found in \"in\" file");
                             }
-                            test = possibleTest as Test;
+                            test = possibleTest;
                             state = ParserState.EXPECTING_EVENT_OR_REG1;
                         } else {
                             test = new Test(name);
@@ -248,9 +207,12 @@ export class Runner {
 
     /**
      * Run one test.
+     *
+     * @return a description of each way the result differed from what was expected,
+     * or an empty array if the test passed.
      */
-    private runTest(test: Test): boolean {
-        let success = true;
+    public runTest(test: Test): string[] {
+        const errors: string[] = [];
 
         // Setup.
         this.delegate.startNewTest(test.name);
@@ -270,24 +232,21 @@ export class Runner {
             const expectedValue = test.postRegisterSet[register];
             const actualValue = this.delegate.getRegister(register);
             if (actualValue !== expectedValue) {
-                this.errors.push(test.name + ": expected register " + register + " to be " +
+                errors.push(test.name + ": expected register " + register + " to be " +
                     toHex(expectedValue, 4) + " but was " + toHex(actualValue, 4));
-                success = false;
             }
         }
         for (const [address, expectedValue] of test.postMemory) {
             const actualValue = this.delegate.readMemory(address);
             if (actualValue !== expectedValue) {
-                this.errors.push(test.name + ": expected memory " + toHex(address, 4) + " to be " +
+                errors.push(test.name + ": expected memory " + toHex(address, 4) + " to be " +
                     toHex(expectedValue, 2) + " but was " + toHex(actualValue, 2));
-                success = false;
             }
         }
         const actualTStateCount = this.delegate.getTStateCount();
         if (this.checkTStates && actualTStateCount !== test.postTStateCount) {
-            this.errors.push(test.name + ": expected " + test.postTStateCount +
+            errors.push(test.name + ": expected " + test.postTStateCount +
                 " t-counts but got " + actualTStateCount);
-            success = false;
         }
         if (this.checkEvents) {
             // TODO compare events.
@@ -309,6 +268,6 @@ export class Runner {
             }
         }
 
-        return success;
+        return errors;
     }
 }

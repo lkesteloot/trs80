@@ -17,6 +17,14 @@ import {
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {CRC_16_CCITT} from "./Crc16.js";
+import {
+    CRC_PRESET,
+    DELETED_DATA_ADDRESS_MARK,
+    ID_ADDRESS_MARK,
+    isDataAddressMark,
+    MFM_SYNC,
+    MFM_SYNC_COUNT,
+} from "./TrackBytes.js";
 
 // Print extra debug stuff.
 const DEBUG = false;
@@ -27,6 +35,18 @@ const DEFAULT_REV_NUMBER = 0;
 
 // Bit rate on floppy. I think this is a constant on all TRS-80 floppies.
 const BITRATE = 250000;
+
+// The MFM sync byte (0xA1 with a missing clock bit) as it appears in the raw bit stream.
+const MFM_SYNC_BITS = 0x4489;
+
+// The clock of an MFM sync byte, once updateClock() makes it look like FM.
+const MFM_SYNC_CLOCK = 0xFB;
+
+// The clock of an FM address mark, which is missing some bits.
+const FM_MARK_CLOCK = 0xC7;
+
+// The clock of ordinary data, with every bit present.
+const DATA_CLOCK = 0xFF;
 
 /**
  * Data for a sector on a SCP floppy.
@@ -65,7 +85,14 @@ class ScpSector {
     }
 
     public isDeleted(): boolean {
-        return this.binary[this.damIndex] === 0xF8;
+        return this.getDam() === DELETED_DATA_ADDRESS_MARK;
+    }
+
+    /**
+     * The data address mark.
+     */
+    public getDam(): number {
+        return this.binary[this.damIndex];
     }
 
     /**
@@ -80,10 +107,10 @@ class ScpSector {
      * Compute the CRC for the IDAM.
      */
     public computeIdamCrc(): number {
-        let crc = 0xFFFF;
+        let crc = CRC_PRESET;
 
-        // For double density, include the three 0xA1 bytes preceding the IDAM.
-        const begin = this.getDensity() === Density.DOUBLE ? -3 : 0;
+        // For double density, include the sync bytes preceding the IDAM.
+        const begin = this.getDensity() === Density.DOUBLE ? -MFM_SYNC_COUNT : 0;
 
         for (let i = begin; i < 5; i++) {
             crc = CRC_16_CCITT.update(crc, this.binary[this.idamIndex + i]);
@@ -105,11 +132,11 @@ class ScpSector {
      * Compute the CRC for the data bytes.
      */
     public computeDataCrc(): number {
-        let crc = 0xFFFF;
+        let crc = CRC_PRESET;
 
         const index = this.damIndex + 1;
-        // For double density, include the preceding three 0xA1 bytes.
-        const begin = this.getDensity() === Density.DOUBLE ? index - 4 : index - 1;
+        // Include the DAM and, for double density, the sync bytes preceding it.
+        const begin = this.getDensity() === Density.DOUBLE ? index - 1 - MFM_SYNC_COUNT : index - 1;
         const end = index + this.getLength();
         for (let i = begin; i < end; i++) {
             crc = CRC_16_CCITT.update(crc, this.binary[i]);
@@ -183,9 +210,9 @@ export class ScpFloppyDisk extends FloppyDisk {
     public readonly tracks: ScpTrack[];
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
-                supportsDoubleDensity: boolean, tracks: ScpTrack[]) {
+                tracks: ScpTrack[]) {
 
-        super(binary, error, annotations, supportsDoubleDensity);
+        super(binary, error, annotations);
         this.tracks = tracks;
     }
 
@@ -239,6 +266,7 @@ export class ScpFloppyDisk extends FloppyDisk {
                             new CrcInfo(sector.getDataCrc(), sector.computeDataCrc()));
                         sectorData.crcError = !sectorData.crc.valid();
                         sectorData.deleted = sector.isDeleted();
+                        sectorData.dataAddressMark = sector.getDam();
                         return sectorData;
                     }
                 }
@@ -378,11 +406,10 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
      */
     function injectBit(value: number, bitcellIndex: number): void {
         recent = (recent << 1) | value;
-        if (density === Density.DOUBLE && (recent & 0x7FFF) === 0x4489) {
-            // This is the 0xA1 data with the 0xFB clock.
+        if (density === Density.DOUBLE && (recent & 0x7FFF) === MFM_SYNC_BITS) {
             if (DEBUG_VERBOSE) console.log("MATCH SYNC", nextBitIsClock);
-            clock = 0xFB;
-            data = 0xA1;
+            clock = MFM_SYNC_CLOCK;
+            data = MFM_SYNC;
             nextBitIsClock = true;
         } else {
             if (nextBitIsClock) {
@@ -403,13 +430,13 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
 
         // Look for sync bytes.
         if (density === Density.DOUBLE) {
-            if (clock === 0xFB && data === 0xA1) {
+            if (clock === MFM_SYNC_CLOCK && data === MFM_SYNC) {
                 // bytes.push({clock, data});
                 bitCount = 15;
                 if (DEBUG_VERBOSE) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
             }
         } else {
-            if (clock === 0xC7 && (data === 0xFE || (data >= 0xF8 && data <= 0xFB))) {
+            if (clock === FM_MARK_CLOCK && (data === ID_ADDRESS_MARK || isDataAddressMark(data))) {
                 // bytes.push({clock, data});
                 bitCount = 15;
                 if (DEBUG_VERBOSE) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
@@ -498,10 +525,10 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
 
         switch (density) {
             case Density.SINGLE:
-                if (clock === 0xC7 && data === 0xFE) {
+                if (clock === FM_MARK_CLOCK && data === ID_ADDRESS_MARK) {
                     idamIndex = i;
                 }
-                if (clock === 0xC7 && (data >= 0xF8 && data <= 0xFB)) {
+                if (clock === FM_MARK_CLOCK && isDataAddressMark(data)) {
                     if (idamIndex !== undefined) {
                         sectors.push(new ScpSector(trackBinary, idamIndex, i, density));
                     }
@@ -511,19 +538,19 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
                 break;
 
             case Density.DOUBLE:
-                if (clock === 0xFB && data === 0xA1) {
+                if (clock === MFM_SYNC_CLOCK && data === MFM_SYNC) {
                     const nextData = bytes[i + 1].data;
-                    if (nextData === 0xFE) {
+                    if (nextData === ID_ADDRESS_MARK) {
                         idamIndex = i + 1;
                     }
-                    if (nextData >= 0xF8 && nextData <= 0xFB) {
+                    if (isDataAddressMark(nextData)) {
                         if (idamIndex !== undefined) {
                             sectors.push(new ScpSector(trackBinary, idamIndex, i + 1, density));
 
                             // TODO temporary code to detect bad clocks. Remove.
                             for (let j = 0; j < 256; j++) {
                                 const clockedDatum = bytes[i + 1 + j];
-                                if (clockedDatum.clock !== 0xFF) {
+                                if (clockedDatum.clock !== DATA_CLOCK) {
                                     console.log("Bad clock at index " + j + " of sector", rev, trackNumber);
                                     let interval = 1e9/BITRATE/resolutionTimeNs;
                                     if (density === Density.DOUBLE) {
@@ -661,7 +688,7 @@ export function decodeScpFloppyDisk(binary: Uint8Array): ScpFloppyDisk | undefin
         }
     }
 
-    const floppyDisk = new ScpFloppyDisk(binary, undefined, [], true, tracks);
+    const floppyDisk = new ScpFloppyDisk(binary, undefined, [], tracks);
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
         if (DEBUG) console.log("SCP: No sectors on cylinder 0 side 0");

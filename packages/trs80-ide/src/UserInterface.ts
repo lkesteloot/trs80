@@ -11,6 +11,7 @@ import {RunningState} from "trs80-emulator";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build";
 import {Settings} from "./Settings";
 import {SCREEN_SIZES} from "./ScreenSize";
+import {downloadBlob} from "trs80-emulator-web";
 
 // File System Access API permission methods (WICG, not yet in TS DOM lib).
 declare global {
@@ -1061,12 +1062,12 @@ export class UserInterface {
     }
 
     /**
-     * Convert an array of bytes to a blob: URL that can be used in src or href attributes.
+     * Convert an array of bytes to a blob with the right type for the extension.
      *
      * @param contents the data to encode.
      * @param extension the file extension, not including the period.
      */
-    private arrayToBlobUrl(contents: Uint8Array, extension: string): string {
+    private arrayToBlob(contents: Uint8Array, extension: string): Blob {
         let type: string;
         switch (extension.toLowerCase()) {
             case "wav":
@@ -1083,9 +1084,7 @@ export class UserInterface {
         }
 
         // Have to create a new Uint8Array because "contents" might have the wrong underlying buffer type.
-        const blob = new Blob([new Uint8Array(contents)], {type});
-
-        return window.URL.createObjectURL(blob);
+        return new Blob([new Uint8Array(contents)], {type});
     }
 
     /**
@@ -1096,10 +1095,7 @@ export class UserInterface {
      * @param extension the file extension, not including the period.
      */
     private exportFile(contents: Uint8Array, name: string, extension: string) {
-        const a = document.createElement("a");
-        a.href = this.arrayToBlobUrl(contents, extension);
-        a.download = name + "." + extension.toLowerCase();
-        a.click();
+        downloadBlob(this.arrayToBlob(contents, extension), name + "." + extension.toLowerCase());
     }
 
     /**
@@ -1121,7 +1117,7 @@ export class UserInterface {
         // Dialog box contents.
         const cass = speed.encoding === CassetteEncoding.FM ? "L" : "H";
         const nameLetter = (editor.getName()[0] ?? "A").toUpperCase();
-        const src = this.arrayToBlobUrl(binary, "wav");
+        const src = window.URL.createObjectURL(this.arrayToBlob(binary, "wav"));
 
         // Get the DOM nodes.
         const dialogBox = document.querySelector(".audio-playback-dialog-box") as HTMLDialogElement;

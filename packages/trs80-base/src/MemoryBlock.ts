@@ -14,7 +14,10 @@ export class MemoryBlock {
      * Add bytes to the block of memory.
      */
     public addBytes(bytes: number[]): void {
-        this.bytes.push(... bytes);
+        // Don't spread into push(), that overflows the stack with large arrays.
+        for (const byte of bytes) {
+            this.bytes.push(byte);
+        }
     }
 
     /**

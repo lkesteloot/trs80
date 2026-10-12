@@ -256,14 +256,13 @@ function findHeader(binary: Uint8Array, start: number, strict: boolean): Header 
 
         const lowSpeedBitOffset = checkMatch(recentBits, LOW_SPEED_DETECT);
         if (lowSpeedBitOffset !== undefined && (lowSpeedBitOffset === 0 || !strict)) {
+            // If the sync byte isn't byte-aligned, the program starts in its last byte, and
+            // the program's bytes need shifting, as with high speed below.
+            const shift = lowSpeedBitOffset === 0 ? 0 : 8 - lowSpeedBitOffset;
             const headerStartIndex = findStartOfHeader(binary, i - 2);
+            const programStartIndex = i + (lowSpeedBitOffset === 0 ? 1 : 0);
             if (i - headerStartIndex >= minHeaderLength) {
-                if (lowSpeedBitOffset !== 0) {
-                    // TODO
-                    throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
-                }
-
-                return new Header(headerStartIndex, i + 1, 0, CassetteSpeed.LOW, [
+                return new Header(headerStartIndex, programStartIndex, shift, CassetteSpeed.LOW, [
                     new ProgramAnnotation("Low speed header", headerStartIndex, i),
                     new ProgramAnnotation("Low speed sync byte", i, i + 1),
                 ]);

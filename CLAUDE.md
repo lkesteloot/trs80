@@ -14,8 +14,8 @@ own folder and package name, but none is built on its own:
   hand, then run `npm install`.
 - vite 8 builds the three web apps (`my-trs-80`, `trs80-cassette-webapp`,
   `trs80-ide`) and serves fp-215's test page. esbuild bundles trs80-tool into
-  `packages/trs80-tool/dist/trs80-tool.cjs`. tsx runs the tests and the code
-  generators. All of them compile the other packages straight from source.
+  `packages/trs80-tool/dist/trs80-tool.cjs`. Vitest runs the tests, and tsx runs
+  the code generators. All of them compile the other packages straight from source.
 - Type checking happens only in the root `tsconfig.json`, which covers every
   package and emits nothing. There are no per-package tsconfigs; don't add any.
 - Nothing outside this repo uses these packages. The old npm releases are
@@ -26,7 +26,9 @@ own folder and package name, but none is built on its own:
     npm install
     npm run build        # The type check, then every package's build.
     npm run typecheck    # Only tsc: fast, and the main correctness check.
-    npm test             # z80-asm, z80-disasm, z80-emulator, z80-test. Nothing else has tests.
+    npm test             # Every package's tests, with Vitest.
+    npm test -w packages/z80-asm             # One package's tests.
+    npx vitest run -t "some test name"       # Tests whose name matches.
     npm start -w packages/trs80-ide          # Dev server (also my-trs-80, trs80-cassette-webapp, fp-215).
     npm run build -w packages/trs80-tool     # Bundle the tool; needed before running it.
     node packages/trs80-tool/bin/trs80-tool.js ...
@@ -51,6 +53,16 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   or `dist/`.
 - `z80-emulator/src/Decode.template.ts` is excluded from the type check. It's
   input to the code generator.
+
+## Tests
+
+- Vitest runs them, configured by the root `vitest.config.mts`. Tests are
+  `src/*.spec.ts` or `tests/*.test.ts`, and import `describe`, `it`, and `expect`
+  from `"vitest"`. Its `expect` takes chai-style assertions (`.to.eql()`), which
+  the existing tests use.
+- Only z80-asm, z80-disasm, z80-emulator, z80-test, trs80-base, trs80-cassette,
+  trs80-emulator, and trs80-logger have tests. z80-emulator's run the FUSE Z80
+  test cases from z80-test, one Vitest test each.
 
 ## Generated files
 
@@ -140,10 +152,31 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **trs80-tool releases:** bump `version` in its `package.json`, and add a
   change log entry in `site/index.html`.
 
+## Delegating to agents
+
+- The Agent tool's `isolation: "worktree"` branches from `origin/HEAD` (the
+  remote's master), not from the current branch or the local master. When the
+  work builds on unpushed commits, make the worktrees yourself:
+  `git worktree add -b claude/fix-foo .claude/worktrees/fix-foo <commit>` from
+  the repo, then `npm ci` there (not `npm install`, which rewrites
+  `package-lock.json`). Start the agent without isolation and tell it to work
+  only in that directory, with absolute paths.
+
 ## Conventions
 
-- **Code:** 4-space indentation, double quotes, and JSDoc comments on functions
-  and classes. There's no Prettier or linter; match the surrounding code.
+- **Code:** 4-space indentation and double quotes. There's no Prettier or
+  linter; match the surrounding code.
+- **Comment every class, method, and function** with JSDoc, including overrides
+  (say what this version does differently) and test helpers. Skip only the
+  extremely trivial, like a one-line getter.
+- **Enum names:** to show an enum value, write a `fooToString()` right after the
+  enum (like `trsdosVersionToString()` in `Trsdos.ts`), rather than spelling out
+  the names wherever it's displayed.
+- **Exhaustive enums:** branch on an enum with a `switch` that has a case for
+  every value and ends with `default: assertNever(value);` (from z80-base), so
+  that adding a value is a compile error everywhere it needs handling. Don't
+  write `if (x === A) ... else ...`, which quietly sends a new value to the
+  `else`.
 - **Conditions don't act:** don't put a call with side effects in an `if`
   condition. Store its result in a well-named variable, then test that:
   `const geometryValid = disk.computeGeometry(); if (!geometryValid) ...`.

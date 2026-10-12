@@ -6,6 +6,7 @@ import {makeIcon, makeTextButton, reportError} from "./Utils";
 import {IFilePanel} from "./IFilePanel";
 import {FileBuilder} from "./File";
 import JSZip from "jszip";
+import {downloadBlob} from "trs80-emulator-web";
 
 /**
  * Handles the TRSDOS tab in the file panel.
@@ -167,10 +168,7 @@ export class TrsdosTab extends PageTab {
                     }
                     filename += ".zip";
 
-                    const a = document.createElement("a");
-                    a.href = window.URL.createObjectURL(blob);
-                    a.download = filename;
-                    a.click();
+                    downloadBlob(blob, filename);
                 });
         });
         actionBar.append(exportZipButton);

@@ -1,7 +1,7 @@
 {
   // The one project for type checking the whole repo ("npm run typecheck"). tsc emits
-  // nothing: vite builds the web apps, esbuild bundles trs80-tool, and tsx runs the tests
-  // and generators, all straight from the TypeScript source.
+  // nothing: vite builds the web apps, esbuild bundles trs80-tool, Vitest runs the tests,
+  // and tsx runs the generators, all straight from the TypeScript source.
   "compilerOptions": {
     "target": "ES2019",
     // Type definitions for ES2022 built-ins like Array.prototype.at(), which Node 24
@@ -12,7 +12,7 @@
     // Include all @types packages, as TypeScript did by default before 6.0.
     "types": ["*"],
     // Assign class fields in the constructor, as tsc did when it compiled these packages
-    // for ES2019. vite, esbuild, and tsx all follow this setting.
+    // for ES2019. vite, esbuild, Vitest, and tsx all follow this setting.
     "useDefineForClassFields": false,
     // vite and esbuild compile one file at a time, so every file must make sense on its own;
     // for example, re-exported types must be marked with "type".

@@ -209,7 +209,7 @@ export class CmdIsamDirectoryEntryChunk extends CmdAbstractChunk {
     public readonly key: number; // AKA ISAM entry number.
     public readonly transferAddress: number;
     public readonly sectorNumber: number;
-    public readonly offset: number;
+    public readonly sectorOffset: number; // Within the sector.
 
     constructor(offset: number, data: Uint8Array) {
         super(offset, data);
@@ -218,7 +218,7 @@ export class CmdIsamDirectoryEntryChunk extends CmdAbstractChunk {
         this.key = data[0];
         this.transferAddress = word(data[2], data[1]);
         this.sectorNumber = word(data[4], data[3]);
-        this.offset = data[5];
+        this.sectorOffset = data[5];
         // Some later models have three more bytes, another NRN/offset pair for the end of the data.
     }
 
@@ -226,7 +226,7 @@ export class CmdIsamDirectoryEntryChunk extends CmdAbstractChunk {
         annotations.push(new ProgramAnnotation("Key (0x" + toHexByte(this.key) + ")", addr, addr + 1));
         annotations.push(new ProgramAnnotation("Jump address (0x" + toHexWord(this.transferAddress) + ")", addr + 1, addr + 3));
         annotations.push(new ProgramAnnotation("Sector (0x" + toHexWord(this.sectorNumber) + ")", addr + 3, addr + 5));
-        annotations.push(new ProgramAnnotation("Offset (0x" + toHexByte(this.offset) + ")", addr + 5, addr + 6));
+        annotations.push(new ProgramAnnotation("Offset (0x" + toHexByte(this.sectorOffset) + ")", addr + 5, addr + 6));
     }
 }
 
@@ -376,7 +376,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
     const annotations: ProgramAnnotation[] = [];
     const chunks: CmdChunk[] = [];
     let filename: string | undefined;
-    let entryPointAddress = 0;
+    let entryPointAddress: number | undefined;
     const b = new ByteReader(binary);
 
     // Read each chunk.

@@ -11,6 +11,10 @@ export enum EventType {
 
     // All disk events.
     DISK_ALL = DISK_DONE | DISK_LOST_DATA | DISK_FIRST_DRQ,
+
+    // Interrupt on the disk's index pulse, requested by a Force Interrupt command. Not part of
+    // DISK_ALL, since it repeats and isn't part of a command in progress.
+    DISK_INDEX = 1 << 3,
 }
 
 
@@ -91,6 +95,13 @@ export class EventScheduler {
                 break;
             }
         }
+    }
+
+    /**
+     * Cancel all events.
+     */
+    public cancelAll(): void {
+        this.events = [];
     }
 
     /**

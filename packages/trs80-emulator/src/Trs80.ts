@@ -1,4 +1,4 @@
-import {hi, lo, toHex, toHexByte, toHexWord, word} from "z80-base";
+import {assertNever, hi, lo, toHex, toHexByte, toHexWord, word} from "z80-base";
 import {Hal, Z80, Z80State} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Keyboard} from "./Keyboard.js";
@@ -24,7 +24,7 @@ import {
     Trs80File
 } from "trs80-base";
 import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
-import {FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
+import {FdcChip, FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
 import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";
 import {SoundPlayer} from "./SoundPlayer.js";
@@ -113,6 +113,23 @@ function computeVideoBit6(value: number): number {
 }
 
 /**
+ * The floppy disk controller chip that the model has.
+ */
+function getFdcChip(modelType: ModelType): FdcChip {
+    switch (modelType) {
+        case ModelType.MODEL1:
+            return FdcChip.WD1771;
+
+        case ModelType.MODEL3:
+        case ModelType.MODEL4:
+            return FdcChip.WD1791;
+
+        default:
+            assertNever(modelType);
+    }
+}
+
+/**
  * setTimeout() returns a different type on the browser and in node, so auto-detect the type.
  */
 type TimeoutHandle = ReturnType<typeof setTimeout>;
@@ -126,7 +143,13 @@ export class Trs80State {
                 public readonly memory: Uint8Array,
                 public readonly printerState: any,
                 public readonly fdcState: FdcState,
-                public readonly screenState: Trs80ScreenState) {
+                public readonly screenState: Trs80ScreenState,
+                public readonly modeImage: number,
+                public readonly irqMask: number,
+                public readonly irqLatch: number,
+                public readonly nmiMask: number,
+                public readonly nmiLatch: number,
+                public readonly nmiSeen: boolean) {
 
         // Nothing.
     }
@@ -193,6 +216,8 @@ export class Trs80 implements Hal, Machine, Configurable {
     // When we turned on the motor (started reading the file) and how many samples
     // we've read since then.
     private cassetteMotorOnClock = 0;
+    // Scheduled event that kicks off the cassette after the motor starts, if any.
+    private kickOffCassetteHandle: number | undefined = undefined;
     private cassetteSamplesRead = 0;
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
@@ -277,6 +302,8 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.memory.fill(0);
         this.loadRom();
 
+        this.fdc.setChip(getFdcChip(this.config.modelType));
+
         switch (this.config.modelType) {
             case ModelType.MODEL1:
                 this.timerHz = M1_TIMER_HZ;
@@ -304,15 +331,23 @@ export class Trs80 implements Hal, Machine, Configurable {
             new Uint8Array(this.memory),
             this.printer.save(),
             this.fdc.save(),
-            this.screen.save());
+            this.screen.save(),
+            this.modeImage,
+            this.irqMask,
+            this.irqLatch,
+            this.nmiMask,
+            this.nmiLatch,
+            this.nmiSeen);
     }
 
     /**
      * Restore the complete state of the machine, saved by {@link #save()}.
      */
     public restore(state: Trs80State): void {
-        this.reset();
         this.config = state.config;
+        this.screen.setConfig(this.config);
+        this.updateFromConfig();
+        this.reset();
         this.z80.restore(state.z80State);
 
         // Restore ROM.
@@ -326,6 +361,13 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.printer.restore(state.printerState);
         this.fdc.restore(state.fdcState);
         this.screen.restore(state.screenState);
+        // Restore the interrupt and port state, which reset() cleared.
+        this.modeImage = state.modeImage;
+        this.irqMask = state.irqMask;
+        this.irqLatch = state.irqLatch;
+        this.nmiMask = state.nmiMask;
+        this.nmiLatch = state.nmiLatch;
+        this.nmiSeen = state.nmiSeen;
     }
 
     /**
@@ -445,6 +487,8 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.resetCassette();
         this.keyboard.clearKeyboard();
         this.setTimerInterrupt(false);
+        this.eventScheduler.cancelAll();
+        this.fdc.reset();
         this.z80.reset();
     }
 
@@ -591,9 +635,12 @@ export class Trs80 implements Hal, Machine, Configurable {
         }
 
         // Set off a timer interrupt.
-        if (this.tStateCount > this.previousTimerClock + this.clockHz / this.timerHz) {
+        // Rounded to keep the clocks integers. (The periods divide exactly today.)
+        const timerPeriod = Math.round(this.clockHz / this.timerHz);
+        if (this.tStateCount > this.previousTimerClock + timerPeriod) {
             this.handleTimer();
-            this.previousTimerClock = this.tStateCount;
+            // Advance by exactly one period so that the ticks don't drift.
+            this.previousTimerClock += timerPeriod;
         }
 
         // Update cassette state.
@@ -1004,18 +1051,23 @@ export class Trs80 implements Hal, Machine, Configurable {
 
         // Run-length encode bytes with (value,count) pairs, with a max count of 255. Bytes
         // in the range 33 to 127 inclusive have an implicit count of 1.
+        // Index in buf of the count of the run we're in, or undefined if the last entry was
+        // a byte without a count. We can't just look at the last two bytes of buf, since they
+        // might not be a (value,count) pair.
+        let runCountIndex: number | undefined = undefined;
         for (let address = TRS80_SCREEN_BEGIN; address < TRS80_SCREEN_END; address++) {
             const value = this.memory[address];
             if (value > 32 && value < 128) {
                 // Bytes in this range don't store a count.
                 buf.push(value);
-            } else if (buf.length < 2 || buf[buf.length - 1] === 255 || buf[buf.length - 2] !== value) {
-                // New entry.
-                buf.push(value);
-                buf.push(1);
-            } else {
+                runCountIndex = undefined;
+            } else if (runCountIndex !== undefined && buf[runCountIndex - 1] === value && buf[runCountIndex] < 255) {
                 // Increment existing count.
-                buf[buf.length - 1] += 1;
+                buf[runCountIndex] += 1;
+            } else {
+                // New entry.
+                buf.push(value, 1);
+                runCountIndex = buf.length - 1;
             }
         }
 
@@ -1215,12 +1267,16 @@ export class Trs80 implements Hal, Machine, Configurable {
                 this.cassetteLastNonZeroValue = CassetteValue.NEUTRAL;
 
                 // Waits a second before kicking off the cassette.
-                // TODO this should be in CPU cycles, not browser cycles.
                 if (this.config.modelType !== ModelType.MODEL1) {
-                    setTimeout(() => this.kickOffCassette(), 1000);
+                    this.kickOffCassetteHandle = this.eventScheduler.add(undefined,
+                        this.tStateCount + this.clockHz, () => this.kickOffCassette());
                 }
             } else {
                 this.setCassetteState(CassetteState.CLOSE);
+                if (this.kickOffCassetteHandle !== undefined) {
+                    this.eventScheduler.cancel(this.kickOffCassetteHandle);
+                    this.kickOffCassetteHandle = undefined;
+                }
             }
             this.cassetteMotorOn = cassetteMotorOn;
 

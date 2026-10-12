@@ -5,10 +5,12 @@ import {
     FloppyDisk,
     FloppyDiskGeometry,
     FloppyWrite,
+    FormattedTrack,
     SectorData,
     SectorInfo, SectorPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {USER_DATA_ADDRESS_MARK_FA} from "./TrackBytes.js";
 
 const SECTORS_PER_TRACK = 10;
 const BYTES_PER_TRACK = BYTES_PER_SECTOR * SECTORS_PER_TRACK;
@@ -24,7 +26,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
     private readonly geometry: FloppyDiskGeometry;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
-        super(binary, error, annotations, false);
+        super(binary, error, annotations);
 
         // Figure out geometry.
         const sectorCount = binary.length / BYTES_PER_SECTOR;
@@ -42,6 +44,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
             if (cylinderNumber === DIRECTORY_CYLINDER) {
                 // Directory sectors are marked as deleted in TRSDOS 2.3.
                 sectorInfo.deleted = true;
+                sectorInfo.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
             }
             sectorInfos.push(sectorInfo);
         }
@@ -68,6 +71,10 @@ export class Jv1FloppyDisk extends FloppyDisk {
         return this.mountedWriteProtected;
     }
 
+    /**
+     * Read a sector. JV1 stores only the data, so the ID field is assumed to match the position,
+     * and the directory cylinder's sectors are marked deleted, as TRSDOS 2.3 writes them.
+     */
     public readSector(sectorPosition: SectorPosition): SectorData | undefined {
         TRS80_FLOPPY_LOGGER.trace(`JV1: Reading sector ${sectorPosition.key()}`);
 
@@ -86,13 +93,18 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
         const sectorData = new SectorData(data, sectorPosition, Density.SINGLE);
         if (sectorPosition.cylinderNumber === DIRECTORY_CYLINDER) {
-            // Directory sectors are marked as deleted in TRSDOS 2.3.
+            // Directory sectors are marked as deleted in TRSDOS 2.3, with the Model I's mark.
             sectorData.deleted = true;
+            sectorData.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
         }
 
         return sectorData;
     }
 
+    /**
+     * Write a sector's data. JV1 has nowhere to store the data address mark, so whether the
+     * sector is deleted is lost.
+     */
     public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
         // Check for errors.
         if (!this.isValidSectorPosition(sectorPosition) || data.data.length !== BYTES_PER_SECTOR) {
@@ -106,6 +118,46 @@ export class Jv1FloppyDisk extends FloppyDisk {
         }
 
         this.write(new FloppyWrite(data.data, offset));
+    }
+
+    /**
+     * Format a track. JV1 can only hold its one layout, so anything else fails.
+     *
+     * @return whether successful.
+     */
+    public formatTrack(formattedTrack: FormattedTrack): boolean {
+        const {cylinderNumber, side} = formattedTrack.trackPosition;
+
+        // JV1 can only hold its one layout: a single-density track of ten 256-byte sectors
+        // numbered 0 to 9 (in any order), whose ID fields match where they are. It also
+        // can't grow.
+        if (formattedTrack.doubleDensity ||
+            side !== 0 ||
+            cylinderNumber >= this.geometry.cylinderCount ||
+            formattedTrack.sectors.length !== SECTORS_PER_TRACK) {
+
+            return false;
+        }
+        const sectorNumbers = new Set<number>();
+        for (const sector of formattedTrack.sectors) {
+            if (!sector.sectorPosition.trackPosition.equals(formattedTrack.trackPosition) ||
+                sector.data.length !== BYTES_PER_SECTOR ||
+                !this.isValidSectorPosition(sector.sectorPosition)) {
+
+                return false;
+            }
+            sectorNumbers.add(sector.sectorPosition.sectorNumber);
+        }
+        if (sectorNumbers.size !== SECTORS_PER_TRACK) {
+            return false;
+        }
+
+        // Write the sectors' fill data.
+        for (const sector of formattedTrack.sectors) {
+            this.write(new FloppyWrite(sector.data, this.getSectorPositionOffset(sector.sectorPosition)));
+        }
+
+        return true;
     }
 
     /**

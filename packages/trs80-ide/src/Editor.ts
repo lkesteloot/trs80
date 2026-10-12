@@ -648,9 +648,15 @@ export class Editor {
         let defaultDoc: string | Text | undefined;
         const saveDoc = window.localStorage.getItem(LOCAL_STORAGE_CODE_KEY);
         if (saveDoc !== null) {
-            const lines = JSON.parse(saveDoc);
-            defaultDoc = Text.of(lines);
-        } else {
+            try {
+                const lines = JSON.parse(saveDoc);
+                defaultDoc = Text.of(lines);
+            } catch (e) {
+                // Corrupt local storage, use the default.
+                console.error("Could not load saved code", e);
+            }
+        }
+        if (defaultDoc === undefined) {
             defaultDoc = getDefaultExample();
         }
 
