@@ -1288,9 +1288,8 @@ button i {
     grid-template-columns: auto auto auto auto auto auto;
 }
 
-/* Untested */
-body.signed-out .trsdos .dir {
-    /* Missing import button. Might be easier to disable it. */
+.trsdos .dir.no-import {
+    /* Signed out, so no import button. */
     grid-template-columns: auto auto auto auto auto;
 }
 

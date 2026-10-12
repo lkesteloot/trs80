@@ -67,7 +67,14 @@ export class TrsdosTab extends PageTab {
         addDirEntryField("Date", "date", "header");
         addDirEntryField("Permission", "protection-level", "header");
         addDirEntryField("Run", "run", "header");
-        addDirEntryField("Import", "import", "header");
+        // Only signed-in users can import. Decide now, so that the header and the rows
+        // agree on the number of columns even if the user signs in or out later.
+        const user = filePanel.context.user;
+        if (user !== undefined) {
+            addDirEntryField("Import", "import", "header");
+        } else {
+            dirDiv.classList.add("no-import");
+        }
         const dirEntries = trsdos.getDirEntries(false);
         for (const dirEntry of dirEntries) {
             const extraCssClasses: string[] = [];
@@ -98,8 +105,6 @@ export class TrsdosTab extends PageTab {
             });
             dirDiv.append(playButton);
 
-            // TODO this breaks the grid.
-            const user = filePanel.context.user;
             if (user !== undefined) {
                 const importButton = makeIcon("get_app");
                 importButton.classList.add(...["import", ...extraCssClasses]);
