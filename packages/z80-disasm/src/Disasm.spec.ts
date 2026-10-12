@@ -32,6 +32,12 @@ describe("disassemble", () => {
         const result = disasmToText([0x00, 0xF3, 0x00, 0xF3]);
         expect(result).to.eql(["nop", "di", "nop", "di"]);
     });
+    it("chunk that wraps past 0xFFFF", () => {
+        // This used to throw. Tracing the code doesn't follow the wrap yet, so the bytes at
+        // the top come out as data, after the code at 0x0000.
+        const result = disasmToText([0x00, 0xF3, 0x00, 0xF3], 0xFFFE);
+        expect(result).to.eql(["defb 0x00,0xF3", "nop", "di"]);
+    });
     it("nop di nop di with org", () => {
         const result = disasmToText([0x00, 0xF3, 0x00, 0xF3], 0x100);
         expect(result).to.eql(["nop", "di", "nop", "di"]);

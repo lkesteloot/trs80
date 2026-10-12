@@ -125,11 +125,15 @@ export class Disasm {
     }
 
     /**
-     * Add a chunk of binary somewhere in memory.
+     * Add a chunk of binary somewhere in memory. Like the Z80's addresses, it wraps around from
+     * 0xFFFF to 0x0000.
      */
     public addChunk(bin: ArrayLike<number>, address: number): void {
-        this.memory.set(bin, address);
-        this.hasContent.fill(1, address, address + bin.length);
+        for (let i = 0; i < bin.length; i++) {
+            const wrappedAddress = (address + i) % MEM_SIZE;
+            this.memory[wrappedAddress] = bin[i];
+            this.hasContent[wrappedAddress] = 1;
+        }
     }
 
     /**
