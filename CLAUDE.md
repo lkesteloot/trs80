@@ -61,8 +61,8 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   from `"vitest"`. Its `expect` takes chai-style assertions (`.to.eql()`), which
   the existing tests use.
 - Only z80-asm, z80-disasm, z80-emulator, z80-test, trs80-base,
-  trs80-cassette, and trs80-emulator have tests. z80-emulator's run the FUSE Z80 test cases from
-  z80-test, one Vitest test each.
+  trs80-cassette, and trs80-emulator have tests. z80-emulator's run the FUSE
+  Z80 test cases from z80-test, one Vitest test each.
 
 ## Generated files
 
