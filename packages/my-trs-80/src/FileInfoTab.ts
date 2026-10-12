@@ -9,6 +9,7 @@ import {IFilePanel} from "./IFilePanel";
 import {TagSet} from "./TagSet";
 import {withCanvasScreen} from "./ScreenPool";
 import {BasicLevel, ModelType} from "trs80-emulator";
+import {downloadBlob} from "trs80-emulator-web";
 
 const SCREENSHOT_ATTR = `data-screenshot`;
 
@@ -164,15 +165,9 @@ export class FileInfoTab extends PageTab {
 
         const exportButton = makeTextButton("Export", "get_app", "export-button", () => {
             // Download binary.
-            const a = document.createElement("a");
             const contents = this.filePanel.file.binary;
             const blob = new Blob([new Uint8Array(contents)], {type: "application/octet-stream"});
-            const url = window.URL.createObjectURL(blob);
-            a.href = url;
-            a.download = this.filePanel.file.filename;
-            a.click();
-            // Give the download time to start.
-            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            downloadBlob(blob, this.filePanel.file.filename);
         });
         actionBar.append(exportButton);
         if (this.trs80File.className === "Cassette") {

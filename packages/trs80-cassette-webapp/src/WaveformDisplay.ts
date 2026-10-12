@@ -12,6 +12,7 @@ import {
     WaveformAnnotation, writeWavFile
 } from "trs80-cassette";
 import {withCommas} from "teamten-ts-utils";
+import {downloadBlob} from "trs80-emulator-web";
 
 let gRadioButtonCounter = 1;
 
@@ -1018,14 +1019,8 @@ export class WaveformDisplay {
      */
     private saveWavFile(samples: Int16Array, startFrame: number, endFrame: number): void {
         const wav = writeWavFile(samples.subarray(startFrame, endFrame + 1), this.sampleRate);
-        const a = document.createElement("a");
         const blob = new Blob([wav], {type: "audio/wav"});
-        const url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = "clip.wav";
-        a.click();
-        // Give the download time to start.
-        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        downloadBlob(blob, "clip.wav");
     }
 }
 

@@ -7,6 +7,7 @@ export {WebProgressBar} from "./WebProgressBar.js";
 export {DriveIndicators} from "./DriveIndicators.js";
 export {BasicEditor} from "./BasicEditor.js";
 export {WebKeyboard} from "./WebKeyboard.js";
+export {downloadBlob} from "./Download.js";
 export {flashNode} from "./FlashNode.js";
 export {WebSoundPlayer} from "./WebSoundPlayer.js";
 export * from "./FlipCard.js";

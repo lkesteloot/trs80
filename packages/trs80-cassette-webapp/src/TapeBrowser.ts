@@ -34,7 +34,7 @@ import {
     Trs80File
 } from "trs80-base";
 import {BitType, DEFAULT_SAMPLE_RATE, DisplaySamples, frameToTimestamp, Program, Tape} from "trs80-cassette";
-import {WebSoundPlayer} from "trs80-emulator-web";
+import {downloadBlob, WebSoundPlayer} from "trs80-emulator-web";
 
 /**
  * See if the "program" is actually a 1024-byte screenshot. We've only seen this once,
@@ -393,7 +393,6 @@ export class TapeBrowser {
                         : ".BIN";
             addKeyValues("Download", [binExtension, ".CAS", ".WAV"], (extension: string) => {
                 // Download binary.
-                const a = document.createElement("a");
                 let contents;
                 let type;
 
@@ -409,13 +408,7 @@ export class TapeBrowser {
                 }
 
                 const blob = new Blob([new Uint8Array(contents)], {type: type});
-                const url = window.URL.createObjectURL(blob);
-                a.href = url;
-
-                a.download = (this.tape.name + "-" + program.getShortLabel()).replace(/ /g, "-") + extension;
-                a.click();
-                // Give the download time to start.
-                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                downloadBlob(blob, (this.tape.name + "-" + program.getShortLabel()).replace(/ /g, "-") + extension);
             });
             if (basicPane !== undefined) {
                 addKeyValue("Type", "Basic program", () => this.showPane(basicPane));
@@ -434,7 +427,6 @@ export class TapeBrowser {
         } else {
             addKeyValues("Download", [".CAS", ".WAV"], (extension: string) => {
                 // Download binary.
-                const a = document.createElement("a");
                 let contents;
                 let type;
 
@@ -447,12 +439,7 @@ export class TapeBrowser {
                 }
 
                 const blob = new Blob([new Uint8Array(contents)], {type: type});
-                const url = window.URL.createObjectURL(blob);
-                a.href = url;
-                a.download = (this.tape.name).replace(/ /g, "-") + extension;
-                a.click();
-                // Give the download time to start.
-                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                downloadBlob(blob, (this.tape.name).replace(/ /g, "-") + extension);
             });
         }
 
