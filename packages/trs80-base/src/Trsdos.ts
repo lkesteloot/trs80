@@ -1416,8 +1416,11 @@ export class Trsdos {
         const sectorsInFile = Math.ceil(firstDirEntry.getSize() / BYTES_PER_SECTOR);
 
         // Loop through all the directory entries for this file.
+        // Corrupt directories can have entries that point to each other, so don't revisit any.
+        const visitedDirEntries = new Set<TrsdosDirEntry>();
         let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
-        while (dirEntry !== undefined) {
+        while (dirEntry !== undefined && !visitedDirEntries.has(dirEntry)) {
+            visitedDirEntries.add(dirEntry);
             for (const extent of dirEntry.extents) {
                 const sectorCount = extent.granuleCount * this.sectorsPerGranule;
                 for (let i = 0; i < sectorCount && sectorPositions.length < sectorsInFile; i++) {
