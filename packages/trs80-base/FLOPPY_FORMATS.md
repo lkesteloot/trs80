@@ -161,6 +161,17 @@ used by the bytes that link a primary entry to its extended entries. The LDOS
 row per entry within a sector and one column per directory sector, and give
 the number of columns used as sectors per cylinder minus 2, at most 32.
 
+**An entry whose HIT slot is 0 isn't a file**, even with its in-use bit set.
+The DOS finds a file by its hash, so it can't reach that entry; it's left over
+from an earlier directory, typically in a sector copied whole. `getDirEntries()`
+drops these, and `evaluate()` ignores them: neither hit nor miss, and their extents
+can be anything. TRSREAD and VDISK skip them too (Ira's report in
+`ira/bad-crc`). Found on the RAPIDOS disks (`Dog Catcher`,
+`Tournament Chess` and `willus/rapds13.dmk` share the same seven leftovers in
+directory sector 10, three of them named like live files), on TRSDOS 2.3B (the
+second SYS5/SYS), and on `Maxi Manager` (a garbage `81 NFMT/CBF` whose extents
+reach lump 87, which made a two-sided reading win until it was ignored).
+
 **System files sit at fixed DECs**, because the DOS loads its overlays by
 position rather than by name. The reservations differ:
 
@@ -197,7 +208,8 @@ says other DOSes needed a special mode for its disks.
   layout shifted two slots earlier: 2.3 puts BOOT/SYS at 0x00, DIR/SYS at 0x01
   and SYS0 at 0x02. Every entry's extent matches that file's extent on a normal
   2.3 disk, so the names are correct, and no entry points at the directory
-  cylinder. The SYS7 slot holds a second SYS5 entry with an identical extent.
+  cylinder. The SYS7 slot holds a second SYS5 entry with an identical extent,
+  but its HIT byte is 0, so it isn't listed (see the HIT).
 - **The boot code doesn't use the directory.** 2.3's boot sector reads directory
   sector 4, entry 0 (SYS0's fixed slot), checks only the in-use bit, and follows
   the extent: `3A 02 42 57 1E 04` (`LD A,(4202h)`, `LD D,A`, `LD E,4`). 2.3B's
@@ -439,6 +451,16 @@ two apparent misses, Cornsoft-Brix `bath3` and `F05 - Monas`, were tested with
 one side; with sides free, 3 x 2 wins.) Hash hits can't choose between granule
 counts: a TRSDOS-style directory fills its cylinder whatever the granule size,
 so every count scores the same. Blank disks stay ambiguous, which costs nothing.
+
+The decoder uses both checks (October 2026). A file whose extents hold fewer
+sectors than its size needs costs a point of score, which rejects granules
+that are too small: `PowerFILE` read as NEWDOS/80-style 5-sector granules,
+`GPL=3`, where the DOS used 6, and lost the end of four system files. Among
+candidates still tied, fewer granules per lump sort first, which rejects
+counts that are too large: `Dungeon Escape` (MultiDOS, 2 per track) read as
+4 per two-track lump, with its directory at the same sector, and every file
+came from the wrong track; and `m2-lsdos-blank.dmk` now reads as 3 granules
+of 10 sectors, not 6 of 5.
 
 ## Identifying the DOS
 
@@ -926,7 +948,7 @@ For guessing a layout and directory location, strongest first:
    found on the second), `Manufacturing and Inventory Control` (`GPL=8`, as its
    PDRIVE table says, every file now clean), `willus/ND80BIG.dmk` (`GPL=4`, as
    its PDRIVE table says) and `willus/rapds13.dmk` (31 clean files instead of
-   24). The sixth, `DS023.DMK`, changes reading without getting better or
+   24; seven of the 31 were later dropped as leftover entries, see the HIT). The sixth, `DS023.DMK`, changes reading without getting better or
    worse; neither reading decodes its CMD files. (Since the decoder tries both
    allocation sides, `DS023` reads single-sided with the directory on cylinder
    20, where DIR/SYS says it is. Four of its CMD files then start with their
@@ -1192,3 +1214,12 @@ SYS0 banner, the boot track and the GAT.
 - Mixed-density disks (8 of them, all single-sided) have a single-density
   cylinder 0 and double-density elsewhere: the Model I doubler convention.
 - Five DMK files set flag bit 6; none set bit 7.
+- `ira/bad-crc/`: disks where our files' CRCs differed from TRSREAD's and
+  VDISK's. Six were our bugs (above, and the HIT). In two the other tools are
+  wrong. `AIDS Plus-II` is a double-sided DOSPLUS allocation (6 granules per
+  cylinder in the GAT) imaged single-sided, so every granule on side 1 is
+  missing; VDISK substitutes the next cylinder's side 0, which holds other
+  files, and TRSREAD is inconsistent. On the two `High Resolution` disks,
+  SYS13/SYS links to an extended entry (DEC 0x67) that is all zeros though the
+  HIT still holds SYS13's hash there; both tools read the zeros as an extent
+  (lump 0, granule 0) and append two sectors of the boot track.

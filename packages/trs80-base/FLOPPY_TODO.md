@@ -36,11 +36,10 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **Directory size is tried, not read.** The 2.3-family generator tries a
       side-0 directory on double-sided disks (DOSPLUS) and a whole cylinder
       (LDOS); the NEWDOS/80 generator tries every size from 2 granules to the lump.
-      Ties go to the smaller one, which on Model II's 30-sector tracks lets
-      six 5-sector NEWDOS/80 granules beat three 10-sector ones
-      (`m2-lsdos-blank.dmk`, which then shows a 15-sector DIR/SYS). Reading the
-      size would be firmer: DIR/SYS's own extent where there is one, or NEWDOS/80's
-      HIT byte 0x1F (extra entry sectors beyond 8).
+      Ties go to the smaller one, once fewer granules per lump haven't decided
+      (that rule fixed `m2-lsdos-blank.dmk`, which used to show a 15-sector
+      DIR/SYS). Reading the size would be firmer: DIR/SYS's own extent where
+      there is one, or NEWDOS/80's HIT byte 0x1F (extra entry sectors beyond 8).
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
       on its pseudo-density disks; several non-NEWDOS/80 disks (`BUSINESS`, `COMREF`,

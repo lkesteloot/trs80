@@ -904,7 +904,15 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             return this.allocationSides - other.allocationSides;
         }
 
-        // Same for the directory: if the rest of its lump adds nothing, the directory doesn't
+        // A GAT made for few granules per lump also passes the strict check for more, because the
+        // DOS sets every bit past its last granule, and the hashes and directory sectors are the
+        // same when the directory starts at the same sector. But then the extra granules would be
+        // allocated in every lump without any file using them. Fewer granules per lump sort first.
+        if (this.granulesPerLump !== other.granulesPerLump) {
+            return this.granulesPerLump - other.granulesPerLump;
+        }
+
+        // As with sides, for the directory: if the rest of its lump adds nothing, the directory doesn't
         // extend there (DOSPLUS keeps it on side 0 of the directory cylinder, and a NEWDOS/80
         // directory can be smaller than its lump). A directory that doesn't fill its lump
         // sorts first. Among sizes that don't, the generators' order (smallest first) decides.
@@ -989,6 +997,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         const computedHash = hashForFilename(dirEntry.rawFilename);
                         const index = this.dirEntryToHitNumber(sectorIndex, i);
                         const hitHash = hitInfo.hit[index];
+                        // An entry with an empty HIT slot is a leftover the DOS can't reach, not a
+                        // file, so it's no evidence either way, and its extents can be anything.
+                        if (hitHash === 0) {
+                            continue;
+                        }
                         // console.log(`Comparing hits at ${side}:${sectorIndex}:${i} = ${index}: ${computedHash} vs. ${hitHash} ${dirEntry.rawFilename}`);
                         if (computedHash === hitHash || isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
                             hashHits += 1;
@@ -1018,8 +1031,19 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             return { score: -1, reason: "Didn't find required system files" };
         }
 
-        const score = hashHits - hashMisses - badExtents;
-        const reason = `${hashHits} hash hits, ${hashMisses} hash misses, ${badExtents} bad extents`;
+        // Files whose extents hold fewer sectors than their size needs. Reading a disk with granules
+        // that are too small (5 sectors where the DOS used 6) shortens every file that ends in the
+        // last sector of its last granule, while the directory and hashes stay just as valid.
+        let shortFiles = 0;
+        for (const dirEntry of this.getDirEntries(true)) {
+            const sectorsInFile = Math.ceil(dirEntry.getSize() / BYTES_PER_SECTOR);
+            if (this.getExtentSectorCount(dirEntry) < sectorsInFile) {
+                shortFiles += 1;
+            }
+        }
+
+        const score = hashHits - hashMisses - badExtents - shortFiles;
+        const reason = `${hashHits} hash hits, ${hashMisses} hash misses, ${badExtents} bad extents, ${shortFiles} short files`;
 
         return { score, reason };
     }
@@ -1172,12 +1196,17 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Read all active directory entries in the directory.
+     * Read all active directory entries in the directory. An entry whose HIT slot is empty isn't
+     * active even if its in-use bit is set: the DOS finds files through the HIT, so it can't reach
+     * the entry, which is left over from an earlier directory. Disks made by copying a directory
+     * sector have these, often with the same names as live files.
      */
     public getDirEntries(includeSystemFiles: boolean): TrsdosDirEntry[] {
         // Map from position of directory entry to its actual entry. The key is the asKey() result
         // of DirEntryPosition.
         const dirEntries = new Map<string, TrsdosDirEntry>();
+        // Without a readable HIT, assume it lists every entry.
+        const hitInfo = this.getHitInfo();
 
         // Decode directory entries.
         for (const { sectorIndex, dirPosition } of this.getDirSectors()) {
@@ -1190,8 +1219,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     if (typeof dirEntry === "string") {
                         // TODO what to do with this error? Abort this method?
                     } else if (dirEntry !== undefined) {
-                        // Don't record deleted entries.
-                        dirEntries.set(new DirEntryPosition(sectorIndex, i).key(), dirEntry);
+                        // Don't record deleted entries, or ones the HIT doesn't list.
+                        const unreachable = typeof hitInfo !== "string" &&
+                            hitInfo.hit[this.dirEntryToHitNumber(sectorIndex, i)] === 0;
+                        if (!unreachable) {
+                            dirEntries.set(new DirEntryPosition(sectorIndex, i).key(), dirEntry);
+                        }
                     }
                 }
             }
@@ -1407,6 +1440,33 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
+     * Generate the extents of a file, following its chain of extended directory entries.
+     */
+    private *getFileExtents(firstDirEntry: TrsdosDirEntry): Generator<TrsdosExtent> {
+        // Corrupt directories can have entries that point to each other, so don't revisit any.
+        const visitedDirEntries = new Set<TrsdosDirEntry>();
+        let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
+        while (dirEntry !== undefined && !visitedDirEntries.has(dirEntry)) {
+            visitedDirEntries.add(dirEntry);
+            yield* dirEntry.extents;
+
+            // Follow the linked list of directory entries.
+            dirEntry = dirEntry.nextDirEntry;
+        }
+    }
+
+    /**
+     * The number of sectors that a file's extents hold, which may be more or fewer than its size needs.
+     */
+    private getExtentSectorCount(firstDirEntry: TrsdosDirEntry): number {
+        let sectorCount = 0;
+        for (const extent of this.getFileExtents(firstDirEntry)) {
+            sectorCount += extent.granuleCount * this.sectorsPerGranule;
+        }
+        return sectorCount;
+    }
+
+    /**
      * Get the position of all the sectors of the file.
      */
     public getFileSectorPositions(firstDirEntry: TrsdosDirEntry): SectorPosition[] {
@@ -1416,21 +1476,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // TODO aren't sector sizes not fixed?
         const sectorsInFile = Math.ceil(firstDirEntry.getSize() / BYTES_PER_SECTOR);
 
-        // Loop through all the directory entries for this file.
-        // Corrupt directories can have entries that point to each other, so don't revisit any.
-        const visitedDirEntries = new Set<TrsdosDirEntry>();
-        let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
-        while (dirEntry !== undefined && !visitedDirEntries.has(dirEntry)) {
-            visitedDirEntries.add(dirEntry);
-            for (const extent of dirEntry.extents) {
-                const sectorCount = extent.granuleCount * this.sectorsPerGranule;
-                for (let i = 0; i < sectorCount && sectorPositions.length < sectorsInFile; i++) {
-                    sectorPositions.push(this.logicalToPhysical(extent.cylinderNumber, extent.granuleOffset, i));
-                }
+        for (const extent of this.getFileExtents(firstDirEntry)) {
+            const sectorCount = extent.granuleCount * this.sectorsPerGranule;
+            for (let i = 0; i < sectorCount && sectorPositions.length < sectorsInFile; i++) {
+                sectorPositions.push(this.logicalToPhysical(extent.cylinderNumber, extent.granuleOffset, i));
             }
-
-            // Follow the linked list of directory entries.
-            dirEntry = dirEntry.nextDirEntry;
         }
 
         // BOOT/SYS claims whole granules of the boot track, but on disks whose boot track is formatted
