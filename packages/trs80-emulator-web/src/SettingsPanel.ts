@@ -189,10 +189,23 @@ interface Option {
 }
 
 /**
+ * Optional features of the app hosting the emulator. Settings for a feature are
+ * only shown if the app supports it.
+ */
+export interface SettingsPanelFeatures {
+    // Whether the app can show a picture of the computer around the screen.
+    bezel?: boolean;
+}
+
+/**
  * A block of options that are mutually exclusive, like all the models.
  */
 interface OptionBlock<T> {
     title: string;
+    /**
+     * Only show this block if the app supports this feature.
+     */
+    feature?: keyof SettingsPanelFeatures;
     /**
      * Whether the option should be checked, based on this config.
      */
@@ -365,6 +378,22 @@ const VIEW_OPTION_BLOCKS: OptionBlock<any>[] = [
             },
         ]
     },
+    {
+        title: "Bezel",
+        feature: "bezel",
+        isChecked: (bezel: boolean, config: Config) => bezel === config.bezel,
+        updateConfig: (bezel: boolean, config: Config) => config.edit().withBezel(bezel).build(),
+        options: [
+            {
+                label: "Hide",
+                value: false,
+            },
+            {
+                label: "Show",
+                value: true,
+            },
+        ]
+    },
 ];
 const PRINTER_OPTION_BLOCKS: OptionBlock<any>[] = [
     {
@@ -465,7 +494,15 @@ export class SettingsPanel {
     private readonly displayedOptions: DisplayedOption<any>[] = [];
     private readonly acceptButton: HTMLElement;
 
-    constructor(screenNode: HTMLElement, configurable: Configurable, panelType: PanelType) {
+    /**
+     * @param screenNode the node to cover with the panel.
+     * @param configurable what to configure.
+     * @param panelType which settings to show.
+     * @param features which optional features the app supports.
+     */
+    constructor(screenNode: HTMLElement, configurable: Configurable, panelType: PanelType,
+                features: SettingsPanelFeatures = {}) {
+
         this.panelType = panelType;
         this.configurable = configurable;
 
@@ -482,6 +519,10 @@ export class SettingsPanel {
         this.panelNode.appendChild(div);
 
         for (const block of optionBlocksForPanelType(panelType)) {
+            if (block.feature !== undefined && features[block.feature] !== true) {
+                continue;
+            }
+
             const name = gCssPrefix + "-" + gRadioButtonCounter++;
 
             const blockDiv = document.createElement("div");

@@ -210,9 +210,9 @@ precision highp usampler2D;
 
 uniform sampler2D u_inputTexture;
 uniform sampler2D u_colorMapTexture;
-uniform float u_padding; // TRS-80 CRT coordinates.
+uniform vec2 u_padding; // TRS-80 CRT coordinates.
 uniform float u_scale; // CRT to device.
-uniform float u_radius; // In device pixels.
+uniform float u_radius; // In device pixels, zero for square corners.
 uniform vec2 u_outputSize;
 in vec2 v_texcoord; // Device coordinates.
 out vec4 outColor;
@@ -237,8 +237,10 @@ void main() {
     outColor = texture(u_colorMapTexture, vec2(c, 0.5));
 
     // Round corners.
-    float dist = length(max(abs(v_texcoord - u_outputSize/2.0) - (u_outputSize/2.0 - u_radius), 0.0));
-    outColor *= smoothstep(1.0, 0.0, dist - u_radius);
+    if (u_radius > 0.0) {
+        float dist = length(max(abs(v_texcoord - u_outputSize/2.0) - (u_outputSize/2.0 - u_radius), 0.0));
+        outColor *= smoothstep(1.0, 0.0, dist - u_radius);
+    }
 }
 `;
 
@@ -253,7 +255,7 @@ precision highp usampler2D;
 
 uniform sampler2D u_inputTexture;
 uniform float u_time; // Seconds.
-uniform float u_padding;
+uniform vec2 u_padding;
 uniform float u_scale;
 uniform float u_crtCurvature; // 0-
 uniform float u_scanlines; // 0-1
@@ -365,6 +367,7 @@ uniform float u_phosphor;
 uniform float u_vignette;
 uniform float u_crtCurvature;
 uniform float u_reflection;
+uniform float u_bezel; // Whether to draw our own bezel (0 or 1).
 in vec2 v_texcoord;
 out vec4 outColor;
 const float RADIUS = 50.0;
@@ -475,14 +478,16 @@ void main() {
     }
 
     // Anti-alias the bezel outline.
-    vec2 size = vec2(u_inputTextureSize);
-    float a = 0.0;
-    for (int dx = -1; dx <= 1; dx++) {
-        for (int dy = -1; dy <= 1; dy++) {
-            a += bezel(curve(zoomedUv + vec2(dx, dy)/3.0, size, u_crtCurvature*1.5), size);
+    if (u_bezel > 0.0) {
+        vec2 size = vec2(u_inputTextureSize);
+        float a = 0.0;
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                a += bezel(curve(zoomedUv + vec2(dx, dy)/3.0, size, u_crtCurvature*1.5), size);
+            }
         }
+        outColor *= a/9.0;
     }
-    outColor *= a/9.0;
 
     // To see the color map:
     // outColor = texture(u_colorMapTexture, vec2(uv.x, 0.5));
@@ -912,6 +917,17 @@ function overlayOptionsEqual(a: FullOverlayOptions, b: FullOverlayOptions): bool
         a.selectionAntsOffset === b.selectionAntsOffset;
 }
 
+/**
+ * A fixed size for the screen, in CSS pixels, for when something else (like a
+ * picture of the computer) provides its edge. The text area is centered in it,
+ * the rest is filled with the background color, and the screen doesn't draw its
+ * own rounded corners or bezel.
+ */
+export interface ScreenFrame {
+    width: number;
+    height: number;
+}
+
 const GRID_COLOR = "rgba(160, 160, 255, 0.5)";
 const GRID_HIGHLIGHT_COLOR = "rgba(255, 255, 160, 0.5)";
 
@@ -927,6 +943,11 @@ class ConfiguredCanvas {
     // In CSS pixels:
     public readonly width: number;
     public readonly height: number;
+    // Padding around the text area, in CSS pixels and in TRS-80 CRT pixels.
+    public readonly cssPaddingX: number;
+    public readonly cssPaddingY: number;
+    private readonly crtPaddingX: number;
+    private readonly crtPaddingY: number;
     public readonly fontTexture: SizedTexture;
     public readonly memoryTexture: SizedTexture;
     public readonly cameraTexture: SizedTexture;
@@ -955,6 +976,7 @@ class ConfiguredCanvas {
 
     public constructor(public readonly config: Config,
                        private readonly crtToCss: number,
+                       frame: ScreenFrame | undefined,
                        private readonly devicePixelRatio: number,
                        private readonly memory: Uint8Array,
                        expandedCharacters: boolean,
@@ -964,14 +986,28 @@ class ConfiguredCanvas {
         // Make it block so we don't have any weird text margins on the bottom.
         this.canvas.style.display = "block";
         // In CSS pixels:
-        const cssPixelsPadding = this.getCssPixelsPadding();
-        this.width = SCREEN_CRT_PIXEL_WIDTH * this.crtToCss + 2 * cssPixelsPadding;
-        this.height = SCREEN_CRT_PIXEL_HEIGHT * this.crtToCss + 2 * cssPixelsPadding;
+        if (frame === undefined) {
+            const crtPadding = this.config.displayType === DisplayType.SIMPLE ? 10 : 30;
+            const cssPadding = Math.round(crtPadding*this.crtToCss);
+            this.crtPaddingX = crtPadding;
+            this.crtPaddingY = crtPadding;
+            this.cssPaddingX = cssPadding;
+            this.cssPaddingY = cssPadding;
+            this.width = SCREEN_CRT_PIXEL_WIDTH * this.crtToCss + 2 * cssPadding;
+            this.height = SCREEN_CRT_PIXEL_HEIGHT * this.crtToCss + 2 * cssPadding;
+        } else {
+            this.width = frame.width;
+            this.height = frame.height;
+            this.cssPaddingX = (frame.width - SCREEN_CRT_PIXEL_WIDTH * this.crtToCss)/2;
+            this.cssPaddingY = (frame.height - SCREEN_CRT_PIXEL_HEIGHT * this.crtToCss)/2;
+            this.crtPaddingX = this.cssPaddingX/this.crtToCss;
+            this.crtPaddingY = this.cssPaddingY/this.crtToCss;
+        }
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
         // In device pixels:
-        this.canvas.width = this.width * devicePixelRatio;
-        this.canvas.height = this.height * devicePixelRatio;
+        this.canvas.width = Math.round(this.width * devicePixelRatio);
+        this.canvas.height = Math.round(this.height * devicePixelRatio);
 
         if (this.config.displayType === DisplayType.AUTHENTIC && this.config.reflection) {
             // Re-use or make a video element.
@@ -1078,7 +1114,7 @@ class ConfiguredCanvas {
 
         this.time = new NamedVariable("u_time", [0], true);
         this.expandedVariable = new NamedVariable("u_expanded", [expandedCharacters ? 1 : 0]);
-        this.paddingVariable = new NamedVariable("u_padding", [this.getCrtPixelsPadding()]);
+        this.paddingVariable = new NamedVariable("u_padding", [this.crtPaddingX, this.crtPaddingY]);
         this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
         this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
         this.scanlineBloom = new NamedVariable("u_scanlineBloom", [DEFAULT_SCANLINE_BLOOM]);
@@ -1110,7 +1146,7 @@ class ConfiguredCanvas {
                     this.colorMapNamedTexture,
                 ], [
                     new NamedVariable("u_scale", [crtToDevice]),
-                    new NamedVariable("u_radius", [crtToDevice * BORDER_RADIUS]),
+                    new NamedVariable("u_radius", [frame === undefined ? crtToDevice * BORDER_RADIUS : 0]),
                     this.paddingVariable,
                 ], {width: this.canvas.width, height: this.canvas.height}),
             ];
@@ -1205,6 +1241,7 @@ class ConfiguredCanvas {
                     this.vignette,
                     this.reflection,
                     this.crtCurvature,
+                    new NamedVariable("u_bezel", [frame === undefined ? 1 : 0]),
                 ], {width: this.canvas.width, height: this.canvas.height}),
             ];
         }
@@ -1280,22 +1317,7 @@ class ConfiguredCanvas {
     }
 
     public getScreenSize(): ScreenSize {
-        return new ScreenSize(this.getWidth(), this.getHeight(), this.getCssPixelsPadding());
-    }
-
-    /**
-     * Return the padding on all sides of the character grid. The unit is
-     * TRS-80 CRT pixels.
-     */
-    public getCrtPixelsPadding(): number {
-        return this.config.displayType === DisplayType.SIMPLE ? 10 : 30;
-    }
-
-    /**
-     * Return the padding on all sides of the character grid. The unit is CSS pixels.
-     */
-    public getCssPixelsPadding(): number {
-        return Math.round(this.getCrtPixelsPadding()*this.crtToCss);
+        return new ScreenSize(this.getWidth(), this.getHeight(), this.cssPaddingX, this.cssPaddingY);
     }
 
     /**
@@ -1425,11 +1447,10 @@ class ConfiguredCanvas {
         canvas.height = selection.height*heightScale;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        const cssPixelsPadding = this.getCssPixelsPadding();
         ctx.drawImage(this.canvas,
             // Source:
-            (selection.x1*widthScale + cssPixelsPadding)*this.devicePixelRatio,
-            (selection.y1*heightScale + cssPixelsPadding)*this.devicePixelRatio,
+            (selection.x1*widthScale + this.cssPaddingX)*this.devicePixelRatio,
+            (selection.y1*heightScale + this.cssPaddingY)*this.devicePixelRatio,
             (selection.width*widthScale)*this.devicePixelRatio,
             (selection.height*heightScale)*this.devicePixelRatio,
             // Destination:
@@ -1492,6 +1513,7 @@ const DEFAULT_CANVAS_SCREEN_OPTIONS = {
  */
 export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider, Configurable {
     public scale: number;
+    private frame: ScreenFrame | undefined = undefined;
     private visible: boolean;
     private readonly devicePixelRatio: number;
     private readonly node: HTMLElement;
@@ -1540,7 +1562,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         this.node.style.maxWidth = "max-content";
 
         if (this.visible) {
-            this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
+            this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.frame, this.devicePixelRatio,
                 this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
             this.node.append(this.configuredCanvas.canvas);
             this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
@@ -1592,10 +1614,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     }
 
     /**
-     * Update the scale of the display. See the parameter to the constructor.
+     * Update the scale of the display.
+     *
+     * @param scale the size of the text area, as with the constructor.
+     * @param frame if specified, the screen is exactly this size, which must fit the text area.
      */
-    public setScale(scale: number): void {
+    public setScale(scale: number, frame?: ScreenFrame | undefined): void {
         this.scale = scale;
+        this.frame = frame;
         this.updateFromConfig(true);
     }
 
@@ -1654,17 +1680,18 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 overlayCanvas.style.position = "absolute";
                 overlayCanvas.style.top = "0";
                 overlayCanvas.style.left = "0";
-                const validOverlayCanvas = overlayCanvas;
-                this.listenForScreenSize(screenSize => {
-                    validOverlayCanvas.style.width = `${screenSize.width}px`;
-                    validOverlayCanvas.style.height = `${screenSize.height}px`;
-                    validOverlayCanvas.width = configuredCanvas.canvas.width;
-                    validOverlayCanvas.height = configuredCanvas.canvas.height;
-                });
                 overlayCanvas.style.pointerEvents = "none";
                 this.node.append(overlayCanvas);
 
                 this.overlayCanvas = overlayCanvas;
+            }
+
+            // Match the screen canvas. Do this before drawing, since resizing clears the canvas.
+            overlayCanvas.style.width = configuredCanvas.canvas.style.width;
+            overlayCanvas.style.height = configuredCanvas.canvas.style.height;
+            if (overlayCanvas.width !== width || overlayCanvas.height !== height) {
+                overlayCanvas.width = width;
+                overlayCanvas.height = height;
             }
 
             // Whether to highlight a grid line.
@@ -1672,12 +1699,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 return showHighlight && (highlightValue === value || highlightValue + 1 === value);
             }
 
-            // Clear the overlay.
+            // Clear the overlay. We draw in device pixels.
             const ctx = overlayCanvas.getContext("2d")!;
             ctx.save();
             ctx.clearRect(0, 0, width, height);
-            const cssPixelsPadding = configuredCanvas.getCssPixelsPadding();
-            ctx.translate(cssPixelsPadding, cssPixelsPadding);
 
             // Draw columns.
             for (let x = 0; x <= TRS80_PIXEL_WIDTH; x++) {
@@ -1790,7 +1815,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     }
 
     /**
-     * Convert rectangular XY position to curved (by CRT curvature) position, both in CSS pixels.
+     * Convert rectangular XY position (CSS pixels, relative to the text area) to curved (by CRT
+     * curvature) position (device pixels, relative to the canvas).
      */
     private straightPosToCurvedPos(x: number, y: number): {x: number, y: number} {
         if (this.configuredCanvas === undefined) {
@@ -1809,7 +1835,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             this.straightPosToCurvedPosMapCurvature = curvature;
             let prevStraightR = 0;
             let i = 0;
-            for (let r = 0; r < 1000; r++) { // TODO don't hard code 1000, maybe detect that it's big enough?
+            // A straight radius is at least its curved one, so going to the corner of the
+            // text area covers every straight radius in it.
+            const maxR = Math.ceil(Math.hypot(width, height)/2) + 2;
+            for (let r = 0; r < maxR; r++) {
                 const r2 = 4*r*r/(width*width + height*height);
                 const r4 = r2*r2;
                 const mult = 1 + curvature*r2 + curvature*r4;
@@ -1843,9 +1872,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         const rectRFloor = Math.floor(rectR);
         const rectRFract = rectR - rectRFloor;
         const r = this.straightPosToCurvedPosMap[rectRFloor]*(1 - rectRFract) + this.straightPosToCurvedPosMap[rectRFloor + 1]*rectRFract;
-        const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding();
-        x = x*r/rectR + width/2 + cssPixelsPadding;
-        y = y*r/rectR + height/2 + cssPixelsPadding;
+        const ratio = rectR === 0 ? 1 : r/rectR;
+        x = x*ratio + width/2 + this.configuredCanvas.cssPaddingX*devicePixelRatio;
+        y = y*ratio + height/2 + this.configuredCanvas.cssPaddingY*devicePixelRatio;
         return {x, y};
     }
 
@@ -1897,10 +1926,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             return;
         }
         // Screen pixel, relative to upper-left.
-        const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding();
         const {x, y} = this.curvedPosToStraightPos(
-            event.offsetX - cssPixelsPadding,
-            event.offsetY - cssPixelsPadding);
+            event.offsetX - this.configuredCanvas.cssPaddingX,
+            event.offsetY - this.configuredCanvas.cssPaddingY);
 
         // Convert to TRS-80 pixels.
         const pixelX = Math.min(TRS80_PIXEL_WIDTH - 1, Math.max(0, Math.floor(x / this.scale / GRAPHIC_TO_CRT_PIXEL_WIDTH)));
@@ -2051,7 +2079,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
 
                 // Make a new configured canvas.
                 const oldCanvas = this.configuredCanvas?.canvas;
-                this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
+                // Free the old WebGL context now rather than when it's collected, since
+                // browsers limit how many can be alive at once.
+                this.configuredCanvas?.getContext().getExtension("WEBGL_lose_context")?.loseContext();
+                this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.frame, this.devicePixelRatio,
                     this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
                 if (oldCanvas !== undefined) {
                     oldCanvas.replaceWith(this.configuredCanvas.canvas);
@@ -2124,7 +2155,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * The border radius of the screen, in CSS pixels ("px" units).
      */
     public getBorderRadius(): number {
-        return BORDER_RADIUS*this.scale;
+        return this.frame === undefined ? BORDER_RADIUS*this.scale : 0;
     }
 
     getNode(): HTMLElement {

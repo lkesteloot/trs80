@@ -7,14 +7,17 @@ export class ScreenSize {
         // Width and height include padding.
         public readonly width: number,
         public readonly height: number,
-        // Outsize the text, on all sides.
-        public readonly padding: number) {
+        // Outside the text, on the left and right sides.
+        public readonly paddingX: number,
+        // Outside the text, on the top and bottom sides.
+        public readonly paddingY: number) {
     }
 
     public equals(other: ScreenSize): boolean {
         return this.width === other.width
             && this.height === other.height
-            && this.padding === other.padding;
+            && this.paddingX === other.paddingX
+            && this.paddingY === other.paddingY;
     }
 }
 

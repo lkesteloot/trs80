@@ -86,10 +86,75 @@ input::placeholder {
 
 .main-computer-screen {
     flex-grow: 1;
+    /* Let the bezel size itself to us, rather than us growing to fit it. */
+    min-height: 0;
+    overflow: hidden;
 
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+/* Photo of the computer around the screen. See Bezel.ts. */
+.bezel {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.bezel-photo {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    transition: filter .25s ease-in-out;
+}
+
+.bezel-shown .bezel-photo {
+    display: block;
+}
+
+.dark-mode .bezel-photo {
+    filter: brightness(0.75);
+}
+
+.bezel-shown > .bezel-screen {
+    position: absolute;
+}
+
+/* Clip the screen to the photo's hole: everywhere the photo is transparent. The custom
+   properties line the photo up with the screen. */
+.bezel-screen canvas,
+.bezel-screen textarea {
+    mask-image: linear-gradient(black, black), var(--bezel-mask-image);
+    mask-size: 100% 100%, var(--bezel-mask-size);
+    mask-position: 0 0, var(--bezel-mask-position);
+    mask-repeat: no-repeat;
+    mask-composite: exclude;
+}
+
+.bezel-led {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Covers an LED that's lit in the photo. */
+.bezel-led-off {
+    background: radial-gradient(circle at 40% 35%, #7a2a2a 0%, #3a0505 50%, #1a0000 100%);
+}
+
+.bezel-led-on {
+    background: radial-gradient(circle at 40% 35%, #ffe8e8 0%, #ff3030 30%, #b00000 100%);
+    box-shadow: 0 0 0.5em 0.15em rgba(255, 30, 30, 0.7);
+    opacity: 0;
+    transition: opacity .20s ease-in-out;
+}
+
+.bezel-led-on.bezel-led-lit {
+    opacity: 1;
 }
 
 i.material-icons-round {

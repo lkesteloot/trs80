@@ -7,6 +7,9 @@ files and apps. [Try it in your browser](https://www.my-trs-80.com/).
 
 Icons from [Material Design Icons](https://google.github.io/material-design-icons/).
 
+Photos of the computers (in `public/bezels`) from [GPC](https://github.com/FastDogJo/GPC),
+copyright &copy; Joe Costolnick, MIT license. They were converted from PNG to WebP.
+
 # License
 
 Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
