@@ -2,6 +2,7 @@ import { withCommas } from "teamten-ts-utils";
 import {expandFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
 import {colorError, colorFilename, colorSize} from "./lscolors.js";
+import {ToolError} from "./utils.js";
 
 /**
  * Handle the "dir" command.
@@ -17,7 +18,16 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean): Prom
             }
             console.log(inFilename + ":");
         }
-        dirFile(inFilename, showSystemFiles);
+        try {
+            dirFile(inFilename, showSystemFiles);
+        } catch (e) {
+            // Report the error and go on to the next file, like ls does.
+            if (!(e instanceof ToolError)) {
+                throw e;
+            }
+            console.log(colorError(e.message));
+            process.exitCode = 1;
+        }
         firstFile = false;
         await pagerYield();
     }

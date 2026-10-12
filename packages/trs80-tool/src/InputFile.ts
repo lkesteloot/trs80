@@ -163,9 +163,9 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
         if (isFloppy(trs80File)) {
             const trsdos = decodeTrsdos(trs80File);
             if (trsdos === undefined) {
-                // Should probably fail here. Having the floppy disk itself is probably not
-                // what the user wants.
-                inFiles.push(new InputFile(base, buffer, trs80File));
+                // Don't return the floppy image itself, the caller wants what's on it.
+                throw new ToolError("Can't read the files on \"" + inFilename +
+                    "\": unrecognized operating system");
             } else {
                 // Expand floppy.
                 for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
