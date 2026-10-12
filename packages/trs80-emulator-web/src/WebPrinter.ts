@@ -69,8 +69,8 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         screen.listenForScreenSize(screenSize => {
             this.node.style.width = screenSize.width + "px";
             this.node.style.height = screenSize.height + "px";
+            this.node.style.borderRadius = screen.getBorderRadius() + "px";
         });
-        this.node.style.borderRadius = screen.getBorderRadius() + "px";
         this.node.style.backgroundColor = "#ddddd8";
         this.node.style.boxSizing = "border-box";
         this.node.style.display = "grid"; // For centering the children.

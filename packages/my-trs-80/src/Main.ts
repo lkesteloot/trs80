@@ -1,4 +1,4 @@
-import {RunningState, Trs80} from "trs80-emulator";
+import {Config, RunningState, Trs80} from "trs80-emulator";
 import {
     BasicEditor,
     CanvasScreen,
@@ -25,6 +25,7 @@ import {Context} from "./Context";
 import {Library} from "./Library";
 import {File, FileBuilder} from "./File";
 import {DialogBox} from "./DialogBox";
+import {Bezel} from "./Bezel.js";
 import {AuthUser} from "./User";
 import {Database} from "./Database";
 import {isRegisterSetField, toHexWord} from "z80-base";
@@ -168,7 +169,7 @@ export function main() {
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
 
-    const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY);
+    const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY, Config.makeDefault().edit().withBezel(true).build());
     const screen = new CanvasScreen(1.5);
     const keyboard = new WebKeyboard();
     const cassettePlayer = new AudioFileCassettePlayer();
@@ -188,7 +189,8 @@ export function main() {
 
     const flipCard = new FlipCard(screen);
     flipCard.setFront(screen);
-    screenDiv.append(flipCard.node);
+    const bezel = new Bezel(screenDiv, screen, flipCard, trs80);
+    screenDiv.append(bezel.node);
 
     const reboot = () => {
         trs80.reset();
@@ -196,7 +198,7 @@ export function main() {
     };
 
     const hardwareSettingsPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.HARDWARE);
-    const viewPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.VIEW);
+    const viewPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.VIEW, {bezel: true});
     const controlPanel = new ControlPanel(screen.getNode());
     controlPanel.addResetButton(reboot);
     controlPanel.addTapeRewindButton(() => {
@@ -213,7 +215,18 @@ export function main() {
         !webPrinter.isSettingsPanelOpen());
 
     const driveIndicators = new DriveIndicators(screen.getNode(), trs80.getMaxDrives());
-    trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
+    let activeDrive: number | undefined = undefined;
+    const updateDriveIndicators = () => {
+        // Prefer the LEDs on the drives in the bezel.
+        const shownByBezel = bezel.setActiveDrive(activeDrive);
+        driveIndicators.setActiveDrive(shownByBezel ? undefined : activeDrive);
+    };
+    trs80.onMotorOn.subscribe(drive => {
+        activeDrive = drive;
+        updateDriveIndicators();
+    });
+    // The bezel and model can change while a drive is on.
+    trs80.onConfig.subscribe(updateDriveIndicators);
 
     body.append(navbar);
     body.append(screenDiv);

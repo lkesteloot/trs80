@@ -11,12 +11,15 @@ export function saveTrs80Config(config: Config, configKey: string): void {
 
 /**
  * Load a TRS-80 config from local storage, or make a default one.
+ *
+ * @param configKey the local storage key.
+ * @param defaultConfig the config to use if nothing was saved, and for values that weren't saved.
  */
-export function loadTrs80Config(configKey: string) {
+export function loadTrs80Config(configKey: string, defaultConfig: Config = Config.makeDefault()): Config {
     const serializedConfig = window.localStorage.getItem(configKey);
     if (serializedConfig !== null) {
         try {
-            const newConfig = Config.deserialize(serializedConfig);
+            const newConfig = Config.deserialize(serializedConfig, defaultConfig);
             if (newConfig.isValid()) {
                 return newConfig;
             }
@@ -29,5 +32,5 @@ export function loadTrs80Config(configKey: string) {
         window.localStorage.removeItem(configKey);
     }
 
-    return Config.makeDefault();
+    return defaultConfig;
 }

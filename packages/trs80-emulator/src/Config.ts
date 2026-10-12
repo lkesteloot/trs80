@@ -172,6 +172,7 @@ export class Config {
     public readonly phosphor: Phosphor;
     public readonly reflection: boolean;
     public readonly grid: boolean;
+    public readonly bezel: boolean;
     public readonly customRom: string | undefined;
     public readonly romSize: number;
     public readonly printerModel: PrinterModel;
@@ -179,7 +180,7 @@ export class Config {
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
                 displayType: DisplayType, phosphor: Phosphor, reflection: boolean,
-                grid: boolean, customRom: string | undefined, printerModel: PrinterModel,
+                grid: boolean, bezel: boolean, customRom: string | undefined, printerModel: PrinterModel,
                 inkColor: InkColor) {
 
         this.modelType = modelType;
@@ -190,6 +191,7 @@ export class Config {
         this.phosphor = phosphor;
         this.reflection = reflection;
         this.grid = grid;
+        this.bezel = bezel;
         this.customRom = customRom;
         this.printerModel = printerModel;
         this.inkColor = inkColor;
@@ -217,6 +219,8 @@ export class Config {
             displayType: this.displayType,
             phosphor: this.phosphor,
             reflection: this.reflection,
+            grid: this.grid,
+            bezel: this.bezel,
             printerModel: this.printerModel,
             inkColor: this.inkColor,
         });
@@ -224,10 +228,13 @@ export class Config {
 
     /**
      * Create a Config from the serialized string created by {@link #serialize}.
+     *
+     * @param s the serialized string.
+     * @param defaultConfig where to get values that weren't serialized.
      */
-    public static deserialize(s: string): Config {
+    public static deserialize(s: string, defaultConfig: Config = Config.makeDefault()): Config {
         const v = JSON.parse(s);
-        const builder = this.makeDefault().edit();
+        const builder = defaultConfig.edit();
         if (v.modelType !== undefined) {
             builder.withModelType(v.modelType);
         }
@@ -249,6 +256,12 @@ export class Config {
         if (v.reflection !== undefined) {
             builder.withReflection(v.reflection);
         }
+        if (v.grid !== undefined) {
+            builder.withGrid(v.grid);
+        }
+        if (v.bezel !== undefined) {
+            builder.withBezel(v.bezel);
+        }
         if (v.printerModel !== undefined) {
             builder.withPrinterModel(v.printerModel);
         }
@@ -268,6 +281,7 @@ export class Config {
             RamSize.RAM_48_KB,
             DisplayType.SIMPLE,
             Phosphor.WHITE,
+            false,
             false,
             false,
             undefined,
@@ -326,6 +340,8 @@ export class Config {
             this.displayType === other.displayType &&
             this.phosphor === other.phosphor &&
             this.reflection === other.reflection &&
+            this.grid === other.grid &&
+            this.bezel === other.bezel &&
             this.customRom === other.customRom &&
             this.romSize === other.romSize &&
             this.printerModel === other.printerModel &&
@@ -370,6 +386,7 @@ export class ConfigBuilder {
     private phosphor: Phosphor;
     private reflection: boolean;
     private grid: boolean;
+    private bezel: boolean;
     private customRom: string | undefined;
     private printerModel: PrinterModel;
     private inkColor: InkColor;
@@ -383,6 +400,7 @@ export class ConfigBuilder {
         this.phosphor = config.phosphor;
         this.reflection = config.reflection;
         this.grid = config.grid;
+        this.bezel = config.bezel;
         this.customRom = config.customRom;
         this.printerModel = config.printerModel;
         this.inkColor = config.inkColor;
@@ -401,6 +419,7 @@ export class ConfigBuilder {
             this.phosphor,
             this.reflection,
             this.grid,
+            this.bezel,
             this.customRom,
             this.printerModel,
             this.inkColor);
@@ -443,6 +462,11 @@ export class ConfigBuilder {
 
     public withGrid(grid: boolean): this {
         this.grid = grid;
+        return this;
+    }
+
+    public withBezel(bezel: boolean): this {
+        this.bezel = bezel;
         return this;
     }
 

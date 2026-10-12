@@ -65,3 +65,7 @@ npm run clean
 
 Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
 
+The photos of the computers in [my-trs-80](packages/my-trs-80/public/bezels) are from
+[GPC](https://github.com/FastDogJo/GPC), copyright &copy; Joe Costolnick,
+[MIT license](https://github.com/FastDogJo/GPC/blob/main/LICENSE).
+

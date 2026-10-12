@@ -1,8 +1,9 @@
 export {CanvasScreen, ScreenMouseEvent, ScreenMousePosition, type ScreenMouseEventType, type OverlayOptions,
+    type ScreenFrame,
     Selection, FULL_SCREEN_SELECTION, EMPTY_SELECTION} from "./CanvasScreen.js";
 export {Trs80WebScreen} from "./Trs80WebScreen.js";
 export {ControlPanel} from "./ControlPanel.js";
-export {SettingsPanel, PanelType} from "./SettingsPanel.js";
+export {SettingsPanel, PanelType, type SettingsPanelFeatures} from "./SettingsPanel.js";
 export {WebProgressBar} from "./WebProgressBar.js";
 export {DriveIndicators} from "./DriveIndicators.js";
 export {BasicEditor} from "./BasicEditor.js";

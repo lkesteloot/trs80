@@ -50,7 +50,7 @@ const GRID_HEIGHT = SCREEN_HEIGHT*GLYPH_HEIGHT;
 
 // Margin around the character grid, in the same CRT pixels, so that text and graphics
 // don't sit flush against the edge. This is what trs80-emulator-web uses for its
-// default display type (getCrtPixelsPadding() for DisplayType.SIMPLE in CanvasScreen).
+// default display type (the padding for DisplayType.SIMPLE in CanvasScreen's ConfiguredCanvas).
 const SCREEN_PADDING = 10;
 
 const FRAME_WIDTH = GRID_WIDTH + 2*SCREEN_PADDING;
