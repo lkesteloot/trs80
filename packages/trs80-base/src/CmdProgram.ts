@@ -376,7 +376,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
     const annotations: ProgramAnnotation[] = [];
     const chunks: CmdChunk[] = [];
     let filename: string | undefined;
-    let entryPointAddress = 0;
+    let entryPointAddress: number | undefined;
     const b = new ByteReader(binary);
 
     // Read each chunk.
