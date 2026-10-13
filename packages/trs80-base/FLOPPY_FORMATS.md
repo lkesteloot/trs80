@@ -1041,7 +1041,7 @@ any skew finds them, and it has to come from the format table. A 128-byte
 sector holds only 4 entries, so a few files spread over several sectors and
 show the skew (see Lifeboat).
 
-**Montezuma Micro CP/M 2.2** (Model 4). mloewen's 12 disks are one of each
+**Montezuma Micro CP/M 2.2** (Model 4). mloewen's first 12 disks are one of each
 format the system offers, and each one's `PROBE.TXT` has the DPB. All 12 follow
 the same rules:
 
@@ -1079,6 +1079,31 @@ flagged double-sided (see "Image formats"). Ira's two DBTools disks
 list repeats its first blocks, as in `34,35,34`, and block 34 holds the end of
 the text, so the first 2K is gone. Whatever captured PROBE's output wrote it
 that way; the DPB at its end survives.
+
+mloewen's FORMAT13-16 are the formats of earlier Montezuma versions, all
+18 × 256, 40 tracks, 2K blocks, and 128 entries, with the same six utilities
+(byte-identical to the 12 above once read with the right layout) and the same
+damaged `PROBE.TXT`. Their reserved tracks hold only a boot sector that says
+there's no CP/M on the disk, so nothing on them names the version.
+
+| File | Version | Sides | OFF | DSM | Skew |
+|---|---|---|---|---|---|
+| FORMAT13 | 1.26 and 1.30 | 1 | 2 | 84 | 4 |
+| FORMAT14 | 1.26 and 1.30 | 2 | 2 | 174 | 4 |
+| FORMAT15 | 1.32 | 2 | 2 | 174 | 2 |
+| FORMAT16 | 1.42 and 1.44 | 2 | 4 | 170 | 2 |
+
+- FORMAT15 is exactly the Standard DS system format (FORMAT3).
+- FORMAT13 and 14 have the DPBs of FORMAT1 and 3, but skew 4 (physical order
+  1, 5, 9, 13, 17, 3, 7, ...). PROBE doesn't print the translation table, so
+  the skew was measured: only skew 4 reads the six utilities intact. With
+  skew 2 the directory takes in data sectors and is rejected.
+- FORMAT16 (342K) reserves 4 tracks, two cylinders. Read with one side and 2
+  reserved tracks, its directory looks the same but the files are garbage,
+  which is how it decoded before OFF 4 was a candidate.
+- The two skews can tie: on a disk whose directory reads cleanly both ways,
+  nothing in the directory tells them apart, and the table's order picks
+  skew 2.
 
 **Lifeboat CP/M 1.4** (Model I; telanoc's README adds "Small Systems
 Software"). telanoc's system disk (`m1_cpm14_ss_sd_35.hfe`) is single-sided,

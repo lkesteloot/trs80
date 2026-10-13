@@ -205,6 +205,10 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         disks; ask the Discord.
       - Lifeboat's parameters come from one system disk, not a DPB. Check
         other Lifeboat disks against the entry when any turn up.
+      - Montezuma 1.26 and 1.30 disks use skew 4 (mloewen's FORMAT13 and 14),
+        which ties with the later skew 2 when the directory reads cleanly
+        both ways; then we pick skew 2, and the files may be garbage. A
+        tiebreak would need to look at file contents.
       - Archive listings mention 288K and 352K Montezuma disks, which match
         none of the 12 formats in the table. They may be other BIOSes'
         formats that Montezuma could read.
