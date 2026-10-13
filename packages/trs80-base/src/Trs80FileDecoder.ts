@@ -160,7 +160,9 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
     }
 
     if (extension === ".DMK") {
-        return decodeDmkFloppyDisk(binary) ?? new RawBinaryFile(binary);
+        // Some JV3 images in circulation are named .DMK. The JV3 decoder rejects anything
+        // without a plausible sector directory, so it's safe as a fallback.
+        return decodeDmkFloppyDisk(binary) ?? decodeJv3FloppyDisk(binary) ?? new RawBinaryFile(binary);
     }
 
     if (extension === ".SCP") {

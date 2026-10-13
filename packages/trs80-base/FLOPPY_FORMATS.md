@@ -1217,6 +1217,16 @@ used (0=256, 1=128, 2=1024, 3=512) and free (0=512, 1=1024, 2=128, 3=256)
 entries. Keil's emulator supports up to 96 tracks, which is why a
 cylinder < 100 plausibility bound fits.
 
+**The JV3 decoder rejects non-JV3 files reliably**, because each of the 2,901
+headers must be free or name a plausible sector (cylinder < 100, sector < 40),
+and no two may name the same one. Run on 31,498 files of 8,704 bytes or more
+(every image in the regression suite, plus system binaries, libraries and
+fonts), it accepted only real JV3 images: the `.jv3` files, two sdltrs `.dsk`
+files, and eight in `ira/lk-341-set-1` (and their copies in `ira/bad-disks`)
+that are JV3 despite a `.dmk` name, such as `Pro-MC Library` and `TRSDOS v6.02
+... [Patched]`. So `decodeTrs80File()` tries JV3 when a `.dmk` file doesn't
+decode as DMK, as `.dsk` already did.
+
 **DMK** stores raw track bytes. The 16-byte header is write-protect, track
 count, little-endian track length, flags. Flag bit 4 is single-sided, bit 6 is
 single-density size, bit 7 is ignore-density. **Bits 6 or 7 mean single-density
