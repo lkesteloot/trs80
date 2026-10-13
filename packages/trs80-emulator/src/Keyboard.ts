@@ -9,7 +9,12 @@ const BANK_SIZE = 0x100;
 const BANK_COUNT = 4;
 export const TRS80_KEYBOARD_BEGIN = 0x3800;
 export const TRS80_KEYBOARD_END = TRS80_KEYBOARD_BEGIN + BANK_SIZE*BANK_COUNT;
-const KEY_DELAY_CLOCK_CYCLES = 50000;
+// How long to hold each queued key event before the next, counted from the first read
+// that can see it. See holdClockCycles() for why a press is held so long.
+const KEY_PRESS_HOLD_CLOCK_CYCLES = 100_000;
+const KEY_RELEASE_HOLD_CLOCK_CYCLES = 20_000;
+// How long a key event from simulateKeyboardText() waits for a read that can see it.
+const KEY_UNSEEN_LIMIT_CLOCK_CYCLES = 10_000_000;
 
 // Whether to force a Shift key, and how.
 enum ShiftState {
@@ -33,10 +38,14 @@ class KeyInfo {
 class KeyActivity {
     public keyInfo: KeyInfo;
     public isPressed: boolean;
+    // Whether to wait for the machine to read this key's row before moving on, however long
+    // that takes (up to KEY_UNSEEN_LIMIT_CLOCK_CYCLES).
+    public waitUntilSeen: boolean;
 
-    constructor(keyInfo: KeyInfo, isPressed: boolean) {
+    constructor(keyInfo: KeyInfo, isPressed: boolean, waitUntilSeen: boolean) {
         this.keyInfo = keyInfo;
         this.isPressed = isPressed;
+        this.waitUntilSeen = waitUntilSeen;
     }
 }
 
@@ -158,6 +167,8 @@ export class Keyboard {
     public keyQueue: KeyActivity[]  = [];
     public emulatorStarted = false;
     public keyProcessMinClock: number = 0;
+    // The last dequeued key event, until a read of its row has been able to see it.
+    private unseenActivity: KeyActivity | undefined = undefined;
     // 8 bytes, each a bitfield of keys currently pressed.
     private keys = new Uint8Array(8);
     private shiftForce = ShiftState.NEUTRAL;
@@ -185,12 +196,18 @@ export class Keyboard {
         addr = (addr - TRS80_KEYBOARD_BEGIN) % BANK_SIZE;
         let b = 0;
 
-        // Dequeue if necessary.
-        if (clock > this.keyProcessMinClock) {
-            const keyWasPressed = this.processKeyQueue();
-            if (keyWasPressed) {
-                this.keyProcessMinClock = clock + KEY_DELAY_CLOCK_CYCLES;
-            }
+        // Dequeue if necessary. Any read can dequeue, but the read that does may not look
+        // at the key's row: a DOS checking for Break reads only the row with Break in it.
+        // So the hold time doesn't start until a read could have seen the change.
+        const keyActivity = clock > this.keyProcessMinClock ? this.processKeyQueue() : undefined;
+        if (keyActivity !== undefined) {
+            this.unseenActivity = keyActivity;
+            this.keyProcessMinClock = clock + (keyActivity.waitUntilSeen ?
+                KEY_UNSEEN_LIMIT_CLOCK_CYCLES : Keyboard.holdClockCycles(keyActivity));
+        }
+        if (this.unseenActivity !== undefined && (addr & (1 << this.unseenActivity.keyInfo.byteIndex)) !== 0) {
+            this.keyProcessMinClock = clock + Keyboard.holdClockCycles(this.unseenActivity);
+            this.unseenActivity = undefined;
         }
 
         // OR together the various bytes.
@@ -223,8 +240,13 @@ export class Keyboard {
         return b;
     }
 
-    // Enqueue a key press or release.
-    public keyEvent(key: string, isPressed: boolean) {
+    /**
+     * Enqueue a key press or release. Each event is held for a while after a read of its
+     * keyboard row could have seen it, so that a program that debounces sees it settle. If no
+     * read looks at that row, the next event normally comes along anyway; with waitUntilSeen
+     * it waits much longer, so that typing isn't lost while the machine is busy elsewhere.
+     */
+    public keyEvent(key: string, isPressed: boolean, waitUntilSeen: boolean = false) {
         // Look up the key info.
         const keyInfo = keyMap.get(key);
         if (keyInfo === undefined) {
@@ -233,7 +255,7 @@ export class Keyboard {
             }
         } else {
             // Append key to queue.
-            this.keyQueue.push(new KeyActivity(keyInfo, isPressed));
+            this.keyQueue.push(new KeyActivity(keyInfo, isPressed, waitUntilSeen));
         }
     }
 
@@ -247,6 +269,10 @@ export class Keyboard {
      * but the DOS keyboard drivers don't, and TRSDOS 2.3 answers WHAT? to "dir". So on a Model I we
      * swap the case of ASCII letters here. {@link keyEvent()} and the key map are unchanged:
      * keys that come from a host keyboard are physical keys and are passed through as they are.
+     *
+     * Each key event waits until the machine reads the key's row, so keys typed while a
+     * program is busy (a DOS loading an overlay, say) are taken when it next scans the keyboard
+     * rather than lost.
      */
     public simulateKeyboardText(text: string): void {
         const swapCase = this.modelType === ModelType.MODEL1;
@@ -260,16 +286,25 @@ export class Keyboard {
                     ch = ch.toLowerCase();
                 }
             }
-            this.keyEvent(ch, true);
-            this.keyEvent(ch, false);
+            this.keyEvent(ch, true, true);
+            this.keyEvent(ch, false, true);
         }
     }
 
-    // Dequeue the next key and set its bit. Return whether a key was processed.
-    private processKeyQueue(): boolean {
+    /**
+     * How long to hold this key event, after a read could have seen it, before the next one.
+     * TRSDOS 2.8 on the Model I confirms a new key with two more reads, about 38,000 and
+     * 70,000 t-states after it first sees it, so a press must outlast that.
+     */
+    private static holdClockCycles(keyActivity: KeyActivity): number {
+        return keyActivity.isPressed ? KEY_PRESS_HOLD_CLOCK_CYCLES : KEY_RELEASE_HOLD_CLOCK_CYCLES;
+    }
+
+    // Dequeue the next key and set its bit. Return the key activity, or undefined if the queue was empty.
+    private processKeyQueue(): KeyActivity | undefined {
         const keyActivity = this.keyQueue.shift();
         if (keyActivity === undefined) {
-            return false;
+            return undefined;
         }
 
         this.shiftForce = keyActivity.keyInfo.shiftForce;
@@ -280,6 +315,6 @@ export class Keyboard {
             this.keys[keyActivity.keyInfo.byteIndex] &= ~bit;
         }
 
-        return true;
+        return keyActivity;
     }
 }

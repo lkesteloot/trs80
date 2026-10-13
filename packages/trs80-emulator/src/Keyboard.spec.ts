@@ -61,3 +61,30 @@ describe("simulateKeyboardText", () => {
         expect((keyboard.readKeyboard(SHIFT_ADDRESS, 1) & SHIFT_BIT) !== 0).to.equal(true);
     });
 });
+
+describe("key timing", () => {
+    // The "D" key is bit 4 of the first keyboard byte. Break is in the row at 0x3840.
+    const D_ADDRESS = TRS80_KEYBOARD_BEGIN + 0x01;
+    const D_BIT = 0x10;
+    const BREAK_ROW_ADDRESS = TRS80_KEYBOARD_BEGIN + 0x40;
+
+    it("holds typed keys until a read of their row sees them", () => {
+        const keyboard = new Keyboard();
+        keyboard.simulateKeyboardText("d");
+        // A Break check dequeues the press but can't see it.
+        keyboard.readKeyboard(BREAK_ROW_ADDRESS, 1);
+        // Much later the scanner sees it, and it's held from then on.
+        expect(keyboard.readKeyboard(D_ADDRESS, 1_000_000)).to.equal(D_BIT);
+        expect(keyboard.readKeyboard(D_ADDRESS, 1_090_000)).to.equal(D_BIT);
+        expect(keyboard.readKeyboard(D_ADDRESS, 1_110_000)).to.equal(0);
+        expect(keyboard.keyQueue.length).to.equal(0);
+    });
+    it("doesn't wait forever for host key events that nothing reads", () => {
+        const keyboard = new Keyboard();
+        keyboard.keyEvent("d", true);
+        keyboard.keyEvent("d", false);
+        keyboard.readKeyboard(BREAK_ROW_ADDRESS, 1);
+        // The press timed out unseen, so this read takes the release.
+        expect(keyboard.readKeyboard(D_ADDRESS, 200_000)).to.equal(0);
+    });
+});
