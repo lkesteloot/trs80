@@ -1,6 +1,6 @@
 {
     "name": "trs80-tool",
-    "version": "3.5.0",
+    "version": "3.4.1",
     "description": "Command-line tool for manipulating TRS-80 files",
     "repository": "https://github.com/lkesteloot/trs80.git",
     "type": "module",
