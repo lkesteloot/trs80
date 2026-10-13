@@ -112,10 +112,22 @@ beyond the list above:
   (`granuleCountBasis` 0, like 1.3): file sizes fit exactly that way.
 - Dates are 1.3's: the low nibble of byte 1 is the month, byte 2 is the year minus
   1900, and there is no day. Read the 2.3 way, every day would come out as 10.
-- File size uses the 2.3 rule: the last-sector byte is the size of the last sector,
-  which the sector count includes. `PRTVERF/CMD` on `Author I v1.00 ... [Disk 1 of
-  2]` has 37 sectors and EOF byte 0xCF, and its CMD transfer record ends exactly
-  at 36*256 + 0xCF = 9423 bytes.
+- File size uses the 1.3 rule: the EOF byte adds to the sector count. That's
+  how the DOS itself reads files. Booted in our emulator, 2.8.0's `LIST
+  FILER/V32` on `Auk's Computer Filing System` (count 1, EOF 98) shows two
+  records, the second all 0xE5; under the 2.3 rule there would be one. Its DIR
+  agrees: `telanoc/model1/M1_TD2.7DD_dir_pg1.gif` and `_pg2.gif` are photos of
+  2.7DD's DIR of the HFE beside them, showing `TEST2/BAS` (count 57, EOF 151) as
+  58 records and `PHONE/BLD` (count 0, EOF 22) as 1 record. But programs that
+  keep their own file buffers wrote the 2.3 way, so through the DOS their
+  files have a sector of junk at the end: every BASIC program on those two
+  disks (Disk BASIC came from 2.3), including ASCII-saved ones like
+  `FILER/V32`, which then no longer parse as BASIC; and `PRTVERF`, `STUDENT`,
+  `TEACH` and `CHAIN/CMD` on `Author I`, `SCOPY/CMD` on Auk's, and
+  `ST80III/CMD` on `TRSDOS v2.7DD`. Files written the DOS's way fit exactly:
+  `MARQ/CMD` on the HFE, `AUTHOR/CMD` on `Author I` (both cut short under the
+  2.3 rule), and `PHONE/BLD`, written by BUILD. We report what the DOS would
+  read.
 - Entries are 2.3's: 8 per sector, five extents of (cylinder, granule byte) pairs
   at bytes 22-29, 0xFF ending them, and bytes 30-31 the `FE nn` link to the next
   entry. There is no "(c) 1980 Tandy" filler, and no system files to count, so
@@ -126,10 +138,6 @@ beyond the list above:
 - The version banner is on cylinder 1, not on the single-density boot track:
   "TRSDOS version 2.7DD  Thu May 20, 1982", "TRSDOS version 2.7SD" or "TRSDOS
   version 2.8.0  Wed Dec 15, 1982". The decoder names the DOS from it.
-
-One disk that doesn't fit: `AUTHOR/CMD` on `Author I v1.00 ... [Disk 1 of 2]` is
-56 sectors with EOF byte 0xF4, which gives 14324 bytes, but its last CMD load
-block is cut short (24 of 260 bytes).
 
 ## Boot sector prefixes
 
