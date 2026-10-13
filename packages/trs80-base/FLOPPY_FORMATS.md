@@ -46,7 +46,8 @@ quoted documentation; guesses are labeled as such.
   parameter block are as in Digital Research's *CP/M 2.2 Alteration Guide* and
   the cpmtools package. Montezuma Micro's parameters come from `PROBE.TXT` on
   each of mloewen's disks, a dump that the PROBE utility made of the DPB.
-  Lifeboat's were measured on telanoc's system disk.
+  Lifeboat's were measured on telanoc's system disk. Holmes Engineering's come
+  from a `PROBE.TXT` that mloewen put next to the disk image.
 
 ## Which DOSes share a layout
 
@@ -1143,6 +1144,28 @@ layout was worked out from the disk:
 
 The blank data disk (`_data`) has an empty directory, so it stays undecoded
 like any blank CP/M disk.
+
+**Holmes Engineering CP/M 2.2** (Model I with Holmes's VID-80 80-column board).
+mloewen's `Holmes-Engineering-VID80/holmes-cpm.dmk` is single-sided, 40 tracks,
+double density throughout, with 10 sectors of 512 bytes numbered 0-9. The
+`PROBE.TXT` next to it gives the DPB:
+
+- SPT 40 (one track of 128-byte records), 1K blocks (BSH 3), EXM 0, DSM 194
+  (39 data tracks), 64 directory entries, and OFF 1.
+- AL0 is F0, reserving 4 blocks, though 64 entries fill only 2. The system
+  doesn't fit on track 0, so it spills into blocks 2 and 3 (track 1, sectors
+  4-7: the end of the BDOS and the BIOS jump table), and AL0 keeps files out of them.
+  No entry points at them, so the decoder needn't know.
+- No skew: the directory is track 1, sectors 0-3, and DDT.COM's first block
+  (block 4) is sectors 8 and 9. PROBE says there's a translation table, but
+  the files read intact without one. Eleven binaries (ASM, D, DDT, DUMP, ED,
+  LOAD, NULU, PIP, STAT, SWEEP, and XSUB) are byte-identical to the Montezuma
+  disks' copies, including files that cross tracks. SUBMIT differs by a 2-byte
+  patch, and SYSGEN is the machine's own.
+- Track 0, sector 0 is blank (E5). Sector 1 is the boot loader, with the banner
+  "HOLMES VID-80(tm) 62k CP/M vers 2.2", and the CCP and BDOS follow.
+- `DUMP.ASM`'s last record is padded with zeros, not Ctrl-Z, so it keeps its
+  whole records (4,224 bytes, of which the text is 4,164).
 
 ## Image formats
 
