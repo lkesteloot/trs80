@@ -1258,6 +1258,24 @@ double density throughout, with 10 sectors of 512 bytes numbered 0-9. The
 - `DUMP.ASM`'s last record is padded with zeros, not Ctrl-Z, so it keeps its
   whole records (4,224 bytes, of which the text is 4,164).
 
+**Digital Research CP/M Plus** (Model 4, sold by Radio Shack as 26-2216;
+labeled "v1.00.00" or "v3.0"). 41 disks in `ira/bad-disks`, all single-sided,
+40 tracks (five images claim two sides but have nothing on side 1). Measured
+from the disks, not from a DPB:
+
+- Track 0 is double density, 18 sectors of 256 bytes numbered from 1: the
+  boot track. Every other track has 8 sectors of 512 bytes, also numbered
+  from 1. One reserved track, so the directory starts at track 1, sector 1.
+- 1K blocks (SID.COM's entry has 0x40 records in blocks 2-9), one byte per
+  block number, 156 blocks, and 64 directory entries (blocks 0 and 1).
+- No skew: text files (CPM3.LIB, Z80.LIB, PORTS.LIB) read cleanly across every
+  sector and block boundary.
+- Digital Research serialized each copy. The same utility (PIP, DIR, SET, and
+  ten others) on different disks differs only in 2-4 bytes at 0x7C-0x7F, and
+  CPM3.SYS (16,128 bytes unbanked, 23,552 banked) in the same way at
+  0x113-0x116, which also confirms the layout: any misplaced sector would
+  differ in whole blocks.
+
 ## Percom MicroDOS
 
 Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
