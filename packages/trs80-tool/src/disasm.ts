@@ -127,7 +127,7 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     // Create and configure the disassembler.
     let disasm: Disasm;
     let mainEntryPoint: number | undefined = undefined;
-    const inputFiles = expandFile(filename, false);
+    const inputFiles = expandFile(filename, false, false);
     if (inputFiles.length === 0) {
         console.log("No file to disassemble");
         return;

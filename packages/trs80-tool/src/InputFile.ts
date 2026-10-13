@@ -162,8 +162,13 @@ export class CpmInputFile extends InputFile {
 /**
  * Load the file. If the file can contain other files (floppies, cassettes, and wav files),
  * then expand the file and return the contained files. Otherwise just return the file.
+ *
+ * @param inFilename the file to load.
+ * @param includeSystemFiles whether to include system files from floppies.
+ * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
+ * ending text files at their Ctrl-Z.
  */
-export function expandFile(inFilename: string, includeSystemFiles: boolean): InputFile[] {
+export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
     const inFiles: InputFile[] = [];
 
     const { base, ext } = path.parse(inFilename);
@@ -191,7 +196,7 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
         }
 
         if (isFloppy(trs80File)) {
-            const fileSystem = decodeFloppyFileSystem(trs80File);
+            const fileSystem = decodeFloppyFileSystem(trs80File, cpmWholeRecords);
             if (fileSystem === undefined) {
                 throw new ToolError("Can't find a DOS directory on \"" + inFilename + "\"");
             }

@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {decodeCpm} from "./Cpm.js";
+import {decodeCpm, findCpmTextEnd} from "./Cpm.js";
 import {Density, FloppyDisk, FloppyDiskGeometry, SectorData, SectorInfo, SectorPosition} from "./FloppyDisk.js";
 
 // Montezuma Micro's single-sided system format: 40 cylinders of 18 sectors of 256 bytes,
@@ -111,6 +111,105 @@ function range(first: number, count: number): number[] {
     return Array.from({length: count}, (_, i) => first + i);
 }
 
+/**
+ * Bytes of ASCII text, such as the start of a document.
+ */
+function makeText(length: number): Uint8Array {
+    const line = "The quick brown fox jumps over the lazy dog.\r\n";
+    return Uint8Array.from({length}, (_, i) => line.charCodeAt(i % line.length));
+}
+
+/**
+ * Pad the bytes out to a whole number of 128-byte records, with Ctrl-Zs or, if a filler is
+ * given, that byte.
+ */
+function padToRecords(bytes: Uint8Array, filler = 0x1A): Uint8Array {
+    const size = Math.ceil(bytes.length/128)*128;
+    const result = new Uint8Array(size).fill(filler);
+    result.set(bytes);
+    return result;
+}
+
+/**
+ * Concatenate byte arrays.
+ */
+function concat(... arrays: Uint8Array[]): Uint8Array {
+    const result = new Uint8Array(arrays.reduce((sum, array) => sum + array.length, 0));
+    let offset = 0;
+    for (const array of arrays) {
+        result.set(array, offset);
+        offset += array.length;
+    }
+    return result;
+}
+
+describe("findCpmTextEnd", () => {
+    it("clips text padded with Ctrl-Zs", () => {
+        const data = padToRecords(makeText(300));
+        expect(findCpmTextEnd(data, "TXT")).to.equal(300);
+    });
+
+    it("clips at the first Ctrl-Z when there's leftover text after it", () => {
+        // Like TRANS.HLP.
+        const data = padToRecords(makeText(300));
+        data.set(makeText(40), 340);
+        expect(findCpmTextEnd(data, "HLP")).to.equal(300);
+    });
+
+    it("clips a file with a whole record of Ctrl-Zs and one of stale data", () => {
+        // Like DUMP.ASM: the text ends in a record of Ctrl-Zs, then one more record of junk.
+        const text = padToRecords(makeText(300));
+        const junk = makeContents(128, 5).map(b => b === 0x1A ? 0x1B : b);
+        expect(findCpmTextEnd(concat(text, junk), "ASM")).to.equal(300);
+        // Two records of padding before the junk is too far from the end.
+        const early = concat(padToRecords(makeText(100)), new Uint8Array(128).fill(0x1A), junk);
+        expect(findCpmTextEnd(early, "ASM")).to.be.undefined;
+    });
+
+    it("keeps files with an early Ctrl-Z whole", () => {
+        const data = padToRecords(makeText(600));
+        data.set(makeText(50), 0);
+        data[50] = 0x1A;
+        expect(findCpmTextEnd(data, "TXT")).to.be.undefined;
+    });
+
+    it("keeps a second-to-last-record Ctrl-Z whole if it's followed by text", () => {
+        const data = padToRecords(makeText(512));
+        data[300] = 0x1A;
+        expect(findCpmTextEnd(data, "TXT")).to.be.undefined;
+    });
+
+    it("keeps files with binary extensions whole", () => {
+        const data = padToRecords(makeText(300));
+        expect(findCpmTextEnd(data, "COM")).to.be.undefined;
+        expect(findCpmTextEnd(data, "com")).to.be.undefined;
+        expect(findCpmTextEnd(data, "AZM")).to.be.undefined;
+        expect(findCpmTextEnd(data, "DQC")).to.be.undefined;
+        expect(findCpmTextEnd(data, "")).to.equal(300);
+        expect(findCpmTextEnd(data, "Q")).to.equal(300);
+    });
+
+    it("keeps binary data with a Ctrl-Z in the last record whole", () => {
+        const data = makeContents(3*128, 9);
+        data.fill(0x55, 2*128);
+        data[2*128 + 40] = 0x1A;
+        expect(findCpmTextEnd(data, "DAT")).to.be.undefined;
+    });
+
+    it("ignores bit 7, which WordStar sets", () => {
+        const text = makeText(300).map((b, i) => i % 5 === 0 ? b | 0x80 : b);
+        expect(findCpmTextEnd(padToRecords(text), "DOK")).to.equal(300);
+    });
+
+    it("keeps files without a Ctrl-Z whole", () => {
+        expect(findCpmTextEnd(makeText(256), "TXT")).to.be.undefined;
+    });
+
+    it("clips a file of only Ctrl-Zs to nothing", () => {
+        expect(findCpmTextEnd(new Uint8Array(128).fill(0x1A), "TXT")).to.equal(0);
+    });
+});
+
 describe("cpm", () => {
     it("reads files from a Montezuma Micro disk", () => {
         const disk = new MemoryFloppyDisk();
@@ -159,6 +258,41 @@ describe("cpm", () => {
         expect(otherFile.user).to.equal(3);
         expect(otherFile.getAttributesString()).to.equal("R/O");
         expect(cpm!.readFile(otherFile)).to.eql(other);
+    });
+
+    it("ends text files at the Ctrl-Z unless asked for whole records", () => {
+        const disk = new MemoryFloppyDisk();
+
+        // A text file of 300 bytes in 3 records, and a binary file of 2 records.
+        const records = padToRecords(makeText(300));
+        writeBlocks(disk, 2, records);
+        const binary = makeContents(2*128, 4);
+        writeBlocks(disk, 3, binary);
+        const dir = new Uint8Array(2*32);
+        dir.set(makeDirEntry(0, "NOTE.TXT", 0, 3, [2]), 0);
+        dir.set(makeDirEntry(0, "DATA.COM", 0, 2, [3]), 32);
+        writeBlocks(disk, 0, dir);
+
+        // Clipped by default, but the file still owns all three records.
+        const clipped = decodeCpm(disk)!;
+        expect(clipped.wholeRecords).to.be.false;
+        const [clippedNote, clippedData] = clipped.getDirEntries(true);
+        expect(clippedNote.getSize()).to.equal(300);
+        expect(clippedNote.getRecordSize()).to.equal(3*128);
+        expect(clipped.readFile(clippedNote)).to.eql(records.subarray(0, 300));
+        expect(clipped.getFileSectorPositions(clippedNote).length).to.equal(2);
+        expect(clipped.getFileSectorPositions(clippedNote)).to.eql([
+            dataSectorPosition(2*SECTORS_PER_BLOCK), dataSectorPosition(2*SECTORS_PER_BLOCK + 1)]);
+        expect(clippedData.getSize()).to.equal(binary.length);
+        expect(clipped.readFile(clippedData)).to.eql(binary);
+
+        // Whole records on request.
+        const whole = decodeCpm(disk, true)!;
+        expect(whole.wholeRecords).to.be.true;
+        const [wholeNote] = whole.getDirEntries(true);
+        expect(wholeNote.getSize()).to.equal(records.length);
+        expect(whole.readFile(wholeNote)).to.eql(records);
+        expect(whole.getFileSectorPositions(wholeNote)).to.eql(clipped.getFileSectorPositions(clippedNote));
     });
 
     it("rejects a blank disk", () => {

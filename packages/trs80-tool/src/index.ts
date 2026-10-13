@@ -179,8 +179,9 @@ async function main(): Promise<void> {
             infiles: "WAV, CAS, JV1, JV3, DMK, or HFE file (TRSDOS floppies only)",
         })
         .option("--system", "include floppy system files")
+        .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .action(paged(async (infiles, options) => {
-            await dir(infiles, options.system);
+            await dir(infiles, options.system, options.cpmRecords);
         }));
     program
         .command("info <infiles...>")
@@ -202,6 +203,7 @@ async function main(): Promise<void> {
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
         .option("--entry <addresses>", "add entry points of binary (comma-separated), for ASM or LST output")
         .option("--system", "include system files from source floppies")
+        .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .action((files, options) => {
             const speed = parseBaud(options.baud);
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
@@ -212,7 +214,7 @@ async function main(): Promise<void> {
             }
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, speed, start, entryPoints, includeSystemFiles);
+            convert(infiles, outfile, speed, start, entryPoints, includeSystemFiles, options.cpmRecords);
         });
     if (2 > 3) {
         program

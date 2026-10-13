@@ -7,7 +7,7 @@ import {ToolError} from "./utils.js";
 /**
  * Handle the "dir" command.
  */
-export async function dir(inFilenames: string[], showSystemFiles: boolean): Promise<void> {
+export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWholeRecords: boolean): Promise<void> {
     const multipleInputFiles = inFilenames.length > 1;
     let firstFile = true;
 
@@ -19,7 +19,7 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean): Prom
             console.log(inFilename + ":");
         }
         try {
-            dirFile(inFilename, showSystemFiles);
+            dirFile(inFilename, showSystemFiles, cpmWholeRecords);
         } catch (e) {
             // Report the error and go on to the next file, like ls does.
             if (!(e instanceof ToolError)) {
@@ -33,8 +33,11 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean): Prom
     }
 }
 
-function dirFile(inFilename: string, showSystemFiles: boolean): void {
-    const inFiles = expandFile(inFilename, showSystemFiles);
+/**
+ * List the files in one input file.
+ */
+function dirFile(inFilename: string, showSystemFiles: boolean, cpmWholeRecords: boolean): void {
+    const inFiles = expandFile(inFilename, showSystemFiles, cpmWholeRecords);
     if (inFiles.length === 0) {
         console.log("No files");
     } else {
