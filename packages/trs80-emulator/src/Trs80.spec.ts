@@ -103,6 +103,65 @@ describe("timer", () => {
     });
 });
 
+describe("Model I timer", () => {
+    const TIMER_IRQ_MASK = 0x80;
+    const COUNTER_ADDRESS = 0x6000;
+
+    /**
+     * Make a Model I that's spinning with interrupts on. The stock ROM sends RST 38 to 0x4012
+     * in RAM, where we put a handler that counts the interrupts, acknowledging each one if
+     * asked to.
+     */
+    function makeSpinningModel1(acknowledge: boolean): Trs80 {
+        const trs80 = makeMachine(Config.makeDefault().edit().withModelType(ModelType.MODEL1).build());
+        trs80.reset();
+        const handler = [
+            ...(acknowledge ? [0x3A, 0xE0, 0x37] : []),   // ld a,(0x37E0)
+            0x21, COUNTER_ADDRESS & 0xFF, COUNTER_ADDRESS >> 8, // ld hl,COUNTER_ADDRESS
+            0x34,                                         // inc (hl)
+            0xFB,                                         // ei
+            0xC9,                                         // ret
+        ];
+        const main = [
+            0xED, 0x56,                                   // im 1
+            0xFB,                                         // ei
+            0x18, 0xFE,                                   // jr $
+        ];
+        handler.forEach((value, i) => trs80.writeMemory(0x4012 + i, value));
+        main.forEach((value, i) => trs80.writeMemory(0x5000 + i, value));
+        trs80.jumpTo(0x5000);
+        return trs80;
+    }
+
+    /**
+     * Step the machine for the given number of t-states.
+     */
+    function runFor(trs80: Trs80, tStates: number): void {
+        const end = trs80.tStateCount + tStates;
+        while (trs80.tStateCount < end) {
+            trs80.step();
+        }
+    }
+
+    it("interrupts 40 times a second", () => {
+        const trs80 = makeSpinningModel1(true);
+        // A little past one second, so that the 40th tick has certainly fired.
+        runFor(trs80, trs80.clockHz + 1000);
+        expect(trs80.readMemory(COUNTER_ADDRESS)).to.equal(40);
+    });
+    it("keeps interrupting until acknowledged", () => {
+        const trs80 = makeSpinningModel1(false);
+        runFor(trs80, trs80.clockHz/10);
+        expect(trs80.readMemory(COUNTER_ADDRESS)).to.be.greaterThan(40);
+    });
+    it("acknowledges when 0x37E0 is read", () => {
+        const trs80 = makeMachine(Config.makeDefault().edit().withModelType(ModelType.MODEL1).build());
+        runFor(trs80, trs80.clockHz/30);
+        expect(trs80.readMemory(0x37E0) & TIMER_IRQ_MASK).to.equal(TIMER_IRQ_MASK);
+        expect(trs80.readMemory(0x37E0) & TIMER_IRQ_MASK).to.equal(0);
+    });
+});
+
 describe("cassette motor", () => {
     const CASSETTE_RISE_IRQ_MASK = 0x01;
     const CASSETTE_FALL_IRQ_MASK = 0x02;

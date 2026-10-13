@@ -57,13 +57,15 @@ No XSS found: user data always goes through `innerText`/`textContent`.
     ([line 1086](packages/z80-asm/src/Asm.ts:1086), confirmed).
   - [ ] Division or modulo by zero quietly gives 0
     ([line 2177](packages/z80-asm/src/Asm.ts:2177)).
-- [ ] **On a Model I, the timer interrupt never fires.** `irqMask` can only be set through
-  port E0, which is Model III only. The Model I branch of `interruptLatchRead`
-  ([Trs80.ts:560](packages/trs80-emulator/src/Trs80.ts:560)) is unreachable, and reading
-  0x37E0 always returns 0x3F ([Trs80.ts:641](packages/trs80-emulator/src/Trs80.ts:641)).
 
 ## Medium
 
+- [ ] On a Model I, the floppy controller's INTRQ doesn't reach the expansion interface's
+  interrupt latch. xtrs sets bit 6 of 0x37E0 and raises INT, and clears it when INTRQ drops.
+  Here INTRQ only sets an NMI latch bit, which the Model I never unmasks, so 0x37E0 only ever
+  shows the timer (`interruptLatchRead()` in
+  [Trs80.ts](packages/trs80-emulator/src/Trs80.ts)). Check against the Model I technical
+  manual before wiring it up, and boot the Model I DOSes in the regression suite afterwards.
 - [ ] EI doesn't delay interrupts by one instruction
   ([GenerateOpcodes.ts:1046](packages/z80-emulator/opcodes/GenerateOpcodes.ts:1046) has a
   TODO).

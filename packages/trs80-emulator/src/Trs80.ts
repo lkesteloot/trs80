@@ -601,11 +601,15 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.updateNmiSeen();
     }
 
+    /**
+     * Read the IRQ latch. The Model I's expansion interface (at 0x37E0) returns the latch
+     * as-is and acknowledges the timer interrupt. The Model III and 4 (port E0) return it
+     * inverted and acknowledge nothing.
+     */
     private interruptLatchRead(): number {
         if (this.config.modelType === ModelType.MODEL1) {
             const irqLatch = this.irqLatch;
             this.setTimerInterrupt(false);
-            // TODO irq = this.irqLatch !== 0;
             return irqLatch;
         } else {
             return ~this.irqLatch & 0xFF;
@@ -629,8 +633,10 @@ export class Trs80 implements Hal, Machine, Configurable {
             this.resetButtonInterrupt(false);
         }
 
-        // Handle interrupts.
-        if ((this.irqLatch & this.irqMask) !== 0) {
+        // Handle interrupts. The Model I has no IRQ mask: the expansion interface's latch
+        // drives the INT line directly.
+        const irqMask = this.config.modelType === ModelType.MODEL1 ? M1_TIMER_IRQ_MASK : this.irqMask;
+        if ((this.irqLatch & irqMask) !== 0) {
             this.z80.maskableInterrupt();
         }
 
@@ -682,10 +688,8 @@ export class Trs80 implements Hal, Machine, Configurable {
                 case 0x37E1:
                 case 0x37E2:
                 case 0x37E3:
-                    // TODO return expansion interface interrupt status byte and
-                    // clear the top bit (0x80, timer interrupt status).
-                    this.warnOnce("Reading from expansion interface interrupt status");
-                    return 0x3F;
+                    // Expansion interface interrupt latch.
+                    return this.interruptLatchRead();
 
                 case 0x37EC:
                     return this.fdc.readStatus();
