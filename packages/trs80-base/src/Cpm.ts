@@ -64,13 +64,26 @@ export interface CpmFormat {
 export const CPM_FORMATS: readonly CpmFormat[] = [
     // Montezuma Micro CP/M 2.2 for the Model 4, verified against the DPB that PROBE printed
     // for each of its 12 formats. Double-sided disks alternate sides track by track. System
-    // disks have 2 reserved tracks and data disks none.
+    // disks have 2 reserved tracks and data disks none. The 342K format of versions 1.42
+    // and 1.44 reserves 4 tracks.
     {
         name: "Montezuma Micro",
         sectorSizes: [256, 512],
         firstSectorNumber: 1,
         skew: 2,
-        reservedTrackCounts: [0, 2],
+        reservedTrackCounts: [0, 2, 4],
+        blockSize: 2048,
+        dirEntryCount: 128,
+    },
+    // The format of Montezuma Micro versions 1.26 and 1.30, the same as the 170K and 350K
+    // formats above but with skew 4, which was measured from the files. After the entry
+    // above, because nothing else tells them apart when the directory reads either way.
+    {
+        name: "Montezuma Micro",
+        sectorSizes: [256],
+        firstSectorNumber: 1,
+        skew: 4,
+        reservedTrackCounts: [2],
         blockSize: 2048,
         dirEntryCount: 128,
     },
