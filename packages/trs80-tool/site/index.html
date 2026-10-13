@@ -511,25 +511,15 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-13">October 13, 2026</h3>
             <ul>
-                <li>Typed and pasted text gets through DOS keyboard drivers that check a key
-                    twice before taking it, like Model I TRSDOS 2.8’s, so the MCP
-                    <code>type</code> tool works at its <code>TRSDOS Ready</code> prompt. Keys
-                    typed while a DOS is busy loading from disk wait for it instead of
-                    being lost.</li>
+                <li><code>trs80-tool</code> v3.4.2: Can read disk images of
+                    Model 1 TRSDOS 2.7DD/2.8 and
+                    Model 4 Digital Research's CP/M Plus.
+                    More robust reading of damaged or unusual disk images.</li>
+                <li>Emulator: Much more authentic Model 1 emulation.</li>
             </ul>
 
             <h3 id="2026-10-12">October 12, 2026</h3>
             <ul>
-                <li>The emulator is closer to a stock Model I. With the original character
-                    generator, video memory loses bit 6 as on the real machine, so LDOS no longer
-                    thinks the lowercase modification is installed. Typed text reaches a Model I
-                    DOS in the right case. The floppy controller interrupts through the expansion
-                    interface, the reset button and HALT go to the ROM’s NMI handler, and the I/O
-                    ports and printer addresses match the Model I. LDOS can format a JV1 disk.
-                    Model I screens show correctly in the MCP <code>screen</code> and
-                    <code>screenshot</code> tools and in saved screenshots.</li>
-                <li>My TRS-80: Choosing the Model III or 4 in the settings panel resets the
-                    character generator to lower case.</li>
                 <li><code>trs80-tool</code> v3.4.1: Clip CP/M text files at their Ctrl-Z, with
                     a new <code>--cpm-records</code> flag to keep whole records. Improve
                     support for Montezuma and Holmes Engineering CP/M.</li>
