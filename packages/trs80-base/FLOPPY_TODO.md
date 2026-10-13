@@ -169,8 +169,8 @@ more.
   its GAT reads 0x25 in every used lump, which isn't a granule bitmap. No
   candidate passes the strict GAT check, so it falls back to the best score.
 - Percom OS-80, OS-80 III and MicroDOS (20 disks in `peter/`, tagged `percom`,
-  including four applications on Percom-formatted disks; 22 in
-  `ira/lk-341-set-1`): a different DOS altogether, not decoded. The Model I
+  including four applications on Percom-formatted disks, plus the MicroDOS
+  manual disk in `ira/lk-341-set-1`): a different DOS altogether, not decoded. The Model I
   MicroDOS directory is simple and described in `FLOPPY_FORMATS.md` ("Percom
   MicroDOS"); it would be a decoder of its own, beside CP/M's. The Model III
   OS-80 III disks are unexamined.

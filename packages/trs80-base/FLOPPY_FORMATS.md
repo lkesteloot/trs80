@@ -1279,9 +1279,10 @@ from the disks, not from a DPB:
 ## Percom MicroDOS
 
 Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
-layouts: no GAT, no HIT, no granules, and no extents. We don't decode it yet.
-Measured on the Percom disks in `ira/lk-341-set-1` (the same images as the
-`percom`-tagged ones in `peter/`), and confirmed by the BASIC source of
+layouts: no GAT, no HIT, no granules, and no extents. We don't decode it yet;
+Ira's report on set 1 (`report-cantread.txt`) says VDISK extracts these disks.
+Measured on the 21 Percom disks (tagged `percom`: 20 in `peter/`, and the
+manual disk in `ira/lk-341-set-1`), and confirmed by the BASIC source of
 Percom's file manager (FILEMGR), which is on the manual disk (`MicroDOS Disk
 Operating System Systems Manual (1979)`) and is the code that maintains the
 directory:
@@ -1306,7 +1307,7 @@ directory:
   system disks. Files start on round numbers with gaps between them, so free
   space isn't tracked; the user picks the sectors when adding an entry.
 
-Twelve of the 22 Percom disks have this directory: MicroDOS 1.00 through 2.20,
+Twelve of the 21 Percom disks have this directory: MicroDOS 1.00 through 2.20,
 OS-80 1.5, and the manual disk. The program files' contents (presumably
 Percom's tokenized BASIC, judging by FILEMGR) haven't been examined. The rest
 don't fit:
@@ -1315,9 +1316,9 @@ don't fit:
   sentinel anywhere): Electric Crayon, Letter Generator, Paymaster, WORP-1,
   and `Percom MicroDOS v1.12 [Hacked by Ron McPeake]`. Possibly turnkey
   applications that read fixed sectors; unchecked.
-- **Five Model III disks** (OS-80 III 1.0 and 2.02, MicroDOS 2.10) are double
-  density with 18 sectors per track, and their boot sector starts `00 00 6D
-  B6`. Their layout hasn't been examined.
+- **Four Model III disks** (OS-80 III 1.0 and two of 2.02, MicroDOS 2.10) are
+  double density with 18 sectors per track, and their boot sector starts `00
+  00 6D B6`. Their layout hasn't been examined.
 
 ## Image formats
 
