@@ -124,6 +124,18 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         blockSize: 1024,
         dirEntryCount: 64,
     },
+    // Digital Research's CP/M Plus for the Model 4, sold by Radio Shack, measured from the
+    // disks (see FLOPPY_FORMATS.md). Like Holmes, but with sectors numbered from 1. One system
+    // track of 18 sectors of 256 bytes, then 8 sectors of 512 bytes with no skew.
+    {
+        name: "Digital Research",
+        sectorSizes: [512],
+        firstSectorNumber: 1,
+        skew: 1,
+        reservedTrackCounts: [1],
+        blockSize: 1024,
+        dirEntryCount: 64,
+    },
 ];
 
 /**

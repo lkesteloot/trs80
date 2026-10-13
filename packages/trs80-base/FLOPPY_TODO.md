@@ -169,8 +169,8 @@ more.
   its GAT reads 0x25 in every used lump, which isn't a granule bitmap. No
   candidate passes the strict GAT check, so it falls back to the best score.
 - Percom OS-80, OS-80 III and MicroDOS (20 disks in `peter/`, tagged `percom`,
-  including four applications on Percom-formatted disks; 22 in
-  `ira/lk-341-set-1`): a different DOS altogether, not decoded. The Model I
+  including four applications on Percom-formatted disks, plus the MicroDOS
+  manual disk in `ira/lk-341-set-1`): a different DOS altogether, not decoded. The Model I
   MicroDOS directory is simple and described in `FLOPPY_FORMATS.md` ("Percom
   MicroDOS"); it would be a decoder of its own, beside CP/M's. The Model III
   OS-80 III disks are unexamined.
@@ -181,6 +181,11 @@ more.
   matches and nothing decodes. Ira says VDISK reads them, so a disk whose HIT
   matches nothing but whose entries all decode cleanly might deserve a
   fallback that scores the entries without the HIT.
+- About 20 one-off disks in `ira/` (tagged `unresolved`), some probably
+  copy-protected, left alone in October 2026. Their sidecars record what we
+  measured (geometry, boot-sector prefix). Two small groups there might share
+  a cause if anyone looks: the three Super Directory disks (two with
+  MultiDOS's `01 82` prefix) and the two NEWDOS-86 utility disks.
 
 ## New formats
 

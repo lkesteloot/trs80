@@ -112,10 +112,22 @@ beyond the list above:
   (`granuleCountBasis` 0, like 1.3): file sizes fit exactly that way.
 - Dates are 1.3's: the low nibble of byte 1 is the month, byte 2 is the year minus
   1900, and there is no day. Read the 2.3 way, every day would come out as 10.
-- File size uses the 2.3 rule: the last-sector byte is the size of the last sector,
-  which the sector count includes. `PRTVERF/CMD` on `Author I v1.00 ... [Disk 1 of
-  2]` has 37 sectors and EOF byte 0xCF, and its CMD transfer record ends exactly
-  at 36*256 + 0xCF = 9423 bytes.
+- File size uses the 1.3 rule: the EOF byte adds to the sector count. That's
+  how the DOS itself reads files. Booted in our emulator, 2.8.0's `LIST
+  FILER/V32` on `Auk's Computer Filing System` (count 1, EOF 98) shows two
+  records, the second all 0xE5; under the 2.3 rule there would be one. Its DIR
+  agrees: `telanoc/model1/M1_TD2.7DD_dir_pg1.gif` and `_pg2.gif` are photos of
+  2.7DD's DIR of the HFE beside them, showing `TEST2/BAS` (count 57, EOF 151) as
+  58 records and `PHONE/BLD` (count 0, EOF 22) as 1 record. But programs that
+  keep their own file buffers wrote the 2.3 way, so through the DOS their
+  files have a sector of junk at the end: every BASIC program on those two
+  disks (Disk BASIC came from 2.3), including ASCII-saved ones like
+  `FILER/V32`, which then no longer parse as BASIC; and `PRTVERF`, `STUDENT`,
+  `TEACH` and `CHAIN/CMD` on `Author I`, `SCOPY/CMD` on Auk's, and
+  `ST80III/CMD` on `TRSDOS v2.7DD`. Files written the DOS's way fit exactly:
+  `MARQ/CMD` on the HFE, `AUTHOR/CMD` on `Author I` (both cut short under the
+  2.3 rule), and `PHONE/BLD`, written by BUILD. We report what the DOS would
+  read.
 - Entries are 2.3's: 8 per sector, five extents of (cylinder, granule byte) pairs
   at bytes 22-29, 0xFF ending them, and bytes 30-31 the `FE nn` link to the next
   entry. There is no "(c) 1980 Tandy" filler, and no system files to count, so
@@ -126,10 +138,6 @@ beyond the list above:
 - The version banner is on cylinder 1, not on the single-density boot track:
   "TRSDOS version 2.7DD  Thu May 20, 1982", "TRSDOS version 2.7SD" or "TRSDOS
   version 2.8.0  Wed Dec 15, 1982". The decoder names the DOS from it.
-
-One disk that doesn't fit: `AUTHOR/CMD` on `Author I v1.00 ... [Disk 1 of 2]` is
-56 sectors with EOF byte 0xF4, which gives 14324 bytes, but its last CMD load
-block is cut short (24 of 260 bytes).
 
 ## Boot sector prefixes
 
@@ -1250,12 +1258,31 @@ double density throughout, with 10 sectors of 512 bytes numbered 0-9. The
 - `DUMP.ASM`'s last record is padded with zeros, not Ctrl-Z, so it keeps its
   whole records (4,224 bytes, of which the text is 4,164).
 
+**Digital Research CP/M Plus** (Model 4, sold by Radio Shack as 26-2216;
+labeled "v1.00.00" or "v3.0"). 41 disks in `ira/bad-disks`, all single-sided,
+40 tracks (five images claim two sides but have nothing on side 1). Measured
+from the disks, not from a DPB:
+
+- Track 0 is double density, 18 sectors of 256 bytes numbered from 1: the
+  boot track. Every other track has 8 sectors of 512 bytes, also numbered
+  from 1. One reserved track, so the directory starts at track 1, sector 1.
+- 1K blocks (SID.COM's entry has 0x40 records in blocks 2-9), one byte per
+  block number, 156 blocks, and 64 directory entries (blocks 0 and 1).
+- No skew: text files (CPM3.LIB, Z80.LIB, PORTS.LIB) read cleanly across every
+  sector and block boundary.
+- Digital Research serialized each copy. The same utility (PIP, DIR, SET, and
+  ten others) on different disks differs only in 2-4 bytes at 0x7C-0x7F, and
+  CPM3.SYS (16,128 bytes unbanked, 23,552 banked) in the same way at
+  0x113-0x116, which also confirms the layout: any misplaced sector would
+  differ in whole blocks.
+
 ## Percom MicroDOS
 
 Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
-layouts: no GAT, no HIT, no granules, and no extents. We don't decode it yet.
-Measured on the Percom disks in `ira/lk-341-set-1` (the same images as the
-`percom`-tagged ones in `peter/`), and confirmed by the BASIC source of
+layouts: no GAT, no HIT, no granules, and no extents. We don't decode it yet;
+Ira's report on set 1 (`report-cantread.txt`) says VDISK extracts these disks.
+Measured on the 21 Percom disks (tagged `percom`: 20 in `peter/`, and the
+manual disk in `ira/lk-341-set-1`), and confirmed by the BASIC source of
 Percom's file manager (FILEMGR), which is on the manual disk (`MicroDOS Disk
 Operating System Systems Manual (1979)`) and is the code that maintains the
 directory:
@@ -1280,7 +1307,7 @@ directory:
   system disks. Files start on round numbers with gaps between them, so free
   space isn't tracked; the user picks the sectors when adding an entry.
 
-Twelve of the 22 Percom disks have this directory: MicroDOS 1.00 through 2.20,
+Twelve of the 21 Percom disks have this directory: MicroDOS 1.00 through 2.20,
 OS-80 1.5, and the manual disk. The program files' contents (presumably
 Percom's tokenized BASIC, judging by FILEMGR) haven't been examined. The rest
 don't fit:
@@ -1289,9 +1316,9 @@ don't fit:
   sentinel anywhere): Electric Crayon, Letter Generator, Paymaster, WORP-1,
   and `Percom MicroDOS v1.12 [Hacked by Ron McPeake]`. Possibly turnkey
   applications that read fixed sectors; unchecked.
-- **Five Model III disks** (OS-80 III 1.0 and 2.02, MicroDOS 2.10) are double
-  density with 18 sectors per track, and their boot sector starts `00 00 6D
-  B6`. Their layout hasn't been examined.
+- **Four Model III disks** (OS-80 III 1.0 and two of 2.02, MicroDOS 2.10) are
+  double density with 18 sectors per track, and their boot sector starts `00
+  00 6D B6`. Their layout hasn't been examined.
 
 ## Image formats
 

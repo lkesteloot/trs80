@@ -840,16 +840,16 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     public getSize(): number {
         let size = this.sectorCount*BYTES_PER_SECTOR + this.lastSectorSize;
 
-        // On model 1/4 (and 2.7), the last sector size byte represents the size of the last sector, which is
-        // counted in the sector count. On model 3 it's in addition to the sector count.
+        // On model 1/4, the last sector size byte represents the size of the last sector, which is
+        // counted in the sector count. On model 3 (and 2.7) it's in addition to the sector count.
         let lastSectorIsCounted: boolean;
         switch (this.version) {
             case TrsdosVersion.V2_3:
-            case TrsdosVersion.V2_7:
                 lastSectorIsCounted = true;
                 break;
 
             case TrsdosVersion.V1_3:
+            case TrsdosVersion.V2_7:
                 lastSectorIsCounted = false;
                 break;
 
