@@ -1250,6 +1250,49 @@ double density throughout, with 10 sectors of 512 bytes numbered 0-9. The
 - `DUMP.ASM`'s last record is padded with zeros, not Ctrl-Z, so it keeps its
   whole records (4,224 bytes, of which the text is 4,164).
 
+## Percom MicroDOS
+
+Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
+layouts: no GAT, no HIT, no granules, and no extents. We don't decode it yet.
+Measured on the Percom disks in `ira/lk-341-set-1` (the same images as the
+`percom`-tagged ones in `peter/`), and confirmed by the BASIC source of
+Percom's file manager (FILEMGR), which is on the manual disk (`MicroDOS Disk
+Operating System Systems Manual (1979)`) and is the code that maintains the
+directory:
+
+- **Sectors are numbered absolutely**, cylinder × 10 + sector, on single-sided,
+  single-density disks of 10 sectors per track. The boot sector starts `FE 00
+  31 FC`.
+- **The directory is absolute sectors 20-29** (cylinder 2), always. Each sector
+  holds five 45-byte entries starting at byte 1. Byte 0 is 0xE1 (225, the
+  length of the five entries); FILEMGR writes the sector from a 225-character
+  string, so this is probably that string's length byte.
+- **An entry** is a 10-character name padded with spaces, a 2-byte start
+  sector and a 2-byte end sector (little-endian, absolute, inclusive), a type
+  byte (`P` for a program, `D` for data), and a 30-character remark.
+- **A name of `%%%%%%%%%%` ends the directory**, so there are at most 50
+  files. FILEMGR's initialize command writes just the sentinel, and `Percom
+  MicroDOS v1.21` has exactly that: an empty directory.
+- **A file is one contiguous run of sectors.** The DOS and the directory are
+  listed as data files of their own: `MICRODOS` 0-19, `DIRECTORY` 20-29, then
+  `MENU` 30-31, `PATCHER` 40-42, `FILEMGR` 50-72, `DISKTEST` 80-89,
+  `UTILITIES` 100-125, `NOTEBOOK` 150-172 and `NOTEBOOKFL` 200-399 on most
+  system disks. Files start on round numbers with gaps between them, so free
+  space isn't tracked; the user picks the sectors when adding an entry.
+
+Twelve of the 22 Percom disks have this directory: MicroDOS 1.00 through 2.20,
+OS-80 1.5, and the manual disk. The program files' contents (presumably
+Percom's tokenized BASIC, judging by FILEMGR) haven't been examined. The rest
+don't fit:
+
+- **Five Model I disks have the same boot sector but no directory** (no
+  sentinel anywhere): Electric Crayon, Letter Generator, Paymaster, WORP-1,
+  and `Percom MicroDOS v1.12 [Hacked by Ron McPeake]`. Possibly turnkey
+  applications that read fixed sectors; unchecked.
+- **Five Model III disks** (OS-80 III 1.0 and 2.02, MicroDOS 2.10) are double
+  density with 18 sectors per track, and their boot sector starts `00 00 6D
+  B6`. Their layout hasn't been examined.
+
 ## Image formats
 
 **JV1** is fixed by definition: 256-byte sectors, 10 per track numbered 0-9, one
