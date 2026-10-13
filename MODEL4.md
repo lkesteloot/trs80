@@ -120,6 +120,15 @@ For our purposes these collapse into three machines, plus variants:
 3. **Model 4P** (and its gate-array version): boot ROM instead of BASIC ROM,
    port `0x9C`, no cassette, two drives, different character generator.
 
+The gate-array Model 4 is the original design built from fewer chips: three
+custom gate arrays (timing, address, video), plus one in the floppy circuit,
+replace the TTL logic and the MMI PALs (HW85 page 152). The port map, the
+memory maps, the video modes, the keyboard, the interrupts and the drive select
+latch are all the same, so software can't tell the two apart except by timing.
+An emulator can see only these differences: the opcode wait states (section 5),
+how video RAM access waits for the CRTC (section 3), the WD1773 (section 7),
+the built-in sound (section 8), and possibly the ROM (section 11).
+
 Suggest a config value for the variant (`MODEL4`, `MODEL4_GA`, `MODEL4P`,
 `MODEL4D`), or a separate variant enum next to `ModelType`, since much of the
 code only cares about "Model 4 family". `ModelType` is serialized, so only add
@@ -241,7 +250,11 @@ depends on it.
   programs and waiting on the ROM), and the IDE's `ScreenEditor.ts`.
 - **Video wait states**: when the CPU touches video RAM during active display,
   the hardware holds it in WAIT so the screen doesn't show "hash" (HW85
-  page 7). Port `0xEC` bit 5 enables this. It only affects timing.
+  page 7). Port `0xEC` bit 5 enables this. It only affects timing. The two
+  desktop boards do it differently: the original holds the CPU only during the
+  visible part of the display (HW85 page 7), while the gate array makes every
+  video RAM access wait until it lines up with the CRTC's clock (HW85
+  page 31). Only a cycle-exact emulator would notice.
 - **Video timing**: 264 lines per frame and 60 Hz, with 256 fast-mode clocks
   per line in both modes (trs80gp). 50 Hz export machines exist; skip them.
 
@@ -284,8 +297,12 @@ depends on it.
   states per instruction), `-m4b` (1) and `-m4c` (none) model board revisions
   that stretch the opcode fetch (and on the first revision the refresh cycle
   too) in fast mode. Wikipedia says the original Model 4's effective speed is
-  about 3.5 MHz and the gate array runs a true 4 MHz. This matters for timing
-  loops, music and demos, not for booting.
+  about 3.5 MHz and the gate array runs a true 4 MHz. HW85 agrees: on the
+  original board, PAL U3 stretches the 4 MHz clock during M1 cycles (page 7),
+  while the gate array divides the 20.2752 MHz crystal by 5 for a clean clock
+  with a 50% duty cycle (page 24). The 2 MHz mode isn't stretched on either
+  board. We add no wait states, so our timing matches the gate array. This
+  matters for timing loops, music and demos, not for booting.
 
 ### 6. Real-time clock interrupt [boot]
 
