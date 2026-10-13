@@ -1035,6 +1035,24 @@ last entry, so sizes are whole records, and text files end at the first Ctrl-Z
 ceil(((EX & EXM) × 128 + RC) / (block size / 128)). That rule rejects wrong
 layouts reliably.
 
+**Clipping text files**: `findCpmTextEnd()` in `Cpm.ts` clips a file at its first
+Ctrl-Z only when all four hold. (1) The extension isn't a known binary one (COM,
+REL, OVL, ...) and its second character isn't Q, Z, or Y (squeezed, crunched, and
+LZH files). (2) There is a Ctrl-Z. (3) It's in the last record, or in the
+second-to-last record with only Ctrl-Zs after it in that record: Digital Research's
+`DUMP.ASM` fills a record with Ctrl-Zs, and the directory counts one more record
+of stale data after it. An earlier Ctrl-Z means a damaged file (`PROBE.TXT` has a
+repeated block whose good text comes after one; QuickTerm's `WHATS.NEW` starts
+with junk), and those stay whole. We can't require all the bytes after the
+Ctrl-Z to be Ctrl-Zs: `TRANS.HLP` has leftover text after its first. (4) At least
+95% of the bytes before it are text (printable ASCII, tab, LF, FF, CR) once bit 7
+is masked off. Real text files score 0.998-1.000, and WordStar's `.DOK` files
+have bit 7 set on 11-17% of their bytes. Binaries such as `DUMP.COM` and Lifeboat's
+`BOOT.COM` have a Ctrl-Z in their last record by chance (a random 128-byte record
+contains 0x1A about 40% of the time), so the text test and the extension are what
+keep them whole. `readFile()` and `getSize()` are clipped by default; `getRecordSize()`
+and the sector map keep the whole records.
+
 **Skew** usually can't be measured from the directory. On 256- or 512-byte
 sectors, a sparse directory has all its entries in the first logical sector, so
 any skew finds them, and it has to come from the format table. A 128-byte
@@ -1345,3 +1363,18 @@ SYS0 banner, the boot track and the GAT.
   BOOT/SYS rule now covers DOS/SYS, MultiDOS's boot file). The NEWDOS-86 and
   NEWDOS-90 system disks are named by their banners; their utility disks have
   no system files and stay NEWDOS/80 v2.0.
+- `ira/Montezuma-1.42`, `ira/Montezuma-2.32`, and `ira/QuickTerm`: Montezuma
+  CP/M disks where TRSREAD's files differed from ours, and ours are right on
+  all three. TRSREAD cuts files with text extensions (`.DOC`, `.ASM`, `.BUG`,
+  `.NEW`) at the first Ctrl-Z and leaves the rest whole records; on 1.42 every
+  difference was that cut, CRC for CRC. We now clip text files too (see
+  "Clipping text files"), by content as well as extension, so our 1.42 files
+  match TRSREAD's. 2.32 is a single-sided file system
+  (2 reserved tracks, 85 blocks) in a double-sided image, and TRSREAD reads it
+  double-sided, so all its files are scrambled. QuickTerm (342K format, OFF 4)
+  matches except `WHATS.NEW`, which is damaged on the disk: its 30 records
+  start with 244 bytes of junk (a Ctrl-Z run at byte 162) and stop mid-word,
+  and the rest of block 32 is 0xE5. TRSREAD's cut leaves only the junk. 2.32
+  also has a live entry with a blank name and extension `PRN` and no records
+  (ASM run without a filename makes ` .PRN` and ` .HEX`); we count it as a bad
+  entry and skip it, and TRSREAD lists it as `.PRN`.

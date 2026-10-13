@@ -34,6 +34,19 @@ const RECORDS_PER_EXTENT = 128;
 // Characters that can't be in a filename, besides control characters.
 const BAD_FILENAME_CHARACTERS = "<>.,;:=?*[]";
 
+// Ctrl-Z, which ends a CP/M text file.
+const CTRL_Z = 0x1A;
+
+// Extensions (upper case) of files that are binary, so we don't look for a Ctrl-Z in
+// them. Programs, relocatable code, overlays, libraries, archives, databases, and indexes.
+const BINARY_EXTENSIONS = new Set([
+    "COM", "REL", "OVL", "OVR", "INT", "LBR", "ARC", "ARK", "DBF", "NDX", "CRL", "SPR", "PRL",
+    "RSX", "IRL", "BIN",
+]);
+
+// Fraction of the bytes before the Ctrl-Z that must be text characters for us to clip there.
+const MIN_TEXT_FRACTION = 0.95;
+
 /**
  * How one BIOS lays out its disks. This is the part of the disk parameter block (DPB) that
  * the disk can't tell us. The rest (sectors per track, disk size) comes from the geometry.
@@ -128,6 +141,86 @@ function decodeFilenameField(bytes: Uint8Array): string {
 }
 
 /**
+ * Whether a byte (ignoring bit 7, which WordStar sets on many characters) is a text
+ * character: printable ASCII, tab, line feed, form feed, or carriage return.
+ */
+function isTextByte(byte: number): boolean {
+    const ch = byte & 0x7F;
+    return (ch >= 0x20 && ch <= 0x7E) || ch === 0x09 || ch === 0x0A || ch === 0x0C || ch === 0x0D;
+}
+
+/**
+ * CP/M records sizes only in whole 128-byte records, and a text file ends at its first
+ * Ctrl-Z (0x1A), with the rest of the last record as padding: more Ctrl-Zs, or whatever was
+ * left in the program's buffer. This finds that end, returning the length to clip the file
+ * to, or undefined if the file should keep its whole records.
+ *
+ * The extension and contents are both consulted, because clipping a binary file at a Ctrl-Z
+ * that happens to be in its data would corrupt it. We clip only if all of these hold:
+ *
+ * 1. The extension isn't a known binary one (see BINARY_EXTENSIONS), and its second
+ *    character isn't Q, Z, or Y, which mark squeezed, crunched, and LZH-compressed files
+ *    (.DQC, .AZM, .PYT, .ZY).
+ * 2. There's a Ctrl-Z. Let z be the index of the first one.
+ * 3. The Ctrl-Z is near the end: in the last record, or in the second-to-last record with
+ *    only Ctrl-Zs from there to the end of that record. The latter is Digital Research's own
+ *    DUMP.ASM, whose Ctrl-Zs fill a record and whose directory counts one more record of stale
+ *    data after it. A Ctrl-Z any earlier means a damaged file (one has a repeated block whose
+ *    good text comes after an early Ctrl-Z), so we leave those whole. We can't require all
+ *    the bytes after z to be Ctrl-Zs: TRANS.HLP has leftover text after its first one.
+ * 4. At least 95% of the bytes before z are text (ignoring bit 7). In the regression collection
+ *    real text files score 0.998 to 1.000, and WordStar's .DOK files, with bit 7 set on 11%
+ *    to 17% of their bytes, pass once it's ignored. Binaries such as DUMP.COM and Lifeboat's
+ *    BOOT.COM have a Ctrl-Z in their last record by chance (a random 128-byte record contains
+ *    0x1A about 40% of the time), so this test is what keeps them whole. An empty prefix
+ *    counts as text, so a file of only Ctrl-Zs clips to zero.
+ *
+ * @param data the file's whole records, so its length is a multiple of 128.
+ * @param extension the file's extension, without the dot.
+ * @returns the length to clip to (the index of the first Ctrl-Z), or undefined to keep the
+ * whole records.
+ */
+export function findCpmTextEnd(data: Uint8Array, extension: string): number | undefined {
+    // Binary extensions.
+    const upperExtension = extension.toUpperCase();
+    const isCompressed = upperExtension.length >= 2 && "QZY".includes(upperExtension.charAt(1));
+    if (BINARY_EXTENSIONS.has(upperExtension) || isCompressed) {
+        return undefined;
+    }
+
+    // Find the first Ctrl-Z.
+    const z = data.indexOf(CTRL_Z);
+    if (z === -1) {
+        return undefined;
+    }
+
+    // It must be near the end.
+    const inLastRecord = z >= data.length - RECORD_SIZE;
+    let inPaddedPenultimateRecord = false;
+    if (!inLastRecord && z >= data.length - 2*RECORD_SIZE) {
+        // The rest of the record must be Ctrl-Zs.
+        const recordEnd = data.length - RECORD_SIZE;
+        inPaddedPenultimateRecord = data.subarray(z, recordEnd).every(byte => byte === CTRL_Z);
+    }
+    if (!inLastRecord && !inPaddedPenultimateRecord) {
+        return undefined;
+    }
+
+    // What's before it must look like text.
+    let textCount = 0;
+    for (let i = 0; i < z; i++) {
+        if (isTextByte(data[i])) {
+            textCount += 1;
+        }
+    }
+    if (z > 0 && textCount < z*MIN_TEXT_FRACTION) {
+        return undefined;
+    }
+
+    return z;
+}
+
+/**
  * One directory entry, which holds up to 16K or 32K (or more) of a file: one or more
  * logical extents of 16K each.
  */
@@ -161,6 +254,15 @@ export class CpmExtent {
 }
 
 /**
+ * The size in bytes, a whole number of 128-byte records, that a file's extents record.
+ * The extents must be in order of extent number.
+ */
+function computeRecordSize(extents: CpmExtent[]): number {
+    const last = extents[extents.length - 1];
+    return (last.extentNumber*RECORDS_PER_EXTENT + last.recordCount)*RECORD_SIZE;
+}
+
+/**
  * A file, made of one or more directory entries.
  */
 export class CpmFile implements FloppyDirEntry {
@@ -169,13 +271,20 @@ export class CpmFile implements FloppyDirEntry {
     public readonly extension: string;
     // In order of extent number.
     public readonly extents: CpmExtent[];
+    // Size in bytes of the text before the first Ctrl-Z, or undefined if we keep whole records.
+    private readonly textSize: number | undefined;
 
-    constructor(extents: CpmExtent[]) {
+    /**
+     * @param extents the file's directory entries, in order of extent number.
+     * @param textSize where to clip the file (see findCpmTextEnd()), or undefined to keep whole records.
+     */
+    constructor(extents: CpmExtent[], textSize: number | undefined) {
         const first = extents[0];
         this.user = first.user;
         this.name = first.name;
         this.extension = first.extension;
         this.extents = extents;
+        this.textSize = textSize;
     }
 
     public getFilename(extensionSeparator: string): string {
@@ -183,12 +292,20 @@ export class CpmFile implements FloppyDirEntry {
     }
 
     /**
-     * The size in bytes, which is a whole number of 128-byte records. Text files end
-     * with a Ctrl-Z (0x1A) in the last record.
+     * The size in bytes that the directory records, which is a whole number of 128-byte
+     * records. Text files end with a Ctrl-Z (0x1A) in the last record, so this is more than
+     * their size as reported by getSize(), but it's how much of the disk the file owns.
+     */
+    public getRecordSize(): number {
+        return computeRecordSize(this.extents);
+    }
+
+    /**
+     * The size in bytes. For a file that looks like text this ends at the first Ctrl-Z (see
+     * findCpmTextEnd()), and otherwise it's the whole records, as in getRecordSize().
      */
     public getSize(): number {
-        const last = this.extents[this.extents.length - 1];
-        return (last.extentNumber*RECORDS_PER_EXTENT + last.recordCount)*RECORD_SIZE;
+        return this.textSize ?? this.getRecordSize();
     }
 
     /**
@@ -287,9 +404,14 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     // Files, from all users, in directory order.
     private readonly files: CpmFile[];
     public readonly evaluation: CpmEvaluation;
+    // Whether files keep their whole 128-byte records, instead of ending text files at their Ctrl-Z.
+    public readonly wholeRecords: boolean;
 
-    constructor(disk: FloppyDisk, format: CpmFormat, allocationSides: number, reservedTrackCount: number) {
+    constructor(disk: FloppyDisk, format: CpmFormat, allocationSides: number, reservedTrackCount: number,
+                wholeRecords: boolean) {
+
         this.disk = disk;
+        this.wholeRecords = wholeRecords;
         this.geometry = disk.getGeometry();
         this.format = format;
         this.allocationSides = allocationSides;
@@ -452,6 +574,33 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     }
 
     /**
+     * Where to clip a file with these extents (in order) to end its text, or undefined to
+     * keep its whole records. This reads the file without warnings, because it runs for
+     * every candidate layout and most of them are wrong.
+     */
+    private findFileTextEnd(extents: CpmExtent[]): number | undefined {
+        if (this.wholeRecords) {
+            return undefined;
+        }
+        const recordSize = computeRecordSize(extents);
+        const blocks = extents.flatMap(extent => extent.blocks);
+        const positions = this.recordSectorPositions(blocks, recordSize);
+        const data = this.readSectors(positions, false);
+        return findCpmTextEnd(data.subarray(0, recordSize), extents[0].extension);
+    }
+
+    /**
+     * Positions of the sectors that hold the first recordSize bytes of the blocks, which
+     * may stop partway through the last block.
+     */
+    private recordSectorPositions(blocks: number[], recordSize: number): SectorPosition[] {
+        const sectorCount = Math.ceil(recordSize / this.sectorSize);
+        return blocks
+            .flatMap(block => this.blockSectorPositions(block))
+            .slice(0, sectorCount);
+    }
+
+    /**
      * Read the directory, group its entries into files, and evaluate how well this layout fits.
      */
     private readDirectory(): { files: CpmFile[], evaluation: CpmEvaluation } {
@@ -482,8 +631,10 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
             }
         }
 
-        const files = Array.from(extentsByFile.values(), extents =>
-            new CpmFile(extents.sort((a, b) => a.extentNumber - b.extentNumber)));
+        const files = Array.from(extentsByFile.values(), extents => {
+            extents.sort((a, b) => a.extentNumber - b.extentNumber);
+            return new CpmFile(extents, this.findFileTextEnd(extents));
+        });
 
         // Look for blocks claimed more than once, and file sectors that aren't on the disk.
         const usedBlocks = new Set<number>();
@@ -518,25 +669,26 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     }
 
     /**
-     * Positions of the sectors that hold the file's data, which may stop partway through
-     * its last block.
+     * Positions of the sectors that hold the file's whole records, which may stop partway
+     * through its last block. This doesn't depend on whether text files are clipped.
      */
     public getFileSectorPositions(file: CpmFile): SectorPosition[] {
-        const sectorCount = Math.ceil(file.getSize() / this.sectorSize);
-        return file.getBlocks()
-            .flatMap(block => this.blockSectorPositions(block))
-            .slice(0, sectorCount);
+        return this.recordSectorPositions(file.getBlocks(), file.getRecordSize());
     }
 
+    /**
+     * The contents of the file, clipped at its Ctrl-Z if it looks like text, unless this
+     * layout was decoded with whole records.
+     */
     public readFile(file: CpmFile): Uint8Array {
         return this.readSectors(this.getFileSectorPositions(file), true).subarray(0, file.getSize());
     }
 }
 
 /**
- * Generate every layout to try on this disk.
+ * Generate every layout to try on this disk. See decodeCpm() for wholeRecords.
  */
-function generateCpmCandidates(disk: FloppyDisk): Cpm[] {
+function generateCpmCandidates(disk: FloppyDisk, wholeRecords: boolean): Cpm[] {
     const geometry = disk.getGeometry();
     const candidates: Cpm[] = [];
 
@@ -551,7 +703,7 @@ function generateCpmCandidates(disk: FloppyDisk): Cpm[] {
         // cylinder.
         for (const allocationSides of [1, 2]) {
             for (const reservedTrackCount of format.reservedTrackCounts) {
-                candidates.push(new Cpm(disk, format, allocationSides, reservedTrackCount));
+                candidates.push(new Cpm(disk, format, allocationSides, reservedTrackCount, wholeRecords));
             }
         }
     }
@@ -561,9 +713,14 @@ function generateCpmCandidates(disk: FloppyDisk): Cpm[] {
 
 /**
  * Decode a CP/M diskette, or return undefined if it doesn't look like one in a format we know.
+ *
+ * @param disk the floppy.
+ * @param wholeRecords if true, every file keeps its whole 128-byte records. By default files that
+ * look like text end at their first Ctrl-Z, in their size and in what readFile() returns
+ * (see findCpmTextEnd()).
  */
-export function decodeCpm(disk: FloppyDisk): Cpm | undefined {
-    const candidates = generateCpmCandidates(disk);
+export function decodeCpm(disk: FloppyDisk, wholeRecords = false): Cpm | undefined {
+    const candidates = generateCpmCandidates(disk, wholeRecords);
 
     // Best first.
     candidates.sort((a, b) => a.compareTo(b));

@@ -28,14 +28,17 @@ function safeOutputFilename(filename: string): string {
  * @param start optional start address of system file.
  * @param entryPoints additional entry points in binary.
  * @param includeSystemFiles whether to include system files from floppies.
+ * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of ending
+ * text files at their Ctrl-Z.
  */
 export function convert(inFilenames: string[], outFilename: string, speed: CassetteSpeed | undefined,
-                 start: number | "auto" | undefined, entryPoints: number[], includeSystemFiles: boolean): void {
+                 start: number | "auto" | undefined, entryPoints: number[], includeSystemFiles: boolean,
+                 cpmWholeRecords: boolean): void {
 
     const outputIsDirectory = fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory();
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
-    const inFiles = inFilenames.flatMap(filename => expandFile(filename, includeSystemFiles));
+    const inFiles = inFilenames.flatMap(filename => expandFile(filename, includeSystemFiles, cpmWholeRecords));
 
     // Update start address if requested.
     if (start !== undefined) {

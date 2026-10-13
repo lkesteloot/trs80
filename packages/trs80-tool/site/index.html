@@ -200,6 +200,11 @@
             <p>Normally system file are hidden, but can be shown by specifying
             the <code>--system</code> option.</p>
 
+            <p>CP/M records file sizes only in whole 128-byte records, and pads the
+            last record of a text file after a Ctrl-Z. Files on CP/M disks that look like
+            text end at that Ctrl-Z, and their sizes are of the text. Specify
+            <code>--cpm-records</code> to show the whole records instead.</p>
+
             <p>This command respects the <code>LS_COLORS</code> and
             <code>EZA_COLORS</code> environment variables.</p>
 
@@ -239,6 +244,9 @@
 % trs80-tool convert in.dmk out</code></pre>
             </div>
             <p>Use the <code>--system</code> flag to include system files from floppies.
+            Text files from CP/M floppies are written up to their first Ctrl-Z, without
+            the padding that fills the rest of the last 128-byte record. Use the
+            <code>--cpm-records</code> flag to keep the whole records.
             Archive files can be converted to other archive formats:</p>
             <div><pre><code>% trs80-tool convert in.dmk out.wav
 % trs80-tool convert in.wav out.cas</code></pre>
@@ -503,6 +511,8 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-12">October 12, 2026</h3>
             <ul>
+                <li><code>trs80-tool</code> v3.5.0: End CP/M text files at their Ctrl-Z, with
+                    <code>--cpm-records</code> to keep whole records.</li>
                 <li><code>trs80-tool</code> v3.4.0: Support reading files from Lifeboat
                     CP/M 1.4 disk images for the Model I.</li>
                 <li><code>trs80-tool</code> v3.3.0: Read HFE floppy images (HxC and Gotek), version 1.</li>
