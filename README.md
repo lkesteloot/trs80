@@ -31,7 +31,7 @@ get the latest version from [the node.js website](https://nodejs.org/).
 To install dependencies (do this once per clone or pull):
 
 ```sh
-npm install
+npm ci
 ```
 
 To build everything (this also type-checks all packages):
@@ -57,7 +57,7 @@ up your local installations with:
 
 ```sh
 rm -rf node_modules packages/*/node_modules
-npm install
+npm ci
 npm run clean
 ```
 
