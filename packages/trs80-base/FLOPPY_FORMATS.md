@@ -207,6 +207,29 @@ manual (page 98) calls 0x2C a bug of old Model I disks, which NEWDOS/80 reports 
 "file not in directory" until it's patched to 0xC4, and the HIT dump in the
 1979 *Disk & Other Mysteries* (page 45) has it too.
 
+**Blank system names can be confirmed from their slot.** Four Meta Technologies data
+disks in `ira/lk-341-set-2` (Mingle II, Rebuild, Shrink, Supersede) have the names of
+their four system entries overwritten with 11 spaces, but the HIT keeps the hashes. A
+one-byte hash can't recover a name, but it can confirm the name that the DEC table
+above says belongs in that slot. That confirms BOOT/SYS (0xA2), DIR/SYS (0x2C, the old
+wrong hash) and SYS2/SYS (0x2C at DEC 0x04). It doesn't confirm DEC 0x03, which holds
+SYS1's code under HIT byte 0x27 (SYS1/SYS hashes to 0x2F), so something changed that
+byte too. `evaluate()` counts a confirmed name as a hit and an unconfirmed blank name as
+neither a hit nor a miss; `getDirEntries()` names unconfirmed ones `BLANK1`, `BLANK2`,
+... so that extracting them doesn't collide (a blank name extracts as "_").
+
+**Those four disks aren't VTOS, despite the VTOS data-disk filenames.** The BOOT/SYS
+password hashes (7F60/B21F) are shared by TRSDOS 2.x, NEWDOS 2.x, NEWDOS/80 and VTOS,
+but DIR/SYS's access hash separates them: 0xE5F9 on these four and on the TRSDOS
+2.0-2.3, NEWDOS 2.1, NEWDOS/80 and DoubleDOS disks in the collection, and 0x4296 (blank)
+on the VTOS 3.0 and 4.0 disks. (The exceptions, such as `trsdos-2.3-sssd.jv1` and some
+NEWDOS/80 disks, have 0x4296 or 0x3412 on every system file, so they don't point at VTOS
+either.) GAT byte 0xCB is 0x21 (VTOS writes 0x30 or 0x40), and the
+DIR/SYS HIT byte is the old 0x2C (VTOS writes 0xC4). The two hidden files on cylinder 16
+are NEWDOS 2.1's SYS1/SYS and SYS2/SYS: same sizes (1166 and 1076 bytes), differing in
+13 and 6 bytes (patches). VTOS 3.0.1's SYS2 is 1135 bytes. So they were made under
+NEWDOS 2.1 and are reported as "TRSDOS 2.x".
+
 ## TRSDOS 2.3B
 
 Measured on `trsdos-2.3B-sssd.dmk`, which boots on an emulator and calls itself

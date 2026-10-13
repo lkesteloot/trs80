@@ -145,6 +145,66 @@ function isOldDirSysHash(version: TrsdosVersion, hitIndex: number, rawFilename: 
 }
 
 /**
+ * The raw 11-character name that the 2.3 family puts in the system file at a given DEC,
+ * or undefined for any other DEC. BOOT/SYS is at 0x00, DIR/SYS at 0x01, SYS0-SYS5 at
+ * 0x02-0x07, SYS6-SYS13 at 0x20-0x27, SYS14-SYS21 at 0x40-0x47 (NEWDOS/80 v2), and
+ * SYS22-SYS29 at 0x60-0x67 (NEWDOS/90). See "The HIT" in FLOPPY_FORMATS.md.
+ */
+function trsdos23SystemFilename(hitIndex: number): string | undefined {
+    const row = hitIndex >> 5;
+    const column = hitIndex & 0x1F;
+    if (row > 3 || column > 7) {
+        return undefined;
+    }
+
+    if (row === 0 && column === 0) {
+        return "BOOT    SYS";
+    }
+    if (row === 0 && column === 1) {
+        return "DIR     SYS";
+    }
+
+    const n = row*8 + column - 2;
+    return ("SYS" + n).padEnd(8, " ") + "SYS";
+}
+
+/**
+ * Whether a raw filename is entirely spaces.
+ */
+function isBlankFilename(rawFilename: string): boolean {
+    return rawFilename.trim() === "";
+}
+
+/**
+ * Try to recover the name of a system file whose name was overwritten with spaces. A
+ * one-byte hash can't recover a name, but it can confirm the one name that the DOS would
+ * have put in that slot: the standard system filename for the entry's DEC, if its hash
+ * (or DIR/SYS's old wrong hash) matches the HIT byte. Returns undefined if the entry isn't
+ * a blank-named primary system entry on a 2.3 family disk, or if the hash doesn't confirm
+ * the name.
+ */
+function reconstructBlankFilename(version: TrsdosVersion, hitIndex: number, hitHash: number,
+                                  dirEntry: TrsdosDirEntry): string | undefined {
+
+    if (version !== TrsdosVersion.V2_3 || dirEntry.isExtendedEntry() || !dirEntry.isSystemFile() ||
+        !isBlankFilename(dirEntry.rawFilename)) {
+
+        return undefined;
+    }
+
+    const name = trsdos23SystemFilename(hitIndex);
+    if (name === undefined) {
+        return undefined;
+    }
+
+    if (hashForFilename(name) === hitHash || isOldDirSysHash(version, hitIndex, name, hitHash)) {
+        return name;
+    }
+
+    return undefined;
+}
+
+/**
  * Compute the one-byte HIT hash for an 11-letter filename. Use spaces to fill in
  * the file or extension if necessary (e.g., "FOO     BAS").
  *
@@ -581,6 +641,16 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     }
 
     /**
+     * Return a copy of this entry with a different name and everything else the same. The
+     * prev/next entry links are not copied, since they're set later.
+     */
+    public withRawFilename(rawFilename: string): TrsdosDirEntry {
+        return new TrsdosDirEntry(this.version, this.flags, this.day, this.month, this.year,
+            this.lastSectorSize, this.lrl, rawFilename, this.updatePassword, this.accessPassword,
+            this.sectorCount, this.prevDec, this.nextDec, this.extents);
+    }
+
+    /**
      * Get the protection level for the file.
      */
     public getProtectionLevel(): TrsdosProtectionLevel {
@@ -994,7 +1064,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             if (dirSector !== undefined) {
                 for (let i = 0; i < this.dirEntriesPerSector; i++) {
                     const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
-                    const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
+                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
                         // Not a TRSDOS disk.
@@ -1002,7 +1072,6 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     }
                     if (dirEntry !== undefined) {
                         // Don't record deleted entries.
-                        const computedHash = hashForFilename(dirEntry.rawFilename);
                         const index = this.dirEntryToHitNumber(sectorIndex, i);
                         const hitHash = hitInfo.hit[index];
                         // An entry with an empty HIT slot is a leftover the DOS can't reach, not a
@@ -1010,14 +1079,31 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         if (hitHash === 0) {
                             continue;
                         }
+                        // A blank name has no hash to check. Some disks have the names of their
+                        // system entries overwritten with spaces but keep the HIT bytes. If the
+                        // slot's standard system name matches the HIT byte, restore it and count
+                        // it as a hit like any other. If not, the entry is neither a hit nor a
+                        // miss, since we can't check a hash against a missing name.
+                        let nameMissing = false;
+                        if (!dirEntry.isExtendedEntry() && isBlankFilename(dirEntry.rawFilename)) {
+                            const reconstructedName = reconstructBlankFilename(this.version, index, hitHash, dirEntry);
+                            if (reconstructedName !== undefined) {
+                                dirEntry = dirEntry.withRawFilename(reconstructedName);
+                            } else {
+                                nameMissing = true;
+                            }
+                        }
+                        const computedHash = hashForFilename(dirEntry.rawFilename);
                         entriesByDec.set(index, dirEntry);
                         // console.log(`Comparing hits at ${side}:${sectorIndex}:${i} = ${index}: ${computedHash} vs. ${hitHash} ${dirEntry.rawFilename}`);
                         if (dirEntry.isExtendedEntry()) {
                             extendedEntries.push({dirEntry, hitHash});
-                        } else if (computedHash === hitHash || isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
-                            hashHits += 1;
-                        } else {
-                            hashMisses += 1;
+                        } else if (!nameMissing) {
+                            if (computedHash === hitHash || isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
+                                hashHits += 1;
+                            } else {
+                                hashMisses += 1;
+                            }
                         }
                         for (const extent of dirEntry.extents) {
                             if (extent.granuleOffset >= this.granulesPerLump || extent.cylinderNumber >= this.lumpCount) {
@@ -1247,6 +1333,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         const dirEntries = new Map<string, TrsdosDirEntry>();
         // Without a readable HIT, assume it lists every entry.
         const hitInfo = this.getHitInfo();
+        // Count of entries whose names are still blank, for naming them.
+        let blankCount = 0;
 
         // Decode directory entries.
         for (const { sectorIndex, dirPosition } of this.getDirSectors()) {
@@ -1254,15 +1342,30 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             if (dirSector !== undefined) {
                 for (let i = 0; i < this.dirEntriesPerSector; i++) {
                     const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
-                    const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
+                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
                         // TODO what to do with this error? Abort this method?
                     } else if (dirEntry !== undefined) {
                         // Don't record deleted entries, or ones the HIT doesn't list.
-                        const unreachable = typeof hitInfo !== "string" &&
-                            hitInfo.hit[this.dirEntryToHitNumber(sectorIndex, i)] === 0;
+                        const hitIndex = this.dirEntryToHitNumber(sectorIndex, i);
+                        const unreachable = typeof hitInfo !== "string" && hitInfo.hit[hitIndex] === 0;
                         if (!unreachable) {
+                            // Entries with blank names (see evaluate()): restore a system file's name
+                            // if its slot and HIT byte confirm it. Name any other one BLANK<n>, since a
+                            // blank name extracts as "_" and two of them would overwrite each other.
+                            // Do this before the entry goes in the map so that the linking below uses
+                            // the renamed objects. No warning here, since this method is called often.
+                            if (!dirEntry.isExtendedEntry() && isBlankFilename(dirEntry.rawFilename)) {
+                                const reconstructedName = typeof hitInfo === "string" ? undefined :
+                                    reconstructBlankFilename(this.version, hitIndex, hitInfo.hit[hitIndex], dirEntry);
+                                if (reconstructedName !== undefined) {
+                                    dirEntry = dirEntry.withRawFilename(reconstructedName);
+                                } else {
+                                    blankCount += 1;
+                                    dirEntry = dirEntry.withRawFilename(("BLANK" + blankCount).padEnd(11, " "));
+                                }
+                            }
                             dirEntries.set(new DirEntryPosition(sectorIndex, i).key(), dirEntry);
                         }
                     }
