@@ -87,17 +87,49 @@ name). From the 1.3 side: data tracks number their 18 sectors from 1; granules
 are 3 sectors, six per track, so a lump is a cylinder; the GAT is in sector 1
 of the directory cylinder (17) and its unused high bits are clear (bytes 0x3F);
 the HIT lists entries in directory order (E2 F0 3C E8 for the first four); the
-directory holds no system files; and the boot track says "TRSDOS version 2.7DD
-Thu May 20, 1982" and "TANDY CORP.", the way 1.3 says "TRSDOS version 1.3".
-From the 2.3 side: 32-byte directory entries with the name at offset 5, and
-extents with the cylinder byte first (`04 21`). Cylinder 0 is single density,
-sectors 0-9, with a boot sector starting `FE`. The NEWDOS/80 Version 2.0 Manual
+directory holds no BOOT/SYS or DIR/SYS (only a few files flagged system, such as
+ULC and BASIC/CMD); and the disk says "TRSDOS version 2.7DD Thu May 20, 1982"
+and "TANDY CORP.", the way 1.3 says "TRSDOS version 1.3". From the 2.3 side:
+32-byte directory entries with the name at offset 5, and extents with the
+cylinder byte first (`04 21`). Cylinder 0 is single density, sectors 0-9, with a
+boot sector starting `FE`. The NEWDOS/80 Version 2.0 Manual
 (ZAP 078, PDF page 235) reads these disks with `SPT=18`, `GPL=6`, `DDSL=17` and
 interface flag M ("TRSDOS Model I 2.3B or higher, or Model III"), and says the
 directory counts cylinder 0 from its first sector as though it were double
 density, so BOOT owns the whole cylinder though only 10 sectors exist; NEWDOS/80
-can read and copy these disks but not format them. Not decoded yet; see
-`FLOPPY_TODO.md`.
+can read and copy these disks but not format them.
+
+Decoded as `TrsdosVersion.V2_7`, from 23 disks in `ira/lk-341-set-1` (the
+`TRSDOS v2.7DD ...`, `TRSDOS v2.7SD ...`, `TRSDOS v2.8DD ...`, `Author I ...` and
+`Auk's Computer Filing System ...` images) plus the three above. What we measured
+beyond the list above:
+
+- The HIT is dense, the same as 1.3's: `hitIndex = sectorIndex *
+  dirEntriesPerSector + entryIndex`. Every HIT byte equals its entry's name hash
+  on all four disks checked entry by entry. It occupies the first 128 bytes of
+  the sector (16 entry sectors of 8); the rest holds a table we don't decode.
+- The extent granule count is stored as is, not minus one as in the 2.3 family
+  (`granuleCountBasis` 0, like 1.3): file sizes fit exactly that way.
+- Dates are 1.3's: the low nibble of byte 1 is the month, byte 2 is the year minus
+  1900, and there is no day. Read the 2.3 way, every day would come out as 10.
+- File size uses the 2.3 rule: the last-sector byte is the size of the last sector,
+  which the sector count includes. `PRTVERF/CMD` on `Author I v1.00 ... [Disk 1 of
+  2]` has 37 sectors and EOF byte 0xCF, and its CMD transfer record ends exactly
+  at 36*256 + 0xCF = 9423 bytes.
+- Entries are 2.3's: 8 per sector, five extents of (cylinder, granule byte) pairs
+  at bytes 22-29, 0xFF ending them, and bytes 30-31 the `FE nn` link to the next
+  entry. There is no "(c) 1980 Tandy" filler, and no system files to count, so
+  the 2.3 rule that fewer than two hash hits means no directory doesn't apply.
+- 2.7SD is the single-density variant (the `TRSDOS v2.7SD` disk and the
+  `Author I` disks): 10 sectors per track numbered from 1, granules of 2 sectors,
+  five per track, and otherwise the same layout.
+- The version banner is on cylinder 1, not on the single-density boot track:
+  "TRSDOS version 2.7DD  Thu May 20, 1982", "TRSDOS version 2.7SD" or "TRSDOS
+  version 2.8.0  Wed Dec 15, 1982". The decoder names the DOS from it.
+
+One disk that doesn't fit: `AUTHOR/CMD` on `Author I v1.00 ... [Disk 1 of 2]` is
+56 sectors with EOF byte 0xF4, which gives 14324 bytes, but its last CMD load
+block is cut short (24 of 260 bytes).
 
 ## Boot sector prefixes
 
@@ -1030,9 +1062,10 @@ For guessing a layout and directory location, strongest first:
    "PROLOGICA 1982" (the Brazilian CP-500's DOS500), "DSORT! (c)85 PEB". So the
    string is sufficient but not necessary: without it, `evaluate()` takes the
    1.3 layout when it has at least one hash hit and at least twice as many hits
-   as misses. The ratio keeps out TRSDOS 2.7DD disks, whose 32-byte entries line
-   up with a 48-byte reading once by chance (1 hit, 1 miss), while `Abacux X`
-   (45 hits, 7 garbage slots) passes.
+   as misses. The ratio keeps TRSDOS 2.7 disks out of the 1.3 layout, since their
+   32-byte entries line up with a 48-byte reading once by chance (1 hit, 1 miss),
+   while `Abacux X` (45 hits, 7 garbage slots) passes. (The 2.7 layout has no
+   filler either, so it takes the same floor.)
 8. **The conventional cylinder** (17 of 35, 20 of 40, 40 of 80).
 
 A directory slot whose first byte has the in-use bit set but whose name isn't

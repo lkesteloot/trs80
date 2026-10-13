@@ -123,8 +123,8 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       Those were machine names in name only: the report's `os.model` field was
       dropped for it (report version 3), and the report's `rejections` entries
       still carry the same label as `model`. The `Trsdos` class itself covers
-      every family, so it may want a broader name too. TRSDOS 2.7DD would be a
-      third family (see "Unresolved disks").
+      every family, so it may want a broader name too. `V2_7` (Tandy's Model I
+      TRSDOS 2.7DD/2.8) is now the third layout, so the enum has three members.
 - [ ] **`TODO` comments in `Trsdos.ts` and `FloppyDisk.ts`** (October 2026):
   - `readFile()` skips a sector it can't read, so everything after it in the
     file shifts. Fill the gap (with zeros, say) so that offsets stay right.
@@ -178,18 +178,6 @@ more.
   matches and nothing decodes. Ira says VDISK reads them, so a disk whose HIT
   matches nothing but whose entries all decode cleanly might deserve a
   fallback that scores the entries without the HIT.
-- Tandy's TRSDOS 2.7DD (`quentin/TRSDOS v2.7DD ...`, `simple/trsdos-2.7-ssmd.dmk`,
-  and its byte-identical copy `difficult/TRSDOS27-Percom-Double-Dos.DSK`, whose
-  "Percom" is wrong): a third layout, mixing TRSDOS 1.3's sector numbering,
-  granules, GAT and HIT with the 2.3 family's 32-byte entries and extents (see
-  "TRSDOS 2.7DD" in `FLOPPY_FORMATS.md`). Neither family reads it: as 1.3 the
-  GAT decodes and passes the strict check, but 1.3 expects 48-byte entries and
-  "(c) 1980 Tandy" in each directory sector; as 2.3 the GAT is looked for in
-  sector 0, which these tracks don't have. Do it as a third family when
-  `TrsdosVersion` becomes a family (see that item). To settle then: whether the
-  extent count is stored minus one, as in the 2.3 family (the directory's file
-  sizes will tell), and treating cylinder 0 as 18 sectors of which only 10
-  exist, as the BOOT/SYS rule in `getFileSectorPositions()` already does.
 
 ## New formats
 

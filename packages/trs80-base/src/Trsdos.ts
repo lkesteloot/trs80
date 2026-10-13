@@ -8,7 +8,7 @@
 
 import {concatByteArrays} from "teamten-ts-utils";
 import {BYTES_PER_SECTOR, Density, FloppyDisk, FloppyDiskGeometry, SectorPosition,} from "./FloppyDisk.js";
-import {toHexByte, word} from "z80-base";
+import {assertNever, toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
@@ -236,6 +236,9 @@ function hashForFilename(filename: string): number {
 export enum TrsdosVersion {
     V2_3,  // TRSDOS 2.3
     V1_3,  // TRSDOS 1.3
+    // Tandy's Model I TRSDOS 2.7DD/2.8 (and 2.7SD): 1.3's geometry with 32-byte entries. See
+    // "Which DOSes share a layout" in FLOPPY_FORMATS.md.
+    V2_7,
 }
 
 /**
@@ -248,6 +251,12 @@ export function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
 
         case TrsdosVersion.V1_3:
             return "Model III";
+
+        case TrsdosVersion.V2_7:
+            return "Model I 2.7";
+
+        default:
+            assertNever(trsdosVersion);
     }
 }
 
@@ -257,10 +266,14 @@ export function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
 function getDirEntryLength(version: TrsdosVersion): number {
     switch (version) {
         case TrsdosVersion.V2_3:
+        case TrsdosVersion.V2_7:
             return 32;
 
         case TrsdosVersion.V1_3:
             return 48;
+
+        default:
+            assertNever(version);
     }
 }
 
@@ -269,7 +282,17 @@ function getDirEntryLength(version: TrsdosVersion): number {
  * first track if it's a dual-boot disk.
  */
 function getFirstSectorNumber(version: TrsdosVersion): number {
-    return version === TrsdosVersion.V1_3 ? 1 : 0;
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            return 0;
+
+        case TrsdosVersion.V1_3:
+        case TrsdosVersion.V2_7:
+            return 1;
+
+        default:
+            assertNever(version);
+    }
 }
 
 /**
@@ -340,17 +363,35 @@ export enum TrsdosProtectionLevel {
  * Gets the string version of the protection level enum.
  */
 export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, version: TrsdosVersion): string {
+    // The names of the levels that differ between the Model I (2.3) and Model II (1.3) lineages.
+    // TRSDOS 2.7 descends from Model II TRSDOS like 1.3 does, so we use 1.3's names for it, but
+    // we haven't confirmed that 2.7 itself uses them.
+    let useModel2Names: boolean;
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            useModel2Names = false;
+            break;
+
+        case TrsdosVersion.V1_3:
+        case TrsdosVersion.V2_7:
+            useModel2Names = true;
+            break;
+
+        default:
+            assertNever(version);
+    }
+
     switch (level) {
         case TrsdosProtectionLevel.FULL:
             return "FULL";
         case TrsdosProtectionLevel.REMOVE:
-            return version === TrsdosVersion.V1_3 ? "REMOVE" : "KILL";
+            return useModel2Names ? "REMOVE" : "KILL";
         case TrsdosProtectionLevel.RENAME:
             return "RENAME";
         case TrsdosProtectionLevel.WRITE:
-            return version === TrsdosVersion.V1_3 ? "WRITE" : "UNUSED";
+            return useModel2Names ? "WRITE" : "UNUSED";
         case TrsdosProtectionLevel.UPDATE:
-            return version === TrsdosVersion.V1_3 ? "UPDATE" : "WRITE";
+            return useModel2Names ? "UPDATE" : "WRITE";
         case TrsdosProtectionLevel.READ:
             return "READ";
         case TrsdosProtectionLevel.EXEC:
@@ -400,7 +441,20 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
                        cylinderFirst: boolean): TrsdosExtent[] | string {
 
     const extents: TrsdosExtent[] = [];
-    const granuleCountBasis = version === TrsdosVersion.V1_3 ? 0 : 1;
+    let granuleCountBasis: number;
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            granuleCountBasis = 1;
+            break;
+
+        case TrsdosVersion.V1_3:
+        case TrsdosVersion.V2_7:
+            granuleCountBasis = 0;
+            break;
+
+        default:
+            assertNever(version);
+    }
 
     for (let i = begin; i < end; i += 2) {
         // 0xFF means end of extents, 0xFE means extension pointer to another directory entry. Either
@@ -475,14 +529,27 @@ export class TrsdosGatInfo {
 
     /**
      * Whether every lump's unused high bits hold what the DOS writes there: set in the 2.3
-     * family and NEWDOS/80, clear in TRSDOS 1.3. This pins down the granules per lump, but some
+     * family and NEWDOS/80, clear in TRSDOS 1.3 and 2.7. This pins down the granules per lump, but some
      * formatters leave the bits clear and a damaged GAT fails it, so it's a preference among
      * candidates, not a requirement.
      */
     public hasValidHighBits(granulesPerLump: number, lumpCount: number, version: TrsdosVersion): boolean {
         // The mask for the unused bits in the GAT, and the value we expect to see there.
         const mask = (0xFF << granulesPerLump) & 0xFF;
-        const expectedValue = version === TrsdosVersion.V1_3 ? 0x00 : mask;
+        let expectedValue: number;
+        switch (version) {
+            case TrsdosVersion.V2_3:
+                expectedValue = mask;
+                break;
+
+            case TrsdosVersion.V1_3:
+            case TrsdosVersion.V2_7:
+                expectedValue = 0x00;
+                break;
+
+            default:
+                assertNever(version);
+        }
 
         for (let lump = 0; lump < lumpCount; lump++) {
             // The GAT holds at most a sector's worth of lumps, so a candidate with more is wrong.
@@ -563,7 +630,7 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
  * The Hash Allocation Table sector info.
  */
 export class TrsdosHitInfo {
-    // 80 bytes for Model III, 256 bytes for Models 1 and 4:
+    // 80 bytes for Model III, 128 bytes for Model I 2.7, 256 bytes for Models 1 and 4:
     public readonly hit: Uint8Array;
     // Model III only:
     public readonly systemFiles: TrsdosExtent[];
@@ -579,12 +646,30 @@ export class TrsdosHitInfo {
  */
 function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosHitInfo | string {
     // One byte for each file.
-    const hit = binary.subarray(0, version === TrsdosVersion.V1_3 ? 80 : 256);
+    let hitLength: number;
+    // There are 16 extents to read for the system files in 1.3.
+    let systemFiles: TrsdosExtent[] | string;
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            hitLength = 256;
+            systemFiles = [];
+            break;
 
-    // There are 16 extents to read for the system files.
-    const systemFiles = version === TrsdosVersion.V1_3
-        ? decodeExtents(binary, 0xE0, binary.length, geometry, version, false)
-        : [];
+        case TrsdosVersion.V1_3:
+            hitLength = 80;
+            systemFiles = decodeExtents(binary, 0xE0, binary.length, geometry, version, false);
+            break;
+
+        case TrsdosVersion.V2_7:
+            // Up to 16 entry sectors of 8 entries. The rest of the sector holds a table we don't decode.
+            hitLength = 128;
+            systemFiles = [];
+            break;
+
+        default:
+            assertNever(version);
+    }
+    const hit = binary.subarray(0, hitLength);
     if (typeof systemFiles === "string") {
         return "system files: " + systemFiles;
     }
@@ -755,9 +840,23 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     public getSize(): number {
         let size = this.sectorCount*BYTES_PER_SECTOR + this.lastSectorSize;
 
-        // On model 1/4, the last sector size byte represents the size of the last sector. On model 3 it's
-        // in addition to the sector count.
-        if (this.version !== TrsdosVersion.V1_3 && this.lastSectorSize > 0) {
+        // On model 1/4 (and 2.7), the last sector size byte represents the size of the last sector, which is
+        // counted in the sector count. On model 3 it's in addition to the sector count.
+        let lastSectorIsCounted: boolean;
+        switch (this.version) {
+            case TrsdosVersion.V2_3:
+            case TrsdosVersion.V2_7:
+                lastSectorIsCounted = true;
+                break;
+
+            case TrsdosVersion.V1_3:
+                lastSectorIsCounted = false;
+                break;
+
+            default:
+                assertNever(this.version);
+        }
+        if (lastSectorIsCounted && this.lastSectorSize > 0) {
             size -= BYTES_PER_SECTOR;
         }
 
@@ -831,8 +930,24 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     // binary[1] has a few extra bits on Model 1/4 that we don't care about.
 
     // Date info.
-    const day = version === TrsdosVersion.V1_3 ? 0 : binary[2] >> 3;
-    const year = version === TrsdosVersion.V1_3 ? binary[2] + 1900 : (binary[2] & 0x07) + 1980;
+    let day: number;
+    let year: number;
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            day = binary[2] >> 3;
+            year = (binary[2] & 0x07) + 1980;
+            break;
+
+        case TrsdosVersion.V1_3:
+        case TrsdosVersion.V2_7:
+            // No day, and the year is the whole byte minus 1900.
+            day = 0;
+            year = binary[2] + 1900;
+            break;
+
+        default:
+            assertNever(version);
+    }
 
     // Number of bytes on last sector.
     const lastSectorSize = binary[3];
@@ -848,7 +963,20 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     const sectorCount = word(binary[21], binary[20]);
 
     // Number of extents listed in the directory entry.
-    const extentsCount = version === TrsdosVersion.V1_3 ? 13 : 5;
+    let extentsCount: number;
+    switch (version) {
+        case TrsdosVersion.V2_3:
+        case TrsdosVersion.V2_7:
+            extentsCount = 5;
+            break;
+
+        case TrsdosVersion.V1_3:
+            extentsCount = 13;
+            break;
+
+        default:
+            assertNever(version);
+    }
 
     // Byte offsets.
     const extentsStart = 22;
@@ -859,8 +987,22 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
         return extents;
     }
 
-    // On model 1/4 bytes 30 and 31 point to extended directory entry, if any.
-    const nextDec = !(version === TrsdosVersion.V1_3) && binary[30] === 0xFE ? binary[31] : undefined;
+    // On model 1/4 (and 2.7) bytes 30 and 31 point to extended directory entry, if any.
+    let hasNextDecLink: boolean;
+    switch (version) {
+        case TrsdosVersion.V2_3:
+        case TrsdosVersion.V2_7:
+            hasNextDecLink = true;
+            break;
+
+        case TrsdosVersion.V1_3:
+            hasNextDecLink = false;
+            break;
+
+        default:
+            assertNever(version);
+    }
+    const nextDec = hasNextDecLink && binary[30] === 0xFE ? binary[31] : undefined;
 
     return new TrsdosDirEntry(version, flags, day, month, year, lastSectorSize, lrl, filename, updatePassword,
         accessPassword, sectorCount, prevDec, nextDec, extents);
@@ -1162,14 +1304,32 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             }
         }
 
-        if (this.version === TrsdosVersion.V2_3 && hashHits < 2) {
-            // Even blank disks have DIR/SYS and BOOT/SYS.
-            return { score: -1, reason: "Didn't find required system files" };
-        }
-        // Without Tandy's filler, take the 1.3 layout only if the hashes clearly favor it. Reading
-        // a TRSDOS 2.7DD directory (32-byte entries) as 1.3 lines up one entry by chance.
-        if (this.version === TrsdosVersion.V1_3 && !hasTandyFiller && (hashHits === 0 || hashHits < 2*hashMisses)) {
-            return { score: -1, reason: `No "${EXPECTED_TANDY}" filler, and hashes don't vouch for the layout` };
+        // Whether the hashes clearly favor this layout. Without Tandy's filler, the 1.3 layout needs
+        // this: reading a TRSDOS 2.7DD directory (32-byte entries) as 1.3 lines up one entry by chance.
+        // The 2.7 layout has no filler to fall back on, and no system files in its directory.
+        const hashesVouch = hashHits > 0 && hashHits >= 2*hashMisses;
+        switch (this.version) {
+            case TrsdosVersion.V2_3:
+                if (hashHits < 2) {
+                    // Even blank disks have DIR/SYS and BOOT/SYS.
+                    return { score: -1, reason: "Didn't find required system files" };
+                }
+                break;
+
+            case TrsdosVersion.V1_3:
+                if (!hasTandyFiller && !hashesVouch) {
+                    return { score: -1, reason: `No "${EXPECTED_TANDY}" filler, and hashes don't vouch for the layout` };
+                }
+                break;
+
+            case TrsdosVersion.V2_7:
+                if (!hashesVouch) {
+                    return { score: -1, reason: "Hashes don't vouch for the layout" };
+                }
+                break;
+
+            default:
+                assertNever(this.version);
         }
 
         // Files whose extents hold fewer sectors than their size needs. Reading a disk with granules
@@ -1223,8 +1383,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 return (dirEntryIndex << 5) | sectorIndex;
 
             case TrsdosVersion.V1_3:
-                // If you change this, update hitNumberToDirEntry().
+            case TrsdosVersion.V2_7:
+                // Dense, with no reserved slots. If you change this, update hitNumberToDirEntry().
                 return sectorIndex * this.dirEntriesPerSector + dirEntryIndex;
+
+            default:
+                assertNever(this.version);
         }
     }
 
@@ -1263,11 +1427,15 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 break;
 
             case TrsdosVersion.V1_3:
+            case TrsdosVersion.V2_7:
                 // These are laid out continuously.
                 // If you change this, update dirEntryToHitNumber().
                 sectorIndex = Math.floor(hitIndex / this.dirEntriesPerSector);
                 dirEntryIndex = hitIndex % this.dirEntriesPerSector;
                 break;
+
+            default:
+                assertNever(this.version);
         }
 
         return new DirEntryPosition(sectorIndex, dirEntryIndex);
@@ -1455,6 +1623,24 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
+     * The contents of the sectors on lump 1 (cylinder 1, since a lump is a cylinder in the layouts
+     * that use this), as text with one character per byte. Tandy's 2.7DD/2.8 puts its version banner
+     * there, in the second stage of its boot loader.
+     */
+    private getFirstDataCylinderText(): string {
+        let text = "";
+        for (let sectorOffset = 0; sectorOffset < this.sectorsPerLump; sectorOffset++) {
+            const sectorPosition = this.logicalToPhysical(1, 0, sectorOffset);
+            const data = this.disk.readSector(sectorPosition)?.data;
+            if (data !== undefined) {
+                text += bytesToText(data);
+            }
+        }
+
+        return text;
+    }
+
+    /**
      * Decide the name and version of the DOS that wrote the disk, from what the disk says about
      * itself.
      */
@@ -1466,10 +1652,26 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
         const bootTrack = this.disk.getBootTrackText();
 
-        // Model III TRSDOS names its version on the boot track.
-        if (this.version === TrsdosVersion.V1_3) {
-            const match = bootTrack.match(/version (1\.\d)/);
-            return match === null ? "TRSDOS 1.x" : `TRSDOS ${match[1]}`;
+        switch (this.version) {
+            case TrsdosVersion.V2_3:
+                // Check the many DOSes that use this layout below.
+                break;
+
+            case TrsdosVersion.V1_3: {
+                // Model III TRSDOS names its version on the boot track.
+                const match = bootTrack.match(/version (1\.\d)/);
+                return match === null ? "TRSDOS 1.x" : `TRSDOS ${match[1]}`;
+            }
+
+            case TrsdosVersion.V2_7: {
+                // System disks name their version, such as "TRSDOS version 2.7DD", "2.7SD" or "2.8.0".
+                // The text isn't on the single-density boot track (cylinder 0) but on cylinder 1.
+                const match = this.getFirstDataCylinderText().match(/TRSDOS version (2\.\d[\w.]*)/);
+                return match === null ? "TRSDOS 2.7" : `TRSDOS ${match[1]}`;
+            }
+
+            default:
+                assertNever(this.version);
         }
 
         // A banner only counts if its DOS could have written this layout: lumps that aren't whole
@@ -1791,6 +1993,29 @@ function generateTrsdos13Candidates(disk: FloppyDisk): Trsdos[] {
     return candidates;
 }
 
+/**
+ * Generate the candidates for Tandy's Model I TRSDOS 2.7DD/2.8 layout: 1.3's geometry (sectors
+ * numbered from 1, granules of 2 sectors in single density and 3 in double, one side, a lump
+ * is a cylinder) with 2.3-style 32-byte entries. Every cylinder is a possible directory.
+ */
+function generateTrsdos27Candidates(disk: FloppyDisk): Trsdos[] {
+    const candidates: Trsdos[] = [];
+
+    const version = TrsdosVersion.V2_7;
+    const geometry = disk.getGeometry();
+    const allocationSides = 1;
+    const density = geometry.modalDataDensity;
+    const sectorsPerGranule = density === Density.SINGLE ? 2 : 3;
+    const granulesPerLump = Math.floor(geometry.modalDataSectorSpan / sectorsPerGranule) * allocationSides;
+
+    for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
+        candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+            dirLumpNumber, granulesPerLump, 0));
+    }
+
+    return candidates;
+}
+
 function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
     const candidates: Trsdos[] = [];
 
@@ -1832,6 +2057,7 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
     const candidates: Trsdos[] = [
         ... generateTrsdos23Candidates(disk),
         ... generateTrsdos13Candidates(disk),
+        ... generateTrsdos27Candidates(disk),
         ... generateNewdos80Candidates(disk),
     ];
 
