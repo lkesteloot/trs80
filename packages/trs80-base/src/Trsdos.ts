@@ -526,7 +526,11 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
     const date = decodeAscii(binary.subarray(0xD8, 0xE0));
 
     // This is only before version 6. At 6 they moved this elsewhere and put other things here that we ignore.
-    const autoCommand = decodeAscii(binary.subarray(0xE0));
+    // Most DOSes end it with 0x0D, but DOSPLUS 3.x ends it with 0x03, and some disks leave the
+    // 0xFF filler of an unused field.
+    const autoCommandBinary = binary.subarray(0xE0);
+    const autoCommandEnd = autoCommandBinary.findIndex(b => b === 0x03 || b === 0xFF);
+    const autoCommand = decodeAscii(autoCommandEnd === -1 ? autoCommandBinary : autoCommandBinary.subarray(0, autoCommandEnd));
 
     // Implies that this is not a TRSDOS disk.
     if (name === undefined) {
@@ -1023,6 +1027,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             return { score: -1, reason: gatInfo };
         }
 
+        // Whether at least half the directory sectors carry Tandy's filler string, which marks a
+        // 1.3 directory even when it holds no files.
+        let hasTandyFiller = false;
+
         // Check directory sectors for magic string.
         if (CHECK_EXPECTED_TANDY && this.version === TrsdosVersion.V1_3) {
             let totalDirSectors = 0;
@@ -1048,10 +1056,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
             // I've seen floppies missing this in some sectors, so as long as at least half
             // the sectors have it, we can be pretty sure that this was at least originally
-            // a Model 3 disk.
-            if (dirSectorsWithTandy < totalDirSectors / 2) {
-                return { score: -1, reason: `Got "${EXPECTED_TANDY}" on too few sectors (${dirSectorsWithTandy} of ${totalDirSectors})` };
-            }
+            // a Model 3 disk. Disks written by other tools and DOSes have other filler (zeros,
+            // spaces, their own notices), so without it the hashes must vouch for the layout.
+            hasTandyFiller = dirSectorsWithTandy >= totalDirSectors / 2;
         }
 
         // Make sure HIT can be read and parsed.
@@ -1084,8 +1091,14 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
-                        // Not a TRSDOS disk.
-                        return {score: -1, reason: dirEntry};
+                        // A slot marked in use whose name or extents are garbage isn't a file. Count
+                        // it as a miss rather than rejecting the candidate, since real directories
+                        // have these too; a wrong candidate still loses by reading mostly garbage.
+                        // As elsewhere, a slot the HIT doesn't list is no evidence either way.
+                        if (hitHash !== 0) {
+                            hashMisses += 1;
+                        }
+                        continue;
                     }
                     if (dirEntry !== undefined) {
                         // Don't record deleted entries.
@@ -1152,6 +1165,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         if (this.version === TrsdosVersion.V2_3 && hashHits < 2) {
             // Even blank disks have DIR/SYS and BOOT/SYS.
             return { score: -1, reason: "Didn't find required system files" };
+        }
+        // Without Tandy's filler, take the 1.3 layout only if the hashes clearly favor it. Reading
+        // a TRSDOS 2.7DD directory (32-byte entries) as 1.3 lines up one entry by chance.
+        if (this.version === TrsdosVersion.V1_3 && !hasTandyFiller && (hashHits === 0 || hashHits < 2*hashMisses)) {
+            return { score: -1, reason: `No "${EXPECTED_TANDY}" filler, and hashes don't vouch for the layout` };
         }
 
         // Files whose extents hold fewer sectors than their size needs. Reading a disk with granules

@@ -1023,7 +1023,16 @@ For guessing a layout and directory location, strongest first:
    (manual, page 189). TRSDOS 6 marks the whole directory cylinder with 0xF8
    and relies on it to notice a changed disk (*Programmer's Guide*, page 45).
 7. **The "(c) 1980 Tandy" string:** on all sixteen directory sectors of every
-   1.3 disk, and on 0 of 16 for everything else.
+   1.3 disk Tandy's TRSDOS wrote, and on 0 of 16 for everything else. Not every
+   1.3-layout disk has it, though: about 40 in `ira/lk-341-set-1` have zeros
+   (`Alcor C`, whose disk name is TRS80DSK 03/10/22, so written by a modern
+   tool), spaces, or another notice: " A BRAND X DISK ", "(c) 1980 Pirates",
+   "PROLOGICA 1982" (the Brazilian CP-500's DOS500), "DSORT! (c)85 PEB". So the
+   string is sufficient but not necessary: without it, `evaluate()` takes the
+   1.3 layout when it has at least one hash hit and at least twice as many hits
+   as misses. The ratio keeps out TRSDOS 2.7DD disks, whose 32-byte entries line
+   up with a 48-byte reading once by chance (1 hit, 1 miss), while `Abacux X`
+   (45 hits, 7 garbage slots) passes.
 8. **The conventional cylinder** (17 of 35, 20 of 40, 40 of 80).
 
 A directory slot whose first byte has the in-use bit set but whose name isn't
@@ -1032,7 +1041,15 @@ thousands and extents pointing at cylinders up to 252 (`Abacux X`, `102A -
 Foibles`, `MLTDOS4P`). Count them as misses rather than rejecting the whole
 candidate: `Abacux X` has 45 good hashes and 8 garbage slots, while a wrong
 candidate, such as reading file data on side 1 of `dospls34`'s directory
-cylinder, still loses because it reads mostly garbage.
+cylinder, still loses because it reads mostly garbage. (This note predates the
+code: `evaluate()` rejected the candidate until October 2026, when following it
+decoded RAPIDOS 2.0, NEWDOS-86, TRSDOS 6.2 and LOAD-80 disks in
+`ira/lk-341-set-1`.)
+
+**The GAT's AUTO command doesn't always end in 0x0D.** DOSPLUS 3.x ends it with
+0x03 (`Micro-80 Bulletin Board System`, `VersaReceivables`, the `Electric
+Pencil` disks), and `Le Script` leaves the field 0xFF. Rejecting the GAT for
+those lost every candidate on those disks.
 
 A blank 2.3-family disk usually offers at least one matching hash, but not
 always two: TRSDOS 2.x's DIR/SYS hash is wrong (see the HIT, and accepting
