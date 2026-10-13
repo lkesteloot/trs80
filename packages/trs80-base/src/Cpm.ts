@@ -111,6 +111,19 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         blockSize: 1024,
         dirEntryCount: 64,
     },
+    // Holmes Engineering CP/M 2.2 for the Model I with the VID-80 board, verified against
+    // the DPB that PROBE printed. Double density, 10 sectors of 512 bytes numbered from 0,
+    // and no skew (measured from the files). AL0 reserves 4 blocks, twice what the directory
+    // needs, because the system spills from track 0 into blocks 2 and 3.
+    {
+        name: "Holmes Engineering",
+        sectorSizes: [512],
+        firstSectorNumber: 0,
+        skew: 1,
+        reservedTrackCounts: [1],
+        blockSize: 1024,
+        dirEntryCount: 64,
+    },
 ];
 
 /**
