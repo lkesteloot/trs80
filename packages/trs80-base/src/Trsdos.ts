@@ -791,12 +791,32 @@ export class TrsdosDirEntry implements FloppyDirEntry {
 /**
  * Decodes a directory entry from a 32- or 48-byte chunk, undefined if the directory entry is not active,
  * or a decoding error.
+ *
+ * @param hitHash the entry's HIT byte, or undefined if unknown. Used to tell a primary entry with
+ * its extended-entry bit set from a real extended entry.
  */
-function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosDirEntry | undefined | string {
-    const flags = binary[0];
+function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion,
+                        hitHash: number | undefined): TrsdosDirEntry | undefined | string {
+
+    let flags = binary[0];
     if ((flags & 0x10) === 0) { // TODO merge with isActive().
         // Don't parse an inactive entry, it might be corrupted.
         return undefined;
+    }
+
+    const filename = decodeAscii(binary.subarray(5, 16));
+    if (filename === undefined) {
+        return "can't decode directory entry filename";
+    }
+
+    // Some MultiDOS disks set the extended-entry bit on every entry, presumably to hide the
+    // files from DIR and COPY, though the DOS still finds them through the HIT. An extended
+    // entry has no name of its own, and its HIT byte is its primary entry's hash, so an entry
+    // whose own non-blank name matches its HIT byte is a primary entry.
+    const isPrimaryWithExtendedBit = version === TrsdosVersion.V2_3 && (flags & 0x80) !== 0 &&
+        hitHash !== undefined && filename.trim() !== "" && hashForFilename(filename) === hitHash;
+    if (isPrimaryWithExtendedBit) {
+        flags &= 0x7F;
     }
 
     // DEC to previous entry, if we're an extended entry.
@@ -815,11 +835,6 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
 
     // Logical record length.
     const lrl = ((binary[4] - 1) & 0xFF) + 1; // 0 -> 256.
-
-    const filename = decodeAscii(binary.subarray(5, 16));
-    if (filename === undefined) {
-        return "can't decode directory entry filename";
-    }
 
     // Password hashes, little endian.
     const updatePassword = word(binary[17], binary[16]);
@@ -1064,7 +1079,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             if (dirSector !== undefined) {
                 for (let i = 0; i < this.dirEntriesPerSector; i++) {
                     const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
-                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
+                    const index = this.dirEntryToHitNumber(sectorIndex, i);
+                    const hitHash = hitInfo.hit[index];
+                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
                         // Not a TRSDOS disk.
@@ -1072,8 +1089,6 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     }
                     if (dirEntry !== undefined) {
                         // Don't record deleted entries.
-                        const index = this.dirEntryToHitNumber(sectorIndex, i);
-                        const hitHash = hitInfo.hit[index];
                         // An entry with an empty HIT slot is a leftover the DOS can't reach, not a
                         // file, so it's no evidence either way, and its extents can be anything.
                         if (hitHash === 0) {
@@ -1342,14 +1357,15 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             if (dirSector !== undefined) {
                 for (let i = 0; i < this.dirEntriesPerSector; i++) {
                     const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
-                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
+                    const hitIndex = this.dirEntryToHitNumber(sectorIndex, i);
+                    const hitHash = typeof hitInfo === "string" ? undefined : hitInfo.hit[hitIndex];
+                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
                         // TODO what to do with this error? Abort this method?
                     } else if (dirEntry !== undefined) {
                         // Don't record deleted entries, or ones the HIT doesn't list.
-                        const hitIndex = this.dirEntryToHitNumber(sectorIndex, i);
-                        const unreachable = typeof hitInfo !== "string" && hitInfo.hit[hitIndex] === 0;
+                        const unreachable =typeof hitInfo !== "string" && hitInfo.hit[hitIndex] === 0;
                         if (!unreachable) {
                             // Entries with blank names (see evaluate()): restore a system file's name
                             // if its slot and HIT byte confirm it. Name any other one BLANK<n>, since a

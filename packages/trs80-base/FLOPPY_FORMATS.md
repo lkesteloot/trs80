@@ -687,6 +687,16 @@ Where they differ:
   outright that the count is the number of granules less one, which settles the
   handbook's contradiction (see "NEWDOS/80 lumps").
 - **An FXDE** uses only bytes 0, 1 and 22-31 (bits 7 and 4 of byte 0 set).
+- **Bit 7 on a primary entry.** Four Sunburst disks for the Model III (`Thinking
+  Skills`, `Teasers by Tobbs`, and both copies of `WhatsIt Corporation`) use a
+  MultiDOS whose system files are dated 08/82 and 01/83 (`DOSRES/sys`, `INTERP/sys`,
+  `OPEN/sys` and others, with a directory file named `Index`). Every entry on them has
+  bit 7 set: 0xFF on the system files, 0xBE on BASIC/CMD, 0xB0 on the user files.
+  They're primary entries all the same: each name hashes to its HIT byte, and byte 1
+  holds a month with a plausible date in byte 2, where an FXDE has a DEC. Presumably
+  the bit hides the files from DIR and COPY while the DOS still finds them through
+  the HIT. `decodeDirEntry()` clears the bit when the entry's own non-blank name
+  matches its HIT byte; no FXDE elsewhere in the collection matches that way.
 - **Deleting a file** clears bit 4 of byte 0 and the HIT byte and frees the
   granules, leaving the rest of the entry intact. A HIT byte of 0 means a free
   slot in every one of these DOSes.
