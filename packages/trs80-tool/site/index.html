@@ -452,7 +452,7 @@ C CRC error (ID or data).
                     you boot from a disk you just mounted.</li>
                 <li><code>load_basic</code> — put a Basic listing straight into memory on the stock ROM,
                     much faster than typing it.</li>
-                <li><code>type</code> — type text at the keyboard, waiting until the ROM has taken every key.</li>
+                <li><code>type</code> — type text at the keyboard, waiting until the ROM or DOS has taken every key.</li>
                 <li><code>key</code> — press or release a single key and leave it that way, for
                     programs that care whether a key is held down.</li>
                 <li><code>run</code> — run for a number of clock cycles or emulated seconds.</li>
@@ -508,6 +508,15 @@ C CRC error (ID or data).
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+
+            <h3 id="2026-10-13">October 13, 2026</h3>
+            <ul>
+                <li>Typed and pasted text gets through DOS keyboard drivers that check a key
+                    twice before taking it, like Model I TRSDOS 2.8’s, so the MCP
+                    <code>type</code> tool works at its <code>TRSDOS Ready</code> prompt. Keys
+                    typed while a DOS is busy loading from disk wait for it instead of
+                    being lost.</li>
+            </ul>
 
             <h3 id="2026-10-12">October 12, 2026</h3>
             <ul>

@@ -73,7 +73,7 @@ const SERVER_INSTRUCTIONS = [
     "interactively: boot, look at the screen, act, look again. Times are in t-states",
     "(Z80 clock cycles), which are exact and reproducible.",
     "",
-    "Things that trip people up: the keyboard only takes about 20 characters per emulated",
+    "Things that trip people up: the keyboard only takes about 15 characters per emulated",
     "second (\"type\" waits for that), so on the stock ROM use load_basic, which puts a",
     "listing straight into memory. (boot answers the stock ROM's startup questions itself:",
     "Memory Size?, and Cass? too on the Model III and 4, which are the only ones that ask it.)",
@@ -382,7 +382,7 @@ class Machine {
 
     /**
      * Run until the ROM has taken every queued key, or maxCycles pass. The keyboard
-     * hands over one key event every 50,000 t-states, and only when the ROM polls,
+     * holds each key event until the machine reads its row, and for a while after,
      * so this is the only reliable way to know typing is finished. Returns whether
      * the queue emptied.
      */
@@ -658,8 +658,9 @@ const TOOLS: Record<string, Tool> = {
 
 TOOLS["type"] = {
     description: "Type text at the keyboard, as if a person did. Runs the machine until the ROM " +
-        "has taken every keystroke (it accepts about 20 characters per emulated second), then " +
-        "a short settle so it can act on the last one. Use \\n for Enter.",
+        "or DOS has taken every keystroke (about 15 characters per emulated second), then " +
+        "a short settle so it can act on the last one. Each key waits until the machine next " +
+        "scans the keyboard, so keys typed while a DOS is busy aren't lost. Use \\n for Enter.",
     inputSchema: {
         type: "object",
         properties: {
@@ -676,10 +677,10 @@ TOOLS["type"] = {
         const text = args.text.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
         m.keyboard.simulateKeyboardText(text);
 
-        // The keyboard hands the ROM one key event every 50,000 t-states, and only
-        // when the ROM polls, so any fixed settle time is a guess. Guess too short and
-        // the leftover keys leak into whatever you do next. Instead run until the
-        // queue is empty.
+        // The keyboard holds each key event until the machine reads its row, and for
+        // a while after, so any fixed settle time is a guess. Guess too short and the
+        // leftover keys leak into whatever you do next. Instead run until the queue
+        // is empty.
         const start = m.tStateCount;
         m.drainKeyboard(Math.round((args.maxSeconds ?? 60)*m.clockHz));
         const typing = m.tStateCount - start;
