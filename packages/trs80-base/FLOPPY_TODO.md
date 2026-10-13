@@ -181,6 +181,11 @@ more.
   matches and nothing decodes. Ira says VDISK reads them, so a disk whose HIT
   matches nothing but whose entries all decode cleanly might deserve a
   fallback that scores the entries without the HIT.
+- About 20 one-off disks in `ira/` (tagged `unresolved`), some probably
+  copy-protected, left alone in October 2026. Their sidecars record what we
+  measured (geometry, boot-sector prefix). Two small groups there might share
+  a cause if anyone looks: the three Super Directory disks (two with
+  MultiDOS's `01 82` prefix) and the two NEWDOS-86 utility disks.
 
 ## New formats
 
