@@ -1,3 +1,4 @@
+import {ModelType} from "./Config.js";
 
 // Handle keyboard mapping. The TRS-80 Model III keyboard has keys in different
 // places, so we must occasionally fake a Shift key being up or down when it's
@@ -160,6 +161,15 @@ export class Keyboard {
     // 8 bytes, each a bitfield of keys currently pressed.
     private keys = new Uint8Array(8);
     private shiftForce = ShiftState.NEUTRAL;
+    private modelType = ModelType.MODEL3;
+
+    /**
+     * Tell the keyboard which model it's attached to. This only affects
+     * {@link simulateKeyboardText()}. The machine calls this whenever its config changes.
+     */
+    public setModelType(modelType: ModelType): void {
+        this.modelType = modelType;
+    }
 
     // Release all keys.
     public clearKeyboard(): void {
@@ -228,12 +238,27 @@ export class Keyboard {
     }
 
     /**
-     * Simulate this text being entered by the user.
+     * Simulate this text being entered by the user, so that the characters in the string
+     * appear on the screen.
+     *
+     * The key map treats a capital letter as Shift plus the letter and a lowercase letter as the
+     * letter alone, as on the Model III and 4. On a Model I it's the other way around: an unshifted
+     * letter is a capital and Shift gives lowercase. Level II BASIC folds case so it doesn't care,
+     * but the DOS keyboard drivers don't, and TRSDOS 2.3 answers WHAT? to "dir". So on a Model I we
+     * swap the case of ASCII letters here. {@link keyEvent()} and the key map are unchanged:
+     * keys that come from a host keyboard are physical keys and are passed through as they are.
      */
     public simulateKeyboardText(text: string): void {
+        const swapCase = this.modelType === ModelType.MODEL1;
         for (let ch of text) {
             if (ch === "\n" || ch === "\r") {
                 ch = "Enter";
+            } else if (swapCase) {
+                if (ch >= "a" && ch <= "z") {
+                    ch = ch.toUpperCase();
+                } else if (ch >= "A" && ch <= "Z") {
+                    ch = ch.toLowerCase();
+                }
             }
             this.keyEvent(ch, true);
             this.keyEvent(ch, false);

@@ -37,8 +37,6 @@ No XSS found: user data always goes through `innerText`/`textContent`.
     the way xtrs does it.
   - [ ] A blank, unformatted DMK can't be mounted, because the decoder rejects disks with no
     boot track (since 1d24cf7), so it can't be formatted either.
-  - [ ] Formatting a JV1 disk fails the DOS's verify on cylinder 17, because the JV1 reader
-    marks every sector there as deleted (for TRSDOS 2.3's directory).
 - [ ] **Assembler, [Asm.ts](packages/z80-asm/src/Asm.ts):**
   - [ ] **It silently produces wrong code (confirmed).** If a label moves between passes,
     forward references keep the pass-1 address. This:
@@ -60,12 +58,6 @@ No XSS found: user data always goes through `innerText`/`textContent`.
 
 ## Medium
 
-- [ ] On a Model I, the floppy controller's INTRQ doesn't reach the expansion interface's
-  interrupt latch. xtrs sets bit 6 of 0x37E0 and raises INT, and clears it when INTRQ drops.
-  Here INTRQ only sets an NMI latch bit, which the Model I never unmasks, so 0x37E0 only ever
-  shows the timer (`interruptLatchRead()` in
-  [Trs80.ts](packages/trs80-emulator/src/Trs80.ts)). Check against the Model I technical
-  manual before wiring it up, and boot the Model I DOSes in the regression suite afterwards.
 - [ ] EI doesn't delay interrupts by one instruction
   ([GenerateOpcodes.ts:1046](packages/z80-emulator/opcodes/GenerateOpcodes.ts:1046) has a
   TODO).
@@ -95,9 +87,28 @@ No XSS found: user data always goes through `innerText`/`textContent`.
 
 ## Nits
 
-- [ ] On a Model I booted from TRSDOS 2.3 (`trsdos-2.3-sssd-1.dmk` in the regression suite),
-  commands typed through `Keyboard.simulateKeyboardText()`, even `DIR`, get "WHAT?". Not
-  investigated; LDOS on the Model III takes typed commands fine.
 - [ ] NMI takes 13 T-states instead of 11
   ([Z80.ts:200](packages/z80-emulator/src/Z80.ts:200)).
 - [ ] `decodeTrsdosWithRejections` always returns an empty list, but `info --json` reports it.
+
+## Model I compatibility
+
+Only a stock Model I: Level I or Level II, the expansion interface, and single-density
+floppies. Add-ons like doublers are out of scope here (the doubler gap is under "Floppy
+controller gaps" above). One disk per Model I DOS in the floppy regression suite boots
+headlessly to its prompt: TRSDOS 2.0 to 2.3, NEWDOS 2.1 to 3.0, NEWDOS/80 1.1, NEWDOS/90, LDOS
+5.0.1 to 5.3.1, DOSPLUS 3.1 and 3.2.1, UltraDOS 4.2, VTOS 3.0.1 and 4.0.1, DoubleDOS 4.2, and
+Lifeboat CP/M 1.4.
+
+- [ ] Not investigated: `StarTrek-NEWDOS80.dsk` says "NO SYS", and `peter/Col 2 - 038` says
+  "ERROR". They may not be bootable disks.
+- [ ] `ldos-5.1.4-sssd.dmk` with the original character generator prints "LDOS R%!$9" (its
+  "Ready" in lowercase, without bit 6). With the lowercase generator it prints "LDOS Ready".
+  Other LDOS versions detect the missing modification, so this disk may have been configured
+  for lowercase. Check whether real hardware does the same.
+- [ ] Emulators disagree on what the other six bits of the interrupt latch at 0x37E0 read as.
+  Here they read 0, as in xtrs. Check against the Model I technical manual.
+- [ ] JV1 has nowhere to store data address marks, so the marks written since a JV1 disk was
+  loaded are only remembered in memory (`Jv1FloppyDisk`). After the disk is saved and reloaded,
+  cylinder 17 is deleted again and every other cylinder is normal, so a directory that LDOS put
+  elsewhere loses its deleted marks.

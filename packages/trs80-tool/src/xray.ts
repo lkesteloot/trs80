@@ -160,8 +160,11 @@ export function connectXray(trs80: Trs80, keyboard: Keyboard, config: Config): v
                         break;
 
                     case "soft_reset":
+                        trs80.pressResetButton();
+                        break;
+
                     case "hard_reset":
-                        trs80.reset(); // TODO handle soft/hard distinction.
+                        trs80.reset();
                         break;
 
                     case "key_event": {

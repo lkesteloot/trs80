@@ -443,8 +443,8 @@ C CRC error (ID or data).
             <ul>
                 <li><code>boot</code> — start a machine, either with the stock Basic ROM or with a
                     <code>.cmd</code> file that replaces the ROM. On the stock ROM it answers the
-                    <code>Cass?</code> and <code>Memory Size?</code> questions and waits for
-                    <code>READY</code>.</li>
+                    <code>Memory Size?</code> question, and <code>Cass?</code> too on the Model III
+                    and 4 (the Model I doesn’t ask it), and waits for <code>READY</code>.</li>
                 <li><code>load_program</code> — load and start a program file on the running machine.</li>
                 <li><code>mount_disk</code> — put a floppy disk image in a numbered drive, without
                     rebooting, for programs that need more than one disk.</li>
@@ -511,6 +511,16 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-12">October 12, 2026</h3>
             <ul>
+                <li>The emulator is closer to a stock Model I. With the original character
+                    generator, video memory loses bit 6 as on the real machine, so LDOS no longer
+                    thinks the lowercase modification is installed. Typed text reaches a Model I
+                    DOS in the right case. The floppy controller interrupts through the expansion
+                    interface, the reset button and HALT go to the ROM’s NMI handler, and the I/O
+                    ports and printer addresses match the Model I. LDOS can format a JV1 disk.
+                    Model I screens show correctly in the MCP <code>screen</code> and
+                    <code>screenshot</code> tools and in saved screenshots.</li>
+                <li>My TRS-80: Choosing the Model III or 4 in the settings panel resets the
+                    character generator to lower case.</li>
                 <li><code>trs80-tool</code> v3.4.1: Clip CP/M text files at their Ctrl-Z, with
                     a new <code>--cpm-records</code> flag to keep whole records. Improve
                     support for Montezuma and Holmes Engineering CP/M.</li>

@@ -1,11 +1,11 @@
 import {describe, expect, it} from "vitest";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 import {CassettePlayer} from "./CassettePlayer.js";
-import {Config} from "./Config.js";
+import {Config, ModelType} from "./Config.js";
 import {Keyboard} from "./Keyboard.js";
 import {SilentSoundPlayer} from "./SoundPlayer.js";
 import {Trs80} from "./Trs80.js";
-import {Trs80Screen} from "./Trs80Screen.js";
+import {model1ScreenCodeToModel3, Trs80Screen} from "./Trs80Screen.js";
 
 // Tests for Trs80.getScreenshot() and Trs80Screen.displayScreenshot().
 
@@ -33,14 +33,18 @@ class RecordingScreen extends Trs80Screen {
 /**
  * Put the screen contents into a machine, take a screenshot, and return it.
  */
-function makeScreenshot(screen: number[], expanded = false): string {
-    const trs80 = new Trs80(Config.makeDefault(), new RecordingScreen(), new Keyboard(),
+function makeScreenshot(screen: number[], expanded = false, config = Config.makeDefault()): string {
+    const trs80 = new Trs80(config, new RecordingScreen(), new Keyboard(),
         new CassettePlayer(), new SilentSoundPlayer());
     for (let i = 0; i < SCREEN_SIZE; i++) {
         trs80.writeMemory(TRS80_SCREEN_BEGIN + i, screen[i]);
     }
     // Set the screen mode the way a program would.
-    trs80.writePort(0xEC, expanded ? 0x04 : 0x00);
+    if (config.modelType === ModelType.MODEL1) {
+        trs80.writePort(0xFF, expanded ? 0x08 : 0x00);
+    } else {
+        trs80.writePort(0xEC, expanded ? 0x04 : 0x00);
+    }
     return trs80.getScreenshot();
 }
 
@@ -154,5 +158,31 @@ describe("screenshot decoding", () => {
     it("long screenshot is clipped", () => {
         const screenshot = "0:" + btoa(String.fromCharCode(0, 0x80, 255, 0x80, 255, 0x80, 255, 0x80, 255, 0x80, 255));
         expect(displayScreenshot(screenshot).chars).to.eql(makeScreen([[0x80, SCREEN_SIZE]]));
+    });
+});
+
+describe("Model I screenshots", () => {
+    const model1 = Config.makeDefault().edit().withModelType(ModelType.MODEL1).build();
+
+    it("converts the Level II ROM's capitals and the high graphics", () => {
+        const screen = makeScreen([[0x00, 1], [0x08, 1], [0x1F, 1], [0x20, 1], [0x41, 1], [0x7F, 1],
+            [0x80, 1], [0xBF, 1], [0xC0, 1], [0xFF, 1]]);
+        const decoded = displayScreenshot(makeScreenshot(screen, false, model1));
+        expect(decoded.chars.slice(0, 10)).to.eql([0x40, 0x48, 0x5F, 0x20, 0x41, 0x7F, 0x80, 0xBF, 0x80, 0xBF]);
+    });
+    it("leaves a Model III screen alone", () => {
+        const screen = makeScreen([[0x00, 1], [0xC0, 1]]);
+        expect(displayScreenshot(makeScreenshot(screen)).chars).to.eql(screen);
+    });
+    it("keeps the expanded mode flag", () => {
+        const decoded = displayScreenshot(makeScreenshot(makeScreen([[0x01, 3]]), true, model1));
+        expect(decoded.isExpandedCharacters()).to.equal(true);
+        expect(decoded.chars.slice(0, 3)).to.eql([0x41, 0x41, 0x41]);
+    });
+    it("converts single codes", () => {
+        expect(model1ScreenCodeToModel3(0x1F)).to.equal(0x5F);
+        expect(model1ScreenCodeToModel3(0x20)).to.equal(0x20);
+        expect(model1ScreenCodeToModel3(0xBF)).to.equal(0xBF);
+        expect(model1ScreenCodeToModel3(0xC0)).to.equal(0x80);
     });
 });

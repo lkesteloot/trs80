@@ -1,7 +1,8 @@
 import fs from "fs";
 import chalk from "chalk";
-import {BasicLevel, CGChip, Config, ConsolePrinter, FLOPPY_DRIVE_COUNT, Keyboard,
-    LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen } from "trs80-emulator";
+import {BasicLevel, Config, ConsolePrinter, FLOPPY_DRIVE_COUNT, Keyboard,
+    LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen,
+    model1ScreenCodeToModel3 } from "trs80-emulator";
 import {connectXray} from "./xray.js";
 import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
@@ -184,12 +185,10 @@ class TtyScreen extends Trs80Screen {
             // Draw a space at the current cursor.
             let value = i === this.lastCursorIndex ? 32 : this.readMemory(i + TRS80_SCREEN_BEGIN);
             if (this.config.modelType === ModelType.MODEL1) {
-                // Level 2 used the letters from values 0 to 31.
-                if (value < 32) {
-                    value += 64;
-                } else if (this.config.cgChip === CGChip.ORIGINAL && value >= 96 && value < 128) {
-                    value -= 64;
-                }
+                // Level 2 used the letters from values 0 to 31. (With the original character
+                // generator the machine's video RAM reads back with bit 6 computed, so it never
+                // holds those values and this does nothing.)
+                value = model1ScreenCodeToModel3(value);
             }
 
             if (force || value !== this.drawnScreen[i]) {

@@ -239,7 +239,15 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock<any>[] = [
     {
         title: "Model",
         isChecked: (modelType: ModelType, config: Config) => modelType === config.modelType,
-        updateConfig: (modelType: ModelType, config: Config) => config.edit().withModelType(modelType).build(),
+        updateConfig: (modelType: ModelType, config: Config) => {
+            const builder = config.edit().withModelType(modelType);
+            if (modelType !== ModelType.MODEL1) {
+                // The Model III and 4 only had the lower case character generator. Set it so that
+                // these models are always selectable, whatever the Model I was set to.
+                builder.withCGChip(CGChip.LOWER_CASE);
+            }
+            return builder.build();
+        },
         options: [
             {
                 label: "Model I",
@@ -543,7 +551,6 @@ export class SettingsPanel {
                 input.id = id;
                 input.type = "radio";
                 input.name = name;
-                input.addEventListener("change", () => this.updateEnabledOptions());
                 optionsDiv.appendChild(input);
 
                 const label = document.createElement("label");
@@ -560,7 +567,9 @@ export class SettingsPanel {
                 }
                 optionsDiv.appendChild(label);
 
-                this.displayedOptions.push(new DisplayedOption(input, block, option));
+                const displayedOption = new DisplayedOption(input, block, option);
+                input.addEventListener("change", () => this.optionChanged(displayedOption));
+                this.displayedOptions.push(displayedOption);
             }
         }
 
@@ -667,6 +676,21 @@ export class SettingsPanel {
         if (this.onClose !== undefined) {
             this.onClose();
         }
+    }
+
+    /**
+     * Handle the user selecting an option. Its side effects on other settings (such as selecting the
+     * Model III resetting the character generator) are applied last so that they win over what the
+     * other blocks currently have selected, and the other blocks' radio buttons are updated to match.
+     */
+    private optionChanged(changedOption: DisplayedOption<any>): void {
+        const config = changedOption.block.updateConfig(changedOption.option.value, this.getConfig());
+
+        for (const displayedOption of this.displayedOptions) {
+            displayedOption.input.checked = displayedOption.block.isChecked(displayedOption.option.value, config);
+        }
+
+        this.updateEnabledOptions();
     }
 
     /**

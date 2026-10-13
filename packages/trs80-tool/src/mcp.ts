@@ -31,6 +31,7 @@ import path from "path";
 import {spawnSync} from "child_process";
 import {
     BasicLevel, CassettePlayer, Config, Keyboard, ModelType, SilentSoundPlayer, Trs80, Trs80Screen,
+    model1ScreenCodeToModel3,
 } from "trs80-emulator";
 import {decodeBasicProgram, decodeTrs80File, isFloppy, MODEL3_FONT, parseBasicText} from "trs80-base";
 import {Disasm} from "z80-disasm";
@@ -74,8 +75,9 @@ const SERVER_INSTRUCTIONS = [
     "",
     "Things that trip people up: the keyboard only takes about 20 characters per emulated",
     "second (\"type\" waits for that), so on the stock ROM use load_basic, which puts a",
-    "listing straight into memory. (boot answers the stock ROM's Cass? and Memory Size?",
-    "questions itself.) For exact timing, use run_until_memory and let the",
+    "listing straight into memory. (boot answers the stock ROM's startup questions itself:",
+    "Memory Size?, and Cass? too on the Model III and 4, which are the only ones that ask it.)",
+    "For exact timing, use run_until_memory and let the",
     "program's own writes be the clock; run_until_screen only checks every ~2,000",
     "instructions.",
     "",
@@ -91,15 +93,27 @@ const SERVER_INSTRUCTIONS = [
  */
 class HeadlessScreen extends Trs80Screen {
     public readonly mem = new Uint8Array(SCREEN_WIDTH*SCREEN_HEIGHT).fill(32);
+    private config: Config | undefined = undefined;
 
-    setConfig(): void {
-        // Don't care.
+    /**
+     * Remember the config, so that {@link writeChar()} knows which model's screen codes it's getting.
+     */
+    setConfig(config: Config): void {
+        this.config = config;
     }
 
+    /**
+     * Store the character. On a Model I the byte is converted to the Model III character code that
+     * looks the same, because the Model I's Level II ROM stores capitals as 0x00 to 0x1F, which
+     * {@link lines()} would show as blanks and which MODEL3_FONT (the only font we render with) draws
+     * as other glyphs. That's fine for the original Model I generator too: it has no lowercase and
+     * the Model III font's capitals are the same shapes, and the graphics blocks are identical.
+     */
     writeChar(address: number, value: number): void {
         const offset = address - SCREEN_BEGIN;
         if (offset >= 0 && offset < this.mem.length) {
-            this.mem[offset] = value;
+            this.mem[offset] = this.config?.modelType === ModelType.MODEL1 ?
+                model1ScreenCodeToModel3(value) : value;
         }
     }
 
@@ -436,7 +450,7 @@ const TOOLS: Record<string, Tool> = {
                 model: {type: "integer", enum: [1, 3, 4], description: "Model, defaults to 3"},
                 level: {type: "integer", enum: [1, 2], description: "Basic level, defaults to 2"},
                 answerPrompts: {type: "boolean", description: "On the stock Level II ROM, answer the " +
-                    "Cass? and Memory Size? questions and run until READY. Defaults to true. Ignored " +
+                    "Memory Size? question (and Cass?, which only the Model III and 4 ask) and run until READY. Defaults to true. Ignored " +
                     "for a replacement ROM, which is left un-run."},
             },
         },
@@ -450,16 +464,20 @@ const TOOLS: Record<string, Tool> = {
             if (!m.rst8IsSyntaxCheck || args.answerPrompts === false) {
                 return booted + `\nNothing has run yet; call "run" to let it boot.`;
             }
-            // Same as Trs80.runBasicProgram(): give it a moment to ask Cass?, then answer
-            // that and Memory Size? ("0" means use all of memory).
+            // Same as Trs80.runBasicProgram(): give it a moment to ask its questions, then press
+            // Enter for each. The Model I doesn't ask Cass?. Enter for Memory Size? makes the ROM
+            // test memory, which takes a couple of seconds. (On the Model III and 4, "0" would
+            // skip the test, but the ROM only takes it with 48 KB installed.)
+            const questions = modelType === ModelType.MODEL1 ? "Memory Size?" : "Cass? and Memory Size?";
+            const answers = modelType === ModelType.MODEL1 ? "\n" : "\n\n";
             m.runCycles(Math.round(0.1*m.clockHz));
-            m.keyboard.simulateKeyboardText("\n0\n");
+            m.keyboard.simulateKeyboardText(answers);
             m.drainKeyboard(Math.round(10*m.clockHz));
             if (!m.runUntilScreen("READY", Math.round(5*m.clockHz))) {
-                return booted + " Answered Cass? and Memory Size? but never saw READY. Screen:\n" +
+                return booted + ` Answered ${questions} but never saw READY. Screen:\n` +
                     m.screen.lines().filter(l => l.trim() !== "").join("\n");
             }
-            return booted + ` Answered Cass? and Memory Size?; at READY after ` +
+            return booted + ` Answered ${questions}; at READY after ` +
                 `${m.tStateCount.toLocaleString()} t-states.`;
         },
     },
@@ -1256,14 +1274,16 @@ TOOLS["mount_disk"] = {
 
 TOOLS["reset"] = {
     description: "Reset the machine, as if you'd pressed the reset button. Keeps whatever " +
-        "disks are mounted, so this is how you boot from a disk you mounted with mount_disk.",
+        "disks are mounted, so this is how you boot from a disk you mounted with mount_disk. " +
+        "On a Model I the button only raises a non-maskable interrupt, which boots from drive 0 if " +
+        "there's a disk there and otherwise returns to Basic with memory intact.",
     inputSchema: {
         type: "object",
         properties: {},
     },
     run: () => {
         const m = needMachine();
-        m.trs80.reset();
+        m.trs80.pressResetButton();
         return `Reset. Run the machine to let it boot.`;
     },
 };

@@ -1,6 +1,8 @@
 import {describe, expect, it} from "vitest";
+import {decodeBasicProgram, parseBasicText} from "trs80-base";
+import {LogSink, TRS80_MAIN_SINK} from "trs80-logger";
 import {CassettePlayer} from "./CassettePlayer.js";
-import {Config, ModelType, RamSize} from "./Config.js";
+import {CGChip, Config, ModelType, RamSize} from "./Config.js";
 import {Keyboard} from "./Keyboard.js";
 import {SilentSoundPlayer} from "./SoundPlayer.js";
 import {Trs80} from "./Trs80.js";
@@ -193,4 +195,205 @@ describe("cassette motor", () => {
         trs80.eventScheduler.dispatch(trs80.tStateCount + 2*trs80.clockHz);
         expect(trs80.save().irqLatch & CASSETTE_RISE_IRQ_MASK).to.equal(0);
     });
+});
+
+/**
+ * Make a Model I with the given character generator.
+ */
+function makeModel1(cgChip = CGChip.LOWER_CASE): Trs80 {
+    return makeMachine(Config.makeDefault().edit().withModelType(ModelType.MODEL1).withCGChip(cgChip).build());
+}
+
+describe("Model I video RAM", () => {
+    it("has no bit 6 with the original character generator", () => {
+        const trs80 = makeModel1(CGChip.ORIGINAL);
+        trs80.writeMemory(0x3C00, 0x61);
+        trs80.writeMemory(0x3C01, 0x01);
+        // Bit 6 is the NOR of bits 5 and 7, whatever was written.
+        expect(trs80.readMemory(0x3C00)).to.equal(0x21);
+        expect(trs80.readMemory(0x3C01)).to.equal(0x41);
+    });
+    it("keeps the written byte with the lower case character generator", () => {
+        const trs80 = makeModel1(CGChip.LOWER_CASE);
+        trs80.writeMemory(0x3C00, 0x61);
+        trs80.writeMemory(0x3C01, 0x01);
+        expect(trs80.readMemory(0x3C00)).to.equal(0x61);
+        expect(trs80.readMemory(0x3C01)).to.equal(0x01);
+    });
+    it("survives save and restore", () => {
+        const trs80 = makeModel1(CGChip.ORIGINAL);
+        trs80.writeMemory(0x3C00, 0x61);
+        const state = trs80.save();
+        trs80.writeMemory(0x3C00, 0x20);
+        trs80.restore(state);
+        expect(trs80.readMemory(0x3C00)).to.equal(0x21);
+    });
+});
+
+describe("Model I floppy interrupt", () => {
+    const DISK_IRQ_MASK = 0x40;
+
+    it("sets and clears bit 6 of the interrupt latch", () => {
+        const trs80 = makeModel1();
+        trs80.diskIntrqInterrupt(true);
+        expect(trs80.readMemory(0x37E0) & DISK_IRQ_MASK).to.equal(DISK_IRQ_MASK);
+        // Reading the latch only acknowledges the timer.
+        expect(trs80.readMemory(0x37E0) & DISK_IRQ_MASK).to.equal(DISK_IRQ_MASK);
+        trs80.diskIntrqInterrupt(false);
+        expect(trs80.readMemory(0x37E0) & DISK_IRQ_MASK).to.equal(0);
+        expect(trs80.save().nmiLatch).to.equal(0);
+    });
+    it("interrupts the CPU", () => {
+        const trs80 = makeModel1();
+        trs80.reset();
+        trs80.z80.regs.iff1 = 1;
+        trs80.z80.regs.pc = 0x5000;
+        trs80.diskIntrqInterrupt(true);
+        trs80.step();
+        expect(trs80.z80.regs.pc).to.equal(0x0038);
+    });
+    it("is cleared by reset", () => {
+        const trs80 = makeModel1();
+        trs80.diskIntrqInterrupt(true);
+        trs80.reset();
+        expect(trs80.save().irqLatch & DISK_IRQ_MASK).to.equal(0);
+    });
+    it("still goes to the NMI latch on the Model III", () => {
+        const trs80 = makeMachine();
+        trs80.diskIntrqInterrupt(true);
+        expect(trs80.save().nmiLatch & 0x80).to.equal(0x80);
+        expect(trs80.save().irqLatch & DISK_IRQ_MASK).to.equal(0);
+    });
+});
+
+describe("HALT and the reset button", () => {
+    const HALT = 0x76;
+
+    it("sends a Model I back to the ROM's NMI handler on HALT", () => {
+        const trs80 = makeModel1();
+        trs80.reset();
+        trs80.writeMemory(0x5000, HALT);
+        trs80.jumpTo(0x5000);
+        trs80.step();
+        expect(trs80.z80.regs.pc).to.equal(0x0066);
+        expect(trs80.z80.regs.halted).to.equal(0);
+    });
+    it("leaves a Model III halted", () => {
+        const trs80 = makeMachine();
+        trs80.reset();
+        trs80.writeMemory(0x5000, HALT);
+        trs80.jumpTo(0x5000);
+        for (let i = 0; i < 10; i++) {
+            trs80.step();
+        }
+        expect(trs80.z80.regs.halted).to.not.equal(0);
+        expect(trs80.z80.regs.pc).to.not.equal(0x0066);
+    });
+    it("raises an NMI on the Model I reset button", () => {
+        const trs80 = makeModel1();
+        trs80.reset();
+        trs80.writeMemory(0x5000, 0x18);
+        trs80.writeMemory(0x5001, 0xFE);
+        trs80.jumpTo(0x5000);
+        trs80.pressResetButton();
+        trs80.step();
+        expect(trs80.z80.regs.pc).to.equal(0x0066);
+        // The button was released, so there's only one NMI.
+        expect(trs80.save().nmiLatch).to.equal(0);
+    });
+    it("is a full reset on the Model III", () => {
+        const trs80 = makeMachine();
+        trs80.jumpTo(0x5000);
+        trs80.pressResetButton();
+        expect(trs80.z80.regs.pc).to.equal(0x0000);
+    });
+});
+
+describe("Model I port map", () => {
+    it("only has port 0xFF", () => {
+        const trs80 = makeModel1();
+        // Floppy controller and printer ports are not there.
+        for (const port of [0xF0, 0xF1, 0xF2, 0xF3, 0xF8, 0xF9, 0xFA, 0xFB]) {
+            expect(trs80.readPort(port)).to.equal(0xFF);
+        }
+        // Writes to 0xFC to 0xFE don't drive the cassette motor or the 32-column mode.
+        trs80.writePort(0xFE, 0x0C);
+        expect(trs80.readPort(0xFF) & 0x40).to.equal(0x40);
+        trs80.writePort(0xFF, 0x08);
+        expect(trs80.readPort(0xFF) & 0x40).to.equal(0);
+    });
+    it("sends all 0xFF writes to the cassette", () => {
+        // Bit 5 would go to the Micro Labs graphics card on a Model III; a Model I has none.
+        const trs80 = makeModel1();
+        const logged: any[] = [];
+        const oldLog = console.log;
+        console.log = (...args: any[]) => logged.push(args);
+        try {
+            trs80.writePort(0xFF, 0x20);
+        } finally {
+            console.log = oldLog;
+        }
+        expect(logged).to.eql([]);
+    });
+});
+
+describe("Model I expansion interface memory", () => {
+    it("has four printer addresses on the Model I and two on the Model III", () => {
+        const model1 = makeModel1();
+        const model3 = makeMachine();
+        for (const address of [0x37E8, 0x37E9, 0x37EA, 0x37EB]) {
+            expect(model1.readMemory(address)).to.equal(0x30);
+        }
+        expect(model3.readMemory(0x37E8)).to.equal(0x30);
+        expect(model3.readMemory(0x37E9)).to.equal(0x30);
+        expect(model3.readMemory(0x37EA)).to.not.equal(0x30);
+    });
+    it("accepts the cassette select quietly", () => {
+        const trs80 = makeModel1();
+        const warnings: string[] = [];
+        const sink: LogSink = (level, message) => warnings.push(message);
+        TRS80_MAIN_SINK.delegatedSinks.push(sink);
+        try {
+            trs80.writeMemory(0x37E4, 0x01);
+            // Make sure that the sink would have seen a warning.
+            trs80.writeMemory(0x3000, 0x01);
+        } finally {
+            TRS80_MAIN_SINK.delegatedSinks.splice(TRS80_MAIN_SINK.delegatedSinks.indexOf(sink), 1);
+        }
+        expect(warnings.length).to.equal(1);
+        expect(warnings[0]).to.contain("0x3000");
+    });
+});
+
+describe("runBasicProgram", () => {
+    /**
+     * Load and run a program that pokes a marker, and return what's at the marker's address.
+     * The ROM tests memory first, so this needs a few emulated seconds.
+     */
+    function runPokeProgram(modelType: ModelType, ramSize: RamSize): number {
+        const binary = parseBasicText("10 POKE 20000,123\n");
+        if (typeof binary === "string") {
+            throw new Error(binary);
+        }
+        const program = decodeBasicProgram(binary);
+        if (program === undefined) {
+            throw new Error("can't decode the program");
+        }
+        const config = Config.makeDefault().edit().withModelType(modelType).withRamSize(ramSize).build();
+        const trs80 = makeMachine(config);
+        trs80.runBasicProgram(program);
+        const end = trs80.tStateCount + 5*trs80.clockHz;
+        while (trs80.tStateCount < end) {
+            trs80.step();
+        }
+        return trs80.readMemory(20000);
+    }
+
+    for (const [modelName, modelType] of [["I", ModelType.MODEL1], ["III", ModelType.MODEL3], ["4", ModelType.MODEL4]] as const) {
+        for (const [ramName, ramSize] of [["16", RamSize.RAM_16_KB], ["32", RamSize.RAM_32_KB], ["48", RamSize.RAM_48_KB]] as const) {
+            it(`runs on a Model ${modelName} with ${ramName} KB`, () => {
+                expect(runPokeProgram(modelType, ramSize)).to.equal(123);
+            });
+        }
+    }
 });
