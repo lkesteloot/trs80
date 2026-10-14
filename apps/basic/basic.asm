@@ -114,6 +114,7 @@ I_JP_NC equ 0xD2
 I_PUSH_DE equ 0xD5
 I_POP_HL equ 0xE1
 I_PUSH_HL equ 0xE5
+I_AND_A_IMM equ 0xE6
 I_SBC_HL_DE_1 equ 0xED
 I_SBC_HL_DE_2 equ 0x52
 I_JP_P equ 0xF2
@@ -1907,7 +1908,7 @@ not_an_op:
 	cp a,T_RND
 	jr z,compile_rnd
 	cp a,T_PEEK
-	jr z,compile_peek
+	jp z,compile_peek
 	jp not_function
 compile_rnd:
 	call error_if_not_expecting_unary
@@ -1916,7 +1917,61 @@ compile_rnd:
 	call expect_and_skip
 	call skip_whitespace
 	cp a,')'
-	jr z,no_rnd_expression		; Immediate close parenthesis, no range parameter.
+	jp z,no_rnd_expression		; Immediate close parenthesis, no range parameter.
+
+	; If the range is a literal power of two, mask instead of dividing.
+	; That's 36 cycles instead of about 1200. Only works for a literal,
+	; since otherwise we don't know the range until run time.
+	push de				; Save position, we may have to re-parse.
+	call is_digit
+	jr c,not_masked			; Doesn't even start with a digit.
+	call read_numeric_literal	; Range into BC.
+	call skip_whitespace
+	cp a,')'
+	jr nz,not_masked		; More than just a literal, so give up.
+	ld a,b				; Zero is not a power of two.
+	or a,c
+	jr z,not_masked
+	dec bc				; BC = mask = range - 1.
+	push bc				; Save the mask.
+mask_loop:
+	; A power of two minus one is all ones, so shift ones out the bottom
+	; until nothing is left. Any zero bit means it wasn't a power of two.
+	ld a,b
+	or a,c
+	jr z,use_mask			; Ran out of bits and they were all ones.
+	ld a,c				; Check the bottom bit.
+	and a,1
+	jr z,drop_mask			; Found a zero bit, so give up.
+	srl b
+	rr c
+	jr mask_loop
+drop_mask:
+	pop bc				; Discard the mask.
+not_masked:
+	pop de				; Back up and parse it as an expression.
+	jr rnd_expression
+use_mask:
+	pop bc				; Restore the mask.
+	inc sp				; Discard the saved source position.
+	inc sp
+	inc de				; Skip the close parenthesis.
+	m_add I_CALL			; Generate random number in DE.
+	m_add_word rnd
+	m_add I_LD_A_E			; DE &= mask, which is rnd % range.
+	m_add I_AND_A_IMM
+	m_add c
+	m_add I_LD_E_A
+	m_add I_LD_A_D
+	m_add I_AND_A_IMM
+	m_add b
+	m_add I_LD_D_A
+	m_add I_INC_DE			; Result is 1 to N.
+	m_add I_PUSH_DE			; Push result.
+	ld a,0				; Expect binary operator after operand.
+	jp expr_loop
+
+rnd_expression:
 	call compile_expression		; Onto the stack.
 	ld a,')'
 	call expect_and_skip
@@ -2381,7 +2436,7 @@ compile_command_dispatch:
 #endlocal				; End compile_line local block.
 
 ; Throws a compile error if we're not currently expecting a unary, in
-; which case we also shouldn't be expecting things like numeric literals,
+; which case we also shouldn't be expecting things like numbereric literals,
 ; variables, and open parentheses.
 error_if_not_expecting_unary:
 #local
@@ -3027,16 +3082,23 @@ set_pixel:
 	cp a,48
 	jp nc,runtime_error
 
-	; First, we have to compute D=Y/3 and C=Y%3. We do both at once with
-	; repeated subtraction of 3.
-	ld d,255			; Start counter at -1, it's pre-incremented.
-	ld a,c				; Put Y into A.
-divmod3:
-	inc d				; Count number of times we can subtract 3.
-	sub a,3
-	jr nc,divmod3			; Keep subtracting until we're negative.
-	add a,3
+	; First, we have to compute D=Y/3 and C=Y%3. The obvious way is
+	; repeated subtraction of 3, but that's 9.6 times slower at the
+	; bottom of the screen than at the top (385 cycles vs 40), which is
+	; the same mistake the original ROM makes. Use a table instead, so
+	; that every SET costs the same 91 cycles wherever it lands.
+	push hl
+	ld hl,divmod3_table
+	ld d,0
+	ld e,c				; Y (0 to 47).
+	add hl,de
+	ld a,(hl)			; Packed as (Y/3)*4 + Y%3.
+	pop hl
+	ld d,a
+	and a,3
 	ld c,a				; C = Y%3
+	srl d
+	srl d				; D = Y/3
 
 	; Next we want to compute the index location on the screen
 	; and put that in DE. The computation is (Y/3)*64 + X/2.
@@ -3096,6 +3158,14 @@ done:
 	pop de
 	ret
 #endlocal
+
+; Y (0 to 47) to (Y/3)*4 + Y%3, so that set_pixel can divide by 3
+; in constant time. See the comment in set_pixel.
+divmod3_table:
+	db 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14
+	db 16, 17, 18, 20, 21, 22, 24, 25, 26, 28, 29, 30
+	db 32, 33, 34, 36, 37, 38, 40, 41, 42, 44, 45, 46
+	db 48, 49, 50, 52, 53, 54, 56, 57, 58, 60, 61, 62
 
 ; Divides BC by DE, putting quotient in AC and remainder in HL.
 ;
@@ -3439,7 +3509,7 @@ sample_program_list:
 sample_program_1:
 #insert
 10 CLS
-20 SET(RND() AND 127, RND(48) - 1)
+20 SET(RND(128) - 1, RND(48) - 1)
 30 GOTO 20
 #endinsert
 	db 0
@@ -3530,10 +3600,16 @@ sample_program_6:
 70 T = 0			' Time.
 80 DIM AX(5)			' X position of alien in chars (0..AN-1).
 90 DIM AY(5)			' Y position of alien in rows (0..AN-1).
+95 DIM AS(5)			' Alien state: 0 = alive, else explosion countdown.
+96 DIM AR(5)			' Top pixel row of alien, recomputed each frame.
+97 DIM AC(5)			' Left pixel column of alien, recomputed each frame.
+98 DIM AM(5)			' Screen address of alien's row, 15360 + AY*64.
 100 AN = 0			' Number of aliens.
 500 AN = 1
 510 AX(0) = 29
 520 AY(0) = 0
+525 AM(0) = 15360
+530 AS(0) = 0
 1000 ' ---- Draw ship ----
 1005 M = 16320 + SX
 1010 POKE M,128
@@ -3545,10 +3621,15 @@ sample_program_6:
 1070 POKE M-61,128
 1080 POKE M+4,144
 1090 POKE M+5,128
-1200 ' ---- Draw aliens ----
-1205 IF AN = 0 THEN GOTO 1310
+1200 ' ---- Draw aliens and explosions ----
+1202 YB = -3			' Top pixel row of the lowest alien, -3 if none.
+1205 IF AN = 0 THEN GOTO 1400
 1210 FOR I = 0 TO AN - 1
-1220 M = 15360 + AY(I)*64 + AX(I)
+1220 M = AM(I) + AX(I)
+1222 AR(I) = AY(I) + AY(I) + AY(I)	' Top pixel row, for collisions.
+1224 AC(I) = AX(I) + AX(I)		' Left pixel column, for collisions.
+1226 IF AR(I) > YB THEN YB = AR(I)
+1228 IF AS(I) <> 0 THEN GOTO 1320
 1230 POKE M,128
 1240 POKE M+1,141'156
 1250 POKE M+2,183
@@ -3556,16 +3637,37 @@ sample_program_6:
 1270 POKE M+4,187
 1280 POKE M+5,142'172
 1290 POKE M+6,128
-1300 NEXT I
-1310 ' Skip drawing aliens.
+1300 GOTO 1390
+1320 ' Exploding: bright core, then debris. AS counts down in the alien loop.
+1325 IF AS(I) < 4 THEN GOTO 1360
+1330 POKE M,128
+1332 POKE M+1,140
+1334 POKE M+2,191
+1336 POKE M+3,191
+1338 POKE M+4,191
+1340 POKE M+5,140
+1342 POKE M+6,128
+1350 GOTO 1390
+1360 POKE M,140
+1362 POKE M+1,131
+1364 POKE M+2,176
+1366 POKE M+3,128
+1368 POKE M+4,176
+1370 POKE M+5,131
+1372 POKE M+6,140
+1390 NEXT I
+1400 ' Done drawing aliens.
 2000 ' ---- Draw and move bullets ----
 2003 I = BN - 1
 2005 IF I < 0 THEN GOTO 2300    ' TODO replace with backward FOR
 2010 X = BX(I)
 2020 Y = BY(I)
 2030 RESET(X,Y)
-2050 Y = Y - 1
+2050 Y = Y - 2			' Two pixels a frame: half as many alive at once.
 2060 IF Y < 0 THEN GOTO 2200
+2061 IF Y > YB + 2 THEN GOTO 2070	' Below every alien, can't hit anything.
+2062 GOSUB 7000			' Sets H if this bullet hit an alien.
+2064 IF H <> 0 THEN GOTO 2200	' Hit: retire the bullet, don't redraw it.
 2070 SET(X,Y)
 2080 BY(I) = Y
 2090 GOTO 2230
@@ -3574,31 +3676,65 @@ sample_program_6:
 2220 BN = BN - 1
 2230 I = I - 1
 2240 GOTO 2005
-2300 ' ---- Move aliens. ----
-2305 IF T < 2 OR AN = 0 THEN GOTO 2499
-2310 FOR I = 0 TO AN - 1
-2320 M = RND() AND 31
-2330 X = AX(I)
-2340 IF M = 0 THEN X = X - 1
-2350 IF M = 1 THEN X = X + 1
-2360 IF X < 0 THEN X = 0
+2300 ' ---- Move aliens and age explosions ----
+2302 I = AN - 1
+2305 IF I < 0 THEN GOTO 2500
+2310 IF AS(I) = 0 THEN GOTO 2350
+2312 ' Exploding: count down, then erase and remove.
+2315 AS(I) = AS(I) - 1
+2320 IF AS(I) <> 0 THEN GOTO 2480
+2325 M = AM(I) + AX(I)
+2330 POKE M,128
+2331 POKE M+1,128
+2332 POKE M+2,128
+2333 POKE M+3,128
+2334 POKE M+4,128
+2335 POKE M+5,128
+2336 POKE M+6,128
+2340 AX(I) = AX(AN - 1)
+2341 AY(I) = AY(AN - 1)
+2342 AM(I) = AM(AN - 1)
+2343 AS(I) = AS(AN - 1)
+2344 AN = AN - 1
+2345 GOTO 2480
+2350 ' Alive: move sideways, and sometimes down.
+2352 IF T < 2 THEN GOTO 2480
+2360 M = RND(32) - 1			' Was RND() AND 31; this also runs interpreted.
+2362 X = AX(I)
+2363 W = X			' Remember where it was drawn, we erase there.
+2364 IF M = 0 THEN X = X - 1
+2366 IF M = 1 THEN X = X + 1
+2368 IF X < 0 THEN X = 0
 2370 IF X > 57 THEN X = 57
-2380 AX(I) = X
-2390 IF M <> 2 THEN GOTO 2430
-2400 M = 15360 + AY(I)*64 + AX(I)	' Erase alien.
-2401 POKE M+1,128
-2402 POKE M+2,128
-2403 POKE M+3,128
-2404 POKE M+4,128
-2405 POKE M+5,128
-2410 AY(I) = AY(I) + 1
-2420 IF AY(I) = 15 THEN AN = 0
-2430 NEXT I
-2499 '
+2372 AX(I) = X
+2374 IF (RND(8) - 1) <> 0 THEN GOTO 2480	' 1 in 8 chance of moving down.
+2376 M = AM(I) + W		' Erase where it was drawn, not where it drifted to.
+2378 POKE M+1,128
+2380 POKE M+2,128
+2382 POKE M+3,128
+2384 POKE M+4,128
+2386 POKE M+5,128
+2387 IF AY(I) < 14 THEN GOTO 2392
+2388 AS(I) = 6			' Reached the bottom. TODO should cost a life.
+2390 GOTO 2480
+2392 AY(I) = AY(I) + 1
+2394 AM(I) = AM(I) + 64		' Moved down one row.
+2480 I = I - 1
+2490 GOTO 2305
+2500 ' Done with aliens.
 3000 ' ---- Update time ----
 3010 T = T + 1
 3020 IF T = 3 THEN T = 0
 3030 'POKE 15360+T,peek(15360+T)+1
+4000 ' ---- Spawn an alien ----
+4010 IF AN > 5 THEN GOTO 4090		' Array is full.
+4020 IF (RND(64) - 1) <> 0 THEN GOTO 4090
+4030 AX(AN) = RND(56) - 1
+4040 AY(AN) = 0
+4045 AM(AN) = 15360
+4050 AS(AN) = 0
+4060 AN = AN + 1
+4090 ' Done spawning.
 5000 ' ---- Keyboard input ----
 5005 K = PEEK(14400)
 5010 IF K AND 32 THEN SX = SX - 1:IF SX < 0 THEN SX = 0
@@ -3606,10 +3742,24 @@ sample_program_6:
 5050 IF (K AND 128) AND T = 0 THEN GOSUB 6000
 5990 GOTO 1000
 6000 ' ---- Shoot ----
+6005 IF BN > 11 THEN RETURN		' Cap bullets. Lower this if it bogs down.
 6010 BX(BN) = SX*2 + 5
 6020 BY(BN) = 43
 6030 BN = BN + 1
 6040 RETURN
+7000 ' ---- Did the bullet at (X,Y) hit an alien? Sets H. ----
+7010 H = 0
+7020 IF AN = 0 THEN GOTO 7130
+7030 FOR J = 0 TO AN - 1
+7040 IF Y < AR(J) THEN GOTO 7120	' Cheapest rejection first.
+7050 IF Y > AR(J) + 2 THEN GOTO 7120
+7060 IF AS(J) <> 0 THEN GOTO 7120	' Already exploding.
+7070 IF X < AC(J) + 2 THEN GOTO 7120	' Body is chars AX+1 through AX+5,
+7080 IF X > AC(J) + 11 THEN GOTO 7120	' so pixels 2*AX+2 through 2*AX+11.
+7110 AS(J) = 6				' Blow it up. Higher = longer explosion.
+7115 H = 1
+7120 NEXT J
+7130 RETURN
 #endinsert
 	db 0
 
