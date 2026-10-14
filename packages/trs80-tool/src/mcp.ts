@@ -1245,7 +1245,7 @@ TOOLS["screenshot"] = {
 };
 
 TOOLS["mount_disk"] = {
-    description: "Mount a floppy disk image (.dsk, .dmk, .jv1, .jv3, .hfe) in a drive, without " +
+    description: "Mount a floppy disk image (.dsk, .dmk, .jv1, .jv3, .hfe, .imd) in a drive, without " +
         "rebooting. Use this when a program needs more than one disk, for instance a DOS in " +
         "drive 0 and an application in drive 1: mount them all, then call \"reset\" to boot " +
         "from drive 0. For the single-disk case, \"load_program\" mounts and boots in one step.",

@@ -140,6 +140,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
             case "DmkFloppyDisk":
             case "ScpFloppyDisk":
             case "HfeFloppyDisk":
+            case "ImdFloppyDisk":
             case "Cassette":
             case "BootSector":
                 throw new ToolError("Files of type \"" + infile.trs80File.getDescription() + "\" are not yet supported");
@@ -327,6 +328,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                     case "DmkFloppyDisk":
                     case "ScpFloppyDisk":
                     case "HfeFloppyDisk":
+                    case "ImdFloppyDisk":
                     case "Cassette":
                     case "BootSector":
                         // Shouldn't happen, we split up archives.

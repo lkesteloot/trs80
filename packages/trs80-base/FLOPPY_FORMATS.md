@@ -10,6 +10,9 @@ quoted documentation; guesses are labeled as such.
 - David Keil's emulator documentation covers DMK. Both of its mirrors were down
   when this was written; a copy is at `~/Downloads/dmk.html`.
 - [Tim Mann's FAQ](https://www.tim-mann.org/trs80faq.html) for hardware and density questions.
+- IMD is described in the documentation of Dave Dunfield's
+  [ImageDisk](http://dunfield.classiccmp.org/img/index.htm); MAME's
+  `src/lib/formats/imd_dsk.cpp` is a second reference.
 - **The DOS manuals** are in `~/Dropbox/Personal/Books/TRS-80/disk/`, each with a
   searchable `.txt` sidecar; `~/Dropbox/Personal/Books/CLAUDE.md` explains how to
   search them, and warns that the OCR of old scans garbles hex. Page numbers below
@@ -1509,10 +1512,76 @@ Once a sector is accepted, the reader ignores every mark that starts before the
 end of its data CRC. It must not instead drop sectors with bad CRCs, because
 copy-protected disks have them on purpose.
 
+**IMD** (Dave Dunfield's ImageDisk) stores sectors, like JV3, but per track. It's
+the usual format for Model II and other 8" disks, because it records each track's
+data rate. After an ASCII header (`IMD 1.18: dd/mm/yyyy hh:mm:ss\r\n`, then a
+free-form comment) and a 0x1A byte, the tracks follow until the end of the file.
+Each track has five header bytes:
+
+- **Mode:** 0-2 is FM and 3-5 is MFM, at 500, 300 and 250 kbit/s.
+- **Physical cylinder.**
+- **Head:** the physical side is bit 0. Bit 7 means a cylinder map follows, and
+  bit 6 a head map.
+- **Sector count.**
+- **Size code:** the size is 128 << n. 0xFF means a table of 16-bit sizes follows,
+  which MAME supports but no image in the collection uses.
+
+Then come the sector numbering map (the ID-field sector numbers in physical order,
+so interleave survives), the optional cylinder and head maps (ID-field values that
+differ from the physical position), and one record per sector. A record's type
+byte decides what follows:
+
+- **0:** no data (the ID was found, the data wasn't).
+- **Odd (1, 3, 5, 7):** the full data follows.
+- **Even (2, 4, 6, 8):** one fill byte follows.
+- **Deleted data mark:** 3, 4, 7 and 8.
+- **Data error:** 5 to 8.
+
+There are no gaps, CRC bytes, or exact data marks, so an F9 or FA mark is lost:
+it's deleted or not. The reader leaves type-0 sectors out of the geometry, and,
+like the HFE reader, describes sectors by their physical position but returns
+them with their ID-field position.
+
+**Measured on the 368 IMD images in Pete's Model II archive** (13 copied into
+`model2/`):
+
+- **Versions:** the headers run from 1.08 to 1.18, and some were written by
+  converters (`IMD DMK ...`, `IMD TD 1.5 ...`, the HxC software, and keirf's
+  Disk-Utilities).
+- **Model II layouts:** cylinder 0 is FM, 26 × 128, numbered 1-26 (the IBM 3740
+  format). The data cylinders are MFM:
+  - 26 × 256 for TRSDOS 1.x and 2.0.
+  - 16 × 512 for TRSDOS-II 4.x and Xenix (most of the archive).
+  - 8 × 1024 for Lifeboat and Aton CP/M.
+  - 30 × 256 numbered from 0, after a 27 × 128 FM cylinder 0 also numbered from
+    0, for LS-DOS 6 and DOSPLUS II.
+- **Other layouts:** some CP/M disks are FM 26 × 128 throughout. A few Model
+  I/III/4 disks are 5¼" at 250 kbit/s.
+- **Map use:** one image (`model2/CPMPLUS4.IMD`) uses a cylinder map, and none
+  uses a head map.
+- **Missing signature:** 11 images don't start with `IMD`, because someone
+  replaced the signature line with a comment. Find the 0x1A; don't check the
+  signature.
+- **HxC empty tracks:** the HxC software writes empty tracks (0 sectors, on
+  side 1 of single-sided disks) with mode 0x81 or 0x82, so the mode is only
+  checked on tracks that have sectors.
+- **Damaged files:**
+  - `model2/TD2BLANK.IMD` and one other image end with a stray 0x0A, probably from a
+    text-mode transfer.
+  - Two AXX-2037 diagnostics images (`model2/AXX-2037-051286-WORK.IMD`) have 77
+    good tracks followed by appended junk.
+  - The reader keeps every complete sector before the first invalid header or
+    record, and logs a warning for the rest. It doesn't set the file's error,
+    because an error stops the disk from being opened at all.
+- **Not IMD:** one `.IMD` is really an HxC `HXCMFM` file.
+
 ## Disks worth remembering
 
-As of October 2026 the collection is 387 images: 334 DMK, 31 HFE, 13 DSK, 5 JV1,
-4 JV3, all with sidecars and snapshots. The biggest part is `peter/` (152): Ira's set
+As of October 14, 2026 the collection is 665 images: 598 DMK, 32 HFE, 13 DSK,
+13 IMD, 5 JV1, 4 JV3, all with sidecars and snapshots. `model2/` holds the IMD
+images, a sample of Pete's Model II archive (see its `README.md`). Of its
+Model II disks only LS-DOS 6.3.1 decodes; Model II TRSDOS, TRSDOS-II and the 8"
+CP/M formats don't yet. The biggest part is `peter/` (152): Ira's set
 of disks that trsread and trstools couldn't read but VDISK could (see its
 `README.md`). Thirteen byte-identical copies were removed when it was added,
 and their names kept as aliases. `telanoc/` holds all 31 HFE images, made by

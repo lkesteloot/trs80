@@ -177,7 +177,7 @@ async function main(): Promise<void> {
     program
         .command("dir <infiles...>")
         .description("list files in the infiles", {
-            infiles: "WAV, CAS, JV1, JV3, DMK, or HFE file (TRSDOS floppies only)",
+            infiles: "WAV, CAS, JV1, JV3, DMK, HFE, or IMD file (TRSDOS floppies only)",
         })
         .option("--system", "include floppy system files")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
@@ -220,7 +220,7 @@ async function main(): Promise<void> {
     program
         .command("extract <infile> <outdir>")
         .description("extract the files in a floppy, CAS, or WAV file into an existing directory", {
-            infile: "floppy (JV1, JV3, DMK, DSK, HFE, SCP), CAS, or WAV file",
+            infile: "floppy (JV1, JV3, DMK, DSK, HFE, IMD, SCP), CAS, or WAV file",
             outdir: "existing directory",
         })
         .option("--system", "include system files from the floppy")
@@ -257,7 +257,7 @@ async function main(): Promise<void> {
     program
         .command("hexdump <infile>")
         .description("display an annotated hexdump of infile", {
-            infile: "WAV, CAS, CMD, 3BN, BAS, JV1, JV3, DMK, or HFE",
+            infile: "WAV, CAS, CMD, 3BN, BAS, JV1, JV3, DMK, HFE, or IMD",
         })
         .option("--no-collapse", "collapse consecutive identical lines")
         .action(paged((infile, options) => {

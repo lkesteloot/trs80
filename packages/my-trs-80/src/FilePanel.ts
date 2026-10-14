@@ -51,6 +51,8 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
             case "Jv1FloppyDisk":
             case "Jv3FloppyDisk":
             case "DmkFloppyDisk":
+            case "HfeFloppyDisk":
+            case "ImdFloppyDisk":
                 const fileSystem = decodeFloppyFileSystem(trs80File);
                 if (fileSystem instanceof Trsdos) {
                     this.pageTabs.addTab(new TrsdosTab(this, trs80File, fileSystem));

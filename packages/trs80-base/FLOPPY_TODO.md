@@ -5,7 +5,7 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 13, 2026. "Where things stand" at the end has the regression results.
+Last updated October 14, 2026. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -216,7 +216,34 @@ more.
 ## New formats
 
 In planned order. People on a TRS-80 Discord asked for all of these after the
-3.0.0 release.
+3.0.0 release, except the Model II file systems.
+
+- [ ] **Model II file systems.** `ImdFloppyDisk.ts` reads the IMD images in
+      `model2/` (see "IMD" in `FLOPPY_FORMATS.md`). Of their Model II disks, only
+      LS-DOS 6.3.1 (`LSD631DS.IMD`) decodes. Not decoded:
+      - **Model II TRSDOS 1.x and 2.0:** `TDOS112.IMD`, `TSDOS20A.IMD`,
+        `TD2BLANK.IMD`, `CPMPLUS4.IMD`, `RACM2DEV.IMD` and
+        `AXX-2037-051286-WORK.IMD`. They use 26 × 256 MFM data cylinders.
+        Measured on `TDOS112.IMD`:
+        - The directory is on cylinder 44.
+        - Sector 2 looks like a HIT.
+        - From sector 3 on, entries are 64 bytes, four per sector.
+        - 2.0's data tracks are interleaved (1, 22, 17, ...).
+        Model I TRSDOS 2.7DD descends from this DOS (see "Tandy's Model II
+        lineage"), which may be why `AXX-2037-051286-WORK.IMD` wrongly decodes
+        as TRSDOS 2.7. It gets one garbage file from a "directory" on cylinder
+        36, with one HIT hash hit. A Model II candidate should outscore that.
+      - **TRSDOS-II 4.x** (Model 12/16/6000): `26-4912.IMD`. It uses 16 × 512
+        MFM data cylinders.
+      - **8" CP/M:**
+        - `WORDSTAR.IMD` uses FM 26 × 128 throughout, the standard 8" single
+          density format.
+        - `LB224A.IMD` (Lifeboat) uses 8 × 1024 MFM data cylinders.
+        - Neither is in `CPM_FORMATS`.
+      - Xenix (`XNX320D2.IMD`) is out of scope.
+- [ ] **IMD leftovers.** The reader is read-only, so a mounted IMD disk can't be
+      written to. The 0xFF per-sector size table is supported, as in MAME, but no
+      image uses it, so only the unit tests exercise it.
 
 - [ ] **More CP/M formats.** `Cpm.ts` reads Montezuma Micro CP/M 2.2 and
       Lifeboat CP/M 1.4 (see "CP/M" in `FLOPPY_FORMATS.md`); each further
