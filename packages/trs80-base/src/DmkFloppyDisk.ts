@@ -216,12 +216,9 @@ class DmkSector {
      * Compute the CRC for the IDAM.
      */
     public computeIdamCrc(): number {
-        let crc = CRC_PRESET;
+        let crc = this.initialCrc();
 
-        // For double density, include the sync bytes preceding the IDAM.
-        const begin = this.density === Density.DOUBLE ? -MFM_SYNC_COUNT : 0;
-
-        for (let i = begin; i < 5; i++) {
+        for (let i = 0; i < 5; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
         }
 
@@ -256,14 +253,30 @@ class DmkSector {
             return undefined;
         }
 
-        let crc = CRC_PRESET;
+        let crc = this.initialCrc();
 
-        const index = this.dataIndex;
-        // Include the DAM and, for double density, the sync bytes preceding it.
-        const begin = this.density === Density.DOUBLE ? index - 1 - MFM_SYNC_COUNT : index - 1;
-        const end = index + this.getSectorSize();
+        // Include the DAM.
+        const begin = this.dataIndex - 1;
+        const end = this.dataIndex + this.getSectorSize();
         for (let i = begin; i < end; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
+        }
+
+        return crc;
+    }
+
+    /**
+     * The CRC before an address mark. For double density that includes the sync bytes before the
+     * mark, which are always 0xA1 to the controller, since it finds the mark by them. Imagers
+     * sometimes store a different first byte, so use the constant rather than the image's bytes.
+     */
+    private initialCrc(): number {
+        let crc = CRC_PRESET;
+
+        if (this.density === Density.DOUBLE) {
+            for (let i = 0; i < MFM_SYNC_COUNT; i++) {
+                crc = CRC_16_CCITT.update(crc, MFM_SYNC);
+            }
         }
 
         return crc;
