@@ -4,7 +4,7 @@ import {pluralizeWithCount} from "./utils.js";
 import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
-import {Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, TrackGeometry, Trsdos} from "trs80-base";
+import {Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, MicroDos, TrackGeometry, Trsdos} from "trs80-base";
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -128,6 +128,8 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                             verboseLines.push(`Block size: ${cpm.format.blockSize} bytes`);
                             verboseLines.push(`Blocks: ${cpm.blockCount}`);
                             verboseLines.push(`Directory entries: ${cpm.format.dirEntryCount}`);
+                        } else if (fileSystem instanceof MicroDos) {
+                            verboseLines.push("Directory: sectors 20-29");
                         }
                     }
                 }

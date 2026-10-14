@@ -4,9 +4,10 @@ import {
     CassetteFile,
     CassetteSpeed,
     Trs80File,
-    Cpm, CpmFile, Trsdos, TrsdosDirEntry, decodeFloppyFileSystem, decodeTrs80CassetteFile, decodeTrs80File,
-    getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
+    Cpm, CpmFile, MicroDos, MicroDosFile, Trsdos, TrsdosDirEntry, decodeFloppyFileSystem, decodeTrs80CassetteFile, decodeTrs80File,
+    getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosProtectionLevelToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
+import {assertNever} from "z80-base";
 import {ToolError} from "./utils.js";
 import {colorDate} from "./lscolors.js";
 
@@ -160,6 +161,30 @@ export class CpmInputFile extends InputFile {
 }
 
 /**
+ * Input file that came from a Percom MicroDOS floppy.
+ */
+export class MicroDosInputFile extends InputFile {
+    public readonly microDos: MicroDos;
+    public readonly microDosFile: MicroDosFile;
+
+    constructor(microDos: MicroDos, microDosFile: MicroDosFile) {
+        const filename = microDosFile.getFilename(".");
+        const binary = microDos.readFile(microDosFile);
+        const trs80File = decodeTrs80File(binary, { filename });
+        super(filename, binary, trs80File);
+        this.microDos = microDos;
+        this.microDosFile = microDosFile;
+    }
+
+    public override getDirExtras(): string[] {
+        return [
+            microDosFileTypeToString(this.microDosFile.type).padEnd(5),
+            this.microDosFile.remark,
+        ];
+    }
+}
+
+/**
  * Result of loading an input file.
  */
 interface LoadedInput {
@@ -219,12 +244,18 @@ function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWhole
                 for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
                     inFiles.push(new TrsdosInputFile(fileSystem, dirEntry));
                 }
-            } else {
+            } else if (fileSystem instanceof Cpm) {
                 const cpmFiles = fileSystem.getDirEntries(includeSystemFiles);
                 const showUser = cpmFiles.some(cpmFile => cpmFile.user !== 0);
                 for (const cpmFile of cpmFiles) {
                     inFiles.push(new CpmInputFile(fileSystem, cpmFile, showUser));
                 }
+            } else if (fileSystem instanceof MicroDos) {
+                for (const microDosFile of fileSystem.getDirEntries(includeSystemFiles)) {
+                    inFiles.push(new MicroDosInputFile(fileSystem, microDosFile));
+                }
+            } else {
+                assertNever(fileSystem);
             }
         } else if (trs80File.className === "Cassette") {
             // Expand .CAS file.

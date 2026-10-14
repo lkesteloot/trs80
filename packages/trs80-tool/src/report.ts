@@ -4,6 +4,7 @@ import {
     Cpm,
     CpmFile,
     decodeCpm,
+    decodeMicroDos,
     decodeTrs80File,
     decodeTrsdos,
     Density,
@@ -11,6 +12,9 @@ import {
     FloppyDisk,
     FloppyFileSystem,
     isFloppy,
+    MicroDos,
+    MicroDosFile,
+    microDosFileTypeToLetter,
     TrackGeometry,
     Trsdos,
     TrsdosDirEntry,
@@ -109,7 +113,8 @@ export interface FileReport {
     size: number;
     // Empty if the operating system doesn't record dates.
     date: string;
-    // Empty on CP/M, which has attributes (in "flags") instead.
+    // Empty on CP/M, which has attributes (in "flags") instead, and on MicroDOS, which has
+    // the type letter in "flags".
     protection: string;
     flags: string;
     isSystem: boolean;
@@ -121,6 +126,10 @@ export interface FileReport {
     extents?: [number, number, number][];
     // CP/M only: allocation blocks.
     blocks?: number[];
+    // MicroDOS only: first and last absolute sector, inclusive.
+    sectors?: [number, number];
+    // MicroDOS only.
+    remark?: string;
     sectorCount?: number;
     missingSectors?: number;
     crcErrorSectors?: number;
@@ -297,6 +306,31 @@ function reportCpmFile(cpm: Cpm, file: CpmFile): FileReport {
 }
 
 /**
+ * Report on one file within a Percom MicroDOS floppy.
+ */
+function reportMicroDosFile(microDos: MicroDos, file: MicroDosFile): FileReport {
+    const report: FileReport = {
+        filename: file.getFilename("."),
+        size: file.getSize(),
+        date: "",
+        protection: "",
+        flags: microDosFileTypeToLetter(file.type),
+        isSystem: file.isSystemFile(),
+        isHidden: file.isHidden(),
+        sectors: [file.firstSector, file.lastSector],
+        remark: file.remark,
+    };
+
+    try {
+        reportFileContents(microDos, file, report);
+    } catch (e) {
+        report.exception = exceptionToString(e);
+    }
+
+    return report;
+}
+
+/**
  * Report on the file system of the floppy.
  */
 function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): void {
@@ -328,6 +362,12 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
     const cpm = decodeCpm(disk);
     if (cpm !== undefined) {
         reportCpm(cpm, report);
+        return;
+    }
+
+    const microDos = decodeMicroDos(disk);
+    if (microDos !== undefined) {
+        reportMicroDos(microDos, report);
         return;
     }
 
@@ -385,6 +425,19 @@ function reportCpm(cpm: Cpm, report: Omit<DiskReport, "warnings">): void {
     };
 
     report.files = cpm.getDirEntries(true).map(file => reportCpmFile(cpm, file));
+}
+
+/**
+ * Report on a Percom MicroDOS file system.
+ */
+function reportMicroDos(microDos: MicroDos, report: Omit<DiskReport, "warnings">): void {
+    report.os = {
+        name: microDos.nameAndVersion,
+        sideCount: 1,
+        sectorsPerTrack: 10,
+    };
+
+    report.files = microDos.getDirEntries(true).map(file => reportMicroDosFile(microDos, file));
 }
 
 /**

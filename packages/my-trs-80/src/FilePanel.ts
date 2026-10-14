@@ -1,13 +1,14 @@
 
 import {File} from "./File";
 import {Context} from "./Context";
-import {BasicProgram, Cassette, CmdProgram, Cpm, decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, SystemProgram,
-    Trsdos} from "trs80-base";
+import {BasicProgram, Cassette, CmdProgram, Cpm, decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, MicroDos,
+    SystemProgram, Trsdos} from "trs80-base";
 import {HexdumpTab} from "./HexdumpTab";
 import {FileInfoTab} from "./FileInfoTab";
 import {IFilePanel} from "./IFilePanel";
 import {TrsdosTab} from "./TrsdosTab";
 import {CpmTab} from "./CpmTab";
+import {MicroDosTab} from "./MicroDosTab";
 import {BasicTab} from "./BasicTab";
 import {CmdTab} from "./CmdTab";
 import {DisassemblyTab} from "./DisassemblyTab";
@@ -55,6 +56,8 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
                     this.pageTabs.addTab(new TrsdosTab(this, trs80File, fileSystem));
                 } else if (fileSystem instanceof Cpm) {
                     this.pageTabs.addTab(new CpmTab(this, trs80File, fileSystem));
+                } else if (fileSystem instanceof MicroDos) {
+                    this.pageTabs.addTab(new MicroDosTab(this, trs80File, fileSystem));
                 }
                 this.pageTabs.addTab(new MountTab(this.context, trs80File));
                 break;

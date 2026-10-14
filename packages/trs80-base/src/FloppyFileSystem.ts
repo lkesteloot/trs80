@@ -1,6 +1,7 @@
 import {FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import {decodeTrsdos, Trsdos} from "./Trsdos.js";
 import {Cpm, decodeCpm} from "./Cpm.js";
+import {decodeMicroDos, MicroDos} from "./MicroDos.js";
 
 /**
  * A file on a floppy, whatever the operating system.
@@ -68,8 +69,9 @@ export interface FloppyFileSystem<T extends FloppyDirEntry = FloppyDirEntry> {
  * @param cpmWholeRecords if true, CP/M files keep their whole 128-byte records instead of
  * ending text files at their first Ctrl-Z. See decodeCpm(). TRSDOS files aren't affected.
  */
-export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false): Trsdos | Cpm | undefined {
+export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false): Trsdos | Cpm | MicroDos | undefined {
     // TRSDOS first, because CP/M disks don't fool its decoder, but its disks could
-    // conceivably have something that looks like a CP/M directory.
-    return decodeTrsdos(disk) ?? decodeCpm(disk, cpmWholeRecords);
+    // conceivably have something that looks like a CP/M directory. MicroDOS last: its directory is
+    // at a fixed place, so we rely on its decoder being strict.
+    return decodeTrsdos(disk) ?? decodeCpm(disk, cpmWholeRecords) ?? decodeMicroDos(disk);
 }
