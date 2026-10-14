@@ -269,9 +269,15 @@ async function main(): Promise<void> {
         })
         .option("--baud <baud>", "baud rate for CAS and WAV file (250, 500, 1500), defaults to 500")
         .option("--listing <filename>", "generate listing file")
+        .option("--model <model>", "which model (1, 3, 4), defaults to 3")
         .action((infile, outfile, options) => {
             const speed = parseBaud(options.baud) ?? CassetteSpeed.LOW;
-            asm(infile, outfile, speed, options.listing);
+            const modelName = options.model ?? "3";
+            const modelType = modelTypeFromString(modelName);
+            if (modelType === undefined) {
+                throw new ToolError("Invalid model: " + modelName);
+            }
+            asm(infile, outfile, speed, options.listing, modelType);
         });
     program
         .command("disasm <infile>")

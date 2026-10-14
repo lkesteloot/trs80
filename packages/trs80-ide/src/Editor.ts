@@ -74,7 +74,7 @@ import {solarizedDark} from 'cm6-theme-solarized-dark'
 import {asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary} from "trs80-asm"
 import {variablePillPlugin} from "./VariablePillPlugin";
 import {saveSettings, Settings} from "./Settings";
-import { Trs80 } from "trs80-emulator"
+import { ModelType, modelTypeAsmConstants, Trs80 } from "trs80-emulator"
 import {foldingExtensions} from "./Folding";
 
 // Keys for local storage.
@@ -181,7 +181,10 @@ const gPresentationTheme = [
 // Compartment to fit the current base theme into.
 const gBaseThemeConfig = new Compartment();
 
-function assemble(code: string[]): AssemblyResults {
+/**
+ * Assemble the code for the given model, predefining the constants that let the source test the model.
+ */
+function assemble(code: string[], modelType: ModelType): AssemblyResults {
     const asm = new Asm({
         readBinaryFile(pathname: string): Uint8Array | undefined {
             return undefined;
@@ -192,6 +195,9 @@ function assemble(code: string[]): AssemblyResults {
         }
     });
     asm.addKnownLabels(Z80_KNOWN_LABELS);
+    for (const {name, value} of modelTypeAsmConstants(modelType)) {
+        asm.addConstant(name, value);
+    }
     if (false) {
         // Disable this while I'm developing the ROM. I'm not sure anyone else uses it.
         // TODO use the Model 1 addresses if the emulator is in Model 1 mode.
@@ -427,7 +433,7 @@ export class Editor {
         this.assemblyResultsStateEffect = StateEffect.define<AssemblyResults>();
         this.assemblyResultsStateField = StateField.define<AssemblyResults>({
             create: () => {
-                return assemble([""]);
+                return assemble([""], this.emulator.trs80.getConfig().modelType);
             },
             update: (value: AssemblyResults, tr: Transaction) => {
                 // See if we're explicitly setting it from the outside.
@@ -438,7 +444,7 @@ export class Editor {
                 }
                 // See if we should reassemble based on changes to the doc.
                 if (tr.docChanged) {
-                    return assemble(tr.state.doc.toJSON());
+                    return assemble(tr.state.doc.toJSON(), this.emulator.trs80.getConfig().modelType);
                 } else {
                     // No, return old value.
                     return value;
@@ -1197,7 +1203,7 @@ export class Editor {
     }
 
     public reassemble() {
-        const results = assemble(this.view.state.doc.toJSON());
+        const results = assemble(this.view.state.doc.toJSON(), this.emulator.trs80.getConfig().modelType);
         this.view.dispatch({
             effects: this.assemblyResultsStateEffect.of(results),
         });

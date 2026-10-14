@@ -7,6 +7,8 @@ import { asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary } from
 import {Asm, FileSystem} from "z80-asm";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio, writeWavFile } from "trs80-cassette";
 import {CassetteSpeed, TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base";
+import {ModelType, modelTypeAsmConstants} from "trs80-emulator";
+import {assertNever} from "z80-base";
 
 const TIME_ASM = false;
 
@@ -40,9 +42,36 @@ class FileSystemImpl implements FileSystem {
 }
 
 /**
+ * Create an assembler for the given model, with the predefined labels and constants for that model.
+ */
+function createAsm(modelType: ModelType): Asm {
+    const asm = new Asm(new FileSystemImpl());
+    asm.addKnownLabels(Z80_KNOWN_LABELS);
+    for (const {name, value} of modelTypeAsmConstants(modelType)) {
+        asm.addConstant(name, value);
+    }
+    switch (modelType) {
+        case ModelType.MODEL1:
+            // The known labels we have are Model III ROM addresses, which are wrong for the Model I.
+            break;
+
+        case ModelType.MODEL3:
+        case ModelType.MODEL4:
+            asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
+            asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
+            break;
+
+        default:
+            assertNever(modelType);
+    }
+    return asm;
+}
+
+/**
  * Handle the "asm" command.
  */
-export function asm(srcPathname: string, outPathname: string, speed: CassetteSpeed, lstPathname: string | undefined): void {
+export function asm(srcPathname: string, outPathname: string, speed: CassetteSpeed, lstPathname: string | undefined,
+                    modelType: ModelType): void {
     const { name } = path.parse(srcPathname);
 
     if (TIME_ASM) {
@@ -50,10 +79,7 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
             const COUNT = 100;
             const before = Date.now();
             for (let i = 0; i < COUNT; i++) {
-                const asm = new Asm(new FileSystemImpl());
-                asm.addKnownLabels(Z80_KNOWN_LABELS);
-                asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
-                asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
+                const asm = createAsm(modelType);
                 const sourceFile = asm.assembleFile(srcPathname);
             }
             const after = Date.now();
@@ -62,10 +88,7 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
     }
 
     // Assemble program.
-    const asm = new Asm(new FileSystemImpl());
-    asm.addKnownLabels(Z80_KNOWN_LABELS);
-    asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
-    asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
+    const asm = createAsm(modelType);
     const sourceFile = asm.assembleFile(srcPathname);
     if (sourceFile === undefined) {
         console.log("Cannot read file " + srcPathname);
