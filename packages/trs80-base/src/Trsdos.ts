@@ -1933,14 +1933,6 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 }
 
-/**
- * Why a particular TRSDOS version was rejected when decoding a diskette.
- */
-export interface TrsdosRejection {
-    version: TrsdosVersion;
-    reason: string;
-}
-
 function generateTrsdos23Candidates(disk: FloppyDisk): Trsdos[] {
     const candidates: Trsdos[] = [];
 
@@ -2052,8 +2044,6 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
  * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
  */
 export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
-    // return decodeTrsdosWithRejections(disk).trsdos;
-
     const candidates: Trsdos[] = [
         ... generateTrsdos23Candidates(disk),
         ... generateTrsdos13Candidates(disk),
@@ -2077,16 +2067,4 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
     } else {
         return undefined;
     }
-}
-
-/**
- * Decode a TRSDOS diskette, also returning why each version tried before the successful
- * one (or all versions, if none succeeded) was rejected.
- */
-export function decodeTrsdosWithRejections(disk: FloppyDisk): {
-    trsdos: Trsdos | undefined,
-    rejections: TrsdosRejection[],
-} {
-    const trsdos = decodeTrsdos(disk);
-    return { trsdos, rejections: [] };
 }

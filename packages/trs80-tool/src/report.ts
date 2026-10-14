@@ -5,7 +5,7 @@ import {
     CpmFile,
     decodeCpm,
     decodeTrs80File,
-    decodeTrsdosWithRejections,
+    decodeTrsdos,
     Density,
     FloppyDirEntry,
     FloppyDisk,
@@ -15,7 +15,6 @@ import {
     Trsdos,
     TrsdosDirEntry,
     trsdosProtectionLevelToString,
-    trsdosVersionToString,
 } from "trs80-base";
 import {LogLevel, TRS80_MAIN_SINK} from "trs80-logger";
 import {version} from "./version.js";
@@ -23,7 +22,7 @@ import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 
 // Bump when the structure of the report changes in a way that consumers must know about.
 // The trs80-floppy-regress repo keeps a copy of the types below; update it too.
-export const REPORT_VERSION = 4;
+export const REPORT_VERSION = 5;
 
 export type DensityName = "single" | "double";
 
@@ -53,14 +52,6 @@ export interface GeometryReport {
     // Cylinder 0 side 0, which is often formatted differently than the rest of the disk.
     bootTrack: TrackGeometryReport;
     dataTrack: DataTrackGeometryReport;
-}
-
-/**
- * Why a particular TRSDOS model was rejected.
- */
-export interface RejectionReport {
-    model: string;
-    reason: string;
 }
 
 export interface GatReport {
@@ -157,7 +148,6 @@ export interface DiskReport {
     geometry?: GeometryReport;
     // First three bytes of the boot sector, or null if it can't be read.
     bootSectorPrefix?: number[] | null;
-    rejections?: RejectionReport[];
     // Null if no operating system was recognized.
     os?: OsReport | null;
     files?: FileReport[];
@@ -328,11 +318,7 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         ? null
         : Array.from(bootSector.data.subarray(0, 3));
 
-    const { trsdos, rejections } = decodeTrsdosWithRejections(disk);
-    report.rejections = rejections.map(r => ({
-        model: trsdosVersionToString(r.version),
-        reason: r.reason,
-    }));
+    const trsdos = decodeTrsdos(disk);
     if (trsdos !== undefined) {
         reportTrsdos(trsdos, report);
         return;

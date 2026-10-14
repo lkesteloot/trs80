@@ -97,8 +97,7 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **Decoder changes:** after changing floppy decoding (mostly
   `trs80-base/src/Trsdos.ts`), run `node regress.ts run` in that repo. It builds
   this tree first. Accept improvements with `--update`, and commit the snapshots
-  there. `--ignore-rejections` hides differences that are only in the reasons
-  each operating system was rejected, which is noisy after rewording them.
+  there.
 
 ## Floppy decoding
 

@@ -93,8 +93,6 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       `isDataDisk` local in `decodeGatInfo()`) have no readers. Only `osVersion`
       (0xCB) is used, for naming. If they come back, set them only when the
       consistency test in "GAT bytes 0xCB-0xCD" passes.
-- [ ] **`decodeTrsdosWithRejections()` returns `rejections: []`**, so the
-      regression reports lost their rejection reasons when scoring arrived.
 - [ ] **`hitNumberToDirEntry()`'s comment** describes TRSDOS 2.3's fixed system
       slots (BOOT/SYS at sector index 0, DIR/SYS at 1); 2.3B puts SYS0 there.
       The reservations also differ by DOS (16 DECs in LDOS, 16 or 2 in TRSDOS 6,
@@ -121,8 +119,7 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       `nameAndVersion`, which really is a version), and
       `trsdosVersionToString()`, which still returns "Model I" and "Model III".
       Those were machine names in name only: the report's `os.model` field was
-      dropped for it (report version 3), and the report's `rejections` entries
-      still carry the same label as `model`. The `Trsdos` class itself covers
+      dropped for it (report version 3). The `Trsdos` class itself covers
       every family, so it may want a broader name too. `V2_7` (Tandy's Model I
       TRSDOS 2.7DD/2.8) is now the third layout, so the enum has three members.
 - [ ] **`TODO` comments in `Trsdos.ts` and `FloppyDisk.ts`** (October 2026):
