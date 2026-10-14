@@ -346,6 +346,34 @@ function decodeAscii(binary: Uint8Array, trim: boolean = true): string | undefin
 }
 
 /**
+ * Decode the GAT's disk name or date. Like decodeAscii(), but it also accepts the TRS-80's
+ * graphics characters (0x80-0xBF), which NEWDOS/80 lets the user type in a disk name, and shows
+ * them as ".". Returns undefined if any other byte isn't printable ASCII.
+ */
+function decodeGatText(binary: Uint8Array): string | undefined {
+    const graphicsFree = binary.map(b => b >= 0x80 && b < 0xC0 ? 0x2E : b);
+    return decodeAscii(graphicsFree);
+}
+
+/**
+ * Decode the GAT's AUTO command, which ends at 0x0D, 0x00, 0x03 (DOSPLUS 3.x), 0xFF (filler), or
+ * the end of the sector. Other bytes outside printable ASCII are shown as ".".
+ */
+function decodeAutoCommand(binary: Uint8Array): string {
+    const parts: string[] = [];
+
+    for (const b of binary) {
+        if (b === 0x0D || b === 0x00 || b === 0x03 || b === 0xFF) {
+            break;
+        }
+
+        parts.push(b >= 32 && b < 127 ? String.fromCodePoint(b) : ".");
+    }
+
+    return parts.join("").trim();
+}
+
+/**
  * Lowest three bits of the directory entry's flag.
  */
 export enum TrsdosProtectionLevel {
@@ -589,15 +617,16 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
 
     // Little endian, like every password hash.
     const password = word(binary[0xCF], binary[0xCE]);
-    const name = decodeAscii(binary.subarray(0xD0, 0xD8));
-    const date = decodeAscii(binary.subarray(0xD8, 0xE0));
+    const name = decodeGatText(binary.subarray(0xD0, 0xD8));
+    // Some formatters leave the date as the 0xFF filler of an unused field.
+    const dateBinary = binary.subarray(0xD8, 0xE0);
+    const date = dateBinary.every(b => b === 0xFF) ? "" : decodeGatText(dateBinary);
 
     // This is only before version 6. At 6 they moved this elsewhere and put other things here that we ignore.
     // Most DOSes end it with 0x0D, but DOSPLUS 3.x ends it with 0x03, and some disks leave the
-    // 0xFF filler of an unused field.
-    const autoCommandBinary = binary.subarray(0xE0);
-    const autoCommandEnd = autoCommandBinary.findIndex(b => b === 0x03 || b === 0xFF);
-    const autoCommand = decodeAscii(autoCommandEnd === -1 ? autoCommandBinary : autoCommandBinary.subarray(0, autoCommandEnd));
+    // 0xFF filler of an unused field. It's what the user typed, which can include control
+    // characters (clear screen, or a line feed between commands), so it isn't evidence either way.
+    const autoCommand = decodeAutoCommand(binary.subarray(0xE0));
 
     // Implies that this is not a TRSDOS disk.
     if (name === undefined) {
@@ -605,9 +634,6 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
     }
     if (date === undefined) {
         return "date is missing";
-    }
-    if (autoCommand === undefined) {
-        return "auto command is missing";
     }
 
     // Additional fields for Model 1.
@@ -1045,6 +1071,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     public readonly dirLumpNumber: number;
     public readonly granulesPerDir: number;
     public readonly firstDataCylinder: number;
+    /**
+     * Whether this candidate reads the directory without its HIT, because the HIT sector holds
+     * something else (see decodeTrsdos()). Every entry in use is then a file, and entries count
+     * as evidence by decoding cleanly rather than by matching their hashes.
+     */
+    public readonly hitIgnored: boolean;
     // Derived fields:
     public readonly dirEntryLength: number;
     public readonly dirEntriesPerSector: number;
@@ -1078,7 +1110,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         sectorsPerGranule: number,
         dirLumpNumber: number,
         granulesPerDir: number,
-        firstDataCylinder: number) {
+        firstDataCylinder: number,
+        hitIgnored = false) {
 
         this.disk = disk;
         this.geometry = geometry;
@@ -1089,6 +1122,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.dirLumpNumber = dirLumpNumber;
         this.granulesPerDir = granulesPerDir;
         this.firstDataCylinder = firstDataCylinder;
+        this.hitIgnored = hitIgnored;
 
         this.dirEntryLength = getDirEntryLength(version);
         this.dirEntriesPerSector = Math.floor(geometry.modalDataSectorSize / this.dirEntryLength);
@@ -1149,9 +1183,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // As with sides, for the directory: if the rest of its lump adds nothing, the directory doesn't
         // extend there (DOSPLUS keeps it on side 0 of the directory cylinder, and a NEWDOS/80
         // directory can be smaller than its lump). A directory that doesn't fill its lump
-        // sorts first. Among sizes that don't, the generators' order (smallest first) decides.
-        const thisDirFillsLump = this.granulesPerDir === this.granulesPerLump;
-        const otherDirFillsLump = other.granulesPerDir === other.granulesPerLump;
+        // sorts first. Among sizes that don't, and among those that fill or run past it, the
+        // generators' order (smallest first) decides.
+        const thisDirFillsLump = this.granulesPerDir >= this.granulesPerLump;
+        const otherDirFillsLump = other.granulesPerDir >= other.granulesPerLump;
         if (thisDirFillsLump !== otherDirFillsLump) {
             return thisDirFillsLump ? 1 : -1;
         }
@@ -1219,7 +1254,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // FXDE has no name, and its HIT byte is the hash of the file it continues, so it can
         // only be checked once we've seen that file's primary entry.
         const entriesByDec = new Map<number, TrsdosDirEntry>();
-        const extendedEntries: { dirEntry: TrsdosDirEntry, hitHash: number }[] = [];
+        const extendedEntries: { dirEntry: TrsdosDirEntry, hitHash: number | undefined }[] = [];
+        // Whether DIR/SYS's extent names our directory lump, which is how a candidate that
+        // ignores the HIT shows that it's reading the real directory.
+        let dirSysConfirmsDir = false;
 
         // console.log(`--- Computing score for track ${this.dirCylinderNumber}`)
 
@@ -1229,7 +1267,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 for (let i = 0; i < this.dirEntriesPerSector; i++) {
                     const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
                     const index = this.dirEntryToHitNumber(sectorIndex, i);
-                    const hitHash = hitInfo.hit[index];
+                    const hitHash = this.hitIgnored ? undefined : hitInfo.hit[index];
                     let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
@@ -1256,7 +1294,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         // miss, since we can't check a hash against a missing name.
                         let nameMissing = false;
                         if (!dirEntry.isExtendedEntry() && isBlankFilename(dirEntry.rawFilename)) {
-                            const reconstructedName = reconstructBlankFilename(this.version, index, hitHash, dirEntry);
+                            const reconstructedName = hitHash === undefined ? undefined :
+                                reconstructBlankFilename(this.version, index, hitHash, dirEntry);
                             if (reconstructedName !== undefined) {
                                 dirEntry = dirEntry.withRawFilename(reconstructedName);
                             } else {
@@ -1269,7 +1308,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         if (dirEntry.isExtendedEntry()) {
                             extendedEntries.push({dirEntry, hitHash});
                         } else if (!nameMissing) {
-                            if (computedHash === hitHash || isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
+                            // Without the HIT, an entry that decodes is all the evidence there is.
+                            if (hitHash === undefined || computedHash === hitHash ||
+                                isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
                                 hashHits += 1;
                             } else {
                                 hashMisses += 1;
@@ -1282,11 +1323,17 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         }
                         // DIR/SYS is the file that holds the directory, so if there is one, it must
                         // start at our directory lump. Otherwise we're reading some other layout
-                        // that happens to reach the same sectors, or a leftover directory.
-                        if (dirEntry.getFilename("/") === "DIR/SYS" && dirEntry.extents.length > 0 &&
+                        // that happens to reach the same sectors, or a leftover directory. Only in
+                        // the 2.3 family: Tandy's 1.3 and 2.7 write no DIR/SYS, and a disk in the
+                        // 1.3 layout made by another tool can have one that points anywhere.
+                        if (this.version === TrsdosVersion.V2_3 &&
+                            dirEntry.getFilename("/") === "DIR/SYS" && dirEntry.extents.length > 0 &&
                             dirEntry.extents[0].cylinderNumber !== this.dirLumpNumber) {
 
                             return { score: -1, reason: `DIR/SYS is on lump ${dirEntry.extents[0].cylinderNumber}, not the directory's lump` };
+                        }
+                        if (dirEntry.getFilename("/") === "DIR/SYS" && dirEntry.extents.length > 0) {
+                            dirSysConfirmsDir = true;
                         }
                     }
                 }
@@ -1295,13 +1342,20 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
         // An FXDE is a hit if its HIT byte is the hash of the primary entry that its chain of
         // back links leads to.
+        // Without the HIT, it's a hit if the chain leads to a primary entry at all.
         for (const { dirEntry, hitHash } of extendedEntries) {
             const primary = this.findPrimaryEntry(dirEntry, entriesByDec);
-            if (primary !== undefined && hashForFilename(primary.rawFilename) === hitHash) {
+            if (primary !== undefined && (hitHash === undefined || hashForFilename(primary.rawFilename) === hitHash)) {
                 hashHits += 1;
             } else {
                 hashMisses += 1;
             }
+        }
+
+        // Entries that merely decode are weak evidence: any sector of file data with a few bytes
+        // in the right places would do. So without the HIT, DIR/SYS must say where the directory is.
+        if (this.hitIgnored && !dirSysConfirmsDir) {
+            return { score: -1, reason: "Without the HIT, DIR/SYS must confirm the directory's lump" };
         }
 
         // Whether the hashes clearly favor this layout. Without Tandy's filler, the 1.3 layout needs
@@ -1532,8 +1586,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // Map from position of directory entry to its actual entry. The key is the asKey() result
         // of DirEntryPosition.
         const dirEntries = new Map<string, TrsdosDirEntry>();
-        // Without a readable HIT, assume it lists every entry.
-        const hitInfo = this.getHitInfo();
+        // Without a readable HIT, or when ignoring it, assume it lists every entry.
+        const hitInfo = this.hitIgnored ? "ignored" : this.getHitInfo();
         // Count of entries whose names are still blank, for naming them.
         let blankCount = 0;
 
@@ -1933,7 +1987,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 }
 
-function generateTrsdos23Candidates(disk: FloppyDisk): Trsdos[] {
+/**
+ * Generate the candidates for the TRSDOS 2.3 family, where a lump is a cylinder. See decodeTrsdos()
+ * for hitIgnored.
+ */
+function generateTrsdos23Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsdos[] {
     const candidates: Trsdos[] = [];
 
     const version = TrsdosVersion.V2_3;
@@ -1959,7 +2017,7 @@ function generateTrsdos23Candidates(disk: FloppyDisk): Trsdos[] {
         for (const granulesPerDir of granulesPerDirOptions) {
             for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
                 candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
-                    dirLumpNumber, granulesPerDir, 0));
+                    dirLumpNumber, granulesPerDir, 0, hitIgnored));
             }
         }
     }
@@ -2008,7 +2066,43 @@ function generateTrsdos27Candidates(disk: FloppyDisk): Trsdos[] {
     return candidates;
 }
 
-function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
+/**
+ * The size of the directory in 5-sector granules according to the candidate's HIT, if it reads as a
+ * NEWDOS/80 HIT, or undefined if it doesn't. Byte 0x1F holds the number of directory sectors beyond
+ * 10 (0, 5, 10, 15 or 20; see "HIT sector" in FLOPPY_FORMATS.md), and the directory must also reach
+ * every sector that the HIT lists an entry in. Some disks list entries past what byte 0x1F says.
+ */
+function getNewdos80GranulesPerDir(candidate: Trsdos): number | undefined {
+    const hitInfo = candidate.getHitInfo();
+    if (typeof hitInfo === "string") {
+        return undefined;
+    }
+
+    const hit = hitInfo.hit;
+    const extraSectors = hit[0x1F];
+    if (extraSectors % 5 !== 0 || extraSectors > 20) {
+        return undefined;
+    }
+
+    // Including the GAT and HIT.
+    let sectorCount = 10 + extraSectors;
+    for (let hitIndex = 0; hitIndex < hit.length; hitIndex++) {
+        if (hitIndex !== 0x1F && hit[hitIndex] !== 0) {
+            // The low five bits are the entry sector, counted after the GAT and HIT.
+            sectorCount = Math.max(sectorCount, (hitIndex & 0x1F) + 3);
+        }
+    }
+
+    // At most 6 granules (28 entry sectors).
+    const granulesPerDir = Math.ceil(sectorCount / 5);
+    return granulesPerDir <= 6 ? granulesPerDir : undefined;
+}
+
+/**
+ * Generate the candidates for NEWDOS/80-style lumps of 5-sector granules. See decodeTrsdos()
+ * for hitIgnored.
+ */
+function generateNewdos80Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsdos[] {
     const candidates: Trsdos[] = [];
 
     const version = TrsdosVersion.V2_3;
@@ -2030,8 +2124,20 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
             // compareTo() prefers a directory that doesn't fill its lump.
             for (let granulesPerDir = 2; granulesPerDir <= granulesPerLump; granulesPerDir++) {
                 for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
-                    candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
-                        dirLumpNumber, granulesPerDir, firstDataCylinder));
+                    const candidate = new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+                        dirLumpNumber, granulesPerDir, firstDataCylinder, hitIgnored);
+                    candidates.push(candidate);
+
+                    // The directory can also run past its lump, since its size (DDGA, 2 to 6 granules)
+                    // doesn't depend on GPL. Try that size only when the HIT asks for it, rather than
+                    // every size, which would read many more sectors that aren't there.
+                    if (granulesPerDir === 2 && !hitIgnored) {
+                        const largerGranulesPerDir = getNewdos80GranulesPerDir(candidate);
+                        if (largerGranulesPerDir !== undefined && largerGranulesPerDir > granulesPerLump) {
+                            candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump,
+                                sectorsPerGranule, dirLumpNumber, largerGranulesPerDir, firstDataCylinder));
+                        }
+                    }
                 }
             }
         }
@@ -2042,15 +2148,38 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
 
 /**
  * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
+ *
+ * If no candidate passes, try the 2.3-family layouts again ignoring the HIT. Some disks have a
+ * valid directory whose HIT sector holds something else (a copy of a file sector), so no hash
+ * matches. Such a reading needs DIR/SYS to name its directory lump, and a GAT that passes the
+ * strict check, since entries that merely decode are weak evidence.
  */
 export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
-    const candidates: Trsdos[] = [
-        ... generateTrsdos23Candidates(disk),
+    const best = findBestCandidate([
+        ... generateTrsdos23Candidates(disk, false),
         ... generateTrsdos13Candidates(disk),
         ... generateTrsdos27Candidates(disk),
-        ... generateNewdos80Candidates(disk),
-    ];
+        ... generateNewdos80Candidates(disk, false),
+    ]);
+    if (best !== undefined) {
+        return best;
+    }
 
+    const hitIgnoredCandidates = [
+        ... generateTrsdos23Candidates(disk, true),
+        ... generateNewdos80Candidates(disk, true),
+    ].filter(candidate => candidate.gatPassesStrictCheck);
+    const bestIgnoringHit = findBestCandidate(hitIgnoredCandidates);
+    if (bestIgnoringHit !== undefined) {
+        TRS80_BASE_LOGGER.warn("The HIT doesn't match the directory, so it was read without it");
+    }
+    return bestIgnoringHit;
+}
+
+/**
+ * The best of the candidates, or undefined if none passes.
+ */
+function findBestCandidate(candidates: Trsdos[]): Trsdos | undefined {
     // Best first.
     candidates.sort((a, b) => a.compareTo(b));
 

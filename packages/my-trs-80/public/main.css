@@ -1298,6 +1298,16 @@ button i {
     grid-template-columns: auto auto auto auto;
 }
 
+.microdos .dir {
+    /* Filename, size, type, remark, run, import. */
+    grid-template-columns: auto auto auto auto auto auto;
+}
+
+.microdos .dir.no-import {
+    /* Signed out, so no import button. */
+    grid-template-columns: auto auto auto auto auto;
+}
+
 .dos .dir .filename {
     color: var(--magenta);
 }
@@ -1319,8 +1329,13 @@ button i {
     color: var(--blue);
 }
 
-.dos .dir .attributes {
+.dos .dir .attributes,
+.dos .dir .type {
     color: var(--violet);
+}
+
+.dos .dir .remark {
+    color: var(--blue);
 }
 
 .dos .dir .run,
@@ -1355,8 +1370,13 @@ button i {
     border-bottom: 1px solid var(--blue);
 }
 
-.dos .dir .attributes.header {
+.dos .dir .attributes.header,
+.dos .dir .type.header {
     border-bottom: 1px solid var(--violet);
+}
+
+.dos .dir .remark.header {
+    border-bottom: 1px solid var(--blue);
 }
 
 .dos .dir .run.header,

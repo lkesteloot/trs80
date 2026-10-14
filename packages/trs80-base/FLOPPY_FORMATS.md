@@ -214,6 +214,22 @@ directory sector 10, three of them named like live files), on TRSDOS 2.3B (the
 second SYS5/SYS), and on `Maxi Manager` (a garbage `81 NFMT/CBF` whose extents
 reach lump 87, which made a two-sided reading win until it was ignored).
 
+**A HIT can be wrong while the directory is fine.** On six TRSDOS 6 disks in
+`peter/` (`Bobby Lee (100)`, `EBAY1024`, `EBAY1035`, the SuperScripsit master and
+both `TRSDOS Hard Disk Initialization` sets) the HIT sector is a byte-for-byte
+copy of a file sector, so no hash matches the valid entries on cylinder 20. On
+`RemDisk 1` the whole HIT sector is shifted by one byte (`HIT[i + 1]` holds entry
+`i`'s hash). When no candidate passes, `decodeTrsdos()` tries the 2.3-family
+layouts again ignoring the HIT: every entry in use is a file, and one that
+decodes counts as a hit. Since that's weak evidence, such a candidate also needs
+DIR/SYS's extent to name its directory lump and a GAT that passes the strict
+check, and the decoder logs a warning. All six TRSDOS 6 disks decode that way with
+every file clean, as do four disks whose directories are damaged (`Torpedo
+[Directory is Shot]`, the two `Elephant` disks with bad tracks in their names, and
+`50VFRED.DMK`), most of whose files decode as programs (3 of 6 on `Torpedo`, 68 of
+74 on `50VFRED`). Ignoring the HIT
+also lists entries the DOS can't reach (see below), so it's only a fallback.
+
 **An extended entry's (FXDE's) HIT byte is the hash of its file's name**, though
 the FXDE itself has no name. `evaluate()` follows the FXDE's back links (byte 1)
 to the primary entry and compares that entry's hash. Comparing the FXDE's own
@@ -346,7 +362,10 @@ On a double-sided disk:
   [IRA334]`, whose DIR/SYS points elsewhere, and the short NEWDOS/80-style
   directory that dodged the bad sector on `03 -Assignments [T40S01]`. TRSDOS
   1.3 and 2.3B directories have no DIR/SYS, so they get no help from it; boot
-  byte 2 would cover them.
+  byte 2 would cover them. The rule applies to the 2.3 family only: the two
+  `Graphics-90` disks are in the 1.3 layout, made by some other tool, with a
+  DIR/SYS whose extent says cylinder 0 though the directory (Tandy filler, 16
+  and 20 hashes matching) is on 17.
   Comparing the directory sectors' interleave on the two sides doesn't help:
   it's the same on every double-sided disk in the collection, including those
   whose side 1 is left over from an earlier format.
@@ -996,6 +1015,17 @@ Two details worth having:
   extra entry sectors, 0, 5, 10, 15 or 20. Across all the NEWDOS/80 disks we see 0,
   5, 10 and 20 (the "FRED" disks).
 
+  **The directory can be larger than its lump.** Its size (`DDGA`) doesn't depend
+  on `GPL`, so with `GPL=2` a 15-sector directory runs into the next lump. The
+  decoder used to cap the directory at one lump, which silently dropped every
+  entry past it: on about 20 disks (the `NEWDOS-86` helpdisks and utility disks,
+  `RACS`, `Medicare System`, `peter/034.dmk` and `049.dmk`), from one file to 40.
+  `generateNewdos80Candidates()` now also tries the size the HIT asks for: byte
+  0x1F, or enough sectors to reach the highest HIT column in use, if that's
+  more. The second matters on `peter/TRS-80 Format [Set 1]`, whose 0x1F and
+  deleted marks say 10 sectors but whose HIT lists two files, hashes matching, in
+  entry sectors 8 and 9 (October 2026).
+
 The handbook's remark that the HIT "uses every second line in the sector" checks
 out on all seven disks: with 8 directory entry sectors only the low 3 bits of the
 sector field vary, so hashes land in the first 8 bytes of each 32, which in a
@@ -1091,6 +1121,17 @@ decoded RAPIDOS 2.0, NEWDOS-86, TRSDOS 6.2 and LOAD-80 disks in
 0x03 (`Micro-80 Bulletin Board System`, `VersaReceivables`, the `Electric
 Pencil` disks), and `Le Script` leaves the field 0xFF. Rejecting the GAT for
 those lost every candidate on those disks.
+
+**Nor is it always printable, so it's no evidence at all.** It's what the user
+typed, and that includes control characters: `1C 1F` (home, clear screen) on
+`Sands of Mars` and `ST80-III`, and a line feed between two commands on `Super
+Directory v2.1`. Since October 2026 `decodeGatInfo()` shows such bytes as "."
+instead of rejecting the GAT. The name and date are still checked, with two
+allowances: **the date may be all 0xFF** (unused filler, on `Creative Computing
+Games Pack 1`), and **the name and date may hold graphics characters**
+(0x80-0xBF), which NEWDOS/80 lets you type: "Tony", 0x80, "G/M" on `Green
+Machine BBS`, "Data", 0x84, "isk" on two `NEWDOS-86` utility disks. Each of these
+rejected a directory whose hashes all matched.
 
 A blank 2.3-family disk usually offers at least one matching hash, but not
 always two: TRSDOS 2.x's DIR/SYS hash is wrong (see the HIT, and accepting
@@ -1279,8 +1320,9 @@ from the disks, not from a DPB:
 ## Percom MicroDOS
 
 Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
-layouts: no GAT, no HIT, no granules, and no extents. We don't decode it yet;
-Ira's report on set 1 (`report-cantread.txt`) says VDISK extracts these disks.
+layouts: no GAT, no HIT, no granules, and no extents. `MicroDos.ts` decodes the
+Model I disks that have a directory. Ira's report on set 1
+(`report-cantread.txt`) says VDISK extracts these disks.
 Measured on the 21 Percom disks (tagged `percom`: 20 in `peter/`, and the
 manual disk in `ira/lk-341-set-1`), and confirmed by the BASIC source of
 Percom's file manager (FILEMGR), which is on the manual disk (`MicroDOS Disk
@@ -1290,35 +1332,63 @@ directory:
 - **Sectors are numbered absolutely**, cylinder × 10 + sector, on single-sided,
   single-density disks of 10 sectors per track. The boot sector starts `FE 00
   31 FC`.
+- **Every sector starts with a byte count.** Byte 0 is the number of data
+  bytes that follow (1-255): 0xFF in a full sector, less in the last sector of
+  a file. The bytes past the count are stale, and a count of 0 means the
+  sector holds nothing. MicroDOS BASIC's GET and PUT read and write one sector
+  as one string of up to 255 characters, and the count is its length. (The
+  boot sector's first byte, 0xFE, is Z80 code that also reads as a count of
+  254; nothing treats it as a count.)
 - **The directory is absolute sectors 20-29** (cylinder 2), always. Each sector
   holds five 45-byte entries starting at byte 1. Byte 0 is 0xE1 (225, the
-  length of the five entries); FILEMGR writes the sector from a 225-character
-  string, so this is probably that string's length byte.
+  length of the five entries); it's the count byte of the previous rule,
+  because FILEMGR writes the sector from a 225-character string. The file
+  manager writes all ten sectors, so the ones past the sentinel still start
+  with 0xE1.
 - **An entry** is a 10-character name padded with spaces, a 2-byte start
   sector and a 2-byte end sector (little-endian, absolute, inclusive), a type
   byte (`P` for a program, `D` for data), and a 30-character remark.
 - **A name of `%%%%%%%%%%` ends the directory**, so there are at most 50
   files. FILEMGR's initialize command writes just the sentinel, and `Percom
   MicroDOS v1.21` has exactly that: an empty directory.
-- **A file is one contiguous run of sectors.** The DOS and the directory are
+- **A file is one contiguous run of sectors**, and its contents are the data
+  bytes of each sector in order. The DOS and the directory are
   listed as data files of their own: `MICRODOS` 0-19, `DIRECTORY` 20-29, then
   `MENU` 30-31, `PATCHER` 40-42, `FILEMGR` 50-72, `DISKTEST` 80-89,
   `UTILITIES` 100-125, `NOTEBOOK` 150-172 and `NOTEBOOKFL` 200-399 on most
   system disks. Files start on round numbers with gaps between them, so free
-  space isn't tracked; the user picks the sectors when adding an entry.
+  space isn't tracked; the user picks the sectors when adding an entry. We treat
+  an entry as a system file if it starts at sector 0 or 20.
+- **Program (`P`) files are Level II BASIC in memory format**: the tokenized
+  lines (next-line pointer, line number, tokens, 0) without the 0xFF byte that
+  starts a TRSDOS BASIC file. We prepend 0xFF to get an ordinary BASIC file. All
+  the program files on the 12 disks decode this way. One (TRANS80) is a BASIC
+  loader with machine code appended after the program's end.
+- **There are no dates, passwords, or attributes** beyond the type letter. The
+  version strings the disks print disagree with each other, so we don't report
+  a version.
 
 Twelve of the 21 Percom disks have this directory: MicroDOS 1.00 through 2.20,
-OS-80 1.5, and the manual disk. The program files' contents (presumably
-Percom's tokenized BASIC, judging by FILEMGR) haven't been examined. The rest
-don't fit:
+OS-80 1.5, and the manual disk. The rest don't have one:
 
-- **Five Model I disks have the same boot sector but no directory** (no
-  sentinel anywhere): Electric Crayon, Letter Generator, Paymaster, WORP-1,
-  and `Percom MicroDOS v1.12 [Hacked by Ron McPeake]`. Possibly turnkey
-  applications that read fixed sectors; unchecked.
+- **Five Model I disks have the same boot sector but no MicroDOS directory**
+  (no sentinel anywhere): Electric Crayon, Letter Generator, Paymaster, WORP-1,
+  and `Percom MicroDOS v1.12 [Hacked by Ron McPeake]`. They use the same
+  sector format (byte 0 counts the data bytes). The first four hold turnkey
+  programs at fixed sectors with no names anywhere, so there's nothing to
+  decode as files. The hacked 1.12 has a directory of its own in absolute
+  sectors 20-21 (count 0xDD): 45-byte entries of a name, the first and last
+  sector as decimal text (`22 32 `), the type letter and a 28-character
+  remark, ended by blanks. It lists only DIRECTORY (22-32) and UTILITIES
+  (33-59), numbers that don't match where the directory is, so it's left
+  alone.
 - **Four Model III disks** (OS-80 III 1.0 and two of 2.02, MicroDOS 2.10) are
   double density with 18 sectors per track, and their boot sector starts `00
-  00 6D B6`. Their layout hasn't been examined.
+  00 6D B6`. They use the same byte-count sector format, but only sector 1 of
+  cylinder 0 is meaningful (the others are `6D B6` filler). Empty sectors have
+  a count of 13 and the text `HELLO SAILOR!`. They have no directory: their
+  BASIC addresses files by absolute sector (`LOAD 10055`, `GET A$,10020`), and
+  their menu program lists the files in DATA lines.
 
 ## Image formats
 
@@ -1549,6 +1619,17 @@ SYS0 banner, the boot track and the GAT.
   BOOT/SYS rule now covers DOS/SYS, MultiDOS's boot file). The NEWDOS-86 and
   NEWDOS-90 system disks are named by their banners; their utility disks have
   no system files and stay NEWDOS/80 v2.0.
+- `ira/DMK-Images-From-v342/`: Ira's comparison of TRSREAD, trs80-tool 3.4.2 and
+  VDISK over 7,684 images: the 48 that only we couldn't read, the 6 no tool could,
+  and the 2 where only our CRC differed. All 56 are byte-identical to disks already
+  in the suite. Our `response.txt` there says which we now read and why the rest are
+  left. Two notes from it: on `PageIt v2.0`, BASIC wrote its program the 2.3 way
+  (count 42, EOF 32, ending at byte 10,528), so under the 1.3 size rule the
+  directory claims a sector its extents don't hold; we read the 42 sectors there
+  are, and TRSREAD and VDISK add 32 bytes of the sector after the extent. And
+  `Super Utility + Copy Utility [Set 3]` keeps its directory on cylinder 3, as
+  boot byte 2 says, while DIR/SYS's extent points at cylinder 17, every sector of
+  which has a CRC error: copy protection, left undecoded.
 - `ira/Montezuma-1.42`, `ira/Montezuma-2.32`, and `ira/QuickTerm`: Montezuma
   CP/M disks where TRSREAD's files differed from ours, and ours are right on
   all three. TRSREAD cuts files with text extensions (`.DOC`, `.ASM`, `.BUG`,
