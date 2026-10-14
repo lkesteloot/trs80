@@ -186,13 +186,14 @@ more.
   directories. Ignoring the HIT also lists in-use entries the DOS can't reach.
   A finer fallback would trust the HIT bytes that do match and ignore only the
   rest, or detect the one-byte shift.
-- Four of the one-off disks in `ira/lk-341-set-1` (tagged `unresolved`) still
+- Two of the one-off disks in `ira/lk-341-set-1` (tagged `unresolved`) still
   don't decode; their sidecars say why. `Super Utility + Copy Utility [Set 3]`
   keeps its directory on cylinder 3 while DIR/SYS points at 17, a cylinder of
   CRC errors (boot byte 2 as evidence, above, could override DIR/SYS there).
-  `French Teacher #1`, `Defense Command [Set 1]` and `MultiDOS II [Incomplete]`
-  have tracks of garbage or deliberately confusing sector IDs. The other 16
-  decode since October 2026.
+  `Defense Command [Set 1]` has tracks of garbage or deliberately confusing
+  sector IDs. The other 18 decode since October 2026; `French Teacher #1` and
+  `MultiDOS II [Incomplete]` only needed IDs with bad CRCs ignored (see "An IDAM
+  pointer can point at data" in `FLOPPY_FORMATS.md`).
 - `AITech LISP v2.0 [Set 1]` and `Newclock-80 [Set 1]` (in `ira/lk-341-set-1`,
   tagged `no-boot-track`) have nothing readable on cylinder 0 side 0, so the
   readers reject them, though TRSREAD extracts their files. Reading them would
