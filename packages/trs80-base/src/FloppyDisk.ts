@@ -270,6 +270,15 @@ export class SectorInfo {
     public getDataAddressMark(): number {
         return this.dataAddressMark ?? (this.deleted ? DELETED_DATA_ADDRESS_MARK : DATA_ADDRESS_MARK);
     }
+
+    /**
+     * Whether the ID field's CRC is good, or not known to be bad. No controller accepts an ID
+     * field whose CRC is bad, and in some images it's data that the imager took for an
+     * address mark, with any sector number.
+     */
+    public hasValidIdCrc(): boolean {
+        return this.crc?.idCrc.valid() ?? true;
+    }
 }
 
 /**
@@ -319,10 +328,15 @@ export class TrackGeometry {
             throw new Error("Sectors of a track must all be on that track");
         }
 
-        const firstSectorNumber = Math.min(... sectorInfos.map(info => info.sectorPosition.sectorNumber));
-        const lastSectorNumber = Math.max(... sectorInfos.map(info => info.sectorPosition.sectorNumber));
-        const modalDensity = modeOf(sectorInfos.map(info => info.density)).value;
-        const modalSectorSize = modeOf(sectorInfos.map(info => info.sectorSize)).value;
+        // Leave sectors with bad ID fields out of the track's layout, unless they're all the
+        // track has.
+        const validIdInfos = sectorInfos.filter(info => info.hasValidIdCrc());
+        const layoutInfos = validIdInfos.length > 0 ? validIdInfos : sectorInfos;
+
+        const firstSectorNumber = Math.min(... layoutInfos.map(info => info.sectorPosition.sectorNumber));
+        const lastSectorNumber = Math.max(... layoutInfos.map(info => info.sectorPosition.sectorNumber));
+        const modalDensity = modeOf(layoutInfos.map(info => info.density)).value;
+        const modalSectorSize = modeOf(layoutInfos.map(info => info.sectorSize)).value;
 
         return new TrackGeometry(trackPosition, firstSectorNumber, lastSectorNumber, modalDensity, modalSectorSize);
     }
@@ -447,8 +461,15 @@ export class FloppyDiskGeometry {
         this.trackMap = trackMap;
         this.bootTrack = bootTrack;
 
+        // A later sector with the same position replaces an earlier one, unless only the earlier
+        // one's ID field is good. The DMK reader picks the same way.
         for (const sectorInfo of sectorInfos) {
-            this.sectorMap.set(sectorInfo.sectorPosition.key(), sectorInfo);
+            const key = sectorInfo.sectorPosition.key();
+            const existing = this.sectorMap.get(key);
+            const replace = existing === undefined || sectorInfo.hasValidIdCrc() || !existing.hasValidIdCrc();
+            if (replace) {
+                this.sectorMap.set(key, sectorInfo);
+            }
         }
 
         // Every sector belongs to a track, so the min and max over the tracks are the min and max

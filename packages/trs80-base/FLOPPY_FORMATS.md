@@ -1368,8 +1368,29 @@ header, whose bytes decode as cylinder 17, sector 4, with no data mark, and
 replaced the real sector 4 (a directory sector holding SYS0/SYS). The reader
 drops pointers whose 7-byte ID field doesn't fit in the track. A real FDC would
 have found the real sector anyway, since it searches again when no data mark
-follows an ID. Of the 182 duplicate IDs in the collection, none other has a
-later copy that is worse than an earlier one.
+follows an ID. Of the 182 duplicate IDs in the collection at the time, none
+other had a later copy that is worse than an earlier one; see the next note for
+disks added since.
+
+**An IDAM pointer can point at data.** On `French Teacher #1 ... [Set 2].dmk`,
+every track ends, after sector 9's gap, with about 50 bytes of what looks like
+the formatter's own Z80 code (the same bytes on every track), and the imager
+recorded each 0xFE byte in it as an IDAM: sectors 11, 66, and sometimes 22, all
+with bad ID CRCs and no data mark. A real FD1771 wouldn't see them, since a data
+0xFE lacks the address mark's missing clock bits. Counted as sectors, they made
+the track span 67 and nothing decoded. Its 350 real sectors match Set 1's except
+for the GAT's date (11/30/79 against 04/05/83). `Variable Finder` and
+`Modem-80 v3.0` (Sets 1 and 3) are worse: after each track's ten single-density
+pointers come eight double-density ones, back at lower offsets (so pointers
+aren't always in ascending order), every 342 bytes, with bad CRCs, no data mark,
+and sector numbers such as 0, 229, and 255. Those made the span 256, and the
+ones claiming sector 0 replaced the real sector 0 of their track, which hid the
+directory on cylinder 5. So two rules: `TrackGeometry` takes a track's sector
+range, density, and size only from IDs whose CRC is good, unless none is; and
+in both the DMK reader's and the geometry's sector maps, a later duplicate
+doesn't replace an earlier one whose ID CRC is good unless its own is too. The
+bad IDs stay in the geometry's sector list. These rules also let
+`MultiDOS II ... [Incomplete].dmk` decode.
 
 Some DMK files are **one track short** of what the header promises. Five in the
 collection (`LD4-631.DSK`, the trs80gp sample, which is a DMK despite its

@@ -229,6 +229,13 @@ class DmkSector {
     }
 
     /**
+     * Whether the CRC written after the ID field matches the one computed from it.
+     */
+    public hasValidIdCrc(): boolean {
+        return this.getIdamCrc() === this.computeIdamCrc();
+    }
+
+    /**
      * Get the CRC for the data bytes, or undefined if the sector has no data.
      */
     public getDataCrc(): number | undefined {
@@ -426,9 +433,16 @@ export class DmkFloppyDisk extends FloppyDisk {
     public computeSectorMap(): void {
         this.sectorMap.clear();
 
+        // A later sector with the same position replaces an earlier one, unless only the earlier
+        // one's ID field is good. Some imagers record noise as IDs, with any sector number.
         for (const track of this.tracks) {
             for (const sector of track.sectors) {
-                this.sectorMap.set(sector.physicalSectorPosition.key(), sector);
+                const key = sector.physicalSectorPosition.key();
+                const existing = this.sectorMap.get(key);
+                const replace = existing === undefined || sector.hasValidIdCrc() || !existing.hasValidIdCrc();
+                if (replace) {
+                    this.sectorMap.set(key, sector);
+                }
             }
         }
     }
