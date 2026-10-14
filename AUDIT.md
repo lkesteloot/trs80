@@ -9,21 +9,6 @@ generated opcode tables (`z80-inst/src/Opcodes.ts`, `z80-emulator/src/Decode.ts`
 TRSDOS candidate scoring, the WebGL shaders, the cassette decoders, and the cassette webapp UI.
 The type check and all tests passed at the time of the audit.
 
-## Security (my-trs-80 and Firebase)
-
-The rules reviewed are the ones in
-[firestore-rules.txt](packages/my-trs-80/firestore-rules.txt). If the deployed rules differ,
-recheck against those.
-
-- [ ] **Nothing checks what gets written.** Any Google account can create unlimited documents
-  with any fields, up to 1 MiB each. That's a storage and billing risk. App Check isn't
-  enabled either. Probably not worth fixing given how little the site is used.
-- [ ] Analytics logs every filename that's run or imported
-  ([Context.ts:76](packages/my-trs-80/src/Context.ts:76),
-  [YourFilesTab.ts:286](packages/my-trs-80/src/YourFilesTab.ts:286)).
-
-No XSS found: user data always goes through `innerText`/`textContent`.
-
 ## Serious correctness bugs
 
 - [ ] Floppy controller gaps that remain:
@@ -89,7 +74,6 @@ No XSS found: user data always goes through `innerText`/`textContent`.
 
 - [ ] NMI takes 13 T-states instead of 11
   ([Z80.ts:200](packages/z80-emulator/src/Z80.ts:200)).
-- [ ] `decodeTrsdosWithRejections` always returns an empty list, but `info --json` reports it.
 
 ## Model I compatibility
 
