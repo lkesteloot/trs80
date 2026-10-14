@@ -157,7 +157,8 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **Deploys:** `~/mine/hitch-config/my-trs-80/Makefile` downloads the artifacts
   of the newest successful master run. Every public build comes from CI.
 - **trs80-tool releases:** bump `version` in its `package.json`, and add a
-  change log entry in `site/index.html`.
+  change log entry in `site/index.html`. The `/changelog` skill
+  (`.claude/skills/changelog`) does both.
 
 ## Starting a session in a worktree
 
