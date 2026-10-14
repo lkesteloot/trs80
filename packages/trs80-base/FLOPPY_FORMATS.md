@@ -1434,6 +1434,22 @@ entries after a terminator, none out of order, and every file's doubling matches
 its flags (checked by recomputing IDAM CRCs at both strides). Sector size codes
 are 128, 256, 512, 1024.
 
+**Double-density CRCs cover A1 A1 A1, whatever the image stores before the
+mark.** The controller finds an MFM address mark by its sync bytes, so they're
+always 0xA1 to it, but some imagers caught the first one partway and stored
+0x14, 0x15, or 0xA9 instead. Of the 655,822 double-density ID and data fields in
+the collection's DMK images, 12 have a CRC that fails over the stored bytes and
+passes over three 0xA1s: in `peter/Cornsoft-Brix-Development-newshell2-bath3`
+and `bath4`, `diffs/Cornsoft-Micro-SynthDev-newshell-bath6`, and
+`peter/Col 2 - 038 - No Box - 25 [T1-4 T2-1]`. None goes the other way, so the
+reader uses constant 0xA1s for double density. (No real IDAM is within three
+bytes of its track's start, where the stored sync bytes would be at the end of
+the track instead.) The data mark search accepts any 0xF8-0xFB byte, not only
+one after an 0xA1; in the collection that never picks a byte before the real
+mark, and the 57 marks it finds with no 0xA1 before them are all on bad ID
+fields that aren't really there (`MultiDOS II`, `Modem-80 v3.0`,
+`Variable Finder`, described below).
+
 **An IDAM pointer can point past the end of its track.** On
 `ira/no-extract/TRSDOS v2.1 ... [Set 6].dmk`, track 17's last pointer is 4 bytes
 before the end, a partial re-read of sector 0. Its ID field runs into track 18's
