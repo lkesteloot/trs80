@@ -87,7 +87,7 @@ export class TrsdosTab extends PageTab {
 
             addDirEntryField(dirEntry.getFilename("/"), ... ["filename", ...extraCssClasses]);
             addDirEntryField(withCommas(dirEntry.getSize()), ... ["size", ...extraCssClasses]);
-            addDirEntryField(dirEntry.getDateString(), ... ["date", ...extraCssClasses]);
+            addDirEntryField(dirEntry.getFullDateString().trim(), ... ["date", ...extraCssClasses]);
             addDirEntryField(trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), trsdos.version),
                 ... ["protection-level", ...extraCssClasses]);
 
@@ -116,7 +116,7 @@ export class TrsdosTab extends PageTab {
                         .withName(dirEntry.getBasename())
                         .withNote(`Imported from "${filePanel.file.name}" floppy disk.`)
                         .withAuthor(filePanel.file.author)
-                        .withReleaseYear(dirEntry.year > 75 ? (1900 + dirEntry.year).toString() : filePanel.file.releaseYear)
+                        .withReleaseYear(dirEntry.year !== undefined && dirEntry.year > 1975 ? dirEntry.year.toString() : filePanel.file.releaseYear)
                         .withFilename(dirEntry.getFilename("."))
                         .withShared(filePanel.file.shared)
                         .withModelType(filePanel.file.modelType)

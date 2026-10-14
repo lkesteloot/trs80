@@ -289,6 +289,49 @@ are NEWDOS 2.1's SYS1/SYS and SYS2/SYS: same sizes (1166 and 1076 bytes), differ
 13 and 6 bytes (patches). VTOS 3.0.1's SYS2 is 1135 bytes. So they were made under
 NEWDOS 2.1 and are reported as "TRSDOS 2.x".
 
+## TRSDOS 1.3 system files
+
+TRSDOS 1.3 has no directory entries for its system files. The HIT sector holds
+their extents instead: after the 80 hash bytes and 144 bytes that are normally
+zero, sixteen two-byte
+slots at 0xE0, granule byte first (bits 7-5 the granule within the cylinder, bits
+4-0 the count) and then the cylinder. Slot *n* is SYS*n*, 0 through 14, and slot
+15 is 0xFF 0xFF, a terminator; a missing file is 0xFF 0xFF too. The *TRSDOS 1.3
+Reference Guide* doesn't describe the table or name the files, so the names are
+ours. Measured on the 80 disks that decode in the 1.3 layout:
+
+- **The count is the number of granules,** not less one, as in 1.3's directory
+  entries: on a system disk SYS0's five granules (0:0-0:4) end where SYS5 begins
+  (0:5), and SYS5's three (0:5, 1:0, 1:1) end where SYS7 begins (1:2).
+- **Tandy's table** (43 disks, TRSDOS 1.1 to 1.3, including two CP-500 DOS500
+  disks): SYS0 0:0+5, SYS1 16:0+2, SYS2 16:2+2, SYS3 16:4+3, SYS4 16:5+1, SYS5
+  0:5+3 (11:2+3 on three disks), SYS6 18:0+6, SYS7 1:2+6, SYS8 19:0+6, SYS9 20:0+5,
+  SYS10 15:0+2, SYS11 20:5+4, SYS12 15:2+2, SYS13 15:4+2, SYS14 21:3+1. Two disks
+  have a different table (SYS5 0:5+1, SYS7 1:0+5, SYS8 1:5+7, no SYS11, ...).
+- **SYS0 starts with the boot sector.** Its extent covers cylinder 0 sector 1,
+  the boot sector, and the resident DOS follows as a load module from sector 2.
+  Data disks have no table, or only SYS0 as 0:0+1, the boot granule.
+- **SYS1-SYS14 are load modules,** mostly loading at 0x4E00 (0x5200 for SYS6,
+  SYS9 and SYS11), each ending in a transfer record inside its extent.
+- **SYS3's count is wrong.** It says three granules (16:4, 16:5, 17:0), but the
+  module ends in its third sector, 16:5 is SYS4, and 17:0 is the GAT on the
+  directory cylinder. The DOS reads a module until its transfer record, so the
+  count doesn't matter to it. `getDirEntries()` clips each extent where the next
+  system file or the directory begins, which gives SYS3 one granule. (On the
+  CP-500 disks SYS4 lives at 3:5, so SYS3 clips at the directory, to two granules,
+  the second of them unused.)
+- **The table can outlive the files.** A disk made from a system disk keeps the
+  table after user files overwrite the system files' granules: on `Model 4
+  Diagnostics` six of them share granules with directory files, and on
+  `difficult/trsdisk1.dmk` (1.2) SYS0 and SYS7 are inside `TETRS4/CMD` and the rest
+  hold the format's 0xE5 filler. `getDirEntries()` drops a system file that shares
+  a granule with a directory file, since the HIT vouches for the directory entry;
+  the filler ones are still listed. The GAT can't settle these: CP-500 disk 1's
+  GAT marks every system granule free, though all fifteen modules are intact.
+- **Damaged tables** are filtered by range: on `peter/01 - [BAD DISK] 3D Maze 3D
+  Bowl` slots 8-14 hold cylinders up to 240, or no granules, and are skipped, as
+  are slots that start in the directory.
+
 ## TRSDOS 2.3B
 
 Measured on `trsdos-2.3B-sssd.dmk`, which boots on an emulator and calls itself
@@ -722,7 +765,9 @@ NEWDOS/80 manual (pages 99-101). They agree on the layout:
     3      EOF offset within the last sector
     4      logical record length, 0 meaning 256
     5-15   name and extension, space padded
-    16-17  update (owner) password hash; 18-19 access (user) password hash
+    16-17  update (owner) password hash; 18-19 access (user) password hash,
+           or on LDOS 5.3 and LS-DOS 6.3 the time (see "Time stamps (LDOS
+           5.3 and LS-DOS 6.3)")
     20-21  sector count, LSB first ("ending record number")
     22-29  four extents: lump (cylinder), then bits 7-5 the granule within it
            and bits 4-0 the granule count minus 1
@@ -737,7 +782,8 @@ Where they differ:
   bits 4-0 undefined. TRSDOS 2.3 calls the byte "overflow".
 - **Byte 2.** LDOS line: bits 7-3 the day, bits 2-0 the year minus 1980. NEWDOS/80
   and TRSDOS 2.3: reserved, 0. So only the LDOS line has file dates, and a
-  month in byte 1 of a NEWDOS/80 entry is really flag bits.
+  month in byte 1 of a NEWDOS/80 entry is really flag bits. LDOS 5.3 and LS-DOS
+  6.3 extend the year in bytes 18-19 (see "Time stamps (LDOS 5.3 and LS-DOS 6.3)").
 - **Byte 0 bit 5**: a partitioned data set in TRSDOS 6, reserved elsewhere.
 - **Protection levels.** LDOS 5.1 and NEWDOS/80: 0 full, 1 kill, 2 rename, 3
   unused, 4 write, 5 read, 6 execute, 7 none. TRSDOS 6 renumbers the middle: 1
@@ -763,11 +809,70 @@ Where they differ:
   granules, leaving the rest of the entry intact. A HIT byte of 0 means a free
   slot in every one of these DOSes.
 
+## Time stamps (LDOS 5.3 and LS-DOS 6.3)
+
+LDOS 5.3 and LS-DOS 6.3 drop the access (user) password and keep the time of
+day and a five-bit year in directory bytes 18-19. (The manual calls them "x.3",
+which we avoid, since TRSDOS 1.3 and 2.3 are unrelated.) The *LDOS & LS-DOS
+Reference Manual* (1992) describes the behavior but not the bits. COPY and
+BACKUP from an older disk to a 5.3 or 6.3 disk remove the access password and
+set the new date and time, COPY with a time of midnight (PDF pages 102 and 62).
+DATECONV converts an older data disk and marks it as a 5.3 or 6.3 disk; run on
+one that already is, it changes only the entries that still have the old blank
+access password, which protects real time stamps (page 115). RESET with
+DATE=OFF returns an entry to the old style and blanks the password (page 211).
+
+The layout, measured: byte 18 is the high byte and byte 19 the low byte,
+
+    bits 15-11  hour, 0-23
+    bits 10-5   minute, 0-59
+    bits 4-0    year minus 1980, so 1980-2011
+
+and byte 2 keeps the day and the low three bits of the same year, so an older
+DOS shows 1991 as 1983. The month stays in byte 1.
+
+**Which disks.** GAT byte 0xCB is 0x53 or 0x63 on every disk that names itself
+LDOS 5.3 or LS-DOS 6.3 (52 disks), and on two NEWDOS 3.0 disks; no other DOS
+writes those values. That's the only disk-level signal we use, and it's needed:
+on the other DOSes' disks, 11 of over 3,000 dated entries pass the checks below.
+Four are on a TRSDOS 6.2 disk, midnight stamps on files presumably copied there
+under LS-DOS 6.3, and seven are on MultiDOS disks, which put other things in
+these bytes.
+
+**Which entries.** On those disks `decodeDirEntry()` takes bytes 18-19 as a time
+stamp when they aren't the blank hash 0x4296, byte 1 has a month (1-12), and the
+fields check out: hour below 24, minute below 60, and the year's low three bits
+equal to byte 2's. Of the 1,474 entries on the 52 disks, 1,205 pass (357 of them
+system files), 169 have the blank hash (files not yet converted), 67 have no
+month, and 33 fail. The NEWDOS 3.0 disks' 27 entries are all blank or have no
+month. The years that pass run from 1980 to 1999; 689 of them are 1988 or later,
+years byte 2 alone can't express (1983 becomes 1991, 1982 becomes 1990, and so
+on), which is the evidence for the bit order. Many stamps are exactly 00:00, as
+COPY sets them.
+
+**The 33 that fail** keep their bytes as an access password and their date from
+bytes 1-2. Most are system files that share one value per disk, on the same few
+files (BOOT/SYS, SYS0, SYS3, SYS6, SYS7, and BACKUP/CMD, which isn't flagged as a
+system file): 0x2673 on three Model III LDOS 5.3.1 system disks, 0x6BA3 on a
+Model I one, 0x0A45 on a Model 4 LS-DOS 6.3.1 one. Read as times they're
+plausible (14:25, 20:27, 08:40), but their years are one off from byte 2's, in
+both directions. Whether they're passwords or stamps that a mastering tool
+wrote isn't settled. Ten of the 33 aren't system files: the four BACKUP/CMDs,
+two CONFIG/SYS, SYSTEM/JCL, FORMAT/CMD, and two files on `Ghosts of Blackwood
+Manor` (a 2023 release) that are also one year off.
+
+**System files get no date** on these disks, in `decodeDirEntry()`: most of the
+failures are system files, so a stamp on one could be a coincidence, and nobody
+needs their dates. Their bytes 18-19 stay as the access password. The rule
+follows the GAT byte, so it also undates the system files on the two NEWDOS 3.0
+disks.
+
 ## Password hashes
 
 Passwords are stored as a 16-bit hash, LSB first: the master password in GAT
 bytes 0xCE-0xCF, and each file's update and access passwords in directory bytes
-16-19. *Machine Language Disk I-O* (PDF page 118) gives the algorithm as Z80.
+16-19 (on LDOS 5.3 and LS-DOS 6.3 disks bytes 18-19 usually hold a time stamp
+instead; see "Time stamps (LDOS 5.3 and LS-DOS 6.3)"). *Machine Language Disk I-O* (PDF page 118) gives the algorithm as Z80.
 Restated, with the password padded with spaces to 8 bytes, and checked against
 a direct transcription of the listing on 20,000 random passwords:
 

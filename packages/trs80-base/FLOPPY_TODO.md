@@ -123,6 +123,27 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **File dates exist only on the LDOS line.** `decodeDirEntry()` reads
       bytes 1-2 as a date for every 2.3-family disk, but NEWDOS/80 keeps flags in
       byte 1 and zero in byte 2, and TRSDOS 2.3 has no dates.
+- [ ] **LDOS 5.3 and LS-DOS 6.3 time stamps that fail the checks.** On a few
+      LDOS 5.3.1 and LS-DOS 6.3.1 system disks the same few files (system files,
+      which now get no date, and BACKUP/CMD) share one value in bytes 18-19 that
+      reads as a plausible time but a year one off from byte 2's
+      (0x2673 on `simple/trs80gp/LD3-531.DSK` and both `telanoc/model3/m3_ld53_*_system.hfe`,
+      0x6BA3 on `telanoc/model1/m1_ld53_ds_sd_40_sys-no-sole.hfe`, 0x0A45 on
+      `telanoc/model4/m4_ld63_ss_dd_40_system.hfe`), so they're kept as passwords
+      (see "Time stamps (LDOS 5.3 and LS-DOS 6.3)" in `FLOPPY_FORMATS.md`). Booting one of these in
+      an emulator and running `DIR (A)` would show whether the DOS prints a time.
+- [ ] **TRSDOS 1.3 system files** (see "TRSDOS 1.3 system files" in
+      `FLOPPY_FORMATS.md`):
+  - SYS0/SYS starts with the boot sector, since that's what slot 0's extent
+    covers. Splitting it into BOOT/SYS and SYS0/SYS would read better, but the
+    DOS doesn't name either.
+  - A system file's size is its whole extent. Ending each module at its
+    transfer record would drop the slack, such as SYS3's second granule on the
+    CP-500 disks, where clipping at the directory leaves two.
+  - Slots whose granules hold only format filler are still listed (13 on
+    `difficult/trsdisk1.dmk`). The GAT can't rule them out, because
+    `CP-500 DOS500 ... [Disk 1 of 2]` marks every system granule free;
+    a check that the first sector starts a load module could.
 - [ ] **File typing of system files.** On NEWDOS/80 disks DIR/SYS is reported as a
       `BasicProgram`, because the GAT's first byte is 0xFF, and zero-length files
       (`TESTDAT4` on `NEWDOS1D.dmk`) are too. That's `decodeTrs80File()`'s
@@ -144,9 +165,6 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **`TODO` comments in `Trsdos.ts` and `FloppyDisk.ts`** (October 2026):
   - `readFile()` skips a sector it can't read, so everything after it in the
     file shifts. Fill the gap (with zeros, say) so that offsets stay right.
-  - `decodeExtents()` stops at 0xFF or 0xFE, which is right when the cylinder
-    byte comes first; whether TRSDOS 1.3 (granule byte first) marks the end the
-    same way is unverified.
   - `decodeExtents()` has a disabled check of extent cylinders against the
     geometry's cylinders. `evaluate()` now checks extent lumps against
     `lumpCount`, so delete it.
@@ -337,3 +355,8 @@ file across the whole collection, nothing got worse that wasn't wrong before:
 the disks it no longer decodes were all zero-file readings, and the three that
 lost clean files are double-sided allocations imaged single-sided, which now
 report their side-1 sectors as missing instead of reading the wrong cylinder.
+
+October 14, 2026: on 52 LDOS 5.3 and LS-DOS 6.3 disks and two NEWDOS 3.0 disks
+(same GAT byte 0xCB), time stamps gave 848 files a time (481 of them a year of
+1988 or later), and 505 system files lost their dates. TRSDOS 1.3's system files added 651 files on 49 disks, 590 of them
+load modules. Nothing else changed.
