@@ -25,10 +25,11 @@ function safeOutputFilename(filename: string): string {
  * ending text files at their Ctrl-Z.
  * @param markDamaged whether to add " [DAMAGED]" to the name of each file that had unreadable
  * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
+ * @param lowercase whether to write the files with lowercase names, as in "foo.cmd" for "FOO.CMD".
  * @throws ToolError if the directory doesn't exist or the input isn't a readable container.
  */
 export function extract(inFilename: string, outDirname: string, includeSystemFiles: boolean,
-                        cpmWholeRecords: boolean, markDamaged: boolean): void {
+                        cpmWholeRecords: boolean, markDamaged: boolean, lowercase: boolean): void {
 
     // Check the destination before reading the input.
     const outStat = fs.statSync(outDirname, { throwIfNoEntry: false });
@@ -43,7 +44,8 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
 
     for (const infile of inFiles) {
         const damage = infile.damage;
-        const outFilename = safeOutputFilename(infile.filename) +
+        const filename = lowercase ? infile.filename.toLowerCase() : infile.filename;
+        const outFilename = safeOutputFilename(filename) +
             (damage !== undefined && markDamaged ? " [DAMAGED]" : "");
         const outpath = path.join(outDirname, outFilename);
         const binary = infile.binary;
