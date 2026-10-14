@@ -5,8 +5,7 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 10, 2026, after merging the NEWDOS/80 work (the lump model)
-into `floppy-decode`. "Where things stand" at the end has the regression results.
+Last updated October 13, 2026. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -35,11 +34,13 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       agree with it, like PDRIVE.
 - [ ] **Directory size is tried, not read.** The 2.3-family generator tries a
       side-0 directory on double-sided disks (DOSPLUS) and a whole cylinder
-      (LDOS); the NEWDOS/80 generator tries every size from 2 granules to the lump.
-      Ties go to the smaller one, once fewer granules per lump haven't decided
-      (that rule fixed `m2-lsdos-blank.dmk`, which used to show a 15-sector
-      DIR/SYS). Reading the size would be firmer: DIR/SYS's own extent where
-      there is one, or NEWDOS/80's HIT byte 0x1F (extra entry sectors beyond 8).
+      (LDOS); the NEWDOS/80 generator tries every size from 2 granules to the lump,
+      plus one larger size if the HIT asks for it (byte 0x1F, or its highest
+      column in use; see "HIT sector" in `FLOPPY_FORMATS.md`). Ties go to the
+      smaller one, once fewer granules per lump haven't decided (that rule fixed
+      `m2-lsdos-blank.dmk`, which used to show a 15-sector DIR/SYS). Reading the
+      size would be firmer: DIR/SYS's own extent where there is one, or byte 0x1F
+      alone, though `peter/TRS-80 Format [Set 1]` lists files past what 0x1F says.
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
       on its pseudo-density disks; several non-NEWDOS/80 disks (`BUSINESS`, `COMREF`,
@@ -71,9 +72,13 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       has 45 good hashes and 8 garbage slots). Also `willus/l808212a.dmk`
       (DOSPLUS 3.3, 26 hits) and `willus/wdhddr12.dmk` (LDOS line, 9 hits), and
       five more LOAD-80 disks like the first in willus's archive.
-- [ ] **The GAT's AUTO command must be printable**, or the GAT is rejected.
-      `willus/epenc2zm.dmk`, an Electric Pencil disk with 14 hits and no misses,
-      fails only on that. Accept or ignore a garbage AUTO field.
+- [ ] **Files with no extension leave the disk without one.** `extract`, the web
+      app's ZIP export and its Import button use the DOS's name as is, so a BASIC
+      program named `MAZE` (TRSDOS) or `MENU` (MicroDOS, which has no extensions at
+      all) arrives on the host as `MAZE` and `MENU`. Listings should keep the disk's
+      names, but files written to the host could get an extension from their
+      decoded contents (`getTrs80FileExtension()` already does that for cassettes),
+      for every file system at once.
 - [ ] **What `nameAndVersion` still can't tell.** It reads system-file banners,
       then boot-track strings, then only the 0xCB values no other DOS has been
       seen to write, and says "Unknown DOS" otherwise (see "Identifying the
@@ -167,22 +172,31 @@ more.
   candidate passes the strict GAT check, so it falls back to the best score.
 - Percom OS-80, OS-80 III and MicroDOS (20 disks in `peter/`, tagged `percom`,
   including four applications on Percom-formatted disks, plus the MicroDOS
-  manual disk in `ira/lk-341-set-1`): a different DOS altogether, not decoded. The Model I
-  MicroDOS directory is simple and described in `FLOPPY_FORMATS.md` ("Percom
-  MicroDOS"); it would be a decoder of its own, beside CP/M's. The Model III
-  OS-80 III disks are unexamined.
-- Six TRSDOS 6 disks in `peter/` (`Bobby Lee (100)`, `EBAY1024`, `EBAY1035`,
-  the SuperScripsit master, and both `TRSDOS Hard Disk Initialization` sets):
-  cylinder 20 holds valid directory entries, but the HIT sector is a
-  byte-for-byte copy of a file sector elsewhere on the disk, so no hash
-  matches and nothing decodes. Ira says VDISK reads them, so a disk whose HIT
-  matches nothing but whose entries all decode cleanly might deserve a
-  fallback that scores the entries without the HIT.
-- About 20 one-off disks in `ira/` (tagged `unresolved`), some probably
-  copy-protected, left alone in October 2026. Their sidecars record what we
-  measured (geometry, boot-sector prefix). Two small groups there might share
-  a cause if anyone looks: the three Super Directory disks (two with
-  MultiDOS's `01 82` prefix) and the two NEWDOS-86 utility disks.
+  manual disk in `ira/lk-341-set-1`): the 12 Model I disks with a directory
+  are decoded (`MicroDos.ts`; see `FLOPPY_FORMATS.md`, "Percom MicroDOS"). What's
+  left has no MicroDOS directory. Four Model I disks (Electric Crayon,
+  Letter Generator, Paymaster, WORP-1) hold turnkey programs at fixed sectors,
+  and the four Model III disks (OS-80 III, MicroDOS 2.10) are addressed by
+  absolute sector from BASIC. Those could only be shown as raw sector ranges,
+  if at all. The hacked MicroDOS 1.12 has a directory in another format, with
+  two entries whose sector numbers are unclear.
+- Disks read without their HIT (see "A HIT can be wrong while the directory is
+  fine" in `FLOPPY_FORMATS.md`): six TRSDOS 6 disks whose HIT is a copy of a
+  file sector, `RemDisk 1` (HIT shifted by a byte), and four damaged
+  directories. Ignoring the HIT also lists in-use entries the DOS can't reach.
+  A finer fallback would trust the HIT bytes that do match and ignore only the
+  rest, or detect the one-byte shift.
+- Four of the one-off disks in `ira/lk-341-set-1` (tagged `unresolved`) still
+  don't decode; their sidecars say why. `Super Utility + Copy Utility [Set 3]`
+  keeps its directory on cylinder 3 while DIR/SYS points at 17, a cylinder of
+  CRC errors (boot byte 2 as evidence, above, could override DIR/SYS there).
+  `French Teacher #1`, `Defense Command [Set 1]` and `MultiDOS II [Incomplete]`
+  have tracks of garbage or deliberately confusing sector IDs. The other 16
+  decode since October 2026.
+- `AITech LISP v2.0 [Set 1]` and `Newclock-80 [Set 1]` (in `ira/lk-341-set-1`,
+  tagged `no-boot-track`) have nothing readable on cylinder 0 side 0, so the
+  readers reject them, though TRSREAD extracts their files. Reading them would
+  mean letting a floppy have no boot track, which `FloppyDiskGeometry` assumes.
 
 ## New formats
 
@@ -267,12 +281,13 @@ enough to rebuild them.
 
 ## Where things stand
 
-October 11, 2026, after the 3.0.0 release: the regression suite has 291 disks,
-every one with a sidecar and a snapshot, and all of them match (`node
-regress.ts run` is all `same`). 239 decode. Most of the 52 that don't are in
-`peter/`: the 20 Percom disks and the six TRSDOS 6 disks whose HIT
-holds file data (see "Unresolved disks"), four with garbage directory slots
-(see that item), two with damaged directories, and a truncated DMK. `node
+October 13, 2026, after working through Ira's `ira/DMK-Images-From-v342` (see
+"Disks worth remembering" in `FLOPPY_FORMATS.md`): of the suite's 651 disks, 620
+decode, up from 582. The changes were Percom MicroDOS, NEWDOS/80 directories
+larger than a lump, a more lenient GAT (AUTO command, all-0xFF date, graphics
+characters in the name), the DIR/SYS rule limited to the 2.3 family, and the
+HIT-less fallback. Most of the 31 that don't decode are the nine Percom disks
+without a directory and the disks listed under "Unresolved disks". `node
 regress.ts list` shows each disk's notes.
 
 Against the old decoder (`floppy-decode` before the merge), compared file by
