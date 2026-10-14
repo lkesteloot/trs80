@@ -12,6 +12,7 @@ export * from "./Jv1FloppyDisk.js";
 export * from "./Trsdos.js";
 export * from "./Cpm.js";
 export * from "./MicroDos.js";
+export * from "./FileDamage.js";
 export * from "./FloppyFileSystem.js";
 export * from "./Constants.js";
 export * from "./ProgramAnnotation.js";

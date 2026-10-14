@@ -53,6 +53,9 @@ function dirFile(inFilename: string, showSystemFiles: boolean, cpmWholeRecords: 
                 colorSize(withCommas(size).padStart(8), size) + " ",
                 ... inFile.getDirExtras(),
             ];
+            if (inFile.damage !== undefined) {
+                parts.push(colorError("damaged: " + inFile.damage.toString()));
+            }
             if (inFile.trs80File.error !== undefined) {
                 parts.push(colorError(inFile.trs80File.error));
             }

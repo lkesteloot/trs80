@@ -1,4 +1,5 @@
 import {FloppyDisk, SectorPosition} from "./FloppyDisk.js";
+import type {FloppyFileContents} from "./FileDamage.js";
 import {decodeTrsdos, Trsdos} from "./Trsdos.js";
 import {Cpm, decodeCpm} from "./Cpm.js";
 import {decodeMicroDos, MicroDos} from "./MicroDos.js";
@@ -57,9 +58,17 @@ export interface FloppyFileSystem<T extends FloppyDirEntry = FloppyDirEntry> {
     getFileSectorPositions(dirEntry: T): SectorPosition[];
 
     /**
-     * The contents of the file. Sectors that can't be read are zero-filled.
+     * The contents of the file. Sectors that can't be read are zero-filled. This doesn't
+     * report any damage to the file; use readFileWithDamage() for that.
      */
     readFile(dirEntry: T): Uint8Array;
+
+    /**
+     * The contents of the file, as with readFile(), along with a description of what was
+     * wrong with it: sectors that couldn't be read or had CRC errors, and problems with its
+     * directory entries.
+     */
+    readFileWithDamage(dirEntry: T): FloppyFileContents;
 }
 
 /**

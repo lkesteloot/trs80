@@ -8,7 +8,7 @@
  */
 
 import {concatByteArrays} from "teamten-ts-utils";
-import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {FloppyDisk, FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 
@@ -507,20 +507,21 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     }
 
     /**
-     * Read sectors, zero-filling those that can't be read. Without warnings, this doesn't
-     * try to read sectors that aren't there, so that the disk doesn't warn either.
+     * Read sectors, zero-filling those that can't be read.
+     *
+     * @param positions the sectors to read.
+     * @param damage where to record sectors that are missing or have CRC errors, or undefined
+     * to ignore them.
      */
-    private readSectors(positions: SectorPosition[], warn: boolean): Uint8Array {
+    private readSectors(positions: SectorPosition[], damage: FileDamage | undefined): Uint8Array {
         return concatByteArrays(positions.map(position => {
-            const sector = warn || this.disk.hasSectorData(position) ? this.disk.readSector(position) : undefined;
+            const sector = this.disk.readSector(position);
             if (sector === undefined) {
-                if (warn) {
-                    TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${position.key()}`);
-                }
+                damage?.missingSectors.push(position);
                 return new Uint8Array(this.sectorSize);
             }
-            if (sector.crcError && warn) {
-                TRS80_BASE_LOGGER.warn("Sector has CRC error");
+            if (sector.crcError) {
+                damage?.crcErrorSectors.push(position);
             }
             return sector.data;
         }));
@@ -600,7 +601,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
 
     /**
      * Where to clip a file with these extents (in order) to end its text, or undefined to
-     * keep its whole records. This reads the file without warnings, because it runs for
+     * keep its whole records. This reads the file without recording damage, because it runs for
      * every candidate layout and most of them are wrong.
      */
     private findFileTextEnd(extents: CpmExtent[]): number | undefined {
@@ -610,7 +611,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         const recordSize = computeRecordSize(extents);
         const blocks = extents.flatMap(extent => extent.blocks);
         const positions = this.recordSectorPositions(blocks, recordSize);
-        const data = this.readSectors(positions, false);
+        const data = this.readSectors(positions, undefined);
         return findCpmTextEnd(data.subarray(0, recordSize), extents[0].extension);
     }
 
@@ -634,7 +635,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         for (let block = 0; block < this.dirBlockCount; block++) {
             dirPositions.push(... this.blockSectorPositions(block));
         }
-        const dir = this.readSectors(dirPositions, false);
+        const dir = this.readSectors(dirPositions, undefined);
 
         let goodEntryCount = 0;
         let badEntryCount = 0;
@@ -706,7 +707,16 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      * layout was decoded with whole records.
      */
     public readFile(file: CpmFile): Uint8Array {
-        return this.readSectors(this.getFileSectorPositions(file), true).subarray(0, file.getSize());
+        return this.readFileWithDamage(file).binary;
+    }
+
+    /**
+     * The contents of the file, as with readFile(), and the sectors that were missing or had CRC errors.
+     */
+    public readFileWithDamage(file: CpmFile): FloppyFileContents {
+        const damage = new FileDamage();
+        const binary = this.readSectors(this.getFileSectorPositions(file), damage).subarray(0, file.getSize());
+        return {binary, damage};
     }
 }
 

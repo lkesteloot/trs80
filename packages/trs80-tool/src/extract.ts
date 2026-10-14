@@ -23,10 +23,12 @@ function safeOutputFilename(filename: string): string {
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
+ * @param markDamaged whether to add " [DAMAGED]" to the name of each file that had unreadable
+ * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
  * @throws ToolError if the directory doesn't exist or the input isn't a readable container.
  */
 export function extract(inFilename: string, outDirname: string, includeSystemFiles: boolean,
-                        cpmWholeRecords: boolean): void {
+                        cpmWholeRecords: boolean, markDamaged: boolean): void {
 
     // Check the destination before reading the input.
     const outStat = fs.statSync(outDirname, { throwIfNoEntry: false });
@@ -40,7 +42,10 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
     const inFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
 
     for (const infile of inFiles) {
-        const outpath = path.join(outDirname, safeOutputFilename(infile.filename));
+        const damage = infile.damage;
+        const outFilename = safeOutputFilename(infile.filename) +
+            (damage !== undefined && markDamaged ? " [DAMAGED]" : "");
+        const outpath = path.join(outDirname, outFilename);
         const binary = infile.binary;
         fs.writeFileSync(outpath, binary);
         const date = infile.getDate();
@@ -49,6 +54,7 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
         }
         console.log("Wrote " + outpath + " (" +
             pluralizeWithCount(binary.length, "byte") +
+            (damage !== undefined ? ", damaged: " + damage.toString() : "") +
             (infile.trs80File.error !== undefined ? ", " + infile.trs80File.error : "") + ")");
     }
 

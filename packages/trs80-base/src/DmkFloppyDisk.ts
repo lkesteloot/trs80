@@ -501,7 +501,7 @@ export class DmkFloppyDisk extends FloppyDisk {
 
         const sectorData = sector.toSectorData();
         if (sectorData === undefined) {
-            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.key()} has no data`);
+            // Don't log this either. The file systems report it as damage to the files that use the sector.
             return undefined;
         }
 

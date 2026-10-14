@@ -9,7 +9,7 @@
 
 import {assertNever, word} from "z80-base";
 import {concatByteArrays} from "teamten-ts-utils";
-import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {BASIC_HEADER_BYTE} from "./Basic.js";
@@ -217,6 +217,14 @@ export class MicroDos implements FloppyFileSystem<MicroDosFile> {
      * the result is an ordinary BASIC file. A sector that can't be read counts as 255 zeros.
      */
     public readFile(file: MicroDosFile): Uint8Array {
+        return this.readFileWithDamage(file).binary;
+    }
+
+    /**
+     * The contents of the file, as with readFile(), and the sectors that were missing or had CRC errors.
+     */
+    public readFileWithDamage(file: MicroDosFile): FloppyFileContents {
+        const damage = new FileDamage();
         const parts: Uint8Array[] = [];
         switch (file.type) {
             case MicroDosFileType.PROGRAM:
@@ -231,17 +239,17 @@ export class MicroDos implements FloppyFileSystem<MicroDosFile> {
         for (const position of this.getFileSectorPositions(file)) {
             const sector = this.disk.readSector(position);
             if (sector === undefined) {
-                TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${position.key()}`);
+                damage.missingSectors.push(position);
                 parts.push(new Uint8Array(MAX_SECTOR_DATA));
             } else {
                 if (sector.crcError) {
-                    TRS80_BASE_LOGGER.warn("Sector has CRC error");
+                    damage.crcErrorSectors.push(position);
                 }
                 parts.push(sector.data.subarray(1, 1 + sectorDataLength(sector.data)));
             }
         }
 
-        return concatByteArrays(parts);
+        return {binary: concatByteArrays(parts), damage};
     }
 }
 

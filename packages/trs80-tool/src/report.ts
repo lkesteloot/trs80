@@ -133,6 +133,8 @@ export interface FileReport {
     sectorCount?: number;
     missingSectors?: number;
     crcErrorSectors?: number;
+    // Problems with the file's directory entries, if any.
+    directoryErrors?: string[];
     readSize?: number;
     sha256?: string;
     // Class name of the decoded contents, such as "CmdProgram".
@@ -215,24 +217,17 @@ function reportTrackGeometry(trackGeometry: TrackGeometry): TrackGeometryReport 
 function reportFileContents<T extends FloppyDirEntry>(fileSystem: FloppyFileSystem<T>, dirEntry: T,
                                                       report: FileReport): void {
 
-    // Check the health of the sectors.
+    // Read the contents, noting the health of the sectors.
     const sectorPositions = fileSystem.getFileSectorPositions(dirEntry);
-    let missingSectors = 0;
-    let crcErrorSectors = 0;
-    for (const sectorPosition of sectorPositions) {
-        const sector = fileSystem.disk.readSector(sectorPosition);
-        if (sector === undefined) {
-            missingSectors += 1;
-        } else if (sector.crcError) {
-            crcErrorSectors += 1;
-        }
-    }
+    const {binary, damage} = fileSystem.readFileWithDamage(dirEntry);
     report.sectorCount = sectorPositions.length;
-    report.missingSectors = missingSectors;
-    report.crcErrorSectors = crcErrorSectors;
+    report.missingSectors = damage.missingSectors.length;
+    report.crcErrorSectors = damage.crcErrorSectors.length;
+    if (damage.directoryErrors.length > 0) {
+        report.directoryErrors = damage.directoryErrors;
+    }
 
-    // Read and decode the contents.
-    const binary = fileSystem.readFile(dirEntry);
+    // Decode the contents.
     report.readSize = binary.length;
     report.sha256 = sha256(binary);
     const trs80File = decodeTrs80File(binary, { filename: dirEntry.getFilename(".") });

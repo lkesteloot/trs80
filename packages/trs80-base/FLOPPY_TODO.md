@@ -72,6 +72,20 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       has 45 good hashes and 8 garbage slots). Also `willus/l808212a.dmk`
       (DOSPLUS 3.3, 26 hits) and `willus/wdhddr12.dmk` (LDOS line, 9 hits), and
       five more LOAD-80 disks like the first in willus's archive.
+- [ ] **Intact files whose extents are shorter than their size.** About 30 files
+      have fewer sectors in their extents than `getSize()` needs, so `readFile()`
+      clips them. That's why file damage doesn't include this check. Groups:
+      - **TRSDOS 1.x, one sector short:** BASIC programs that decode cleanly
+        (`PageIt v2.0 ...[M3].dmk`, `Education Demo VS v1.0 ...[M3]...dmk`, the
+        `Network 3 Student` disks). Maybe the last-sector byte counts as it does
+        on 2.3 on some 1.x versions; see `getSize()`.
+      - **Copy-protected originals:** STELLAR/CMD is 104 of 116 sectors on all
+        three `Stellar Escort` sets, and DEFENSE/CMD and WEERD/CMD look similar.
+      - **System files:** DIR/SYS on `telanoc/model1/m1_ld53_ds_dd_40_system.hfe`
+        (12 of 18), SYSRES/SYS on the MultiDOS 1.7P disks (10 of 20).
+      - **Sizes in the tens of thousands of sectors:** EDIT/BOL on
+        `simple/MLTDOS4P.dmk` and BACKUP/CMD on `simple/MULTIDOS.dmk`. Probably a
+        MultiDOS size field we read wrong.
 - [ ] **Files with no extension leave the disk without one.** `extract`, the web
       app's ZIP export and its Import button use the DOS's name as is, so a BASIC
       program named `MAZE` (TRSDOS) or `MENU` (MicroDOS, which has no extensions at

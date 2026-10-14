@@ -11,12 +11,20 @@ const SECTOR_SIZE = 256;
 const DIR_ENTRY_SIZE = 45;
 
 /**
+ * The physical position of an absolute sector number.
+ */
+function absolutePosition(sector: number): SectorPosition {
+    return SectorPosition.make(Math.floor(sector/SECTORS_PER_TRACK), 0, sector % SECTORS_PER_TRACK);
+}
+
+/**
  * A floppy whose sectors are kept in a map, all filled with 0xE5.
  */
 class MemoryFloppyDisk extends FloppyDisk {
     public readonly className = "MemoryFloppyDisk";
     private readonly geometry: FloppyDiskGeometry;
     private readonly sectors = new Map<string, Uint8Array>();
+    private readonly crcErrorKeys = new Set<string>();
 
     constructor() {
         super(new Uint8Array(0), undefined, []);
@@ -48,15 +56,33 @@ class MemoryFloppyDisk extends FloppyDisk {
      */
     public readSector(sectorPosition: SectorPosition): SectorData | undefined {
         const data = this.sectors.get(sectorPosition.key());
-        return data === undefined ? undefined : new SectorData(data, sectorPosition, Density.SINGLE);
+        if (data === undefined) {
+            return undefined;
+        }
+        const sectorData = new SectorData(data, sectorPosition, Density.SINGLE);
+        sectorData.crcError = this.crcErrorKeys.has(sectorPosition.key());
+        return sectorData;
+    }
+
+    /**
+     * Remove an absolute sector, so that it can't be read.
+     */
+    public removeAbsoluteSector(sector: number): void {
+        this.sectors.delete(absolutePosition(sector).key());
+    }
+
+    /**
+     * Make an absolute sector read with a CRC error.
+     */
+    public setAbsoluteSectorCrcError(sector: number): void {
+        this.crcErrorKeys.add(absolutePosition(sector).key());
     }
 
     /**
      * Get the data of an absolute sector number to fill in.
      */
     public getAbsoluteSector(sector: number): Uint8Array {
-        const position = SectorPosition.make(Math.floor(sector/SECTORS_PER_TRACK), 0, sector % SECTORS_PER_TRACK);
-        return this.sectors.get(position.key())!;
+        return this.sectors.get(absolutePosition(sector).key())!;
     }
 }
 
@@ -178,6 +204,32 @@ describe("decodeMicroDos", () => {
         const stuff = microDos.getDirEntries(false)[1];
         expect(Array.from(microDos.readFile(stuff))).to.eql(Array.from(DATA));
         expect(microDos.getFileSectorPositions(stuff).map(position => position.key()).length).to.equal(2);
+    });
+
+    it("reports no damage for a healthy file", () => {
+        const microDos = decodeMicroDos(makeDisk())!;
+        const hello = microDos.getDirEntries(false)[0];
+        const {binary, damage} = microDos.readFileWithDamage(hello);
+        expect(damage.isDamaged()).to.be.false;
+        expect(damage.toString()).to.equal("");
+        expect(Array.from(binary)).to.eql(Array.from(microDos.readFile(hello)));
+    });
+
+    it("reports a missing sector and a sector with a CRC error", () => {
+        const disk = makeDisk();
+        disk.removeAbsoluteSector(40);
+        disk.setAbsoluteSectorCrcError(41);
+        const microDos = decodeMicroDos(disk)!;
+        const stuff = microDos.getDirEntries(false)[1];
+        const {binary, damage} = microDos.readFileWithDamage(stuff);
+        expect(damage.isDamaged()).to.be.true;
+        expect(damage.missingSectors.map(position => position.key())).to.eql([absolutePosition(40).key()]);
+        expect(damage.crcErrorSectors.map(position => position.key())).to.eql([absolutePosition(41).key()]);
+        expect(damage.toString()).to.equal("1 missing sector, 1 sector with a CRC error");
+        // The missing sector is zero-filled, and the one with the CRC error is read as is.
+        expect(binary.length).to.equal(255 + 7);
+        expect(Array.from(binary.subarray(0, 255))).to.eql(new Array(255).fill(0));
+        expect(Array.from(binary.subarray(255))).to.eql(Array.from(DATA.subarray(255)));
     });
 
     it("decodes an empty directory", () => {

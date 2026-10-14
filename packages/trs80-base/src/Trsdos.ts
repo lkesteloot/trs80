@@ -10,6 +10,7 @@ import {concatByteArrays} from "teamten-ts-utils";
 import {BYTES_PER_SECTOR, Density, FloppyDisk, FloppyDiskGeometry, SectorPosition,} from "./FloppyDisk.js";
 import {assertNever, toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 
@@ -1808,7 +1809,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         const texts: string[] = [];
         for (const dirEntry of this.getDirEntries(true)) {
             if (dirEntry.getExtension().toUpperCase() === "SYS") {
-                const text = this.getProgramText(this.readFileData(dirEntry, false));
+                const text = this.getProgramText(this.readFileData(dirEntry, undefined));
                 texts.push(text, negateText(text));
             }
         }
@@ -1932,31 +1933,66 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Read the binary for a file on the diskette.
+     * Read the binary for a file on the diskette. This doesn't report damage; see readFileWithDamage().
      */
     public readFile(firstDirEntry: TrsdosDirEntry): Uint8Array {
-        return this.readFileData(firstDirEntry, true);
+        return this.readFileWithDamage(firstDirEntry).binary;
     }
 
     /**
-     * Read the binary for a file on the diskette, optionally warning about sectors that are
-     * missing or have CRC errors.
+     * Read the binary for a file on the diskette, and report what's wrong with it: sectors that
+     * are missing or have CRC errors, and broken chains of directory entries.
      */
-    private readFileData(firstDirEntry: TrsdosDirEntry, warn: boolean): Uint8Array {
+    public readFileWithDamage(firstDirEntry: TrsdosDirEntry): FloppyFileContents {
+        const damage = new FileDamage();
+        const binary = this.readFileData(firstDirEntry, damage);
+        this.checkDirectoryChain(firstDirEntry, damage);
+        return {binary, damage};
+    }
+
+    /**
+     * Check a file's chain of directory entries, recording problems in the damage: a link to an
+     * entry that doesn't exist, or a loop. This doesn't compare the extents with the file's size,
+     * because too many intact files have fewer sectors than their size says (see FLOPPY_TODO.md).
+     */
+    private checkDirectoryChain(firstDirEntry: TrsdosDirEntry, damage: FileDamage): void {
+        const visitedDirEntries = new Set<TrsdosDirEntry>();
+        let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
+        while (dirEntry !== undefined) {
+            if (visitedDirEntries.has(dirEntry)) {
+                damage.directoryErrors.push("directory entries form a loop");
+                break;
+            }
+            visitedDirEntries.add(dirEntry);
+
+            if (dirEntry.nextDec !== undefined && dirEntry.nextDirEntry === undefined) {
+                damage.directoryErrors.push("missing extended directory entry");
+                break;
+            }
+            dirEntry = dirEntry.nextDirEntry;
+        }
+    }
+
+    /**
+     * Read the binary for a file on the diskette, optionally recording sectors that are
+     * missing or have CRC errors.
+     *
+     * @param firstDirEntry the file's first directory entry.
+     * @param damage where to record damage, or undefined to ignore it.
+     */
+    private readFileData(firstDirEntry: TrsdosDirEntry, damage: FileDamage | undefined): Uint8Array {
         const sectors: Uint8Array[] = [];
         const sectorPositions = this.getFileSectorPositions(firstDirEntry);
 
         for (const sectorPosition of sectorPositions) {
             const sector = this.disk.readSector(sectorPosition);
             if (sector === undefined) {
-                if (warn) {
-                    TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.key()}`);
-                }
+                damage?.missingSectors.push(sectorPosition);
                 // Keep the rest of the file in place.
                 sectors.push(new Uint8Array(this.geometry.modalDataSectorSize));
             } else {
-                if (sector.crcError && warn) {
-                    TRS80_BASE_LOGGER.warn("Sector has CRC error");
+                if (sector.crcError) {
+                    damage?.crcErrorSectors.push(sectorPosition);
                 }
                 sectors.push(sector.data);
             }

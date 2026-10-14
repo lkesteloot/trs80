@@ -285,7 +285,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
         }
         const endOffset = sectorInfo.offset + sectorInfo.size;
         if (endOffset > this.binary.length) {
-            TRS80_BASE_LOGGER.warn(`JV3 sector is truncated ${sectorPosition.key()}`);
+            // Don't log this. The file systems report it as damage to the files that use the sector.
             return undefined;
         }
 

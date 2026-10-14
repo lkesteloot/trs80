@@ -3,6 +3,7 @@ import * as path from "path";
 import {
     CassetteFile,
     CassetteSpeed,
+    FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, Trsdos, TrsdosDirEntry, decodeFloppyFileSystem, decodeTrs80CassetteFile, decodeTrs80File,
     getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosProtectionLevelToString } from "trs80-base";
@@ -21,11 +22,14 @@ export class InputFile {
     public binary: Uint8Array;
     // The decoded program.
     public trs80File: Trs80File;
+    // What's wrong with the file, or undefined if nothing is, or if the file didn't come from a floppy.
+    public damage: FileDamage | undefined;
 
-    constructor(filename: string, binary: Uint8Array, trs80File: Trs80File) {
+    constructor(filename: string, binary: Uint8Array, trs80File: Trs80File, damage?: FileDamage) {
         this.filename = filename;
         this.binary = binary;
         this.trs80File = trs80File;
+        this.damage = damage !== undefined && damage.isDamaged() ? damage : undefined;
     }
 
     /**
@@ -112,9 +116,9 @@ export class TrsdosInputFile extends InputFile {
 
     constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry) {
         const filename = dirEntry.getFilename(".");
-        const binary = trsdos.readFile(dirEntry);
+        const {binary, damage} = trsdos.readFileWithDamage(dirEntry);
         const trs80File = decodeTrs80File(binary, { filename });
-        super(filename, binary, trs80File);
+        super(filename, binary, trs80File, damage);
         this.trsdos = trsdos;
         this.dirEntry = dirEntry;
     }
@@ -142,9 +146,9 @@ export class CpmInputFile extends InputFile {
 
     constructor(cpm: Cpm, cpmFile: CpmFile, showUser: boolean) {
         const filename = cpmFile.getFilename(".");
-        const binary = cpm.readFile(cpmFile);
+        const {binary, damage} = cpm.readFileWithDamage(cpmFile);
         const trs80File = decodeTrs80File(binary, { filename });
-        super(filename, binary, trs80File);
+        super(filename, binary, trs80File, damage);
         this.cpm = cpm;
         this.cpmFile = cpmFile;
         this.showUser = showUser;
@@ -169,9 +173,9 @@ export class MicroDosInputFile extends InputFile {
 
     constructor(microDos: MicroDos, microDosFile: MicroDosFile) {
         const filename = microDosFile.getFilename(".");
-        const binary = microDos.readFile(microDosFile);
+        const {binary, damage} = microDos.readFileWithDamage(microDosFile);
         const trs80File = decodeTrs80File(binary, { filename });
-        super(filename, binary, trs80File);
+        super(filename, binary, trs80File, damage);
         this.microDos = microDos;
         this.microDosFile = microDosFile;
     }

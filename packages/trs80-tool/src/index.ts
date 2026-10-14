@@ -225,8 +225,10 @@ async function main(): Promise<void> {
         })
         .option("--system", "include system files from the floppy")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
+        .option("--mark-damaged", "add \"[DAMAGED]\" to the name of files with unreadable sectors or other damage")
         .action((infile, outdir, options) => {
-            extract(infile, outdir, options.system ?? false, options.cpmRecords ?? false);
+            extract(infile, outdir, options.system ?? false, options.cpmRecords ?? false,
+                options.markDamaged ?? false);
         });
     if (2 > 3) {
         program

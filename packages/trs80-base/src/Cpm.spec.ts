@@ -17,6 +17,7 @@ class MemoryFloppyDisk extends FloppyDisk {
     public readonly className = "MemoryFloppyDisk";
     private readonly geometry: FloppyDiskGeometry;
     private readonly sectors = new Map<string, Uint8Array>();
+    private readonly crcErrorKeys = new Set<string>();
 
     constructor() {
         super(new Uint8Array(0), undefined, []);
@@ -48,7 +49,26 @@ class MemoryFloppyDisk extends FloppyDisk {
      */
     public readSector(sectorPosition: SectorPosition): SectorData | undefined {
         const data = this.sectors.get(sectorPosition.key());
-        return data === undefined ? undefined : new SectorData(data, sectorPosition, Density.DOUBLE);
+        if (data === undefined) {
+            return undefined;
+        }
+        const sectorData = new SectorData(data, sectorPosition, Density.DOUBLE);
+        sectorData.crcError = this.crcErrorKeys.has(sectorPosition.key());
+        return sectorData;
+    }
+
+    /**
+     * Remove a sector, so that it can't be read.
+     */
+    public removeSector(sectorPosition: SectorPosition): void {
+        this.sectors.delete(sectorPosition.key());
+    }
+
+    /**
+     * Make a sector read with a CRC error.
+     */
+    public setCrcError(sectorPosition: SectorPosition): void {
+        this.crcErrorKeys.add(sectorPosition.key());
     }
 
     /**
@@ -211,6 +231,37 @@ describe("findCpmTextEnd", () => {
 });
 
 describe("cpm", () => {
+    it("reports damage to files", () => {
+        const disk = new MemoryFloppyDisk();
+
+        // A file of 4 sectors in block 2 (2K blocks, so 8 sectors each).
+        const contents = makeContents(4*256, 5);
+        writeBlocks(disk, 2, contents);
+        const dir = new Uint8Array(32);
+        dir.set(makeDirEntry(0, "DAMAGED.DAT", 0, 8, [2]), 0);
+        writeBlocks(disk, 0, dir);
+
+        // Damage the file's second and third sectors. The skew puts logical sector i of the
+        // block at the position that dataSectorPosition() gives.
+        const firstSector = 2*8;
+        disk.removeSector(dataSectorPosition(firstSector + 1));
+        disk.setCrcError(dataSectorPosition(firstSector + 2));
+
+        const cpm = decodeCpm(disk)!;
+        expect(cpm).to.not.be.undefined;
+        const file = cpm.getDirEntries(true)[0];
+        const {binary, damage} = cpm.readFileWithDamage(file);
+        expect(damage.isDamaged()).to.be.true;
+        expect(damage.missingSectors.map(position => position.key()))
+            .to.eql([dataSectorPosition(firstSector + 1).key()]);
+        expect(damage.crcErrorSectors.map(position => position.key()))
+            .to.eql([dataSectorPosition(firstSector + 2).key()]);
+        expect(damage.toString()).to.equal("1 missing sector, 1 sector with a CRC error");
+        expect(binary.length).to.equal(4*256);
+        expect(Array.from(binary.subarray(256, 512))).to.eql(new Array(256).fill(0));
+        expect(Array.from(binary.subarray(0, 256))).to.eql(Array.from(contents.subarray(0, 256)));
+    });
+
     it("reads files from a Montezuma Micro disk", () => {
         const disk = new MemoryFloppyDisk();
 
