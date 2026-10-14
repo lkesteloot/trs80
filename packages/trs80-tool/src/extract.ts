@@ -1,140 +1,56 @@
-import fs from "fs";
-import path from "path";
-import {Archive, TrsdosFile, WavFile} from "./Archive.js";
-import {ToolError} from "./utils.js";
-import {decodeBasicProgram, decodeSystemProgram, trsdosProtectionLevelToString } from "trs80-base";
-import { BitType } from "trs80-cassette";
+import * as fs from "fs";
+import * as path from "path";
+import { expandContainer } from "./InputFile.js";
+import { pluralizeWithCount, ToolError } from "./utils.js";
 
 /**
- * Handle the "extract" command. It's currently unused.
+ * Return a filename that's safe to create in the output directory. Filenames can come
+ * from a disk image, which can hold anything, so replace the characters that would let
+ * a name leave the directory (path separators, and the colon, which starts a drive on
+ * Windows) and don't allow a name that's empty or only dots. Normal TRS-80 names, like
+ * "FOO.CMD", are unchanged.
  */
-export function extract(infile: string, outfile: string): void {
-    const archive = new Archive(infile);
-    if (archive.error !== undefined) {
-        throw new ToolError(archive.error);
-    } else {
-        // See if outfile is an existing directory.
-        if (fs.existsSync(outfile) && fs.statSync(outfile).isDirectory()) {
-            // Extract all files to this directory.
-            for (const file of archive.files) {
-                const binary = file.getBinary();
-                const outPathname = path.join(outfile, file.filename);
-                fs.writeFileSync(outPathname, binary);
-                if (file.date !== undefined) {
-                    fs.utimesSync(outPathname, file.date, file.date);
-                }
-                console.log("Extracted " + file.filename + " to " + outPathname);
-            }
-        } else {
-            // Break apart outfile.
-            const { base, ext } = path.parse(outfile);
+function safeOutputFilename(filename: string): string {
+    return filename.replace(/[\/\\:\0]/g, "_").replace(/^\.*$/, "_");
+}
 
-            // See if it's a JSON file.
-            if (ext.toLowerCase() === ".json") {
-                // Output metadata to JSON file.
-                const fullData: any = {
-                    programs: [],
-                    version: 1,
-                };
-                if (archive.tape !== undefined) {
-                    fullData.sampleRate = archive.tape.sampleRate;
-                }
-                for (let i = 0; i < archive.files.length; i++) {
-                    const file = archive.files[i];
-                    const programData: any = {
-                        name: file.filename,
-                    };
-                    fullData.programs.push(programData);
+/**
+ * Handle the "extract" command: write the files inside a container (a floppy image,
+ * CAS file, or cassette WAV file) to an existing directory.
+ *
+ * @param inFilename the container to extract from.
+ * @param outDirname existing directory to write the files to.
+ * @param includeSystemFiles whether to include system files from floppies.
+ * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
+ * ending text files at their Ctrl-Z.
+ * @throws ToolError if the directory doesn't exist or the input isn't a readable container.
+ */
+export function extract(inFilename: string, outDirname: string, includeSystemFiles: boolean,
+                        cpmWholeRecords: boolean): void {
 
-                    if (file instanceof WavFile) {
-                        const program = file.program;
-
-                        programData.trackNumber = program.trackNumber;
-                        programData.copyNumber = program.copyNumber;
-                        programData.startFrame = program.startFrame;
-                        programData.endFrame = program.endFrame;
-                        programData.speed = program.speed;
-                        programData.length = program.binary.length;
-
-                        // Decode various formats.
-                        programData.type = "unknown";
-
-                        // Analyze system program.
-                        const fileBinary = file.getBinary();
-                        const systemProgram = decodeSystemProgram(fileBinary, false);
-                        if (systemProgram !== undefined) {
-                            programData.type = "systemProgram";
-                            programData.filename = systemProgram.filename;
-                            programData.chunkCount = systemProgram.chunks.length;
-
-                            // Check for checksum errors.
-                            let checksumErrors = 0;
-                            for (const chunk of systemProgram.chunks) {
-                                if (!chunk.isChecksumValid()) {
-                                    checksumErrors += 1;
-                                }
-                            }
-
-                            programData.checksumErrorCount = checksumErrors;
-                        }
-
-                        // Label Basic program.
-                        const basicProgram = decodeBasicProgram(fileBinary);
-                        if (basicProgram !== undefined) {
-                            programData.type = "basic";
-                        }
-
-                        // Warn about bit errors.
-                        programData.errorCount = program.countBitErrors();
-                        programData.errors = [];
-                        for (const bitData of program.bitData) {
-                            if (bitData.bitType === BitType.BAD) {
-                                programData.errors.push(Math.round((bitData.startFrame + bitData.endFrame) / 2));
-                            }
-                        }
-
-                        // See if it's a duplicate.
-                        let isDuplicate = false;
-                        for (let j = 0; j < i; j++) {
-                            const otherProgram = (archive.files[j] as WavFile).program;
-                            if (program.sameBinaryAs(otherProgram)) {
-                                isDuplicate = true;
-                                break;
-                            }
-                        }
-                        programData.isDuplicate = isDuplicate;
-                    }
-
-                    if (file instanceof TrsdosFile) {
-                        programData.date = file.file.getFullDateString();
-                        programData.timestamp = file.file.getDate().getTime();
-                        programData.protectionLevel = trsdosProtectionLevelToString(file.file.getProtectionLevel(),
-                            file.trsdos.version);
-                        programData.size = file.file.getSize();
-                        programData.isSystemFile = file.file.isSystemFile();
-                        programData.isExtendedEntry = file.file.isExtendedEntry();
-                        programData.isHidden = file.file.isHidden();
-                        programData.isActive = file.file.isActive();
-                    }
-                }
-
-                fs.writeFileSync(outfile, JSON.stringify(fullData, undefined, 2));
-                console.log("Generated " + outfile);
-            } else {
-                // Output file contents to file.
-                const file = archive.getFileByFilename(base);
-                if (file === undefined) {
-                    // TODO: Look by name and different extension.
-                    console.log("Can't find file " + base);
-                } else {
-                    const binary = file.getBinary();
-                    fs.writeFileSync(outfile, binary);
-                    if (file.date !== undefined) {
-                        fs.utimesSync(outfile, file.date, file.date);
-                    }
-                    console.log("Extracted " + file.filename + " to " + outfile);
-                }
-            }
-        }
+    // Check the destination before reading the input.
+    const outStat = fs.statSync(outDirname, { throwIfNoEntry: false });
+    if (outStat === undefined) {
+        throw new ToolError("Directory \"" + outDirname + "\" doesn't exist");
     }
+    if (!outStat.isDirectory()) {
+        throw new ToolError("\"" + outDirname + "\" is not a directory");
+    }
+
+    const inFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
+
+    for (const infile of inFiles) {
+        const outpath = path.join(outDirname, safeOutputFilename(infile.filename));
+        const binary = infile.binary;
+        fs.writeFileSync(outpath, binary);
+        const date = infile.getDate();
+        if (date !== undefined) {
+            fs.utimesSync(outpath, date, date);
+        }
+        console.log("Wrote " + outpath + " (" +
+            pluralizeWithCount(binary.length, "byte") +
+            (infile.trs80File.error !== undefined ? ", " + infile.trs80File.error : "") + ")");
+    }
+
+    console.log("Extracted " + pluralizeWithCount(inFiles.length, "file"));
 }

@@ -24,6 +24,7 @@
                         <li><a href="#dir"><code>dir</code></a></li>
                         <li><a href="#info"><code>info</code></a></li>
                         <li><a href="#convert"><code>convert</code></a></li>
+                        <li><a href="#extract"><code>extract</code></a></li>
                         <li><a href="#hexdump"><code>hexdump</code></a></li>
                         <li><a href="#sectors"><code>sectors</code></a></li>
                         <li><a href="#asm"><code>asm</code></a></li>
@@ -226,8 +227,8 @@
             for floppies, but may also be useful to an AI agent.</p>
 
             <h3 id="convert"><code>convert</code></h3>
-            <p>The <code>convert</code> command converts a list of input files to an output file or
-            directory. There are several different ways to use this command.</p>
+            <p>The <code>convert</code> command converts a list of input files to an output file.
+            There are several different ways to use this command.</p>
             <p>A single file can be converted to another format:</p>
             <div><pre><code>% trs80-tool convert in.cmd out.3bn    (diskette to cassette format)
 % trs80-tool convert in.bas out.asc    (de-tokenize Basic program)</code></pre>
@@ -237,20 +238,16 @@
             </div>
             <p>This creates a cassette audio file containing the three files. Note that the
             <code>.CMD</code> file will be converted to <code>.3BN</code> format.</p>
-            <p>Archive files can be extracted if the destination is a directory:</p>
-            <div><pre><code>% mkdir out
-% trs80-tool convert in.wav out    (decode cassette and extract files)
-% trs80-tool convert in.cas out
-% trs80-tool convert in.dmk out</code></pre>
-            </div>
-            <p>Use the <code>--system</code> flag to include system files from floppies.
-            Text files from CP/M floppies are written up to their first Ctrl-Z, without
-            the padding that fills the rest of the last 128-byte record. Use the
-            <code>--cpm-records</code> flag to keep the whole records.
-            Archive files can be converted to other archive formats:</p>
+            <p>Floppies, <code>.CAS</code> files, and cassette audio files are expanded into
+            the files they contain, so they can be converted to other archive formats:</p>
             <div><pre><code>% trs80-tool convert in.dmk out.wav
 % trs80-tool convert in.wav out.cas</code></pre>
             </div>
+            <p>Use the <code>--system</code> flag to include system files from floppies, and the
+            <code>--cpm-records</code> flag to keep the whole records of CP/M files (see
+            <a href="#extract"><code>extract</code></a>).
+            The output must be a file; to write the contents of an archive to a directory, use
+            <a href="#extract"><code>extract</code></a>.</p>
             <p>When writing a cassette format, the baud rate of the input file will
             be used, if it’s known:</p>
             <div><pre><code>% trs80-tool convert in1.cas in2.cas in3.cas out.wav</code></pre>
@@ -293,6 +290,19 @@ Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
             <div><pre><code>% trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst</code></pre>
             </div>
             <p>See also the <code>disasm</code> command.</p>
+
+            <h3 id="extract"><code>extract</code></h3>
+            <p>The <code>extract</code> command writes the files inside a floppy image, <code>.CAS</code>
+            file, or cassette audio file to an existing directory:</p>
+            <div><pre><code>% mkdir out
+% trs80-tool extract in.dmk out
+% trs80-tool extract in.cas out
+% trs80-tool extract in.wav out</code></pre>
+            </div>
+            <p>Use the <code>--system</code> flag to include system files from floppies.
+            Text files from CP/M floppies are written up to their first Ctrl-Z, without
+            the padding that fills the rest of the last 128-byte record. Use the
+            <code>--cpm-records</code> flag to keep the whole records.</p>
 
             <h3 id="hexdump"><code>hexdump</code></h3>
             <p>The <code>hexdump</code> command displays a hex dump of the input file, with annotations.
@@ -511,6 +521,9 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-13">October 13, 2026</h3>
             <ul>
+                <li><code>trs80-tool</code> v4.0.0: New <a href="#extract"><code>extract</code></a>
+                    command extracts the files of a floppy or cassette into a directory.
+                    <code>convert</code> no longer does this.</li>
                 <li><code>trs80-tool</code> v3.4.2: Can read disk images of
                     Model 1 TRSDOS 2.7DD/2.8 and
                     Model 4 Digital Research's CP/M Plus.

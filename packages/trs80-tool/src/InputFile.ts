@@ -160,16 +160,29 @@ export class CpmInputFile extends InputFile {
 }
 
 /**
- * Load the file. If the file can contain other files (floppies, cassettes, and wav files),
- * then expand the file and return the contained files. Otherwise just return the file.
+ * Result of loading an input file.
+ */
+interface LoadedInput {
+    // The contained files if the input was a container, otherwise just the input itself.
+    inFiles: InputFile[];
+    // Whether the input was a container (a floppy, CAS file, or WAV file) that we expanded.
+    isContainer: boolean;
+}
+
+/**
+ * Load the file and, if it can contain other files (floppies, cassettes, and wav files),
+ * expand it.
  *
  * @param inFilename the file to load.
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
+ * @return the contained files and whether the input was a container. If it wasn't, the
+ * result is the single input file.
  */
-export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
+function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): LoadedInput {
     const inFiles: InputFile[] = [];
+    let isContainer = true;
 
     const { base, ext } = path.parse(inFilename);
 
@@ -222,8 +235,44 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmW
                 counter++;
             }
         } else {
+            isContainer = false;
             inFiles.push(new InputFile(base, buffer, trs80File));
         }
+    }
+
+    return { inFiles, isContainer };
+}
+
+/**
+ * Load the file. If the file can contain other files (floppies, cassettes, and wav files),
+ * then expand the file and return the contained files. Otherwise just return the file.
+ *
+ * @param inFilename the file to load.
+ * @param includeSystemFiles whether to include system files from floppies.
+ * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
+ * ending text files at their Ctrl-Z.
+ */
+export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
+    return loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords).inFiles;
+}
+
+/**
+ * Load the file, which must be a container (a floppy, CAS file, or WAV file), and return
+ * the files it contains. Unlike expandFile(), this never returns the input itself: if
+ * the decoder doesn't recognize the input as a container (for example a truncated floppy
+ * image that decodes as a raw binary), it throws.
+ *
+ * @param inFilename the container file to load.
+ * @param includeSystemFiles whether to include system files from floppies.
+ * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
+ * ending text files at their Ctrl-Z.
+ * @throws ToolError if the file can't be read or isn't a container.
+ */
+export function expandContainer(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
+    const { inFiles, isContainer } = loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords);
+    if (!isContainer) {
+        throw new ToolError("Can't extract from \"" + inFilename +
+            "\": it's not a floppy image, CAS file, or WAV file that can be read");
     }
 
     return inFiles;

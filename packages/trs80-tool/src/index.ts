@@ -7,6 +7,7 @@ import {BasicLevel, basicLevelFromString, Config, ModelType, modelTypeFromString
 import {dir} from "./dir.js";
 import {info} from "./info.js";
 import {convert} from "./convert.js";
+import {extract} from "./extract.js";
 import {sectors} from "./sectors.js";
 import {hexdump} from "./hexdump.js";
 import {asm} from "./asm.js";
@@ -215,6 +216,17 @@ async function main(): Promise<void> {
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
             convert(infiles, outfile, speed, start, entryPoints, includeSystemFiles, options.cpmRecords);
+        });
+    program
+        .command("extract <infile> <outdir>")
+        .description("extract the files in a floppy, CAS, or WAV file into an existing directory", {
+            infile: "floppy (JV1, JV3, DMK, DSK, HFE, SCP), CAS, or WAV file",
+            outdir: "existing directory",
+        })
+        .option("--system", "include system files from the floppy")
+        .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
+        .action((infile, outdir, options) => {
+            extract(infile, outdir, options.system ?? false, options.cpmRecords ?? false);
         });
     if (2 > 3) {
         program
