@@ -454,20 +454,18 @@ export class TrsdosExtent {
 }
 
 /**
- * Decode an array of extents.
+ * Decode a directory entry's extents, each a cylinder byte and then a granule byte.
  *
  * @param binary bytes we'll be pulling the extents from.
  * @param begin index of first extent in binary.
  * @param end index past last extent in binary.
  * @param geometry the disk geometry, for error checking.
  * @param version version of TRSDOS.
- * @param cylinderFirst whether the cylinder comes first or second (the other being the granule byte).
  * @return the decoded extents, or an error message if any cylinder was out of bounds.
  */
 function decodeExtents(binary: Uint8Array, begin: number, end: number,
                        geometry: FloppyDiskGeometry,
-                       version: TrsdosVersion,
-                       cylinderFirst: boolean): TrsdosExtent[] | string {
+                       version: TrsdosVersion): TrsdosExtent[] | string {
 
     const extents: TrsdosExtent[] = [];
     let granuleCountBasis: number;
@@ -488,13 +486,12 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
     for (let i = begin; i < end; i += 2) {
         // 0xFF means end of extents, 0xFE means extension pointer to another directory entry. Either
         // way we're done reading these extends.
-        // TODO that's for cylinderFirst, not sure about !cylinderFirst.
         if (binary[i] === 0xFF || binary[i] === 0xFE) {
             break;
         }
 
-        const cylinderNumber = binary[cylinderFirst ? i : i + 1];
-        const granuleByte = binary[cylinderFirst ? i + 1 : i];
+        const cylinderNumber = binary[i];
+        const granuleByte = binary[i + 1];
         const granuleOffset = granuleByte >> 5;
         const granuleCount = granuleCountBasis + (granuleByte & 0x1F);
 
@@ -502,7 +499,7 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
             // Not a TRSDOS disk.
             return "Invalid extent: index " + i + ", cylinder " + cylinderNumber +
                 ", granuleByte 0x" + toHexByte(granuleByte) + ", offset " +
-                granuleOffset + ", count " + granuleCount + ", cylinder first " + cylinderFirst;
+                granuleOffset + ", count " + granuleCount;
         }
 
         extents.push(new TrsdosExtent(cylinderNumber, granuleOffset, granuleCount));
@@ -654,28 +651,52 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
 }
 
 /**
+ * The number of system file slots in a TRSDOS 1.3 HIT sector, SYS0 through SYS14.
+ */
+const TRSDOS13_SYSTEM_FILE_COUNT = 15;
+
+/**
  * The Hash Allocation Table sector info.
  */
 export class TrsdosHitInfo {
     // 80 bytes for Model III, 128 bytes for Model I 2.7, 256 bytes for Models 1 and 4:
     public readonly hit: Uint8Array;
-    // Model III only:
-    public readonly systemFiles: TrsdosExtent[];
+    // TRSDOS 1.3 only: the extent of each system file, indexed by its number (SYS0, SYS1, ...),
+    // undefined where there's none. Empty for the other versions.
+    public readonly systemFiles: (TrsdosExtent | undefined)[];
 
-    constructor(hit: Uint8Array, systemFiles: TrsdosExtent[]) {
+    constructor(hit: Uint8Array, systemFiles: (TrsdosExtent | undefined)[]) {
         this.hit = hit;
         this.systemFiles = systemFiles;
     }
 }
 
 /**
- * Decode the Hash Index Table sector, or an error message if we don't think this is a TRSDOS disk.
+ * Decode the extents of TRSDOS 1.3's system files, which have no directory entries. The HIT sector
+ * holds one two-byte extent for each at 0xE0, granule byte first, with 0xFF 0xFF for a missing file,
+ * and the slot after the last holds 0xFF 0xFF. See "TRSDOS 1.3 system files" in FLOPPY_FORMATS.md.
  */
-function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosHitInfo | string {
+function decodeTrsdos13SystemFiles(binary: Uint8Array): (TrsdosExtent | undefined)[] {
+    const systemFiles: (TrsdosExtent | undefined)[] = [];
+
+    for (let i = 0; i < TRSDOS13_SYSTEM_FILE_COUNT; i++) {
+        const granuleByte = binary[0xE0 + 2*i];
+        const cylinderNumber = binary[0xE0 + 2*i + 1];
+        const missing = granuleByte === 0xFF && cylinderNumber === 0xFF;
+        // As in 1.3's directory entries, the count isn't less one.
+        systemFiles.push(missing ? undefined : new TrsdosExtent(cylinderNumber, granuleByte >> 5, granuleByte & 0x1F));
+    }
+
+    return systemFiles;
+}
+
+/**
+ * Decode the Hash Index Table sector.
+ */
+function decodeHitInfo(binary: Uint8Array, version: TrsdosVersion): TrsdosHitInfo {
     // One byte for each file.
     let hitLength: number;
-    // There are 16 extents to read for the system files in 1.3.
-    let systemFiles: TrsdosExtent[] | string;
+    let systemFiles: (TrsdosExtent | undefined)[];
     switch (version) {
         case TrsdosVersion.V2_3:
             hitLength = 256;
@@ -684,7 +705,7 @@ function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
 
         case TrsdosVersion.V1_3:
             hitLength = 80;
-            systemFiles = decodeExtents(binary, 0xE0, binary.length, geometry, version, false);
+            systemFiles = decodeTrsdos13SystemFiles(binary);
             break;
 
         case TrsdosVersion.V2_7:
@@ -697,9 +718,6 @@ function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
             assertNever(version);
     }
     const hit = binary.subarray(0, hitLength);
-    if (typeof systemFiles === "string") {
-        return "system files: " + systemFiles;
-    }
 
     return new TrsdosHitInfo(hit, systemFiles);
 }
@@ -712,13 +730,20 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     public readonly flags: number;
     public readonly day: number;
     public readonly month: number;
-    public readonly year: number;
+    // Undefined if the file has no date, as with system files on TRSDOS 1.3 (which have no
+    // directory entries) and on LDOS 5.3 and LS-DOS 6.3. See decodeDirEntry().
+    public readonly year: number | undefined;
+    // The time of day, only on LDOS 5.3 and LS-DOS 6.3 disks. See decodeDirEntry().
+    public readonly hour: number | undefined;
+    public readonly minute: number | undefined;
     public readonly lastSectorSize: number;
     // Logical record length. I think this is unused.
     public readonly lrl: number;
     public readonly rawFilename: string;
-    public readonly updatePassword: number;
-    public readonly accessPassword: number;
+    // Undefined for TRSDOS 1.3's system files, which have no directory entries.
+    public readonly updatePassword: number | undefined;
+    // Undefined when the entry's bytes hold an LDOS 5.3 or LS-DOS 6.3 time stamp instead.
+    public readonly accessPassword: number | undefined;
     // This is the number of *full* sectors. It doesn't include a possible
     // additional partial sector of "lastSectorSize" bytes.
     public readonly sectorCount: number;
@@ -732,9 +757,10 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     public nextDirEntry: TrsdosDirEntry | undefined = undefined;
     public readonly extents: TrsdosExtent[];
 
-    constructor(version: TrsdosVersion, flags: number, day: number, month: number, year: number,
+    constructor(version: TrsdosVersion, flags: number, day: number, month: number, year: number | undefined,
+                hour: number | undefined, minute: number | undefined,
                 lastSectorSize: number, lrl: number,
-                filename: string, updatePassword: number, accessPassword: number,
+                filename: string, updatePassword: number | undefined, accessPassword: number | undefined,
                 sectorCount: number,
                 prevDec: number | undefined,
                 nextDec: number | undefined,
@@ -745,6 +771,8 @@ export class TrsdosDirEntry implements FloppyDirEntry {
         this.day = day;
         this.month = month;
         this.year = year;
+        this.hour = hour;
+        this.minute = minute;
         this.lastSectorSize = lastSectorSize;
         this.lrl = lrl;
         this.rawFilename = filename;
@@ -762,7 +790,7 @@ export class TrsdosDirEntry implements FloppyDirEntry {
      */
     public withRawFilename(rawFilename: string): TrsdosDirEntry {
         return new TrsdosDirEntry(this.version, this.flags, this.day, this.month, this.year,
-            this.lastSectorSize, this.lrl, rawFilename, this.updatePassword, this.accessPassword,
+            this.hour, this.minute, this.lastSectorSize, this.lrl, rawFilename, this.updatePassword, this.accessPassword,
             this.sectorCount, this.prevDec, this.nextDec, this.extents);
     }
 
@@ -891,30 +919,28 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     }
 
     /**
-     * Return the date in MM/YY format.
-     */
-    public getDateString(): string {
-        return this.month.toString().padStart(2, "0") + "/" +  (this.year - 1900).toString().padStart(2, "0");
-    }
-
-    /**
-     * Return the date in DD/MM/YYYY format, where the day might be blank if missing.
+     * Return the date in DD/MM/YYYY format, where the day might be blank if missing, followed by
+     * the time in HH:MM format if the entry has one. Empty if the file has no date.
      */
     public getFullDateString(): string {
+        if (this.year === undefined) {
+            return "";
+        }
         return (this.day === 0 ? "   " : this.day.toString().padStart(2, "0") + "/") +
             (this.month === 0 ? "   " : this.month.toString().padStart(2, "0") + "/") +
-            this.year.toString();
+            this.year.toString() +
+            (this.hour === undefined || this.minute === undefined ? "" :
+                " " + this.hour.toString().padStart(2, "0") + ":" + this.minute.toString().padStart(2, "0"));
     }
 
     /**
-     * Return the date as an object.
+     * Return the date (and time, if known) as an object, or undefined if the file has no date.
      */
-    public getDate(): Date {
-        if (this.day === undefined) {
-            return new Date(this.year, this.month - 1);
-        } else {
-            return new Date(this.year, this.month - 1, this.day);
+    public getDate(): Date | undefined {
+        if (this.year === undefined) {
+            return undefined;
         }
+        return new Date(this.year, this.month - 1, this.day, this.hour ?? 0, this.minute ?? 0);
     }
 }
 
@@ -924,9 +950,11 @@ export class TrsdosDirEntry implements FloppyDirEntry {
  *
  * @param hitHash the entry's HIT byte, or undefined if unknown. Used to tell a primary entry with
  * its extended-entry bit set from a real extended entry.
+ * @param hasTimeStamps whether the disk is an LDOS 5.3 or LS-DOS 6.3 disk, whose entries can
+ * hold a time stamp in place of the access password.
  */
 function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion,
-                        hitHash: number | undefined): TrsdosDirEntry | undefined | string {
+                        hitHash: number | undefined, hasTimeStamps: boolean): TrsdosDirEntry | undefined | string {
 
     let flags = binary[0];
     if ((flags & 0x10) === 0) { // TODO merge with isActive().
@@ -958,7 +986,8 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
 
     // Date info.
     let day: number;
-    let year: number;
+    // Undefined for no date.
+    let year: number | undefined;
     switch (version) {
         case TrsdosVersion.V2_3:
             day = binary[2] >> 3;
@@ -984,7 +1013,34 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
 
     // Password hashes, little endian.
     const updatePassword = word(binary[17], binary[16]);
-    const accessPassword = word(binary[19], binary[18]);
+    let accessPassword: number | undefined = word(binary[19], binary[18]);
+
+    // LDOS 5.3 and LS-DOS 6.3 replace the access password with a time stamp, big endian: bits
+    // 15-11 the hour, bits 10-5 the minute, and bits 4-0 the year minus 1980, whose low three bits
+    // repeat byte 2's. An entry that still has the blank password hash is in the old style, with
+    // only a date; COPY and BACKUP convert those. See "Time stamps (LDOS 5.3 and LS-DOS 6.3)" in
+    // FLOPPY_FORMATS.md.
+    let hour: number | undefined = undefined;
+    let minute: number | undefined = undefined;
+    if (hasTimeStamps && (flags & 0x40) !== 0) {
+        // Some system files keep something other than a time stamp here, which can look like one.
+        // Nobody needs their dates, so leave them undated rather than risk a wrong date.
+        year = undefined;
+    } else if (hasTimeStamps && accessPassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+        const timeStamp = word(binary[18], binary[19]);
+        const stampHour = timeStamp >> 11;
+        const stampMinute = (timeStamp >> 5) & 0x3F;
+        const stampYear = timeStamp & 0x1F;
+        // A few files keep a password hash here, or a time whose year doesn't match byte 2's.
+        const isTimeStamp = month >= 1 && month <= 12 && stampHour < 24 && stampMinute < 60 &&
+            (stampYear & 0x07) === (binary[2] & 0x07);
+        if (isTimeStamp) {
+            hour = stampHour;
+            minute = stampMinute;
+            year = 1980 + stampYear;
+            accessPassword = undefined;
+        }
+    }
 
     // Number of sectors in the file. Little endian.
     const sectorCount = word(binary[21], binary[20]);
@@ -1008,7 +1064,7 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     // Byte offsets.
     const extentsStart = 22;
     const extentsEnd = extentsStart + 2*extentsCount; // Two bytes per extent.
-    const extents = decodeExtents(binary, extentsStart, extentsEnd, geometry, version, true);
+    const extents = decodeExtents(binary, extentsStart, extentsEnd, geometry, version);
     if (typeof extents === "string") {
         // Not a TRSDOS disk.
         return extents;
@@ -1031,8 +1087,8 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     }
     const nextDec = hasNextDecLink && binary[30] === 0xFE ? binary[31] : undefined;
 
-    return new TrsdosDirEntry(version, flags, day, month, year, lastSectorSize, lrl, filename, updatePassword,
-        accessPassword, sectorCount, prevDec, nextDec, extents);
+    return new TrsdosDirEntry(version, flags, day, month, year, hour, minute, lastSectorSize, lrl, filename,
+        updatePassword, accessPassword, sectorCount, prevDec, nextDec, extents);
 }
 
 /**
@@ -1096,6 +1152,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      */
     public readonly gatPassesStrictCheck: boolean;
     /**
+     * Whether the GAT says this is an LDOS 5.3 or LS-DOS 6.3 disk, whose directory entries
+     * can hold a time stamp in place of the access password. NEWDOS 3.0 also writes 0x53 there, but
+     * its entries fail the checks in decodeDirEntry().
+     */
+    public readonly hasTimeStamps: boolean;
+    /**
      * Name and version of the DOS that wrote the disk, such as "LDOS 5.1.4" or "NEWDOS/80 v2.0", or
      * "Unknown DOS" when the disk doesn't say. Only decoded for candidates that aren't disqualified,
      * because it reads the system files.
@@ -1133,8 +1195,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.lumpTerm = this.sectorsPerLump === geometry.modalDataSectorSpan * this.allocationSides && this.firstDataCylinder === 0
             ? "cylinder" : "lump";
 
-        this.evaluation = this.evaluate();
+        // Before evaluate(), which decodes the directory.
         const gatInfo = this.getGatInfo();
+        this.hasTimeStamps = this.version === TrsdosVersion.V2_3 && typeof gatInfo !== "string" &&
+            (gatInfo.osVersion === 0x53 || gatInfo.osVersion === 0x63);
+        this.evaluation = this.evaluate();
         this.gatPassesStrictCheck = typeof gatInfo !== "string" &&
             gatInfo.hasValidHighBits(this.granulesPerLump, this.lumpCount, this.version);
         this.nameAndVersion = this.evaluation.score >= 0 ? this.decodeNameAndVersion() : UNKNOWN_DOS;
@@ -1269,7 +1334,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
                     const index = this.dirEntryToHitNumber(sectorIndex, i);
                     const hitHash = this.hitIgnored ? undefined : hitInfo.hit[index];
-                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash);
+                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash, this.hasTimeStamps);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
                         // A slot marked in use whose name or extents are garbage isn't a file. Count
@@ -1551,12 +1616,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         if (hitSector === undefined) {
             return "Can't read HIT sector";
         }
-        const hitInfo = decodeHitInfo(hitSector.data, this.geometry, this.version);
-        if (typeof hitInfo === "string") {
-            return "Can't decode HIT: " + hitInfo;
-        }
-
-        return hitInfo;
+        return decodeHitInfo(hitSector.data, this.version);
     }
 
     /**
@@ -1600,7 +1660,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
                     const hitIndex = this.dirEntryToHitNumber(sectorIndex, i);
                     const hitHash = typeof hitInfo === "string" ? undefined : hitInfo.hit[hitIndex];
-                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash);
+                    let dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version, hitHash, this.hasTimeStamps);
                     // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                     if (typeof dirEntry === "string") {
                         // TODO what to do with this error? Abort this method?
@@ -1657,9 +1717,80 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             }
         }
 
+        // TRSDOS 1.3's system files aren't in the directory.
+        const trsdos13SystemFiles = typeof hitInfo === "string" ? [] :
+            this.getTrsdos13SystemFiles(hitInfo, [...dirEntries.values()]);
+
         // Remove the extended entries and possibly the system files.
-        return [...dirEntries.values()]
+        return [...trsdos13SystemFiles, ...dirEntries.values()]
             .filter(d => !d.isExtendedEntry() && (includeSystemFiles || !d.isSystemFile()));
+    }
+
+    /**
+     * Make directory entries for TRSDOS 1.3's system files, whose extents are in the HIT sector
+     * rather than the directory, named SYS0/SYS through SYS14/SYS by their slots. Empty for the
+     * other versions. Skips slots whose extents can't be right (no granules, past the disk or the
+     * lump, or in the directory), and clips each extent where the next system file or the directory
+     * begins, because Tandy's system disks give SYS3 three granules where it has one. Also skips a
+     * system file that shares a granule with a file in the directory, whose entry the HIT vouches
+     * for: the HIT's table outlives the system files on disks that were written over. See "TRSDOS
+     * 1.3 system files" in FLOPPY_FORMATS.md.
+     *
+     * @param dirEntries the files in the directory.
+     */
+    private getTrsdos13SystemFiles(hitInfo: TrsdosHitInfo, dirEntries: TrsdosDirEntry[]): TrsdosDirEntry[] {
+        // The first granule of the directory and of each system file, counting from the start of the disk.
+        const dirStart = this.dirLumpNumber*this.granulesPerLump;
+        const dirEnd = dirStart + this.granulesPerDir;
+        const starts = new Map<number, number>();
+        for (let i = 0; i < hitInfo.systemFiles.length; i++) {
+            const extent = hitInfo.systemFiles[i];
+            if (extent !== undefined && extent.granuleCount > 0 &&
+                extent.granuleOffset < this.granulesPerLump && extent.cylinderNumber < this.lumpCount) {
+
+                const start = extent.cylinderNumber*this.granulesPerLump + extent.granuleOffset;
+                if (start < dirStart || start >= dirEnd) {
+                    starts.set(i, start);
+                }
+            }
+        }
+
+        // The granules of the files in the directory.
+        const usedGranules = new Set<number>();
+        for (const dirEntry of dirEntries) {
+            for (const extent of dirEntry.extents) {
+                const start = extent.cylinderNumber*this.granulesPerLump + extent.granuleOffset;
+                for (let granule = start; granule < start + extent.granuleCount; granule++) {
+                    usedGranules.add(granule);
+                }
+            }
+        }
+
+        const boundaries = [dirStart, ...starts.values()];
+        const systemFiles: TrsdosDirEntry[] = [];
+        for (const [i, start] of starts) {
+            const extent = hitInfo.systemFiles[i] as TrsdosExtent;
+            const end = Math.min(start + extent.granuleCount, ...boundaries.filter(boundary => boundary > start));
+            let overlapsDirFile = false;
+            for (let granule = start; granule < end; granule++) {
+                if (usedGranules.has(granule)) {
+                    overlapsDirFile = true;
+                }
+            }
+            if (overlapsDirFile) {
+                continue;
+            }
+
+            const granuleCount = end - start;
+            const filename = ("SYS" + i).padEnd(8, " ") + "SYS";
+            // In use, system, and invisible, like the 2.3 family's system files, with no date or passwords.
+            const flags = 0x58;
+            systemFiles.push(new TrsdosDirEntry(this.version, flags, 0, 0, undefined, undefined, undefined,
+                0, 256, filename, undefined, undefined, granuleCount*this.sectorsPerGranule, undefined, undefined,
+                [new TrsdosExtent(extent.cylinderNumber, extent.granuleOffset, granuleCount)]));
+        }
+
+        return systemFiles;
     }
 
     /**

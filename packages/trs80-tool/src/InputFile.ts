@@ -124,8 +124,11 @@ export class TrsdosInputFile extends InputFile {
     }
 
     public override getDirExtras(): string[] {
+        // Pad the dates to line up: "DD/MM/YYYY", plus " HH:MM" on disks with time stamps, where
+        // some files have only a date. TRSDOS 1.3's system files have no date.
+        const date = this.dirEntry.getFullDateString().padEnd(this.trsdos.hasTimeStamps ? 16 : 10, " ");
         return [
-            colorDate(this.dirEntry.getFullDateString()),
+            colorDate(date),
             trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.version),
         ];
     }
