@@ -1770,11 +1770,23 @@ aren't always in ascending order), every 342 bytes, with bad CRCs, no data mark,
 and sector numbers such as 0, 229, and 255. Those made the span 256, and the
 ones claiming sector 0 replaced the real sector 0 of their track, which hid the
 directory on cylinder 5. So two rules: `TrackGeometry` takes a track's sector
-range, density, and size only from IDs whose CRC is good, unless none is; and
-in both the DMK reader's and the geometry's sector maps, a later duplicate
-doesn't replace an earlier one whose ID CRC is good unless its own is too. The
-bad IDs stay in the geometry's sector list. These rules also let
-`MultiDOS II ... [Incomplete].dmk` decode.
+range, density, and size only from IDs whose CRC is good; and in both the DMK
+reader's and the geometry's sector maps, a later duplicate doesn't replace an
+earlier one whose ID CRC is good unless its own is too. The bad IDs stay in the
+geometry's sector list. These rules also let `MultiDOS II ... [Incomplete].dmk`
+decode.
+
+**A track whose IDs are all bad is unformatted.** Imagers also find 0xFE bytes
+in the noise of tracks that were never formatted. `BFBDEM Basic Faster and
+Better Demonstration` has 36 formatted cylinders in a 40-cylinder image, and
+cylinders 36 to 39 hold 2 to 8 such IDs each. `Special Disk Formatter (Breeze
+Computing)` formats only cylinders 0 to 4, and 17 of cylinders 5 to 34 hold
+one to three. Every one of them has a bad ID CRC, a cylinder byte that doesn't
+match its track, and almost never a data mark after it. Their sector numbers
+(0 to 254) gave those tracks spans of up to 255, and gave the Breeze disk a
+modal span of 1. So a track with no good ID gets no `TrackGeometry`, as if it
+were blank, though its IDs stay in the sector list. A boot track like that
+means the disk has no geometry and isn't decoded.
 
 Some DMK files are **one track short** of what the header promises. Five in the
 collection (`LD4-631.DSK`, the trs80gp sample, which is a DMK despite its

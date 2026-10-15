@@ -317,9 +317,10 @@ export class TrackGeometry {
     }
 
     /**
-     * Make the geometry of one track from all of its sectors.
+     * Make the geometry of one track from all of its sectors, or return undefined if none of
+     * them has a good ID field, which means the track is unformatted and the IDs are noise.
      */
-    public static make(sectorInfos: SectorInfo[]): TrackGeometry {
+    public static make(sectorInfos: SectorInfo[]): TrackGeometry | undefined {
         if (sectorInfos.length === 0) {
             throw new Error("Must have at least one sector in a track");
         }
@@ -328,10 +329,11 @@ export class TrackGeometry {
             throw new Error("Sectors of a track must all be on that track");
         }
 
-        // Leave sectors with bad ID fields out of the track's layout, unless they're all the
-        // track has.
-        const validIdInfos = sectorInfos.filter(info => info.hasValidIdCrc());
-        const layoutInfos = validIdInfos.length > 0 ? validIdInfos : sectorInfos;
+        // Leave sectors with bad ID fields out of the track's layout.
+        const layoutInfos = sectorInfos.filter(info => info.hasValidIdCrc());
+        if (layoutInfos.length === 0) {
+            return undefined;
+        }
 
         const firstSectorNumber = Math.min(... layoutInfos.map(info => info.sectorPosition.sectorNumber));
         const lastSectorNumber = Math.max(... layoutInfos.map(info => info.sectorPosition.sectorNumber));
@@ -422,7 +424,8 @@ export class FloppyDiskGeometry {
 
     /**
      * Make the geometry of a disk from all of its sectors, or return undefined if it has no
-     * boot track (no sectors on cylinder 0 side 0), as with a blank or unformatted disk.
+     * boot track (no sectors on cylinder 0 side 0, or only ones with bad ID fields), as with a
+     * blank or unformatted disk.
      */
     public static make(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[]): FloppyDiskGeometry | undefined {
         // Track position key to list of sectors on that track.
@@ -441,7 +444,10 @@ export class FloppyDiskGeometry {
         // Map from TrackPosition key to TrackGeometry.
         const trackMap = new Map<string,TrackGeometry>();
         for (const [trackKey, sectors] of trackSectorList.entries()) {
-            trackMap.set(trackKey, TrackGeometry.make(sectors));
+            const trackGeometry = TrackGeometry.make(sectors);
+            if (trackGeometry !== undefined) {
+                trackMap.set(trackKey, trackGeometry);
+            }
         }
 
         const bootTrack = trackMap.get(new TrackPosition(0, 0).key());
@@ -493,7 +499,8 @@ export class FloppyDiskGeometry {
     }
 
     /**
-     * The geometry of the track at the given position, or undefined if the disk has no sectors there.
+     * The geometry of the track at the given position, or undefined if the disk has no sectors
+     * there with good ID fields.
      */
     public getTrack(trackPosition: TrackPosition): TrackGeometry | undefined {
         return this.trackMap.get(trackPosition.key());
