@@ -1792,6 +1792,14 @@ on a TRS-80 floppy, decoded by `Ucsd.ts`. Measured on the three FMG disks in
   dots (`SYSTEM.PASCAL`, `READ.ME.TEXT`). The p-System has no system attribute, and
   the `SYSTEM.` naming convention also covers the user's work file, so we don't
   hide any file.
+- **Text files** (kind 3, named `.TEXT`) start with a 2-block (1,024-byte) editor
+  header, then 1,024-byte pages. Each line ends in CR (0x0D), and a page is padded
+  with NULs after its last whole line, so a line never crosses a page. A DLE
+  (0x10) followed by the byte 32 + *n* stands for *n* spaces; the editor writes
+  one at the start of every line for its indentation, with 32 (no spaces) when
+  there is none, and a line's literal spaces after that are kept.
+  `ucsdTextToHost()` turns this into host text. In `READ.ME.TEXT` the header is
+  all zeros except for a leading 0x01, and the text begins "FMG/UCSD PASCAL USER:".
 - **Unwritten directory sectors** hold the 0xE5 fill, so the decoder reads only
   the sectors that `(files + 1)*26` bytes need. `XUTIL`'s nine files take two
   sectors.

@@ -8,7 +8,7 @@ import {
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
     TrsdosIIFile, Ucsd, UcsdFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, decodeTrs80CassetteFile,
     decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosProtectionLevelToString, ucsdFileKindToString } from "trs80-base";
+    trsdosProtectionLevelToString, ucsdFileKindToString, ucsdTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {ToolError, formatDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString} from "./utils.js";
@@ -60,6 +60,16 @@ export class InputFile {
      */
     public getDirExtras(): string[] {
         return [];
+    }
+
+    /**
+     * The bytes that "extract" writes. Normally the same as the raw binary; a subclass overrides
+     * this to convert the file to host format.
+     *
+     * @param convertText whether to convert text files to host text (see UcsdInputFile).
+     */
+    public getExtractedBinary(convertText: boolean): Uint8Array {
+        return this.binary;
     }
 
     /**
@@ -230,6 +240,14 @@ export class UcsdInputFile extends InputFile {
 
     public override getDate(): Date | undefined {
         return this.file.getDate();
+    }
+
+    /**
+     * For a text file, the plain host text (see ucsdTextToHost()) unless convertText is false.
+     * Other files, and the binary itself, are always the raw bytes.
+     */
+    public override getExtractedBinary(convertText: boolean): Uint8Array {
+        return convertText && this.file.isText() ? ucsdTextToHost(this.binary) : this.binary;
     }
 }
 

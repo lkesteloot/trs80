@@ -312,9 +312,10 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
 
 - [ ] **UCSD p-System leftovers.** `Ucsd.ts` reads FMG's Model I disks (see
       "UCSD p-System" in `FLOPPY_FORMATS.md`).
-      - Text files (`.TEXT`: a 2-block editor header, then 1 KB pages padded with
-        NULs, with a DLE byte followed by 32 + *n* standing for *n* spaces of
-        indentation) are extracted raw, not converted to host text.
+      - Text files are converted to host text by `trs80-tool extract` (unless
+        `--ucsd-raw`) and My TRS-80's ZIP export, using `ucsdTextToHost()`;
+        `Ucsd.readFile()` still returns the raw bytes. The editor's own header
+        fields aren't decoded. `dir` shows the on-disk size, not the converted size.
       - Only FMG's mapping is known. Other vendors' TRS-80 p-Systems (another
         interleave or skew, or double density) won't decode until a format is
         added to `UCSD_FORMATS`.

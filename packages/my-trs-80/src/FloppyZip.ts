@@ -1,11 +1,12 @@
-import {FloppyDirEntry, FloppyFileSystem} from "trs80-base";
+import {FloppyDirEntry, FloppyFileSystem, UcsdFile, ucsdTextToHost} from "trs80-base";
 import JSZip from "jszip";
 import {downloadBlob} from "trs80-emulator-web";
 import {makeTextButton} from "./Utils";
 
 /**
  * Make the "Export ZIP" button for a floppy's file panel tab. Clicking it downloads
- * a ZIP file with the given files from the floppy.
+ * a ZIP file with the given files from the floppy. UCSD p-System text files are converted to
+ * host text.
  *
  * @param diskFilename the filename of the floppy image, used to name the ZIP file.
  * @param fileSystem the file system that the directory entries came from.
@@ -24,7 +25,11 @@ export function makeExportZipButton<T extends FloppyDirEntry>(diskFilename: stri
             const date = dirEntry.getDate();
             // Some file systems don't record dates.
             const options = date === undefined ? {} : { date };
-            zip.file(dirEntry.getFilename("."), fileSystem.readFile(dirEntry), options);
+            let contents = fileSystem.readFile(dirEntry);
+            if (dirEntry instanceof UcsdFile && dirEntry.isText()) {
+                contents = ucsdTextToHost(contents);
+            }
+            zip.file(dirEntry.getFilename("."), contents, options);
         }
 
         zip.generateAsync({
