@@ -4,7 +4,9 @@ import {pluralizeWithCount} from "./utils.js";
 import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
-import {Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, MicroDos, TrackGeometry, Trsdos} from "trs80-base";
+import {
+    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, MicroDos, modelIITrsdosLayoutToString,
+    ModelIITrsdos, TrackGeometry, Trsdos, TrsdosII, XenixTar} from "trs80-base";
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -130,6 +132,35 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                             verboseLines.push(`Directory entries: ${cpm.format.dirEntryCount}`);
                         } else if (fileSystem instanceof MicroDos) {
                             verboseLines.push("Directory: sectors 20-29");
+                        } else if (fileSystem instanceof ModelIITrsdos) {
+                            const modelIITrsdos = fileSystem;
+                            if (modelIITrsdos.diskName !== undefined && modelIITrsdos.diskName !== "") {
+                                verboseLines.push("Floppy name: " + modelIITrsdos.diskName);
+                            }
+                            verboseLines.push("Layout: " + modelIITrsdosLayoutToString(modelIITrsdos.layout));
+                            verboseLines.push(`Directory cylinder: ${modelIITrsdos.dirCylinder}`);
+                            if (modelIITrsdos.rejectedEntryCount > 0) {
+                                verboseLines.push("Unusable directory entries: " + modelIITrsdos.rejectedEntryCount);
+                            }
+                        } else if (fileSystem instanceof TrsdosII) {
+                            const trsdosII = fileSystem;
+                            if (trsdosII.diskName !== "") {
+                                verboseLines.push("Floppy name: " + trsdosII.diskName);
+                            }
+                            const version = trsdosII.nameAndVersion.replace(/^TRSDOS-II ?/, "");
+                            if (version !== "") {
+                                verboseLines.push("Version: " + version);
+                            }
+                            verboseLines.push(`Sides used: ${trsdosII.sideCount}`);
+                            verboseLines.push(`Granules: ${trsdosII.granuleCount}`);
+                            if (trsdosII.subdirectories.length > 0) {
+                                verboseLines.push("Subdirectories: " + trsdosII.subdirectories.join(", "));
+                            }
+                        } else if (fileSystem instanceof XenixTar) {
+                            const xenixTar = fileSystem;
+                            verboseLines.push(`Archive members listed as files: ${xenixTar.files.length}`);
+                            verboseLines.push(`Archive members skipped (directories, links, devices): ` +
+                                xenixTar.skippedMemberCount);
                         }
                     }
                 }

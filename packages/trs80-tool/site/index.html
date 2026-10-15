@@ -202,7 +202,11 @@
             CP/M floppies have no dates, and show file attributes instead, and the
             user number when some files aren’t in user 0. Percom MicroDOS floppies
             also have no dates, and show the file type (BASIC or Data) and the file’s
-            remark.</p>
+            remark. Model II TRSDOS floppies show S for system files and P for programs,
+            and the protection level; TRSDOS-II floppies show P (program) or D (data),
+            F or V (fixed- or variable-length records), and S (system); and Xenix tar
+            floppies show each file’s Unix mode and owner, and its path, whose slashes
+            become underscores when <code>extract</code> writes it.</p>
 
             <p>Normally system file are hidden, but can be shown by specifying
             the <code>--system</code> option.</p>
@@ -532,6 +536,12 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-14">October 14, 2026</h3>
             <ul>
+                <li><code>trs80-tool</code> v4.2.0: Can read Model II disks: Model II TRSDOS 1.x
+                    and 2.0, TRSDOS-II, DOSPLUS II, the Model II’s CP/M formats (standard 8-inch,
+                    Lifeboat, Aton, Pickles &amp; Trout, and CP/M Plus), and Xenix disks that hold
+                    a tar archive. Shows file times on LDOS 5.3 and LS-DOS 6.3 disks, and lists
+                    the system files of TRSDOS 1.3 disks.</li>
+                <li>My TRS-80: Lists the files of Model II disks and exports them as a ZIP file.</li>
                 <li><code>trs80-tool</code> v4.1.0: Can read ImageDisk (IMD) floppy images,
                     and disk images of Percom MicroDOS for the Model I. Reads more
                     TRSDOS-family disks, and more robust reading of damaged disk images.

@@ -5,8 +5,11 @@ import {
     CpmFile,
     decodeCpm,
     decodeMicroDos,
+    decodeModelIITrsdos,
     decodeTrs80File,
     decodeTrsdos,
+    decodeTrsdosII,
+    decodeXenixTar,
     Density,
     FloppyDirEntry,
     FloppyDisk,
@@ -15,14 +18,25 @@ import {
     MicroDos,
     MicroDosFile,
     microDosFileTypeToLetter,
+    ModelIITrsdos,
+    ModelIITrsdosDirEntry,
+    modelIITrsdosLayoutToString,
     TrackGeometry,
     Trsdos,
     TrsdosDirEntry,
+    TrsdosII,
+    TrsdosIIFile,
+    trsdosIIProtectionLevelToString,
     trsdosProtectionLevelToString,
+    XenixTar,
+    XenixTarFile,
 } from "trs80-base";
 import {LogLevel, TRS80_MAIN_SINK} from "trs80-logger";
 import {version} from "./version.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
+import {
+    formatDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString, xenixTarTypeLetter,
+} from "./utils.js";
 
 // Bump when the structure of the report changes in a way that consumers must know about.
 // The trs80-floppy-regress repo keeps a copy of the types below; update it too.
@@ -87,7 +101,7 @@ export interface CpmReport {
 export interface OsReport {
     // Name and version, e.g., "LDOS 5.3".
     name: string;
-    // TRSDOS family only.
+    // TRSDOS family only, and Model II TRSDOS (the directory's cylinder).
     dirTrack?: number;
     // Sides the file system uses.
     sideCount: number;
@@ -102,6 +116,19 @@ export interface OsReport {
     gat?: GatReport;
     // CP/M only.
     cpm?: CpmReport;
+    // Model II TRSDOS and TRSDOS-II only: the name from when the disk was formatted. Missing if
+    // the disk has none that we could read.
+    diskName?: string;
+    // Model II TRSDOS only: how the directory cylinder is arranged, "1.x" or "2.0".
+    layout?: string;
+    // Model II TRSDOS only: directory slots marked in use that we couldn't use, so their files are lost.
+    rejectedEntryCount?: number;
+    // TRSDOS-II only: number of granules on the disk.
+    granuleCount?: number;
+    // TRSDOS-II only: names of the subdirectories, such as "SYSTEM/DIR".
+    subdirectories?: string[];
+    // Xenix tar only: archive members that aren't listed as files (directories, symbolic links, devices).
+    skippedMemberCount?: number;
 }
 
 /**
@@ -111,18 +138,25 @@ export interface OsReport {
 export interface FileReport {
     filename: string;
     size: number;
-    // Empty if the operating system doesn't record dates.
+    // Empty if the operating system doesn't record dates. Model II TRSDOS, TRSDOS-II, and
+    // Xenix tar use "DD/MM/YYYY", like TRSDOS, plus " HH:MM" if the system records the time
+    // (Xenix tar times are UTC).
     date: string;
     // Empty on CP/M, which has attributes (in "flags") instead, and on MicroDOS, which has
-    // the type letter in "flags".
+    // the type letter in "flags". Model II TRSDOS has the level, 0 to 7, as a digit. TRSDOS-II
+    // has the ATTRIB name of the level. Xenix tar has the permission bits in octal, such as "0755".
     protection: string;
+    // Model II TRSDOS: "S" (system) and "P" (program), with "-" for the ones not set. TRSDOS-II:
+    // "P" or "D" (program or data), "F" or "V" (fixed or variable records), then "S" (system flag)
+    // or "-". Xenix tar: the type flag character of the archive member, "0" for a regular file.
     flags: string;
     isSystem: boolean;
     isHidden: boolean;
     // CP/M only.
     user?: number;
     dirEntryCount?: number;
-    // TRSDOS family only: track, granule offset, and granule count of each extent.
+    // TRSDOS family only: track, granule offset, and granule count of each extent. Model II TRSDOS
+    // also has them, as cylinder, granule within the cylinder, and granule count.
     extents?: [number, number, number][];
     // CP/M only: allocation blocks.
     blocks?: number[];
@@ -130,6 +164,19 @@ export interface FileReport {
     sectors?: [number, number];
     // MicroDOS only.
     remark?: string;
+    // TRSDOS-II only: first granule and granule count of each run of the file's block table.
+    granuleRuns?: [number, number][];
+    // Model II TRSDOS and TRSDOS-II only: logical record length.
+    lrl?: number;
+    // TRSDOS-II only: the subdirectory file that the entry is in, such as "SYSTEM/DIR".
+    subdirectory?: string;
+    // TRSDOS-II only: what's wrong with the block tables, if neither could be read.
+    blockTableError?: string;
+    // Xenix tar only: the owner's user and group IDs.
+    uid?: number;
+    gid?: number;
+    // Xenix tar only: the target of a hard link.
+    linkName?: string;
     sectorCount?: number;
     missingSectors?: number;
     crcErrorSectors?: number;
@@ -326,6 +373,92 @@ function reportMicroDosFile(microDos: MicroDos, file: MicroDosFile): FileReport 
 }
 
 /**
+ * Report on one file within a Model II TRSDOS floppy.
+ */
+function reportModelIITrsdosFile(modelIITrsdos: ModelIITrsdos, dirEntry: ModelIITrsdosDirEntry): FileReport {
+    const date = dirEntry.getDate();
+    const report: FileReport = {
+        filename: dirEntry.getFilename("."),
+        size: dirEntry.getSize(),
+        date: date === undefined ? "" : formatDate(date, false, false),
+        protection: dirEntry.protectionLevel.toString(),
+        flags: modelIITrsdosFlagsString(dirEntry),
+        isSystem: dirEntry.isSystemFile(),
+        isHidden: dirEntry.isHidden(),
+        extents: dirEntry.extents.map(extent => [extent.cylinder, extent.granule, extent.granuleCount]),
+        lrl: dirEntry.lrl,
+    };
+
+    try {
+        reportFileContents(modelIITrsdos, dirEntry, report);
+    } catch (e) {
+        report.exception = exceptionToString(e);
+    }
+
+    return report;
+}
+
+/**
+ * Report on one file within a TRSDOS-II floppy.
+ */
+function reportTrsdosIIFile(trsdosII: TrsdosII, file: TrsdosIIFile): FileReport {
+    const date = file.getDate();
+    const report: FileReport = {
+        filename: file.getFilename("."),
+        size: file.getSize(),
+        date: date === undefined ? "" : formatDate(date, false, true),
+        protection: trsdosIIProtectionLevelToString(file.getProtectionLevel()),
+        flags: trsdosIIFlagsString(file),
+        isSystem: file.isSystemFile(),
+        isHidden: file.isHidden(),
+        granuleRuns: file.extents.map(extent => [extent.startGranule, extent.count]),
+        lrl: file.lrl,
+        subdirectory: file.subdirectory,
+    };
+    if (file.blockTableError !== undefined) {
+        report.blockTableError = file.blockTableError;
+    }
+
+    try {
+        reportFileContents(trsdosII, file, report);
+    } catch (e) {
+        report.exception = exceptionToString(e);
+    }
+
+    return report;
+}
+
+/**
+ * Report on one member of a Xenix tar floppy.
+ */
+function reportXenixTarFile(xenixTar: XenixTar, file: XenixTarFile): FileReport {
+    const date = file.getDate();
+    const report: FileReport = {
+        filename: file.getFilename("."),
+        size: file.getSize(),
+        // Unix times are real points in time, so report them in UTC.
+        date: date === undefined ? "" : formatDate(date, true, true),
+        protection: xenixTarModeString(file),
+        flags: xenixTarTypeLetter(file),
+        isSystem: file.isSystemFile(),
+        isHidden: file.isHidden(),
+        uid: file.uid,
+        gid: file.gid,
+    };
+    if (file.linkName !== "") {
+        report.linkName = file.linkName;
+    }
+
+    try {
+        reportFileContents(xenixTar, file, report);
+    } catch (e) {
+        report.exception = exceptionToString(e);
+    }
+
+    return report;
+}
+
+/**
  * Report on the file system of the floppy.
  */
 function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): void {
@@ -347,16 +480,34 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         ? null
         : Array.from(bootSector.data.subarray(0, 3));
 
+    // In the order of decodeFloppyFileSystem().
+    const trsdosII = decodeTrsdosII(disk);
+    if (trsdosII !== undefined) {
+        reportTrsdosII(trsdosII, report);
+        return;
+    }
+
+    const modelIITrsdos = decodeModelIITrsdos(disk);
+    if (modelIITrsdos !== undefined) {
+        reportModelIITrsdos(modelIITrsdos, report);
+        return;
+    }
+
     const trsdos = decodeTrsdos(disk);
     if (trsdos !== undefined) {
         reportTrsdos(trsdos, report);
         return;
     }
 
-    // In the order of decodeFloppyFileSystem().
     const cpm = decodeCpm(disk);
     if (cpm !== undefined) {
         reportCpm(cpm, report);
+        return;
+    }
+
+    const xenixTar = decodeXenixTar(disk);
+    if (xenixTar !== undefined) {
+        reportXenixTar(xenixTar, report);
         return;
     }
 
@@ -433,6 +584,59 @@ function reportMicroDos(microDos: MicroDos, report: Omit<DiskReport, "warnings">
     };
 
     report.files = microDos.getDirEntries(true).map(file => reportMicroDosFile(microDos, file));
+}
+
+/**
+ * Report on a Model II TRSDOS file system.
+ */
+function reportModelIITrsdos(modelIITrsdos: ModelIITrsdos, report: Omit<DiskReport, "warnings">): void {
+    const geometry = modelIITrsdos.disk.getGeometry();
+    const os: OsReport = {
+        name: modelIITrsdos.nameAndVersion,
+        dirTrack: modelIITrsdos.dirCylinder,
+        sideCount: geometry.sideCount,
+        sectorsPerTrack: geometry.modalDataSectorSpan,
+        layout: modelIITrsdosLayoutToString(modelIITrsdos.layout),
+        rejectedEntryCount: modelIITrsdos.rejectedEntryCount,
+    };
+    if (modelIITrsdos.diskName !== undefined) {
+        os.diskName = modelIITrsdos.diskName;
+    }
+    report.os = os;
+
+    report.files = modelIITrsdos.getDirEntries(true).map(file => reportModelIITrsdosFile(modelIITrsdos, file));
+}
+
+/**
+ * Report on a TRSDOS-II file system.
+ */
+function reportTrsdosII(trsdosII: TrsdosII, report: Omit<DiskReport, "warnings">): void {
+    const geometry = trsdosII.disk.getGeometry();
+    report.os = {
+        name: trsdosII.nameAndVersion,
+        sideCount: trsdosII.sideCount,
+        sectorsPerTrack: geometry.modalDataSectorSpan,
+        diskName: trsdosII.diskName,
+        granuleCount: trsdosII.granuleCount,
+        subdirectories: trsdosII.subdirectories,
+    };
+
+    report.files = trsdosII.getDirEntries(true).map(file => reportTrsdosIIFile(trsdosII, file));
+}
+
+/**
+ * Report on a Xenix tar file system.
+ */
+function reportXenixTar(xenixTar: XenixTar, report: Omit<DiskReport, "warnings">): void {
+    const geometry = xenixTar.disk.getGeometry();
+    report.os = {
+        name: xenixTar.nameAndVersion,
+        sideCount: geometry.sideCount,
+        sectorsPerTrack: geometry.modalDataSectorSpan,
+        skippedMemberCount: xenixTar.skippedMemberCount,
+    };
+
+    report.files = xenixTar.getDirEntries(true).map(file => reportXenixTarFile(xenixTar, file));
 }
 
 /**
