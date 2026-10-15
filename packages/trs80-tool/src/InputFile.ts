@@ -6,9 +6,9 @@ import {
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, decodeTrs80CassetteFile, decodeTrs80File,
-    getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosProtectionLevelToString } from "trs80-base";
+    TrsdosIIFile, Ucsd, UcsdFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, decodeTrs80CassetteFile,
+    decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    trsdosProtectionLevelToString, ucsdFileKindToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {ToolError, formatDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString} from "./utils.js";
@@ -202,6 +202,38 @@ export class MicroDosInputFile extends InputFile {
 }
 
 /**
+ * Input file that came from a UCSD p-System floppy.
+ */
+export class UcsdInputFile extends InputFile {
+    public readonly ucsd: Ucsd;
+    public readonly file: UcsdFile;
+
+    constructor(ucsd: Ucsd, file: UcsdFile) {
+        const filename = file.getFilename(".");
+        const {binary, damage} = ucsd.readFileWithDamage(file);
+        const trs80File = decodeTrs80File(binary, { filename });
+        super(filename, binary, trs80File, damage);
+        this.ucsd = ucsd;
+        this.file = file;
+    }
+
+    /**
+     * The file's date (blank if the entry has none, padded to line up) and its kind, such as "Code" or "Text".
+     */
+    public override getDirExtras(): string[] {
+        const date = this.getDate();
+        return [
+            colorDate((date === undefined ? "" : formatDate(date, false, false)).padEnd(10, " ")),
+            ucsdFileKindToString(this.file.kind),
+        ];
+    }
+
+    public override getDate(): Date | undefined {
+        return this.file.getDate();
+    }
+}
+
+/**
  * Input file that came from a Tandy Model II TRSDOS 1.x or 2.0 floppy.
  */
 export class ModelIITrsdosInputFile extends InputFile {
@@ -387,6 +419,10 @@ function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWhole
             } else if (fileSystem instanceof TrsdosII) {
                 for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
                     inFiles.push(new TrsdosIIInputFile(fileSystem, file));
+                }
+            } else if (fileSystem instanceof Ucsd) {
+                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+                    inFiles.push(new UcsdInputFile(fileSystem, file));
                 }
             } else if (fileSystem instanceof XenixTar) {
                 for (const file of fileSystem.getDirEntries(includeSystemFiles)) {

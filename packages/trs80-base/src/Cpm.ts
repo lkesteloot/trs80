@@ -223,7 +223,7 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
  * Make a CP/M sector translation table: the physical sector index (from 0) of each
  * logical sector on a track, the way cpmtools does.
  */
-function makeSkewTable(sectorsPerTrack: number, skew: number): number[] {
+export function makeSkewTable(sectorsPerTrack: number, skew: number): number[] {
     const table: number[] = [];
     const used = new Set<number>();
     let physical = 0;
