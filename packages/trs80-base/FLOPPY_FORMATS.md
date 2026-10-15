@@ -1746,6 +1746,41 @@ superblock in block 1), which we don't read.
   rejects and GNU tar accepts. Archives end with a zero block (one ends at 0xE5
   filler). None is cut off by the end of the disk, though the decoder would
   report such a member's missing sectors as damage.
+- **Files split across disks (extents).** Every disk of a set is a complete
+  archive of its own: no member runs off the end of a disk, and no tar disk
+  starts in the middle of a member. A file that doesn't fit is instead split
+  into *extents*, each stored as a member with the same name on consecutive
+  disks. Four files do this in Pete's archive: `bin/awk` across TRS-XENIX
+  1.3.0's `XNX130D3` and `XNX130D4`, and `vtrek`, `adventure` and `nethack`
+  across the seven-disk `Xenix_Games` set (whose README says the archive spans
+  all the disks). Other headers leave these bytes zero:
+  - Bytes 257-260 hold the extent number from 1, and 261-264 the extent count
+    (only "1" and "2" seen, NUL-terminated, so decimal or octal can't be told).
+    Bytes 265-276 hold the whole file's size in octal, NUL-terminated: `vtrek`'s
+    extents are 46,080 and 15,070 bytes, and the field is `167336`, which is
+    61,150. The size field is the extent's own size.
+  - These are the bytes where ustar puts its magic, so these headers aren't
+    mistaken for ustar.
+  - Every first extent fills its disk up to block 1,214 of the 1,216 in the
+    stream, leaving two blocks for the zero blocks that end the archive. That
+    holds on `GAMES3`, too, which has 78 cylinders (1,232 blocks), so `tar` was
+    told the volume size rather than finding the end of the disk.
+  - No other header field marks the split, and an archive that holds only a
+    later extent (`XNX130D4`) looks like any other archive.
+  - `XenixTar.ts` reads the fields into `XenixTarFile.extent`. `trs80-tool
+    extract` writes a first part with a warning, and appends each later part
+    to the file that the earlier parts made in the output directory, so
+    extracting the disks in order into one directory rebuilds the file.
+- **Half-imaged disks:** the 3.2.0 `AlternateSet` folder's `XNX320D2` and
+  `XNX320D3` look like continuation disks, since each starts in the middle of a
+  member, but they aren't. They're the double-sided D2 and D3 read single-sided:
+  track *n* of each holds cylinder *n* side 0 of the double-sided disk, so every
+  other track of the archive is missing.
+- **Tar after a file system:** `XNX320FM` (in both 3.2.0 folders) has a Xenix
+  file system whose superblock gives 1,256 blocks, followed by what looks like a
+  26-member tar archive (games, such as `usr/games/wof`) starting at stream
+  sector 1,500 and ending in a zero block. We don't read it, because the decoder
+  only looks for an archive at the start of the data tracks.
 - **Stale headers:** eight Xenix file system disks have a valid tar header at
   cylinder 1 sector 1 followed by file system data. One header followed by junk
   isn't an archive, so they're rejected.

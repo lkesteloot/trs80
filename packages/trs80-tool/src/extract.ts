@@ -1,7 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
-import { expandContainer } from "./InputFile.js";
+import { withCommas } from "teamten-ts-utils";
+import { type XenixTarExtent } from "trs80-base";
+import { expandContainer, type InputFile, XenixTarInputFile } from "./InputFile.js";
 import { pluralizeWithCount, ToolError } from "./utils.js";
+
+// Added to the name of a file that had damage, if the user asked for that.
+const DAMAGED_SUFFIX = " [DAMAGED]";
 
 /**
  * Return a file or directory name that's safe to create in its directory. Names can come
@@ -57,8 +62,112 @@ function isPathClash(error: unknown): boolean {
 }
 
 /**
+ * The part of a "Wrote" or "Appended" line after the byte count that mentions damage to the file
+ * and an error decoding it, or an empty string if there's neither. The result goes inside the parentheses.
+ */
+function damageNotes(infile: InputFile): string {
+    return (infile.damage !== undefined ? ", damaged: " + infile.damage.toString() : "") +
+        (infile.trs80File.error !== undefined ? ", " + infile.trs80File.error : "");
+}
+
+/**
+ * Whether the path exists and is a regular file.
+ */
+function isRegularFile(pathname: string): boolean {
+    return fs.statSync(pathname, { throwIfNoEntry: false })?.isFile() === true;
+}
+
+/**
+ * Append a later part (extent 2 or higher) of a file that's split across the disks of a set to the
+ * file that the earlier parts made in the output directory. The file has to be where the first part
+ * would have put it, with or without the " [DAMAGED]" suffix. Nothing is written, and a message says
+ * why, if the earlier parts aren't there, the file is already complete, or the part doesn't fit
+ * after what's there.
+ *
+ * @param infile the input file holding this part.
+ * @param extent which part it is.
+ * @param filename the name of the file, as extract() would name it (already lowercased, if asked).
+ * @param outDirname existing directory that the files are written to.
+ * @param markDamaged whether to add " [DAMAGED]" to the name of a file that had damage.
+ * @param usedPaths paths written so far, joined with "/" and in lower case, which this adds to.
+ * @returns whether the part was appended.
+ */
+function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: string, outDirname: string,
+                      markDamaged: boolean, usedPaths: Set<string>): boolean {
+
+    const components = safeOutputPath(filename, infile.hasDirectories());
+    let outpath = path.join(outDirname, ... components);
+    if (!isRegularFile(outpath)) {
+        // The first part may have been marked as damaged.
+        const damagedPath = outpath + DAMAGED_SUFFIX;
+        if (isRegularFile(damagedPath)) {
+            outpath = damagedPath;
+            components[components.length - 1] += DAMAGED_SUFFIX;
+        } else {
+            console.log("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
+                " of a " + withCommas(extent.fileSize) + "-byte file, and the earlier parts aren't in " +
+                outDirname + ". Extract the disk with part 1 into this directory first.");
+            return false;
+        }
+    }
+
+    const existingSize = fs.statSync(outpath).size;
+    if (existingSize === extent.fileSize) {
+        console.log("Skipped " + outpath + ": already complete (" +
+            pluralizeWithCount(extent.fileSize, "byte") + ")");
+        return false;
+    }
+
+    const binary = infile.getExtractedBinary(true);
+    const newSize = existingSize + binary.length;
+    // The last part must finish the file exactly. We can't tell exactly where a middle part
+    // belongs, only that it leaves room for the parts after it.
+    const fits = extent.number === extent.count ? newSize === extent.fileSize : newSize < extent.fileSize;
+    if (!fits) {
+        console.log("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
+            " doesn't follow the existing " + pluralizeWithCount(existingSize, "byte") +
+            " file (the whole file is " + pluralizeWithCount(extent.fileSize, "byte") +
+            "). Extract the parts in order, starting with part 1.");
+        return false;
+    }
+
+    fs.appendFileSync(outpath, binary);
+
+    // Mark the file as damaged if this part was, even though the earlier parts weren't.
+    let renamed = false;
+    if (infile.damage !== undefined && markDamaged && !outpath.endsWith(DAMAGED_SUFFIX)) {
+        const damagedPath = outpath + DAMAGED_SUFFIX;
+        if (fs.existsSync(damagedPath)) {
+            console.log("Not renaming " + outpath + ": " + damagedPath + " already exists");
+        } else {
+            fs.renameSync(outpath, damagedPath);
+            outpath = damagedPath;
+            components[components.length - 1] += DAMAGED_SUFFIX;
+            renamed = true;
+        }
+    }
+    usedPaths.add(components.join("/").toLowerCase());
+
+    const date = infile.getDate();
+    if (date !== undefined) {
+        fs.utimesSync(outpath, date, date);
+    }
+    console.log("Appended part " + extent.number + " of " + extent.count + " to " + outpath + " (" +
+        pluralizeWithCount(binary.length, "byte") + ", now " + withCommas(newSize) + " of " +
+        withCommas(extent.fileSize) + (newSize === extent.fileSize ? ", complete" : "") +
+        damageNotes(infile) + (renamed ? ", renamed to mark the damage" : "") + ")");
+    return true;
+}
+
+/**
  * Handle the "extract" command: write the files inside a container (a floppy image,
  * CAS file, or cassette WAV file) to an existing directory.
+ *
+ * A Xenix tar floppy can hold just a part (an extent) of a file that's split across the disks of
+ * a set. The first part is written as a file, with a warning that it's incomplete. Extracting each
+ * later disk into the same directory, in order, appends its part to that file, so that the file
+ * is whole after the last disk. A later part is skipped, with a message, if the earlier parts aren't
+ * in the directory, if the file is already complete, or if the part doesn't fit after what's there.
  *
  * @param inFilename the container to extract from.
  * @param outDirname existing directory to write the files to.
@@ -88,12 +197,22 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
     const inFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
 
     let writtenCount = 0;
+    let appendedCount = 0;
     const usedPaths = new Set<string>();
     for (const infile of inFiles) {
         const damage = infile.damage;
         const filename = lowercase ? infile.filename.toLowerCase() : infile.filename;
+        const extent = infile instanceof XenixTarInputFile ? infile.file.extent : undefined;
+        if (extent !== undefined && extent.number > 1) {
+            const appended = appendExtent(infile, extent, filename, outDirname, markDamaged, usedPaths);
+            if (appended) {
+                appendedCount++;
+            }
+            continue;
+        }
+
         const components = safeOutputPath(filename, infile.hasDirectories());
-        components[components.length - 1] += damage !== undefined && markDamaged ? " [DAMAGED]" : "";
+        components[components.length - 1] += damage !== undefined && markDamaged ? DAMAGED_SUFFIX : "";
         makeUniquePath(components, usedPaths);
         const outpath = path.join(outDirname, ... components);
         const binary = infile.getExtractedBinary(!ucsdPascalRawText);
@@ -114,10 +233,14 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
             fs.utimesSync(outpath, date, date);
         }
         console.log("Wrote " + outpath + " (" +
-            pluralizeWithCount(binary.length, "byte") +
-            (damage !== undefined ? ", damaged: " + damage.toString() : "") +
-            (infile.trs80File.error !== undefined ? ", " + infile.trs80File.error : "") + ")");
+            pluralizeWithCount(binary.length, "byte") + damageNotes(infile) + ")");
+        if (extent !== undefined) {
+            console.log("  Only part " + extent.number + " of " + extent.count + " of a " +
+                withCommas(extent.fileSize) + "-byte file. Extract the disks with the other parts " +
+                "into this directory, in order, to complete it.");
+        }
     }
 
-    console.log("Extracted " + pluralizeWithCount(writtenCount, "file"));
+    console.log("Extracted " + pluralizeWithCount(writtenCount, "file") +
+        (appendedCount > 0 ? ", appended " + pluralizeWithCount(appendedCount, "part") : ""));
 }
