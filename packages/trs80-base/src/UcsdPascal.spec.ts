@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import {Density, FloppyDisk, FloppyDiskGeometry, SectorData, SectorInfo, SectorPosition} from "./FloppyDisk.js";
 import {decodeFloppyFileSystem} from "./FloppyFileSystem.js";
-import {decodeUcsd, Ucsd, UcsdFileKind, ucsdFileKindToString} from "./Ucsd.js";
+import {decodeUcsdPascal, UcsdPascal, UcsdPascalFileKind, ucsdPascalFileKindToString} from "./UcsdPascal.js";
 
 const CYLINDER_COUNT = 35;
 const SECTOR_SIZE = 256;
@@ -129,7 +129,7 @@ interface TestFile {
     name: string;
     firstBlock: number;
     nextBlock: number;
-    kind: UcsdFileKind;
+    kind: UcsdPascalFileKind;
     lastByte: number;
     // The date word, with zero meaning no date.
     date: number;
@@ -185,13 +185,13 @@ function makeContents(length: number, seed: number): Uint8Array {
 // of the volume, and block 10 starts the next track). The second is short in its last block. The
 // rest are there to make the directory more than a sector long.
 const FILES: TestFile[] = [
-    {name: "BIG.CODE", firstBlock: 6, nextBlock: 12, kind: UcsdFileKind.CODE, lastByte: 512, date: dateWord(1979, 6, 9)},
-    {name: "NOTES.TEXT", firstBlock: 12, nextBlock: 15, kind: UcsdFileKind.TEXT, lastByte: 100, date: 0},
+    {name: "BIG.CODE", firstBlock: 6, nextBlock: 12, kind: UcsdPascalFileKind.CODE, lastByte: 512, date: dateWord(1979, 6, 9)},
+    {name: "NOTES.TEXT", firstBlock: 12, nextBlock: 15, kind: UcsdPascalFileKind.TEXT, lastByte: 100, date: 0},
     ...Array.from({length: 11}, (_, i): TestFile => ({
         name: "F" + i + ".DATA",
         firstBlock: 15 + i,
         nextBlock: 16 + i,
-        kind: UcsdFileKind.DATA,
+        kind: UcsdPascalFileKind.DATA,
         lastByte: 10 + i,
         date: dateWord(1980, 12, 31),
     })),
@@ -214,18 +214,18 @@ function makeDisk(sectorsPerTrack = 10): MemoryFloppyDisk {
     return disk;
 }
 
-describe("decodeUcsd", () => {
+describe("decodeUcsdPascal", () => {
     it("decodes a volume", () => {
-        const ucsd = decodeUcsd(makeDisk())!;
-        expect(ucsd).to.not.be.undefined;
-        expect(ucsd.nameAndVersion).to.equal("FMG UCSD p-System");
-        expect(ucsd.volumeName).to.equal("TESTVOL");
-        expect(ucsd.blockCount).to.equal(170);
-        const files = ucsd.getDirEntries(true);
+        const ucsdPascal = decodeUcsdPascal(makeDisk())!;
+        expect(ucsdPascal).to.not.be.undefined;
+        expect(ucsdPascal.nameAndVersion).to.equal("FMG UCSD Pascal");
+        expect(ucsdPascal.volumeName).to.equal("TESTVOL");
+        expect(ucsdPascal.blockCount).to.equal(170);
+        const files = ucsdPascal.getDirEntries(true);
         expect(files.length).to.equal(13);
         expect(files.map(file => file.getFilename(".")).slice(0, 3)).to.eql(["BIG.CODE", "NOTES.TEXT", "F0.DATA"]);
         expect(files[12].getFilename("/")).to.equal("F10.DATA");
-        expect(files.map(file => ucsdFileKindToString(file.kind)).slice(0, 3)).to.eql(["Code", "Text", "Data"]);
+        expect(files.map(file => ucsdPascalFileKindToString(file.kind)).slice(0, 3)).to.eql(["Code", "Text", "Data"]);
         expect(files[0].getSize()).to.equal(6*BLOCK_SIZE - BLOCK_SIZE + 512);
         expect(files[1].getSize()).to.equal(2*BLOCK_SIZE + 100);
         expect(files[2].getSize()).to.equal(10);
@@ -237,16 +237,16 @@ describe("decodeUcsd", () => {
     });
 
     it("reads files across a track boundary and trims the last block", () => {
-        const ucsd = decodeUcsd(makeDisk())!;
-        const files = ucsd.getDirEntries(true);
-        expect(Array.from(ucsd.readFile(files[0]))).to.eql(Array.from(makeContents(6*BLOCK_SIZE - BLOCK_SIZE + 512, 1)));
-        const notes = ucsd.readFileWithDamage(files[1]);
+        const ucsdPascal = decodeUcsdPascal(makeDisk())!;
+        const files = ucsdPascal.getDirEntries(true);
+        expect(Array.from(ucsdPascal.readFile(files[0]))).to.eql(Array.from(makeContents(6*BLOCK_SIZE - BLOCK_SIZE + 512, 1)));
+        const notes = ucsdPascal.readFileWithDamage(files[1]);
         expect(Array.from(notes.binary)).to.eql(Array.from(makeContents(2*BLOCK_SIZE + 100, 2)));
         expect(notes.damage.isDamaged()).to.be.false;
     });
 
     it("maps blocks to the known sectors", () => {
-        const ucsd = decodeUcsd(makeDisk())!;
+        const ucsdPascal = decodeUcsdPascal(makeDisk())!;
         const examples: [number, [number, number][]][] = [
             [0, [[1, 0], [1, 2]]],
             [2, [[1, 8], [1, 1]]],
@@ -256,24 +256,24 @@ describe("decodeUcsd", () => {
             [6, [[2, 0], [2, 2]]],
         ];
         for (const [block, expected] of examples) {
-            const actual = ucsd.blockSectorPositions(block).map(position =>
+            const actual = ucsdPascal.blockSectorPositions(block).map(position =>
                 [position.cylinderNumber, position.sectorNumber]);
             expect(actual).to.eql(expected);
-            expect(ucsd.blockSectorPositions(block).every(position => position.side === 0)).to.be.true;
+            expect(ucsdPascal.blockSectorPositions(block).every(position => position.side === 0)).to.be.true;
         }
     });
 
     it("is found by decodeFloppyFileSystem()", () => {
         const fileSystem = decodeFloppyFileSystem(makeDisk());
-        expect(fileSystem).to.be.instanceOf(Ucsd);
+        expect(fileSystem).to.be.instanceOf(UcsdPascal);
     });
 
     it("decodes an empty volume", () => {
         const disk = new MemoryFloppyDisk(10);
         writeDirectory(disk, makeDirectory("EMPTY", 170, []));
-        const ucsd = decodeUcsd(disk)!;
-        expect(ucsd.volumeName).to.equal("EMPTY");
-        expect(ucsd.files.length).to.equal(0);
+        const ucsdPascal = decodeUcsdPascal(disk)!;
+        expect(ucsdPascal.volumeName).to.equal("EMPTY");
+        expect(ucsdPascal.files.length).to.equal(0);
     });
 
     it("reports missing sectors", () => {
@@ -281,58 +281,58 @@ describe("decodeUcsd", () => {
         // The second half of block 13, in the middle of NOTES.TEXT.
         const missing = expectedPosition(13, 1);
         disk.removeSector(missing);
-        const ucsd = decodeUcsd(disk)!;
-        const contents = ucsd.readFileWithDamage(ucsd.files[1]);
+        const ucsdPascal = decodeUcsdPascal(disk)!;
+        const contents = ucsdPascal.readFileWithDamage(ucsdPascal.files[1]);
         expect(contents.damage.missingSectors.map(position => position.key())).to.eql([missing.key()]);
         expect(contents.binary.length).to.equal(2*BLOCK_SIZE + 100);
         expect(contents.binary[BLOCK_SIZE + SECTOR_SIZE]).to.equal(0);
     });
 
     it("rejects a blank disk", () => {
-        expect(decodeUcsd(new MemoryFloppyDisk(10))).to.be.undefined;
+        expect(decodeUcsdPascal(new MemoryFloppyDisk(10))).to.be.undefined;
     });
 
     it("rejects a disk with the wrong number of sectors per track", () => {
-        expect(decodeUcsd(makeDisk(18))).to.be.undefined;
+        expect(decodeUcsdPascal(makeDisk(18))).to.be.undefined;
     });
 
     it("rejects a header whose next block is not 6", () => {
         const disk = makeDisk();
         writeDirectoryByte(disk, 2, 7);
-        expect(decodeUcsd(disk)).to.be.undefined;
+        expect(decodeUcsdPascal(disk)).to.be.undefined;
     });
 
     it("rejects a bad volume name", () => {
         const spaceDisk = makeDisk();
         writeDirectoryByte(spaceDisk, 8, 0x20);
-        expect(decodeUcsd(spaceDisk)).to.be.undefined;
+        expect(decodeUcsdPascal(spaceDisk)).to.be.undefined;
 
         const controlDisk = makeDisk();
         writeDirectoryByte(controlDisk, 7, 0x05);
-        expect(decodeUcsd(controlDisk)).to.be.undefined;
+        expect(decodeUcsdPascal(controlDisk)).to.be.undefined;
 
         const longDisk = makeDisk();
         writeDirectoryByte(longDisk, 6, 8);
-        expect(decodeUcsd(longDisk)).to.be.undefined;
+        expect(decodeUcsdPascal(longDisk)).to.be.undefined;
     });
 
     it("rejects overlapping entries", () => {
         const disk = makeDisk();
         // Make the second file start at block 11, inside the first.
         writeDirectoryByte(disk, 2*DIR_ENTRY_SIZE, 11);
-        expect(decodeUcsd(disk)).to.be.undefined;
+        expect(decodeUcsdPascal(disk)).to.be.undefined;
     });
 
     it("rejects a last byte of zero", () => {
         const disk = makeDisk();
         writeDirectoryByte(disk, DIR_ENTRY_SIZE + 22, 0);
         writeDirectoryByte(disk, DIR_ENTRY_SIZE + 23, 0);
-        expect(decodeUcsd(disk)).to.be.undefined;
+        expect(decodeUcsdPascal(disk)).to.be.undefined;
     });
 
     it("rejects an unknown kind", () => {
         const disk = makeDisk();
         writeDirectoryByte(disk, DIR_ENTRY_SIZE + 4, 0x0F);
-        expect(decodeUcsd(disk)).to.be.undefined;
+        expect(decodeUcsdPascal(disk)).to.be.undefined;
     });
 });

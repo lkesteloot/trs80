@@ -13,7 +13,7 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {BASIC_HEADER_BYTE} from "./Basic.js";
-import {bytesToText, isPrintable} from "./Text.js";
+import {bytesToText, isPrintable} from "./DiskUtils.js";
 
 // Sectors on each track, numbered from 0.
 const SECTORS_PER_TRACK = 10;

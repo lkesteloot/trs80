@@ -17,7 +17,7 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {hashForFilename} from "./Trsdos.js";
-import {bytesToText, isPrintable} from "./Text.js";
+import {bytesToText, isPrintable} from "./DiskUtils.js";
 
 // Bytes in each data sector (cylinder 1 and up).
 const SECTOR_SIZE = 256;

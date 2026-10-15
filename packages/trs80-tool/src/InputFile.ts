@@ -6,9 +6,9 @@ import {
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, Ucsd, UcsdFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, decodeTrs80CassetteFile,
+    TrsdosIIFile, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, decodeTrs80CassetteFile,
     decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosProtectionLevelToString, ucsdFileKindToString } from "trs80-base";
+    trsdosProtectionLevelToString, ucsdPascalFileKindToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {ToolError, formatDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString} from "./utils.js";
@@ -202,18 +202,18 @@ export class MicroDosInputFile extends InputFile {
 }
 
 /**
- * Input file that came from a UCSD p-System floppy.
+ * Input file that came from a UCSD Pascal floppy.
  */
-export class UcsdInputFile extends InputFile {
-    public readonly ucsd: Ucsd;
-    public readonly file: UcsdFile;
+export class UcsdPascalInputFile extends InputFile {
+    public readonly ucsdPascal: UcsdPascal;
+    public readonly file: UcsdPascalFile;
 
-    constructor(ucsd: Ucsd, file: UcsdFile) {
+    constructor(ucsdPascal: UcsdPascal, file: UcsdPascalFile) {
         const filename = file.getFilename(".");
-        const {binary, damage} = ucsd.readFileWithDamage(file);
+        const {binary, damage} = ucsdPascal.readFileWithDamage(file);
         const trs80File = decodeTrs80File(binary, { filename });
         super(filename, binary, trs80File, damage);
-        this.ucsd = ucsd;
+        this.ucsdPascal = ucsdPascal;
         this.file = file;
     }
 
@@ -224,7 +224,7 @@ export class UcsdInputFile extends InputFile {
         const date = this.getDate();
         return [
             colorDate((date === undefined ? "" : formatDate(date, false, false)).padEnd(10, " ")),
-            ucsdFileKindToString(this.file.kind),
+            ucsdPascalFileKindToString(this.file.kind),
         ];
     }
 
@@ -420,9 +420,9 @@ function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWhole
                 for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
                     inFiles.push(new TrsdosIIInputFile(fileSystem, file));
                 }
-            } else if (fileSystem instanceof Ucsd) {
+            } else if (fileSystem instanceof UcsdPascal) {
                 for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new UcsdInputFile(fileSystem, file));
+                    inFiles.push(new UcsdPascalInputFile(fileSystem, file));
                 }
             } else if (fileSystem instanceof XenixTar) {
                 for (const file of fileSystem.getDirEntries(includeSystemFiles)) {

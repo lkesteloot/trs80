@@ -13,7 +13,7 @@ import {TRS80_BASE_LOGGER} from "trs80-logger";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {bytesToText} from "./Text.js";
+import {bytesToText} from "./DiskUtils.js";
 
 // Bytes in each sector, and in each tar block.
 const SECTOR_SIZE = 512;

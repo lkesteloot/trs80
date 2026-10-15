@@ -13,7 +13,7 @@ import {TRS80_BASE_LOGGER} from "trs80-logger";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {bytesToText} from "./Text.js";
+import {bytesToText} from "./DiskUtils.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";

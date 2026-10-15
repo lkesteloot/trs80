@@ -310,14 +310,14 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         decides density per sector. SCP could turn its flux into a cell
         stream (one bit per half-cell) and reuse the HFE mark finder.
 
-- [ ] **UCSD p-System leftovers.** `Ucsd.ts` reads FMG's Model I disks (see
-      "UCSD p-System" in `FLOPPY_FORMATS.md`).
+- [ ] **UCSD Pascal leftovers.** `UcsdPascal.ts` reads FMG's Model I disks (see
+      "UCSD Pascal" in `FLOPPY_FORMATS.md`).
       - Text files (`.TEXT`: a 2-block editor header, then 1 KB pages padded with
         NULs, with a DLE byte followed by 32 + *n* standing for *n* spaces of
         indentation) are extracted raw, not converted to host text.
-      - Only FMG's mapping is known. Other vendors' TRS-80 p-Systems (another
+      - Only FMG's mapping is known. Other vendors' TRS-80 UCSD Pascals (another
         interleave or skew, or double density) won't decode until a format is
-        added to `UCSD_FORMATS`.
+        added to `UCSD_PASCAL_FORMATS`.
 
 ## Regression suite housekeeping
 

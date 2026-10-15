@@ -9,7 +9,7 @@ import {
     decodeTrs80File,
     decodeTrsdos,
     decodeTrsdosII,
-    decodeUcsd,
+    decodeUcsdPascal,
     decodeXenixTar,
     Density,
     FloppyDirEntry,
@@ -29,9 +29,9 @@ import {
     TrsdosIIFile,
     trsdosIIProtectionLevelToString,
     trsdosProtectionLevelToString,
-    Ucsd,
-    UcsdFile,
-    ucsdFileKindToString,
+    UcsdPascal,
+    UcsdPascalFile,
+    ucsdPascalFileKindToString,
     XenixTar,
     XenixTarFile,
 } from "trs80-base";
@@ -100,9 +100,9 @@ export interface CpmReport {
 }
 
 /**
- * The parameters of a UCSD p-System volume.
+ * The parameters of a UCSD Pascal volume.
  */
-export interface UcsdReport {
+export interface UcsdPascalReport {
     // Whose port's layout, e.g., "FMG".
     format: string;
     // Cylinder where the volume starts; the cylinders before it are the boot track.
@@ -136,9 +136,9 @@ export interface OsReport {
     gat?: GatReport;
     // CP/M only.
     cpm?: CpmReport;
-    // UCSD p-System only.
-    ucsd?: UcsdReport;
-    // Model II TRSDOS and TRSDOS-II: the name from when the disk was formatted. UCSD p-System:
+    // UCSD Pascal only.
+    ucsdPascal?: UcsdPascalReport;
+    // Model II TRSDOS and TRSDOS-II: the name from when the disk was formatted. UCSD Pascal:
     // the volume name. Missing if the disk has none that we could read.
     diskName?: string;
     // Model II TRSDOS only: how the directory cylinder is arranged, "1.x" or "2.0".
@@ -161,17 +161,17 @@ export interface FileReport {
     filename: string;
     size: number;
     // Empty if the operating system doesn't record dates. Model II TRSDOS, TRSDOS-II, UCSD
-    // p-System, and Xenix tar use "DD/MM/YYYY", like TRSDOS, plus " HH:MM" if the system records
+    // Pascal, and Xenix tar use "DD/MM/YYYY", like TRSDOS, plus " HH:MM" if the system records
     // the time (Xenix tar times are UTC).
     date: string;
     // Empty on CP/M, which has attributes (in "flags") instead, on MicroDOS, which has the type
-    // letter in "flags", and on UCSD p-System, which has the kind in "flags". Model II TRSDOS has
+    // letter in "flags", and on UCSD Pascal, which has the kind in "flags". Model II TRSDOS has
     // the level, 0 to 7, as a digit. TRSDOS-II has the ATTRIB name of the level. Xenix tar has the
     // permission bits in octal, such as "0755".
     protection: string;
     // Model II TRSDOS: "S" (system) and "P" (program), with "-" for the ones not set. TRSDOS-II:
     // "P" or "D" (program or data), "F" or "V" (fixed or variable records), then "S" (system flag)
-    // or "-". UCSD p-System: the kind, such as "Code" or "Text". Xenix tar: the type flag
+    // or "-". UCSD Pascal: the kind, such as "Code" or "Text". Xenix tar: the type flag
     // character of the archive member, "0" for a regular file.
     flags: string;
     isSystem: boolean;
@@ -188,7 +188,7 @@ export interface FileReport {
     sectors?: [number, number];
     // MicroDOS only.
     remark?: string;
-    // UCSD p-System only: the file's first block and the block after its last.
+    // UCSD Pascal only: the file's first block and the block after its last.
     blockRange?: [number, number];
     // TRSDOS-II only: first granule and granule count of each run of the file's block table.
     granuleRuns?: [number, number][];
@@ -399,23 +399,23 @@ function reportMicroDosFile(microDos: MicroDos, file: MicroDosFile): FileReport 
 }
 
 /**
- * Report on one file within a UCSD p-System floppy.
+ * Report on one file within a UCSD Pascal floppy.
  */
-function reportUcsdFile(ucsd: Ucsd, file: UcsdFile): FileReport {
+function reportUcsdPascalFile(ucsdPascal: UcsdPascal, file: UcsdPascalFile): FileReport {
     const date = file.getDate();
     const report: FileReport = {
         filename: file.getFilename("."),
         size: file.getSize(),
         date: date === undefined ? "" : formatDate(date, false, false),
         protection: "",
-        flags: ucsdFileKindToString(file.kind),
+        flags: ucsdPascalFileKindToString(file.kind),
         isSystem: file.isSystemFile(),
         isHidden: file.isHidden(),
         blockRange: [file.firstBlock, file.nextBlock],
     };
 
     try {
-        reportFileContents(ucsd, file, report);
+        reportFileContents(ucsdPascal, file, report);
     } catch (e) {
         report.exception = exceptionToString(e);
     }
@@ -568,9 +568,9 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         return;
     }
 
-    const ucsd = decodeUcsd(disk);
-    if (ucsd !== undefined) {
-        reportUcsd(ucsd, report);
+    const ucsdPascal = decodeUcsdPascal(disk);
+    if (ucsdPascal !== undefined) {
+        reportUcsdPascal(ucsdPascal, report);
         return;
     }
 
@@ -644,24 +644,24 @@ function reportMicroDos(microDos: MicroDos, report: Omit<DiskReport, "warnings">
 }
 
 /**
- * Report on a UCSD p-System file system.
+ * Report on a UCSD Pascal file system.
  */
-function reportUcsd(ucsd: Ucsd, report: Omit<DiskReport, "warnings">): void {
+function reportUcsdPascal(ucsdPascal: UcsdPascal, report: Omit<DiskReport, "warnings">): void {
     report.os = {
-        name: ucsd.nameAndVersion,
+        name: ucsdPascal.nameAndVersion,
         sideCount: 1,
-        sectorsPerTrack: ucsd.format.sectorsPerTrack,
-        diskName: ucsd.volumeName,
-        ucsd: {
-            format: ucsd.format.name,
-            firstTrack: ucsd.format.firstTrack,
-            interleave: ucsd.format.interleave,
-            trackSkew: ucsd.format.trackSkew,
-            blockCount: ucsd.blockCount,
+        sectorsPerTrack: ucsdPascal.format.sectorsPerTrack,
+        diskName: ucsdPascal.volumeName,
+        ucsdPascal: {
+            format: ucsdPascal.format.name,
+            firstTrack: ucsdPascal.format.firstTrack,
+            interleave: ucsdPascal.format.interleave,
+            trackSkew: ucsdPascal.format.trackSkew,
+            blockCount: ucsdPascal.blockCount,
         },
     };
 
-    report.files = ucsd.getDirEntries(true).map(file => reportUcsdFile(ucsd, file));
+    report.files = ucsdPascal.getDirEntries(true).map(file => reportUcsdPascalFile(ucsdPascal, file));
 }
 
 /**

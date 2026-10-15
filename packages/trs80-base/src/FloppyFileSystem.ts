@@ -5,7 +5,7 @@ import {Cpm, decodeCpm} from "./Cpm.js";
 import {decodeMicroDos, MicroDos} from "./MicroDos.js";
 import {decodeModelIITrsdos, ModelIITrsdos} from "./ModelIITrsdos.js";
 import {decodeTrsdosII, TrsdosII} from "./TrsdosII.js";
-import {decodeUcsd, Ucsd} from "./Ucsd.js";
+import {decodeUcsdPascal, UcsdPascal} from "./UcsdPascal.js";
 import {decodeXenixTar, XenixTar} from "./XenixTar.js";
 
 /**
@@ -85,13 +85,13 @@ export interface FloppyFileSystem<T extends FloppyDirEntry = FloppyDirEntry> {
  * ending text files at their first Ctrl-Z. See decodeCpm(). TRSDOS files aren't affected.
  */
 export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false):
-    Trsdos | Cpm | MicroDos | ModelIITrsdos | TrsdosII | Ucsd | XenixTar | undefined {
+    Trsdos | Cpm | MicroDos | ModelIITrsdos | TrsdosII | UcsdPascal | XenixTar | undefined {
 
     // The Model II's TRSDOS-II and TRSDOS first: their structures are at known places and their
     // decoders are strict, while the TRSDOS decoder searches the whole disk and can find a
     // directory-like sector on their disks. Then TRSDOS, because CP/M disks don't fool its
     // decoder, but its disks could conceivably have something that looks like a CP/M directory.
-    // Xenix tar, MicroDOS, and UCSD p-System last: their data is at a fixed place, so we rely on
+    // Xenix tar, MicroDOS, and UCSD Pascal last: their data is at a fixed place, so we rely on
     // their decoders being strict.
     return decodeTrsdosII(disk) ??
         decodeModelIITrsdos(disk) ??
@@ -99,5 +99,5 @@ export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false
         decodeCpm(disk, cpmWholeRecords) ??
         decodeXenixTar(disk) ??
         decodeMicroDos(disk) ??
-        decodeUcsd(disk);
+        decodeUcsdPascal(disk);
 }

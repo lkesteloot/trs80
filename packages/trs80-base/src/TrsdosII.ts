@@ -13,7 +13,7 @@ import {concatByteArrays} from "teamten-ts-utils";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {bytesToText, isPrintable} from "./Text.js";
+import {bytesToText, isPrintable} from "./DiskUtils.js";
 
 // Bytes in a granule, which is half of a sector.
 const GRANULE_SIZE = 256;

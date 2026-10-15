@@ -14,7 +14,7 @@ export * from "./Cpm.js";
 export * from "./MicroDos.js";
 export * from "./ModelIITrsdos.js";
 export * from "./TrsdosII.js";
-export * from "./Ucsd.js";
+export * from "./UcsdPascal.js";
 export * from "./XenixTar.js";
 export * from "./FileDamage.js";
 export * from "./FloppyFileSystem.js";

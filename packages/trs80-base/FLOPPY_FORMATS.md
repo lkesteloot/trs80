@@ -1753,10 +1753,10 @@ superblock in block 1), which we don't read.
   interface takes to separate directories. `extract` and the web app's ZIP export
   recreate them.
 
-## UCSD p-System
+## UCSD Pascal
 
-FMG Corporation's UCSD Pascal II.0 for the Model I (1979) keeps a p-System volume
-on a TRS-80 floppy, decoded by `Ucsd.ts`. Measured on the three FMG disks in
+FMG Corporation's UCSD Pascal II.0 for the Model I (1979) keeps a volume of the
+UCSD p-System (the operating system that UCSD Pascal runs on) on a TRS-80 floppy, decoded by `UcsdPascal.ts`. Measured on the three FMG disks in
 `UCSDPascal/` in the regression suite: `TRS-80` (the system disk), `UTILS1` and
 `XUTIL`.
 

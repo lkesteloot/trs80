@@ -1,6 +1,9 @@
 /**
- * Classes for reading UCSD p-System diskettes for the Model I. See "UCSD p-System" in
+ * Classes for reading UCSD Pascal diskettes for the Model I. See "UCSD Pascal" in
  * FLOPPY_FORMATS.md.
+ *
+ * UCSD Pascal runs on the UCSD p-System, whose volume is what the disk holds. We call it
+ * UCSD Pascal because that's the name people know it by.
  *
  * The p-System volume starts after the TRS-80 boot track and is addressed in 512-byte blocks.
  * The directory is always in blocks 2 to 5, and files are contiguous runs of blocks. Blocks
@@ -10,11 +13,10 @@
 
 import {assertNever} from "z80-base";
 import {concatByteArrays} from "teamten-ts-utils";
-import {makeSkewTable} from "./Cpm.js";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {bytesToText, isPrintable} from "./Text.js";
+import {bytesToText, isPrintable, makeSkewTable} from "./DiskUtils.js";
 
 // Bytes in a block, the p-System's unit of allocation.
 const BLOCK_SIZE = 512;
@@ -40,7 +42,7 @@ const MAX_FILENAME_LENGTH = 15;
 /**
  * How one vendor's p-System lays out its blocks on the disk. The disk doesn't record this.
  */
-export interface UcsdFormat {
+export interface UcsdPascalFormat {
     // Who made the port, such as "FMG".
     readonly name: string;
     // Sectors on each data track.
@@ -60,7 +62,7 @@ export interface UcsdFormat {
 }
 
 // The formats that we know. These were measured from real disks.
-export const UCSD_FORMATS: readonly UcsdFormat[] = [
+export const UCSD_PASCAL_FORMATS: readonly UcsdPascalFormat[] = [
     // FMG Corporation's UCSD Pascal II.0 for the Model I (1979), measured from its disks.
     {
         name: "FMG",
@@ -77,7 +79,7 @@ export const UCSD_FORMATS: readonly UcsdFormat[] = [
 /**
  * The kind of a file in a p-System directory.
  */
-export enum UcsdFileKind {
+export enum UcsdPascalFileKind {
     UNTYPED = 0,
     // The bad blocks file, with the extension ".BAD".
     BAD = 1,
@@ -93,17 +95,17 @@ export enum UcsdFileKind {
 /**
  * A short readable name for the kind, such as "Code".
  */
-export function ucsdFileKindToString(kind: UcsdFileKind): string {
+export function ucsdPascalFileKindToString(kind: UcsdPascalFileKind): string {
     switch (kind) {
-        case UcsdFileKind.UNTYPED: return "Untyped";
-        case UcsdFileKind.BAD: return "Bad";
-        case UcsdFileKind.CODE: return "Code";
-        case UcsdFileKind.TEXT: return "Text";
-        case UcsdFileKind.INFO: return "Info";
-        case UcsdFileKind.DATA: return "Data";
-        case UcsdFileKind.GRAF: return "Graf";
-        case UcsdFileKind.FOTO: return "Foto";
-        case UcsdFileKind.SECURE_DIR: return "Securedir";
+        case UcsdPascalFileKind.UNTYPED: return "Untyped";
+        case UcsdPascalFileKind.BAD: return "Bad";
+        case UcsdPascalFileKind.CODE: return "Code";
+        case UcsdPascalFileKind.TEXT: return "Text";
+        case UcsdPascalFileKind.INFO: return "Info";
+        case UcsdPascalFileKind.DATA: return "Data";
+        case UcsdPascalFileKind.GRAF: return "Graf";
+        case UcsdPascalFileKind.FOTO: return "Foto";
+        case UcsdPascalFileKind.SECURE_DIR: return "Securedir";
         default: assertNever(kind);
     }
 }
@@ -111,17 +113,17 @@ export function ucsdFileKindToString(kind: UcsdFileKind): string {
 /**
  * Convert the number in a directory entry to a kind, or return undefined if we don't know it.
  */
-function ucsdFileKindFromNumber(n: number): UcsdFileKind | undefined {
+function ucsdPascalFileKindFromNumber(n: number): UcsdPascalFileKind | undefined {
     switch (n) {
-        case UcsdFileKind.UNTYPED:
-        case UcsdFileKind.BAD:
-        case UcsdFileKind.CODE:
-        case UcsdFileKind.TEXT:
-        case UcsdFileKind.INFO:
-        case UcsdFileKind.DATA:
-        case UcsdFileKind.GRAF:
-        case UcsdFileKind.FOTO:
-        case UcsdFileKind.SECURE_DIR:
+        case UcsdPascalFileKind.UNTYPED:
+        case UcsdPascalFileKind.BAD:
+        case UcsdPascalFileKind.CODE:
+        case UcsdPascalFileKind.TEXT:
+        case UcsdPascalFileKind.INFO:
+        case UcsdPascalFileKind.DATA:
+        case UcsdPascalFileKind.GRAF:
+        case UcsdPascalFileKind.FOTO:
+        case UcsdPascalFileKind.SECURE_DIR:
             return n;
         default:
             return undefined;
@@ -158,7 +160,7 @@ function parseDate(value: number): Date | undefined {
  * @param skewTable the physical sector index (from 0) of each logical sector on a track.
  * @param block the block number within the volume.
  */
-function blockSectorPositions(format: UcsdFormat, skewTable: number[], block: number): SectorPosition[] {
+function blockSectorPositions(format: UcsdPascalFormat, skewTable: number[], block: number): SectorPosition[] {
     const sectorsPerBlock = BLOCK_SIZE/format.sectorSize;
     const positions: SectorPosition[] = [];
     for (let half = 0; half < sectorsPerBlock; half++) {
@@ -174,13 +176,13 @@ function blockSectorPositions(format: UcsdFormat, skewTable: number[], block: nu
 /**
  * A file in the directory.
  */
-export class UcsdFile implements FloppyDirEntry {
+export class UcsdPascalFile implements FloppyDirEntry {
     public readonly name: string;
     // First block of the file.
     public readonly firstBlock: number;
     // The block after the file's last, so the file's blocks are firstBlock to nextBlock - 1.
     public readonly nextBlock: number;
-    public readonly kind: UcsdFileKind;
+    public readonly kind: UcsdPascalFileKind;
     // Number of bytes used in the file's last block, 1 to 512.
     public readonly lastByte: number;
     private readonly date: Date | undefined;
@@ -193,7 +195,7 @@ export class UcsdFile implements FloppyDirEntry {
      * @param lastByte number of bytes used in the file's last block.
      * @param date the file's date, or undefined if it has none.
      */
-    constructor(name: string, firstBlock: number, nextBlock: number, kind: UcsdFileKind, lastByte: number,
+    constructor(name: string, firstBlock: number, nextBlock: number, kind: UcsdPascalFileKind, lastByte: number,
                 date: Date | undefined) {
 
         this.name = name;
@@ -244,17 +246,17 @@ export class UcsdFile implements FloppyDirEntry {
 }
 
 /**
- * A UCSD p-System volume.
+ * A UCSD Pascal volume.
  */
-export class Ucsd implements FloppyFileSystem<UcsdFile> {
+export class UcsdPascal implements FloppyFileSystem<UcsdPascalFile> {
     public readonly disk: FloppyDisk;
-    public readonly format: UcsdFormat;
+    public readonly format: UcsdPascalFormat;
     public readonly nameAndVersion: string;
     public readonly volumeName: string;
     // Number of blocks in the volume, from the volume header.
     public readonly blockCount: number;
     // In directory order.
-    public readonly files: UcsdFile[];
+    public readonly files: UcsdPascalFile[];
     // Physical sector index (from 0) of each logical sector on a track.
     private readonly skewTable: number[];
 
@@ -265,10 +267,10 @@ export class Ucsd implements FloppyFileSystem<UcsdFile> {
      * @param blockCount number of blocks in the volume.
      * @param files the files, in directory order.
      */
-    constructor(disk: FloppyDisk, format: UcsdFormat, volumeName: string, blockCount: number, files: UcsdFile[]) {
+    constructor(disk: FloppyDisk, format: UcsdPascalFormat, volumeName: string, blockCount: number, files: UcsdPascalFile[]) {
         this.disk = disk;
         this.format = format;
-        this.nameAndVersion = format.name + " UCSD p-System";
+        this.nameAndVersion = format.name + " UCSD Pascal";
         this.volumeName = volumeName;
         this.blockCount = blockCount;
         this.files = files;
@@ -285,14 +287,14 @@ export class Ucsd implements FloppyFileSystem<UcsdFile> {
     /**
      * Every file in directory order. None are system files.
      */
-    public getDirEntries(includeSystemFiles: boolean): UcsdFile[] {
+    public getDirEntries(includeSystemFiles: boolean): UcsdPascalFile[] {
         return this.files;
     }
 
     /**
      * The sectors of the file's blocks, in order.
      */
-    public getFileSectorPositions(file: UcsdFile): SectorPosition[] {
+    public getFileSectorPositions(file: UcsdPascalFile): SectorPosition[] {
         const positions: SectorPosition[] = [];
         for (let block = file.firstBlock; block < file.nextBlock; block++) {
             positions.push(... this.blockSectorPositions(block));
@@ -304,14 +306,14 @@ export class Ucsd implements FloppyFileSystem<UcsdFile> {
      * The raw bytes of the file, without converting text files. A sector that can't be read
      * counts as zeros.
      */
-    public readFile(file: UcsdFile): Uint8Array {
+    public readFile(file: UcsdPascalFile): Uint8Array {
         return this.readFileWithDamage(file).binary;
     }
 
     /**
      * The contents of the file, as with readFile(), and the sectors that were missing or had CRC errors.
      */
-    public readFileWithDamage(file: UcsdFile): FloppyFileContents {
+    public readFileWithDamage(file: UcsdPascalFile): FloppyFileContents {
         const damage = new FileDamage();
         const parts: Uint8Array[] = [];
 
@@ -336,7 +338,7 @@ export class Ucsd implements FloppyFileSystem<UcsdFile> {
  * Read the first byteCount bytes of the directory, or return undefined if one of the sectors
  * that they're in can't be read or is the wrong size.
  */
-function readDirectoryBytes(disk: FloppyDisk, format: UcsdFormat, skewTable: number[],
+function readDirectoryBytes(disk: FloppyDisk, format: UcsdPascalFormat, skewTable: number[],
                             byteCount: number): Uint8Array | undefined {
 
     const sectorSize = format.sectorSize;
@@ -374,7 +376,7 @@ function parsePascalName(bytes: Uint8Array, offset: number, maxLength: number): 
 /**
  * Try to decode the volume as the format, or return undefined if it doesn't validate.
  */
-function decodeUcsdFormat(disk: FloppyDisk, format: UcsdFormat): Ucsd | undefined {
+function decodeUcsdPascalFormat(disk: FloppyDisk, format: UcsdPascalFormat): UcsdPascal | undefined {
     const geometry = disk.getGeometry();
     const imageBlockCount = Math.floor(
         (geometry.cylinderCount - format.firstTrack)*format.sectorsPerTrack*format.sectorSize/BLOCK_SIZE);
@@ -404,13 +406,13 @@ function decodeUcsdFormat(disk: FloppyDisk, format: UcsdFormat): Ucsd | undefine
         return undefined;
     }
 
-    const files: UcsdFile[] = [];
+    const files: UcsdPascalFile[] = [];
     let previousNextBlock = DIR_NEXT_BLOCK;
     for (let i = 1; i <= fileCount; i++) {
         const offset = i*DIR_ENTRY_SIZE;
         const entryFirstBlock = readWord(directory, offset);
         const entryNextBlock = readWord(directory, offset + 2);
-        const kind = ucsdFileKindFromNumber(readWord(directory, offset + 4) & 0x0F);
+        const kind = ucsdPascalFileKindFromNumber(readWord(directory, offset + 4) & 0x0F);
         const name = parsePascalName(directory, offset + 6, MAX_FILENAME_LENGTH);
         const lastByte = readWord(directory, offset + 22);
         const date = parseDate(readWord(directory, offset + 24));
@@ -421,20 +423,20 @@ function decodeUcsdFormat(disk: FloppyDisk, format: UcsdFormat): Ucsd | undefine
             return undefined;
         }
 
-        files.push(new UcsdFile(name, entryFirstBlock, entryNextBlock, kind, lastByte, date));
+        files.push(new UcsdPascalFile(name, entryFirstBlock, entryNextBlock, kind, lastByte, date));
         previousNextBlock = entryNextBlock;
     }
 
-    return new Ucsd(disk, format, volumeName, eovBlock, files);
+    return new UcsdPascal(disk, format, volumeName, eovBlock, files);
 }
 
 /**
- * Decode the UCSD p-System volume of the floppy, or return undefined if it doesn't have one.
+ * Decode the UCSD Pascal volume of the floppy, or return undefined if it doesn't have one.
  * This is strict, because it runs on every floppy that nothing else claims.
  */
-export function decodeUcsd(disk: FloppyDisk): Ucsd | undefined {
+export function decodeUcsdPascal(disk: FloppyDisk): UcsdPascal | undefined {
     const geometry = disk.getGeometry();
-    for (const format of UCSD_FORMATS) {
+    for (const format of UCSD_PASCAL_FORMATS) {
         const formatMatches = format.sectorsPerTrack === geometry.modalDataSectorSpan &&
             format.sectorSize === geometry.modalDataSectorSize &&
             format.density === geometry.modalDataDensity;
@@ -442,9 +444,9 @@ export function decodeUcsd(disk: FloppyDisk): Ucsd | undefined {
             continue;
         }
 
-        const ucsd = decodeUcsdFormat(disk, format);
-        if (ucsd !== undefined) {
-            return ucsd;
+        const ucsdPascal = decodeUcsdPascalFormat(disk, format);
+        if (ucsdPascal !== undefined) {
+            return ucsdPascal;
         }
     }
 
