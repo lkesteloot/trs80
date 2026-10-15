@@ -55,6 +55,59 @@ function modeOf(values: number[]): { value: number, count: number } {
 }
 
 /**
+ * The largest difference between two consecutive sector numbers on a track that still counts
+ * as the same run of numbers. A gap of up to 2 missing numbers stays inside one cluster, while
+ * the strays that copy protection writes (such as 124-126 on a track numbered 0-9, or a lone 23
+ * on a track numbered 0-18) form their own clusters. Longer gaps from damage are still reported,
+ * because a track's expected range also covers its group's usual range.
+ */
+const MAX_SECTOR_NUMBER_GAP = 3;
+
+/**
+ * An inclusive range of sector numbers.
+ */
+export interface SectorNumberRange {
+    firstSectorNumber: number;
+    lastSectorNumber: number;
+}
+
+/**
+ * Finds the core of a track's sector numbers, ignoring stray IDs. Splits the numbers into
+ * clusters wherever two consecutive ones differ by more than MAX_SECTOR_NUMBER_GAP, and
+ * returns the range of the cluster with the most numbers (on a tie, the lower-numbered one).
+ *
+ * @param sortedSectorNumbers distinct sector numbers in ascending order. Must not be empty.
+ */
+function coreSectorRange(sortedSectorNumbers: number[]): SectorNumberRange {
+    if (sortedSectorNumbers.length === 0) {
+        throw new Error("Must have at least one sector number for coreSectorRange()");
+    }
+
+    let best: SectorNumberRange | undefined = undefined;
+    let bestCount = 0;
+
+    let clusterStart = 0;
+    for (let i = 1; i <= sortedSectorNumbers.length; i++) {
+        const endOfCluster = i === sortedSectorNumbers.length ||
+            sortedSectorNumbers[i] - sortedSectorNumbers[i - 1] > MAX_SECTOR_NUMBER_GAP;
+        if (endOfCluster) {
+            const count = i - clusterStart;
+            // Strictly greater, so that on a tie the earlier (lower-numbered) cluster wins.
+            if (count > bestCount) {
+                best = {
+                    firstSectorNumber: sortedSectorNumbers[clusterStart],
+                    lastSectorNumber: sortedSectorNumbers[i - 1],
+                };
+                bestCount = count;
+            }
+            clusterStart = i;
+        }
+    }
+
+    return best!;
+}
+
+/**
  * Structure to keep track of a specific track on a disk.
  */
 export class TrackPosition {
@@ -301,17 +354,30 @@ export class SectorData extends SectorInfo {
  */
 export class TrackGeometry {
     public readonly trackPosition: TrackPosition;
+    // The lowest and highest sector numbers on the track. These include stray IDs (copy protection
+    // sometimes writes a few sectors numbered far outside the track's usual numbering), so they
+    // can be much wider than the track's real range. See the core numbers below.
     public readonly firstSectorNumber: number;
     public readonly lastSectorNumber: number;
+    // The distinct sector numbers of the sectors with valid ID CRCs, in ascending order.
+    public readonly sectorNumbers: number[];
+    // The track's own guess at its usual numbering, ignoring stray IDs: the range of the largest
+    // cluster of sector numbers.
+    public readonly coreFirstSectorNumber: number;
+    public readonly coreLastSectorNumber: number;
     public readonly modalDensity: Density;
     public readonly modalSectorSize: number;
 
     constructor(trackPosition: TrackPosition, firstSectorNumber: number, lastSectorNumber: number,
+                sectorNumbers: number[], coreFirstSectorNumber: number, coreLastSectorNumber: number,
                 modalDensity: Density, modalSectorSize: number) {
 
         this.trackPosition = trackPosition;
         this.firstSectorNumber = firstSectorNumber;
         this.lastSectorNumber = lastSectorNumber;
+        this.sectorNumbers = sectorNumbers;
+        this.coreFirstSectorNumber = coreFirstSectorNumber;
+        this.coreLastSectorNumber = coreLastSectorNumber;
         this.modalDensity = modalDensity;
         this.modalSectorSize = modalSectorSize;
     }
@@ -337,10 +403,14 @@ export class TrackGeometry {
 
         const firstSectorNumber = Math.min(... layoutInfos.map(info => info.sectorPosition.sectorNumber));
         const lastSectorNumber = Math.max(... layoutInfos.map(info => info.sectorPosition.sectorNumber));
+        const sectorNumbers = [... new Set(layoutInfos.map(info => info.sectorPosition.sectorNumber))]
+            .sort((a, b) => a - b);
+        const core = coreSectorRange(sectorNumbers);
         const modalDensity = modeOf(layoutInfos.map(info => info.density)).value;
         const modalSectorSize = modeOf(layoutInfos.map(info => info.sectorSize)).value;
 
-        return new TrackGeometry(trackPosition, firstSectorNumber, lastSectorNumber, modalDensity, modalSectorSize);
+        return new TrackGeometry(trackPosition, firstSectorNumber, lastSectorNumber, sectorNumbers,
+            core.firstSectorNumber, core.lastSectorNumber, modalDensity, modalSectorSize);
     }
 
     public sectorSpan(): number {
@@ -394,6 +464,49 @@ export class TrackGeometry {
 }
 
 /**
+ * The most common core sector range among the tracks. Ties go to the lowest first sector number,
+ * then the lowest last sector number.
+ *
+ * @param tracks the tracks to look at. Must not be empty.
+ */
+function modalCoreRange(tracks: TrackGeometry[]): SectorNumberRange {
+    // Map from "first,last" to its count and range.
+    const counts = new Map<string,{ range: SectorNumberRange, count: number }>();
+    for (const track of tracks) {
+        const key = track.coreFirstSectorNumber + "," + track.coreLastSectorNumber;
+        const entry = counts.get(key);
+        if (entry === undefined) {
+            counts.set(key, {
+                range: {
+                    firstSectorNumber: track.coreFirstSectorNumber,
+                    lastSectorNumber: track.coreLastSectorNumber,
+                },
+                count: 1,
+            });
+        } else {
+            entry.count++;
+        }
+    }
+
+    let best: { range: SectorNumberRange, count: number } | undefined = undefined;
+    for (const entry of counts.values()) {
+        if (best === undefined || entry.count > best.count ||
+            (entry.count === best.count &&
+                (entry.range.firstSectorNumber < best.range.firstSectorNumber ||
+                    (entry.range.firstSectorNumber === best.range.firstSectorNumber &&
+                        entry.range.lastSectorNumber < best.range.lastSectorNumber)))) {
+
+            best = entry;
+        }
+    }
+    if (best === undefined) {
+        throw new Error("Must have at least one track for modalCoreRange()");
+    }
+
+    return best.range;
+}
+
+/**
  * Information about the physical layout of tracks, sides, and sectors on a floppy.
  */
 export class FloppyDiskGeometry {
@@ -404,9 +517,16 @@ export class FloppyDiskGeometry {
     public readonly sectorMap = new Map<string,SectorInfo>();
     // Map from TrackPosition key to TrackGeometry.
     public readonly trackMap: Map<string,TrackGeometry>;
-    // These include all tracks, and are useful when displaying a table of sectors.
+    // These include all tracks and all stray IDs, so they can be much wider than any track's
+    // usual numbering. See the expected numbers below for displaying a table of sectors.
     public readonly firstSectorNumber: number;
     public readonly lastSectorNumber: number;
+    // The lowest and highest of every track's expected sector range (see getExpectedSectorRange()),
+    // which are the columns to use when displaying a table of sectors.
+    public readonly expectedFirstSectorNumber: number;
+    public readonly expectedLastSectorNumber: number;
+    // Map from TrackPosition key to that track's expected sector range.
+    private readonly expectedSectorRanges = new Map<string,SectorNumberRange>();
     // Information about the boot track (cylinder 0 side 0).
     public readonly bootTrack: TrackGeometry;
     // Most common values across the side 0 tracks other than the boot track, or of the boot
@@ -484,6 +604,12 @@ export class FloppyDiskGeometry {
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
 
+        this.computeExpectedSectorRanges(tracks);
+        this.expectedFirstSectorNumber = Math.min(
+            ... [... this.expectedSectorRanges.values()].map(range => range.firstSectorNumber));
+        this.expectedLastSectorNumber = Math.max(
+            ... [... this.expectedSectorRanges.values()].map(range => range.lastSectorNumber));
+
         // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
         // below are computed from these, so that a disk whose second side is garbage (or holds a
         // different file system, as MultiDOS disks do) still reports the geometry that matters.
@@ -496,6 +622,48 @@ export class FloppyDiskGeometry {
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
         this.homogeneous = dataTracks.every(track => track.hasSameLayoutAs(bootTrack));
         this.cylinder0Differs = bootTrack.modalDensity !== this.modalDataDensity || bootTrack.sectorSpan() !== this.modalDataSectorSpan;
+    }
+
+    /**
+     * Fills in expectedSectorRanges. Groups the tracks by side, density, and sector size (so that
+     * a side numbered differently, or tracks laid out in another density, stay separate), and
+     * puts cylinder 0 in groups of its own, since boot tracks often have their own layout. Finds
+     * the most common core range in each group, and gives each track the union of its own core
+     * range and its group's. The union means a damaged track that lost its last sectors still has
+     * them reported, and it never shrinks a track's own core.
+     */
+    private computeExpectedSectorRanges(tracks: TrackGeometry[]): void {
+        // Map from group key to the tracks in the group.
+        const groups = new Map<string,TrackGeometry[]>();
+        for (const track of tracks) {
+            const isCylinder0 = track.trackPosition.cylinderNumber === 0;
+            const groupKey = [isCylinder0, track.trackPosition.side, track.modalDensity, track.modalSectorSize].join(",");
+            let group = groups.get(groupKey);
+            if (group === undefined) {
+                group = [];
+                groups.set(groupKey, group);
+            }
+            group.push(track);
+        }
+
+        for (const group of groups.values()) {
+            const modalRange = modalCoreRange(group);
+            for (const track of group) {
+                this.expectedSectorRanges.set(track.trackPosition.key(), {
+                    firstSectorNumber: Math.min(track.coreFirstSectorNumber, modalRange.firstSectorNumber),
+                    lastSectorNumber: Math.max(track.coreLastSectorNumber, modalRange.lastSectorNumber),
+                });
+            }
+        }
+    }
+
+    /**
+     * The range of sector numbers that the track at the given position is expected to have,
+     * ignoring stray IDs, or undefined if getTrack() is. This is for display only; decoding uses
+     * the track's first and last sector numbers.
+     */
+    public getExpectedSectorRange(trackPosition: TrackPosition): SectorNumberRange | undefined {
+        return this.expectedSectorRanges.get(trackPosition.key());
     }
 
     /**
