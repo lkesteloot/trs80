@@ -14,6 +14,8 @@ export interface FloppyDirEntry {
     /**
      * The filename, with the given separator between the name and the extension
      * ("." for the host, "/" for TRSDOS). There's no separator if there's no extension.
+     * On file systems with directories (Xenix tar), the name is a path whose directories
+     * are separated by "/", as in "usr/bin/vi", whatever the extension separator.
      */
     getFilename(extensionSeparator: string): string;
 

@@ -233,8 +233,8 @@ export class XenixTarFile implements FloppyDirEntry {
 
     /**
      * The path name as stored, such as "usr/lib/libc.a", without any leading "./" or "/". Tar names
-     * are Unix paths and have no extension, so the separator is ignored. The result can contain
-     * "/", which is a directory separator for anyone who writes the file to a host disk.
+     * are Unix paths and have no extension, so the separator is ignored. Directories are separated
+     * by "/", as the FloppyDirEntry interface says.
      */
     public getFilename(extensionSeparator: string): string {
         return this.name.replace(/^(\.?\/)+/, "");

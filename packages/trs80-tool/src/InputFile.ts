@@ -61,6 +61,14 @@ export class InputFile {
     public getDirExtras(): string[] {
         return [];
     }
+
+    /**
+     * Whether a "/" in the filename separates directories, which extract recreates. Only on
+     * file systems that have directories; elsewhere a "/" is just a character of the name.
+     */
+    public hasDirectories(): boolean {
+        return false;
+    }
 }
 
 /**
@@ -292,6 +300,13 @@ export class XenixTarInputFile extends InputFile {
 
     public override getDate(): Date | undefined {
         return this.file.getDate();
+    }
+
+    /**
+     * Tar names are paths, such as "usr/bin/vi".
+     */
+    public override hasDirectories(): boolean {
+        return true;
     }
 }
 

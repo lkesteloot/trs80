@@ -1684,8 +1684,9 @@ superblock in block 1), which we don't read.
 - **Stale headers:** eight Xenix file system disks have a valid tar header at
   cylinder 1 sector 1 followed by file system data. One header followed by junk
   isn't an archive, so they're rejected.
-- **Names** are Unix paths, so a file's name contains "/". The web app's ZIP export
-  makes folders for them; `extract` turns each "/" into "_".
+- **Names** are Unix paths, so a file's name contains "/", which the `FloppyDirEntry`
+  interface takes to separate directories. `extract` and the web app's ZIP export
+  recreate them.
 
 ## Image formats
 
