@@ -36,7 +36,9 @@ import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
 const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;
 const MAX_TRACKS = 160;
-const MAX_TRACK_LENGTH = 0x2940;
+// The spec says 0x2940, but other writers go past it for 8" and high-density disks (see
+// FLOPPY_FORMATS.md). The real limit is what the IDAM pointers' 14-bit offsets can reach.
+const MAX_TRACK_LENGTH = 0x4000;
 
 // Header flags.
 const FLAG_SINGLE_SIDED = 0x10;
@@ -145,18 +147,11 @@ class DmkSector {
     }
 
     /**
-     * Get the sector size in bytes. Does not include the byte stride.
+     * Get the sector size in bytes. Does not include the byte stride. Like the WD179x, uses only
+     * the low two bits of the size code, so 128, 256, 512, or 1024.
      */
     public getSectorSize(): number {
-        const shift = this.getByte(4);
-
-        // Accept 128, 256, 512, and 1024.
-        if (shift <= 3) {
-            return 128 << shift;
-        } else {
-            // Fallback on something reasonable.
-            return 256;
-        }
+        return 128 << (this.getByte(4) & 0x03);
     }
 
     /**

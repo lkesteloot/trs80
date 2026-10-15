@@ -1,7 +1,9 @@
 import {describe, expect, it} from "vitest";
 import {Density, FloppyDisk, FloppyDiskGeometry, SectorData, SectorInfo, SectorPosition} from "./FloppyDisk.js";
 import {decodeFloppyFileSystem} from "./FloppyFileSystem.js";
-import {decodeUcsdPascal, UcsdPascal, UcsdPascalFileKind, ucsdPascalFileKindToString} from "./UcsdPascal.js";
+import {
+    decodeUcsdPascal, UcsdPascal, UcsdPascalFileKind, ucsdPascalFileKindToString, ucsdPascalTextToHost,
+} from "./UcsdPascal.js";
 
 const CYLINDER_COUNT = 35;
 const SECTOR_SIZE = 256;
@@ -239,7 +241,8 @@ describe("decodeUcsdPascal", () => {
     it("reads files across a track boundary and trims the last block", () => {
         const ucsdPascal = decodeUcsdPascal(makeDisk())!;
         const files = ucsdPascal.getDirEntries(true);
-        expect(Array.from(ucsdPascal.readFile(files[0]))).to.eql(Array.from(makeContents(6*BLOCK_SIZE - BLOCK_SIZE + 512, 1)));
+        expect(Array.from(ucsdPascal.readFile(files[0])))
+            .to.eql(Array.from(makeContents(6*BLOCK_SIZE - BLOCK_SIZE + 512, 1)));
         const notes = ucsdPascal.readFileWithDamage(files[1]);
         expect(Array.from(notes.binary)).to.eql(Array.from(makeContents(2*BLOCK_SIZE + 100, 2)));
         expect(notes.damage.isDamaged()).to.be.false;
@@ -334,5 +337,81 @@ describe("decodeUcsdPascal", () => {
         const disk = makeDisk();
         writeDirectoryByte(disk, DIR_ENTRY_SIZE + 4, 0x0F);
         expect(decodeUcsdPascal(disk)).to.be.undefined;
+    });
+});
+
+/**
+ * Build a text file's bytes: a 1,024-byte header of the given fill, then the pages.
+ */
+function makeTextFile(pages: number[][], headerFill = 0): Uint8Array {
+    const bytes = new Uint8Array(1024*(1 + pages.length));
+    bytes.fill(headerFill, 0, 1024);
+    pages.forEach((page, i) => bytes.set(page, 1024*(1 + i)));
+    return bytes;
+}
+
+/**
+ * The character codes of an ASCII string, with "\r" for CR, "\x10" for DLE, and so on.
+ */
+function codes(text: string): number[] {
+    return Array.from(text, c => c.charCodeAt(0));
+}
+
+/**
+ * Convert and return the result as a string.
+ */
+function convertToString(data: Uint8Array): string {
+    return String.fromCharCode(... ucsdPascalTextToHost(data));
+}
+
+describe("ucsdPascalTextToHost", () => {
+    it("drops the header, expands DLE, turns CR into newline, and drops the padding", () => {
+        const page = codes("FMG:\r\x10 IN ORDER\r\x10$INDENT\r");
+        expect(convertToString(makeTextFile([page]))).to.equal("FMG:\nIN ORDER\n    INDENT\n");
+    });
+
+    it("keeps a space after a DLE that is not the count", () => {
+        // DLE with 0 spaces (32), then four literal spaces.
+        expect(convertToString(makeTextFile([codes("\x10     IN\r")]))).to.equal("    IN\n");
+    });
+
+    it("converts every page", () => {
+        const first = codes("ONE\r");
+        const second = codes("\x10\"TWO\r");
+        expect(convertToString(makeTextFile([first, second]))).to.equal("ONE\n  TWO\n");
+    });
+
+    it("handles a header filled with something other than zeros", () => {
+        expect(convertToString(makeTextFile([codes("A\r")], 0x55))).to.equal("A\n");
+    });
+
+    it("handles a short last page and a line with no CR", () => {
+        const data = makeTextFile([codes("AB\rCD")]).subarray(0, 1024 + 5);
+        expect(convertToString(data)).to.equal("AB\nCD");
+    });
+
+    it("expands DLE in the middle of a line, and drops a final DLE", () => {
+        expect(convertToString(makeTextFile([codes("A\x10#B\r\x10")]))).to.equal("A   B\n");
+    });
+
+    it("treats a count below 32 as no spaces", () => {
+        expect(convertToString(makeTextFile([codes("\x10\x05X\r")]))).to.equal("X\n");
+    });
+
+    it("gives nothing for a file that is only a header, or shorter", () => {
+        expect(ucsdPascalTextToHost(makeTextFile([])).length).to.equal(0);
+        expect(ucsdPascalTextToHost(new Uint8Array(300)).length).to.equal(0);
+        expect(ucsdPascalTextToHost(new Uint8Array(0)).length).to.equal(0);
+    });
+
+    it("passes through bytes with the high bit set", () => {
+        expect(Array.from(ucsdPascalTextToHost(makeTextFile([[0xE9, 0x0D]])))).to.eql([0xE9, 0x0A]);
+    });
+});
+
+describe("UcsdPascalFile.isText", () => {
+    it("is true only for text files", () => {
+        const files = decodeUcsdPascal(makeDisk())!.getDirEntries(true);
+        expect(files.map(file => file.isText()).slice(0, 3)).to.eql([false, true, false]);
     });
 });

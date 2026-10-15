@@ -6,9 +6,9 @@ import {
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, decodeTrs80CassetteFile,
-    decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosProtectionLevelToString, ucsdPascalFileKindToString } from "trs80-base";
+    TrsdosIIFile, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem,
+    decodeTrs80CassetteFile, decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {ToolError, formatDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString} from "./utils.js";
@@ -60,6 +60,16 @@ export class InputFile {
      */
     public getDirExtras(): string[] {
         return [];
+    }
+
+    /**
+     * The bytes that "extract" writes. Normally the same as the raw binary; a subclass overrides
+     * this to convert the file to host format.
+     *
+     * @param convertText whether to convert text files to host text (see UcsdPascalInputFile).
+     */
+    public getExtractedBinary(convertText: boolean): Uint8Array {
+        return this.binary;
     }
 
     /**
@@ -230,6 +240,14 @@ export class UcsdPascalInputFile extends InputFile {
 
     public override getDate(): Date | undefined {
         return this.file.getDate();
+    }
+
+    /**
+     * For a text file, the plain host text (see ucsdPascalTextToHost()) unless convertText is false.
+     * Other files, and the binary itself, are always the raw bytes.
+     */
+    public override getExtractedBinary(convertText: boolean): Uint8Array {
+        return convertText && this.file.isText() ? ucsdPascalTextToHost(this.binary) : this.binary;
     }
 }
 

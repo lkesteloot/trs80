@@ -2,7 +2,7 @@
  * Classes for reading UCSD Pascal diskettes for the Model I. See "UCSD Pascal" in
  * FLOPPY_FORMATS.md.
  *
- * UCSD Pascal runs on the UCSD p-System, whose volume is what the disk holds. We call it
+ * UCSD Pascal runs on the UCSD Pascal, whose volume is what the disk holds. We call it
  * UCSD Pascal because that's the name people know it by.
  *
  * The p-System volume starts after the TRS-80 boot track and is addressed in 512-byte blocks.
@@ -38,6 +38,18 @@ const MAX_VOLUME_NAME_LENGTH = 7;
 
 // Longest filename.
 const MAX_FILENAME_LENGTH = 15;
+
+// Size of the editor's header at the start of a text file: two blocks.
+const TEXT_HEADER_SIZE = 2*BLOCK_SIZE;
+
+// Carriage return, which ends each line of a text file.
+const CR = 0x0D;
+
+// Data link escape: in a text file, it's followed by 32 + n and stands for n spaces.
+const DLE = 0x10;
+
+// The code in a DLE sequence for no spaces; the count byte is this plus the number of spaces.
+const DLE_BASE = 32;
 
 /**
  * How one vendor's p-System lays out its blocks on the disk. The disk doesn't record this.
@@ -229,6 +241,14 @@ export class UcsdPascalFile implements FloppyDirEntry {
     }
 
     /**
+     * Whether this is a text file (kind TEXT, which the p-System names with a ".TEXT" suffix),
+     * whose bytes ucsdPascalTextToHost() can convert.
+     */
+    public isText(): boolean {
+        return this.kind === UcsdPascalFileKind.TEXT;
+    }
+
+    /**
      * The p-System has no system attribute, and its "SYSTEM." naming convention also covers the
      * user's work file (SYSTEM.WRK.TEXT), so hiding files by name would hide user data. Nothing is
      * a system file.
@@ -267,7 +287,9 @@ export class UcsdPascal implements FloppyFileSystem<UcsdPascalFile> {
      * @param blockCount number of blocks in the volume.
      * @param files the files, in directory order.
      */
-    constructor(disk: FloppyDisk, format: UcsdPascalFormat, volumeName: string, blockCount: number, files: UcsdPascalFile[]) {
+    constructor(disk: FloppyDisk, format: UcsdPascalFormat, volumeName: string, blockCount: number,
+                files: UcsdPascalFile[]) {
+
         this.disk = disk;
         this.format = format;
         this.nameAndVersion = format.name + " UCSD Pascal";
@@ -332,6 +354,44 @@ export class UcsdPascal implements FloppyFileSystem<UcsdPascalFile> {
 
         return {binary: concatByteArrays(parts).subarray(0, file.getSize()), damage};
     }
+}
+
+/**
+ * Convert the contents of a p-System text file (as returned by UcsdPascal.readFile()) to plain host
+ * text. The file is a two-block (1,024-byte) editor header, which we drop, then 1,024-byte pages.
+ * Each line ends in a carriage return, which becomes a newline, and the unused end of each page
+ * is NULs, which we drop. A DLE followed by the byte 32 + n stands for n spaces; the editor
+ * writes one at the start of every line to give its indentation (32 for none), but we expand
+ * it wherever it is. A DLE with no byte after it is dropped. Other bytes are kept as they are.
+ *
+ * @param data the whole file, header included.
+ * @returns the text, which is empty if the file is no longer than its header.
+ */
+export function ucsdPascalTextToHost(data: Uint8Array): Uint8Array {
+    const out: number[] = [];
+
+    for (let i = TEXT_HEADER_SIZE; i < data.length; i++) {
+        const byte = data[i];
+        if (byte === 0) {
+            // Page padding.
+            continue;
+        } else if (byte === CR) {
+            out.push(0x0A);
+        } else if (byte === DLE) {
+            // Count byte.
+            i++;
+            if (i < data.length) {
+                const spaceCount = Math.max(0, data[i] - DLE_BASE);
+                for (let j = 0; j < spaceCount; j++) {
+                    out.push(0x20);
+                }
+            }
+        } else {
+            out.push(byte);
+        }
+    }
+
+    return new Uint8Array(out);
 }
 
 /**

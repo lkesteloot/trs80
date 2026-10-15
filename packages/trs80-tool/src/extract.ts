@@ -65,13 +65,16 @@ function isPathClash(error: unknown): boolean {
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
+ * @param ucsdPascalRawText whether UCSD Pascal text files are written as they are on the disk,
+ * instead of converted to host text.
  * @param markDamaged whether to add " [DAMAGED]" to the name of each file that had unreadable
  * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
  * @param lowercase whether to write the files with lowercase names, as in "foo.cmd" for "FOO.CMD".
  * @throws ToolError if the directory doesn't exist or the input isn't a readable container.
  */
 export function extract(inFilename: string, outDirname: string, includeSystemFiles: boolean,
-                        cpmWholeRecords: boolean, markDamaged: boolean, lowercase: boolean): void {
+                        cpmWholeRecords: boolean, ucsdPascalRawText: boolean, markDamaged: boolean,
+                        lowercase: boolean): void {
 
     // Check the destination before reading the input.
     const outStat = fs.statSync(outDirname, { throwIfNoEntry: false });
@@ -93,7 +96,7 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
         components[components.length - 1] += damage !== undefined && markDamaged ? " [DAMAGED]" : "";
         makeUniquePath(components, usedPaths);
         const outpath = path.join(outDirname, ... components);
-        const binary = infile.binary;
+        const binary = infile.getExtractedBinary(!ucsdPascalRawText);
         try {
             fs.mkdirSync(path.dirname(outpath), { recursive: true });
             fs.writeFileSync(outpath, binary);
