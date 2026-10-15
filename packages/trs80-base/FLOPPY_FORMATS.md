@@ -1753,6 +1753,61 @@ superblock in block 1), which we don't read.
   interface takes to separate directories. `extract` and the web app's ZIP export
   recreate them.
 
+## UCSD Pascal
+
+FMG Corporation's UCSD Pascal II.0 for the Model I (1979) keeps a volume of the
+UCSD Pascal (the operating system that UCSD Pascal runs on) on a TRS-80 floppy, decoded by `UcsdPascal.ts`. Measured on the three FMG disks in
+`UCSDPascal/` in the regression suite: `TRS-80` (the system disk), `UTILS1` and
+`XUTIL`.
+
+- **Disk:** 35 cylinders, one side, single density, 10 sectors of 256 bytes
+  numbered 0-9. Cylinder 0 is a TRS-80 boot track and isn't part of the volume;
+  its sector 1 loads `SYSTEM.TRS-80` by name. The volume starts at cylinder 1.
+- **Blocks** are 512 bytes, two sectors. Numbering the volume's sectors from 0 at
+  cylinder 1, block *b* is sectors 2*b* and 2*b* + 1. Sector *s* is on volume
+  track *t* = floor(*s*/10) (cylinder *t* + 1) as logical sector *L* = *s* mod 10.
+- **Interleave and skew:** within a track the logical sectors are in physical order
+  0, 2, 4, 6, 8, 1, 3, 5, 7, 9 (an interleave of 2, which is `makeSkewTable(10, 2)`
+  in `Cpm.ts`), and each track after the first is rotated by a further 6:
+  physical sector = (order[*L*] + 6*t*) mod 10. For example, block 0 is cylinder 1
+  sectors 0 and 2; block 2 is sectors 8 and 1; block 3 is 3 and 5; block 4 is 7 and
+  9; block 5 is cylinder 2 sectors 6 and 8; block 6 is cylinder 2 sectors 0 and 2.
+  This is the same scheme as UCSD's standard 8" layout (interleave 2, track skew 6,
+  starting at track 1), adapted to 10 sectors per track.
+- **Directory:** blocks 2-5, little-endian words, 26-byte entries. Entry 0 is the
+  volume header: first block (0), next block (6, the block after the directory),
+  file kind (0), the volume name as a Pascal string (length byte 1-7, then 7
+  bytes), `eovBlock` (the volume's block count), the number of files (0-77), the
+  load time, the last boot date, and 4 unused bytes. `eovBlock` is 170 on all three
+  disks, which is 34 tracks, so the volume is cylinders 1-34.
+- **A file entry** is its first block, the block after its last (exclusive), a
+  kind word (the low 4 bits are the kind; the rest is status and filler), the
+  name as a Pascal string (length 1-15, then 15 bytes), `lastByte` (bytes used in
+  the last block, 1-512), and the date word: month in bits 0-3, day in bits 4-8,
+  years since 1900 in bits 9-15. A month or day of 0 means no date.
+- **Kinds:** 0 untyped, 1 bad blocks, 2 code, 3 text, 4 info, 5 data, 6 graf, 7
+  foto, 8 secure directory.
+- **Files are contiguous** and sorted by first block, and don't overlap. A file's
+  size is (next block - first block - 1)*512 + `lastByte`. Names include their
+  dots (`SYSTEM.PASCAL`, `READ.ME.TEXT`). The p-System has no system attribute, and
+  the `SYSTEM.` naming convention also covers the user's work file, so we don't
+  hide any file.
+- **Text files** (kind 3, named `.TEXT`) start with a 2-block (1,024-byte) editor
+  header, then 1,024-byte pages. Each line ends in CR (0x0D), and a page is padded
+  with NULs after its last whole line, so a line never crosses a page. A DLE
+  (0x10) followed by the byte 32 + *n* stands for *n* spaces; the editor writes
+  one at the start of every line for its indentation, with 32 (no spaces) when
+  there is none, and a line's literal spaces after that are kept.
+  `ucsdPascalTextToHost()` turns this into host text. In `READ.ME.TEXT` the header is
+  all zeros except for a leading 0x01, and the text begins "FMG/UCSD PASCAL USER:".
+- **Unwritten directory sectors** hold the 0xE5 fill, so the decoder reads only
+  the sectors that `(files + 1)*26` bytes need. `XUTIL`'s nine files take two
+  sectors.
+- **How it was verified:** on all three disks every block a file owns has data
+  and every free block is untouched 0xE5 fill. `READ.ME.TEXT` (text, 11 Jun 1979,
+  blocks 127 up to 131; the text itself starts at block 129 with "FMG/UCSD PASCAL
+  USER:") reads continuously across a track boundary only with the skew of 6.
+
 ## Image formats
 
 **JV1** is fixed by definition: 256-byte sectors, 10 per track numbered 0-9, one

@@ -9,6 +9,7 @@ import {
     decodeTrs80File,
     decodeTrsdos,
     decodeTrsdosII,
+    decodeUcsdPascal,
     decodeXenixTar,
     Density,
     FloppyDirEntry,
@@ -28,6 +29,9 @@ import {
     TrsdosIIFile,
     trsdosIIProtectionLevelToString,
     trsdosProtectionLevelToString,
+    UcsdPascal,
+    UcsdPascalFile,
+    ucsdPascalFileKindToString,
     XenixTar,
     XenixTarFile,
 } from "trs80-base";
@@ -96,6 +100,22 @@ export interface CpmReport {
 }
 
 /**
+ * The parameters of a UCSD Pascal volume.
+ */
+export interface UcsdPascalReport {
+    // Whose port's layout, e.g., "FMG".
+    format: string;
+    // Cylinder where the volume starts; the cylinders before it are the boot track.
+    firstTrack: number;
+    // Distance between consecutive logical sectors on a track.
+    interleave: number;
+    // How far each track's sector order is rotated from the previous track's.
+    trackSkew: number;
+    // Number of 512-byte blocks in the volume, from the volume header.
+    blockCount: number;
+}
+
+/**
  * The operating system we decided the floppy has, and the parameters of its file system.
  */
 export interface OsReport {
@@ -116,8 +136,10 @@ export interface OsReport {
     gat?: GatReport;
     // CP/M only.
     cpm?: CpmReport;
-    // Model II TRSDOS and TRSDOS-II only: the name from when the disk was formatted. Missing if
-    // the disk has none that we could read.
+    // UCSD Pascal only.
+    ucsdPascal?: UcsdPascalReport;
+    // Model II TRSDOS and TRSDOS-II: the name from when the disk was formatted. UCSD Pascal:
+    // the volume name. Missing if the disk has none that we could read.
     diskName?: string;
     // Model II TRSDOS only: how the directory cylinder is arranged, "1.x" or "2.0".
     layout?: string;
@@ -138,17 +160,19 @@ export interface OsReport {
 export interface FileReport {
     filename: string;
     size: number;
-    // Empty if the operating system doesn't record dates. Model II TRSDOS, TRSDOS-II, and
-    // Xenix tar use "DD/MM/YYYY", like TRSDOS, plus " HH:MM" if the system records the time
-    // (Xenix tar times are UTC).
+    // Empty if the operating system doesn't record dates. Model II TRSDOS, TRSDOS-II, UCSD
+    // Pascal, and Xenix tar use "DD/MM/YYYY", like TRSDOS, plus " HH:MM" if the system records
+    // the time (Xenix tar times are UTC).
     date: string;
-    // Empty on CP/M, which has attributes (in "flags") instead, and on MicroDOS, which has
-    // the type letter in "flags". Model II TRSDOS has the level, 0 to 7, as a digit. TRSDOS-II
-    // has the ATTRIB name of the level. Xenix tar has the permission bits in octal, such as "0755".
+    // Empty on CP/M, which has attributes (in "flags") instead, on MicroDOS, which has the type
+    // letter in "flags", and on UCSD Pascal, which has the kind in "flags". Model II TRSDOS has
+    // the level, 0 to 7, as a digit. TRSDOS-II has the ATTRIB name of the level. Xenix tar has the
+    // permission bits in octal, such as "0755".
     protection: string;
     // Model II TRSDOS: "S" (system) and "P" (program), with "-" for the ones not set. TRSDOS-II:
     // "P" or "D" (program or data), "F" or "V" (fixed or variable records), then "S" (system flag)
-    // or "-". Xenix tar: the type flag character of the archive member, "0" for a regular file.
+    // or "-". UCSD Pascal: the kind, such as "Code" or "Text". Xenix tar: the type flag
+    // character of the archive member, "0" for a regular file.
     flags: string;
     isSystem: boolean;
     isHidden: boolean;
@@ -164,6 +188,8 @@ export interface FileReport {
     sectors?: [number, number];
     // MicroDOS only.
     remark?: string;
+    // UCSD Pascal only: the file's first block and the block after its last.
+    blockRange?: [number, number];
     // TRSDOS-II only: first granule and granule count of each run of the file's block table.
     granuleRuns?: [number, number][];
     // Model II TRSDOS and TRSDOS-II only: logical record length.
@@ -373,6 +399,31 @@ function reportMicroDosFile(microDos: MicroDos, file: MicroDosFile): FileReport 
 }
 
 /**
+ * Report on one file within a UCSD Pascal floppy.
+ */
+function reportUcsdPascalFile(ucsdPascal: UcsdPascal, file: UcsdPascalFile): FileReport {
+    const date = file.getDate();
+    const report: FileReport = {
+        filename: file.getFilename("."),
+        size: file.getSize(),
+        date: date === undefined ? "" : formatDate(date, false, false),
+        protection: "",
+        flags: ucsdPascalFileKindToString(file.kind),
+        isSystem: file.isSystemFile(),
+        isHidden: file.isHidden(),
+        blockRange: [file.firstBlock, file.nextBlock],
+    };
+
+    try {
+        reportFileContents(ucsdPascal, file, report);
+    } catch (e) {
+        report.exception = exceptionToString(e);
+    }
+
+    return report;
+}
+
+/**
  * Report on one file within a Model II TRSDOS floppy.
  */
 function reportModelIITrsdosFile(modelIITrsdos: ModelIITrsdos, dirEntry: ModelIITrsdosDirEntry): FileReport {
@@ -517,6 +568,12 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         return;
     }
 
+    const ucsdPascal = decodeUcsdPascal(disk);
+    if (ucsdPascal !== undefined) {
+        reportUcsdPascal(ucsdPascal, report);
+        return;
+    }
+
     report.os = null;
 }
 
@@ -584,6 +641,27 @@ function reportMicroDos(microDos: MicroDos, report: Omit<DiskReport, "warnings">
     };
 
     report.files = microDos.getDirEntries(true).map(file => reportMicroDosFile(microDos, file));
+}
+
+/**
+ * Report on a UCSD Pascal file system.
+ */
+function reportUcsdPascal(ucsdPascal: UcsdPascal, report: Omit<DiskReport, "warnings">): void {
+    report.os = {
+        name: ucsdPascal.nameAndVersion,
+        sideCount: 1,
+        sectorsPerTrack: ucsdPascal.format.sectorsPerTrack,
+        diskName: ucsdPascal.volumeName,
+        ucsdPascal: {
+            format: ucsdPascal.format.name,
+            firstTrack: ucsdPascal.format.firstTrack,
+            interleave: ucsdPascal.format.interleave,
+            trackSkew: ucsdPascal.format.trackSkew,
+            blockCount: ucsdPascal.blockCount,
+        },
+    };
+
+    report.files = ucsdPascal.getDirEntries(true).map(file => reportUcsdPascalFile(ucsdPascal, file));
 }
 
 /**

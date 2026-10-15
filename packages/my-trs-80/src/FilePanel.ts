@@ -2,7 +2,7 @@
 import {File} from "./File";
 import {Context} from "./Context";
 import {BasicProgram, Cassette, CmdProgram, Cpm, decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, MicroDos,
-    ModelIITrsdos, SystemProgram, Trsdos, TrsdosII, XenixTar} from "trs80-base";
+    ModelIITrsdos, SystemProgram, Trsdos, TrsdosII, UcsdPascal, XenixTar} from "trs80-base";
 import {HexdumpTab} from "./HexdumpTab";
 import {FileInfoTab} from "./FileInfoTab";
 import {IFilePanel} from "./IFilePanel";
@@ -67,6 +67,9 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
                 } else if (fileSystem instanceof TrsdosII) {
                     this.pageTabs.addTab(new FloppyFileSystemTab("TRSDOS-II", this, trs80File, fileSystem,
                         "trsdos-ii"));
+                } else if (fileSystem instanceof UcsdPascal) {
+                    this.pageTabs.addTab(new FloppyFileSystemTab("UCSD Pascal", this, trs80File, fileSystem,
+                        "ucsd-pascal"));
                 } else if (fileSystem instanceof XenixTar) {
                     this.pageTabs.addTab(new FloppyFileSystemTab("Xenix", this, trs80File, fileSystem, "xenix"));
                 }

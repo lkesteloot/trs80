@@ -204,7 +204,8 @@
             also have no dates, and show the file type (BASIC or Data) and the file’s
             remark. Model II TRSDOS floppies show S for system files and P for programs,
             and the protection level; TRSDOS-II floppies show P (program) or D (data),
-            F or V (fixed- or variable-length records), and S (system); and Xenix tar
+            F or V (fixed- or variable-length records), and S (system); UCSD Pascal
+            floppies show each file’s date and kind (Code, Text, Data, and so on); and Xenix tar
             floppies show each file’s Unix mode and owner, and its path.</p>
 
             <p>Normally system file are hidden, but can be shown by specifying
@@ -312,6 +313,10 @@ Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
             Text files from CP/M floppies are written up to their first Ctrl-Z, without
             the padding that fills the rest of the last 128-byte record. Use the
             <code>--cpm-records</code> flag to keep the whole records.
+            Text files from UCSD Pascal floppies are converted to plain text: the
+            editor’s header and the padding at the end of each page are dropped, the
+            indentation codes become spaces, and lines end in newlines. Use the
+            <code>--ucsd-pascal-raw</code> flag to write them as they are on the disk.
             Use the <code>--lowercase</code> flag to write the files with lowercase names.
             Files on Xenix tar floppies keep their directories: <code>usr/bin/vi</code> is
             written to <code>out/usr/bin/vi</code>, creating the directories as needed.</p>

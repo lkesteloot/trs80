@@ -6,9 +6,9 @@ import {
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, decodeTrs80CassetteFile, decodeTrs80File,
-    getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosProtectionLevelToString } from "trs80-base";
+    TrsdosIIFile, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem,
+    decodeTrs80CassetteFile, decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {ToolError, formatDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString} from "./utils.js";
@@ -60,6 +60,16 @@ export class InputFile {
      */
     public getDirExtras(): string[] {
         return [];
+    }
+
+    /**
+     * The bytes that "extract" writes. Normally the same as the raw binary; a subclass overrides
+     * this to convert the file to host format.
+     *
+     * @param convertText whether to convert text files to host text (see UcsdPascalInputFile).
+     */
+    public getExtractedBinary(convertText: boolean): Uint8Array {
+        return this.binary;
     }
 
     /**
@@ -198,6 +208,46 @@ export class MicroDosInputFile extends InputFile {
             microDosFileTypeToString(this.microDosFile.type).padEnd(5),
             this.microDosFile.remark,
         ];
+    }
+}
+
+/**
+ * Input file that came from a UCSD Pascal floppy.
+ */
+export class UcsdPascalInputFile extends InputFile {
+    public readonly ucsdPascal: UcsdPascal;
+    public readonly file: UcsdPascalFile;
+
+    constructor(ucsdPascal: UcsdPascal, file: UcsdPascalFile) {
+        const filename = file.getFilename(".");
+        const {binary, damage} = ucsdPascal.readFileWithDamage(file);
+        const trs80File = decodeTrs80File(binary, { filename });
+        super(filename, binary, trs80File, damage);
+        this.ucsdPascal = ucsdPascal;
+        this.file = file;
+    }
+
+    /**
+     * The file's date (blank if the entry has none, padded to line up) and its kind, such as "Code" or "Text".
+     */
+    public override getDirExtras(): string[] {
+        const date = this.getDate();
+        return [
+            colorDate((date === undefined ? "" : formatDate(date, false, false)).padEnd(10, " ")),
+            ucsdPascalFileKindToString(this.file.kind),
+        ];
+    }
+
+    public override getDate(): Date | undefined {
+        return this.file.getDate();
+    }
+
+    /**
+     * For a text file, the plain host text (see ucsdPascalTextToHost()) unless convertText is false.
+     * Other files, and the binary itself, are always the raw bytes.
+     */
+    public override getExtractedBinary(convertText: boolean): Uint8Array {
+        return convertText && this.file.isText() ? ucsdPascalTextToHost(this.binary) : this.binary;
     }
 }
 
@@ -387,6 +437,10 @@ function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWhole
             } else if (fileSystem instanceof TrsdosII) {
                 for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
                     inFiles.push(new TrsdosIIInputFile(fileSystem, file));
+                }
+            } else if (fileSystem instanceof UcsdPascal) {
+                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+                    inFiles.push(new UcsdPascalInputFile(fileSystem, file));
                 }
             } else if (fileSystem instanceof XenixTar) {
                 for (const file of fileSystem.getDirEntries(includeSystemFiles)) {

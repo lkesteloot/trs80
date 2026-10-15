@@ -10,6 +10,7 @@
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {FloppyDisk, FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
+import {makeSkewTable} from "./DiskUtils.js";
 
 // Size of a directory entry.
 const DIR_ENTRY_SIZE = 32;
@@ -218,26 +219,6 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         dirEntryCount: 128,
     },
 ];
-
-/**
- * Make a CP/M sector translation table: the physical sector index (from 0) of each
- * logical sector on a track, the way cpmtools does.
- */
-function makeSkewTable(sectorsPerTrack: number, skew: number): number[] {
-    const table: number[] = [];
-    const used = new Set<number>();
-    let physical = 0;
-    for (let logical = 0; logical < sectorsPerTrack; logical++) {
-        // Wrapping can land on a used sector, so take the next free one.
-        while (used.has(physical)) {
-            physical = (physical + 1) % sectorsPerTrack;
-        }
-        table.push(physical);
-        used.add(physical);
-        physical = (physical + skew) % sectorsPerTrack;
-    }
-    return table;
-}
 
 /**
  * Decode a name or extension field: 7-bit ASCII (the high bits are attributes), padded with spaces.
