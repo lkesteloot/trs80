@@ -13,6 +13,7 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {BASIC_HEADER_BYTE} from "./Basic.js";
+import {bytesToText, isPrintable} from "./Text.js";
 
 // Sectors on each track, numbered from 0.
 const SECTORS_PER_TRACK = 10;
@@ -254,26 +255,6 @@ export class MicroDos implements FloppyFileSystem<MicroDosFile> {
 }
 
 /**
- * Whether every character of the string is printable ASCII.
- */
-function isPrintable(s: string): boolean {
-    for (let i = 0; i < s.length; i++) {
-        const c = s.charCodeAt(i);
-        if (c < 32 || c > 126) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/**
- * Read bytes as Latin-1 text.
- */
-function bytesToString(bytes: Uint8Array): string {
-    return String.fromCharCode(... bytes);
-}
-
-/**
  * Compute the length of what readFile() will return for a file with these sectors.
  */
 function computeFileSize(disk: FloppyDisk, type: MicroDosFileType, firstSector: number, lastSector: number): number {
@@ -325,7 +306,7 @@ export function decodeMicroDos(disk: FloppyDisk): MicroDos | undefined {
         const sector = dirSectors[Math.floor(i/DIR_ENTRIES_PER_SECTOR)];
         const offset = 1 + (i % DIR_ENTRIES_PER_SECTOR)*DIR_ENTRY_SIZE;
         const entry = sector.subarray(offset, offset + DIR_ENTRY_SIZE);
-        const rawName = bytesToString(entry.subarray(0, NAME_LENGTH));
+        const rawName = bytesToText(entry.subarray(0, NAME_LENGTH));
         if (rawName === DIR_END_NAME) {
             foundEnd = true;
             continue;
@@ -335,7 +316,7 @@ export function decodeMicroDos(disk: FloppyDisk): MicroDos | undefined {
         const firstSector = word(entry[11], entry[10]);
         const lastSector = word(entry[13], entry[12]);
         const type = microDosFileTypeFromLetter(String.fromCharCode(entry[14]));
-        const rawRemark = bytesToString(entry.subarray(15, 15 + REMARK_LENGTH));
+        const rawRemark = bytesToText(entry.subarray(15, 15 + REMARK_LENGTH));
         if (name === "" || !isPrintable(rawName) || type === undefined || !isPrintable(rawRemark) ||
             firstSector > lastSector || lastSector >= sectorCount) {
 

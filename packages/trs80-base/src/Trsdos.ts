@@ -13,6 +13,7 @@ import {TRS80_BASE_LOGGER} from "trs80-logger";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
+import {bytesToText} from "./Text.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -48,6 +49,8 @@ const SYSTEM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[]
     {pattern: /DBLDOS - DISK OPERATING SYSTEM - VER (\d\.\d+)/, name: m => `DoubleDOS ${m[1]}`},
     {pattern: /VTOS - VIRTUAL TECHNOLOGY'S OPERATING SYSTEM - VER (\d\.\d(?:\.\d)?)/, name: m => `VTOS ${m[1]}`},
     {pattern: /DOS ?PLUS IV/, name: () => "DOSPLUS IV"},
+    // The Model II's, by MicroPower: "DosPLUS II - Series A.00".
+    {pattern: /DosPLUS II - Series ([A-Z]\.\d+)/, name: m => `DOSPLUS II ${m[1]}`},
     // DOSPLUS 3.5 says "3.50" but writes 0x35 at 0xCB; use the shorter form for both.
     {pattern: /DOS ?PLUS\b[^\n]{0,50}?(\d\.\d+[a-z]?(?:\.\d+)?)/, name: m => `DOSPLUS ${m[1].replace(/^(\d\.\d)0$/, "$1")}`},
     // "VER 5.1.4", "Ver 5.1.4", "VER. 5.0.1" (the Lobo edition), and "VER 513/R".
@@ -56,17 +59,6 @@ const SYSTEM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[]
     {pattern: /TRSDOS 0?(6)\.0?(\d)\.0?(\d)/, name: m => `TRSDOS ${m[1]}.${m[2]}.${m[3]}`},
     {pattern: /TRSDOS - DISK OPERATING SYSTEM -? ?VER (\d\.\d[A-Z]?)/, name: m => `TRSDOS ${m[1]}`},
 ];
-
-/**
- * Bytes as Latin-1 text, one character per byte, for searching for strings.
- */
-function bytesToText(bytes: Uint8Array): string {
-    let text = "";
-    for (const b of bytes) {
-        text += String.fromCharCode(b);
-    }
-    return text;
-}
 
 /**
  * Negate each character (256 minus its code), the way TRSDOS 2.x and VTOS store their banners.
@@ -213,7 +205,7 @@ function reconstructBlankFilename(version: TrsdosVersion, hitIndex: number, hitH
  *
  * https://www.trs-80.com/wordpress/dos-trsdos-v2-3-disassembled/model-i-trsdos-sys2-sys/#509BH
  */
-function hashForFilename(filename: string): number {
+export function hashForFilename(filename: string): number {
     let hash = 0;
 
     // 8 characters for base name, 3 for extension.
@@ -2154,6 +2146,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 }
 
+// Sectors on a Model II double-density track under LS-DOS and DOSPLUS II.
+const MODEL_II_DOUBLE_DENSITY_SECTORS_PER_TRACK = 30;
+// DOSPLUS II's granules per track there, of 5 sectors each (its manual, page 104).
+const DOSPLUS_II_GRANULES_PER_TRACK = 6;
+
 /**
  * Generate the candidates for the TRSDOS 2.3 family, where a lump is a cylinder. See decodeTrsdos()
  * for hitIgnored.
@@ -2161,11 +2158,39 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 function generateTrsdos23Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsdos[] {
     const candidates: Trsdos[] = [];
 
-    const version = TrsdosVersion.V2_3;
     const geometry = disk.getGeometry();
     const sectorsPerTrack = geometry.modalDataSectorSpan;
     const density = geometry.modalDataDensity;
-    const granulesPerTrack = density === Density.SINGLE ? 2 : 3;
+
+    // Most DOSes use 2 granules per track in single density and 3 in double, but DOSPLUS II
+    // uses six 5-sector granules on the Model II's 30-sector tracks, so try that there too; the
+    // strict GAT check tells them apart. Trying every count that divides the track would be
+    // wrong: 8 granules per lump leave no unused GAT bits, so any GAT passes the check (see
+    // "Granules per track without the GAT header" in FLOPPY_FORMATS.md).
+    const granulesPerTrackOptions = [density === Density.SINGLE ? 2 : 3];
+    if (sectorsPerTrack === MODEL_II_DOUBLE_DENSITY_SECTORS_PER_TRACK) {
+        granulesPerTrackOptions.push(DOSPLUS_II_GRANULES_PER_TRACK);
+    }
+
+    for (const granulesPerTrack of granulesPerTrackOptions) {
+        candidates.push(... generateTrsdos23CandidatesWithGranules(disk, granulesPerTrack, hitIgnored));
+    }
+
+    return candidates;
+}
+
+/**
+ * Generate the candidates for the TRSDOS 2.3 family with a given number of granules per track.
+ * See decodeTrsdos() for hitIgnored.
+ */
+function generateTrsdos23CandidatesWithGranules(disk: FloppyDisk, granulesPerTrack: number,
+                                                hitIgnored: boolean): Trsdos[] {
+
+    const candidates: Trsdos[] = [];
+
+    const version = TrsdosVersion.V2_3;
+    const geometry = disk.getGeometry();
+    const sectorsPerTrack = geometry.modalDataSectorSpan;
     const sectorsPerGranule = Math.floor(sectorsPerTrack / granulesPerTrack);
 
     // Allocation sides are the DOS's, not the image's: double-sided media can be used
@@ -2175,6 +2200,10 @@ function generateTrsdos23Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsd
     // every file that continues onto side 1, where reading two honestly reports those
     // sectors as missing.
     for (const allocationSides of [1, 2]) {
+        // A GAT byte, and an extent's granule field, can't address more than 8 granules.
+        if (granulesPerTrack * allocationSides > 8) {
+            continue;
+        }
         const granulesPerLump = granulesPerTrack * allocationSides;
 
         // LDOS puts directory entries on both sides of the directory cylinder, DOSPLUS
@@ -2322,6 +2351,12 @@ function generateNewdos80Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsd
  * strict check, since entries that merely decode are weak evidence.
  */
 export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
+    // Every DOS of these families uses 256-byte sectors. Other sizes are other systems (TRSDOS-II,
+    // Xenix and CP/M use 512), where a candidate can still find something that reads as a directory.
+    if (disk.getGeometry().modalDataSectorSize !== BYTES_PER_SECTOR) {
+        return undefined;
+    }
+
     const best = findBestCandidate([
         ... generateTrsdos23Candidates(disk, false),
         ... generateTrsdos13Candidates(disk),

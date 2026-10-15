@@ -202,7 +202,10 @@
             CP/M floppies have no dates, and show file attributes instead, and the
             user number when some files aren’t in user 0. Percom MicroDOS floppies
             also have no dates, and show the file type (BASIC or Data) and the file’s
-            remark.</p>
+            remark. Model II TRSDOS floppies show S for system files and P for programs,
+            and the protection level; TRSDOS-II floppies show P (program) or D (data),
+            F or V (fixed- or variable-length records), and S (system); and Xenix tar
+            floppies show each file’s Unix mode and owner, and its path.</p>
 
             <p>Normally system file are hidden, but can be shown by specifying
             the <code>--system</code> option.</p>
@@ -309,7 +312,9 @@ Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
             Text files from CP/M floppies are written up to their first Ctrl-Z, without
             the padding that fills the rest of the last 128-byte record. Use the
             <code>--cpm-records</code> flag to keep the whole records.
-            Use the <code>--lowercase</code> flag to write the files with lowercase names.</p>
+            Use the <code>--lowercase</code> flag to write the files with lowercase names.
+            Files on Xenix tar floppies keep their directories: <code>usr/bin/vi</code> is
+            written to <code>out/usr/bin/vi</code>, creating the directories as needed.</p>
             <p>Files on floppies that are damaged (unreadable sectors, sectors with CRC errors,
             or missing directory entries) are written anyway, with unreadable sectors filled with zeros,
             and what’s wrong is shown in the “Wrote” line. Use the <code>--mark-damaged</code>
@@ -532,6 +537,13 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-14">October 14, 2026</h3>
             <ul>
+                <li><code>trs80-tool</code> v4.2.0: Can read Model II disks: Model II TRSDOS 1.x
+                    and 2.0, TRSDOS-II, DOSPLUS II, the Model II’s CP/M formats (standard 8-inch,
+                    Lifeboat, Aton, Pickles &amp; Trout, and CP/M Plus), and Xenix disks that hold
+                    a tar archive, whose directories <a href="#extract"><code>extract</code></a>
+                    recreates. Shows file times on LDOS 5.3 and LS-DOS 6.3 disks, and lists
+                    the system files of TRSDOS 1.3 disks.</li>
+                <li>My TRS-80: Lists the files of Model II disks and exports them as a ZIP file.</li>
                 <li><code>trs80-tool</code> v4.1.0: Can read ImageDisk (IMD) floppy images,
                     and disk images of Percom MicroDOS for the Model I. Reads more
                     TRSDOS-family disks, and more robust reading of damaged disk images.
