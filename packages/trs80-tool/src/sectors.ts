@@ -8,7 +8,9 @@ import {
     FloppyDirEntry,
     FloppyFileSystem,
     isFloppy,
+    SectorNumberRange,
     SectorPosition,
+    TrackGeometry,
     TrackPosition,
     Trs80Floppy,
 } from "trs80-base";
@@ -84,7 +86,10 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
                     // No sectors at all on this track.
                     continue;
                 }
-                for (let sectorNumber = trackGeometry.firstSectorNumber; sectorNumber <= trackGeometry.lastSectorNumber; sectorNumber++) {
+                const expected = geometry.getExpectedSectorRange(trackPosition);
+                for (const sectorNumber of sectorNumbersToVisit(trackGeometry, expected)) {
+                    const outsideExpected = expected !== undefined &&
+                        (sectorNumber < expected.firstSectorNumber || sectorNumber > expected.lastSectorNumber);
                     let header = `Cylinder ${cylinder}, side ${side}, sector ${sectorNumber}: `;
 
                     const sectorPosition = new SectorPosition(trackPosition, sectorNumber);
@@ -93,7 +98,8 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
                         header += "missing";
                     } else {
                         header += (sector.density === Density.SINGLE ? "single" : "double") + " density" +
-                            (sector.deleted ? ", marked as deleted" : "");
+                            (sector.deleted ? ", marked as deleted" : "") +
+                            (outsideExpected ? ", outside the usual sector numbers" : "");
 
                         if (sector.crcError) {
                             header += ", CRC error";
@@ -152,16 +158,35 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
 }
 
 /**
+ * The sector numbers to look at on a track, in ascending order without duplicates: every number in
+ * the track's expected range (so that missing ones are reported), plus every number that has a
+ * sector with a good ID field (including stray ones outside the expected range).
+ */
+function sectorNumbersToVisit(trackGeometry: TrackGeometry, expected: SectorNumberRange | undefined): number[] {
+    const sectorNumbers = new Set<number>(trackGeometry.sectorNumbers);
+    if (expected !== undefined) {
+        for (let sectorNumber = expected.firstSectorNumber; sectorNumber <= expected.lastSectorNumber; sectorNumber++) {
+            sectorNumbers.add(sectorNumber);
+        }
+    }
+    return [... sectorNumbers].sort((a, b) => a - b);
+}
+
+/**
  * Print a map of the sectors on the disk.
  */
 function printMap(file: Trs80Floppy) {
     const geometry = file.getGeometry();
     const usedLetters = new Set<string>();
+    const firstColumn = geometry.expectedFirstSectorNumber;
+    const lastColumn = geometry.expectedLastSectorNumber;
+    // Lines describing the sectors outside each track's expected range.
+    const strayLines: string[] = [];
 
     for (let side = 0; side < geometry.sideCount; side++) {
         // Print header.
         const lineParts: string[] = ["Side " + side + "  "];
-        for (let sectorNumber = geometry.firstSectorNumber; sectorNumber <= geometry.lastSectorNumber; sectorNumber++) {
+        for (let sectorNumber = firstColumn; sectorNumber <= lastColumn; sectorNumber++) {
             lineParts.push(sectorNumber.toString().padStart(3, " "));
         }
         console.log(lineParts.join(""));
@@ -172,14 +197,25 @@ function printMap(file: Trs80Floppy) {
             const trackGeometry = geometry.getTrack(trackPosition);
             const lineParts: string[] = [cylinder.toString().padStart(6, " ") + "  "];
 
-            for (let sectorNumber = geometry.firstSectorNumber;
-                 sectorNumber <= geometry.lastSectorNumber;
-                 sectorNumber++) {
+            const expected = geometry.getExpectedSectorRange(trackPosition);
 
+            if (trackGeometry !== undefined && expected !== undefined) {
+                const strays = trackGeometry.sectorNumbers.filter(sectorNumber =>
+                    sectorNumber < expected.firstSectorNumber || sectorNumber > expected.lastSectorNumber);
+                if (strays.length > 0) {
+                    const descriptions = strays.map(sectorNumber => {
+                        const sectorData = file.readSector(new SectorPosition(trackPosition, sectorNumber));
+                        return sectorNumber + (sectorData?.crcError ? " (CRC error)" : "");
+                    });
+                    strayLines.push(`    Cylinder ${cylinder}, side ${side}: ${descriptions.join(", ")}`);
+                }
+            }
+
+            for (let sectorNumber = firstColumn; sectorNumber <= lastColumn; sectorNumber++) {
                 let text: string;
-                if (trackGeometry !== undefined &&
-                    sectorNumber >= trackGeometry.firstSectorNumber &&
-                    sectorNumber <= trackGeometry.lastSectorNumber) {
+                if (expected !== undefined &&
+                    sectorNumber >= expected.firstSectorNumber &&
+                    sectorNumber <= expected.lastSectorNumber) {
 
                     const sectorData = file.readSector(new SectorPosition(trackPosition, sectorNumber));
                     if (sectorData === undefined) {
@@ -204,6 +240,14 @@ function printMap(file: Trs80Floppy) {
             console.log(lineParts.join(""));
         }
 
+        console.log("");
+    }
+
+    if (strayLines.length > 0) {
+        console.log("Sectors outside the usual numbers:");
+        for (const strayLine of strayLines) {
+            console.log(strayLine);
+        }
         console.log("");
     }
 

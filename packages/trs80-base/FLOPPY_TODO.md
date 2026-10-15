@@ -57,6 +57,17 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
 ## Gaps independent of the switch
 
+- [ ] **Stray sector IDs inflate `TrackGeometry`'s range.** Its first/last
+      sector numbers include stray IDs (copy protection writes a few sectors
+      numbered far outside the track's numbering, e.g. 124-126 on a 0-9 track,
+      or 255 on a 0-17 track). So `sectorSpan()`, `modalDataSectorSpan`,
+      `cylinder0Differs`, `info`'s verbose "sectors X to Y",
+      `advanceSectorPosition()`, and `info --json`'s per-track
+      `firstSector`/`lastSector` all see the inflated range. The expected range
+      (`getExpectedSectorRange()`) could replace it, but that changes decoding
+      and the report, so it needs a regression run and a REPORT_VERSION bump.
+      Evidence: the VTOS 3.x/4.x disks and the TRSDOS Training Course disks in
+      `ira/lk-410-crazy-errors`.
 - [ ] **The hit floor.** The `hashHits < 2` floor in `evaluate()` would reject
       a blank TRSDOS 2.3B data disk, which may have no entries at all, and a
       blank MultiDOS or UltraDOS disk, which has no BOOT/SYS. Use "≥1 hit, or a
