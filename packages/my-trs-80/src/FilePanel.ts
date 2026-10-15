@@ -2,13 +2,14 @@
 import {File} from "./File";
 import {Context} from "./Context";
 import {BasicProgram, Cassette, CmdProgram, Cpm, decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, MicroDos,
-    SystemProgram, Trsdos} from "trs80-base";
+    ModelIITrsdos, SystemProgram, Trsdos, TrsdosII, XenixTar} from "trs80-base";
 import {HexdumpTab} from "./HexdumpTab";
 import {FileInfoTab} from "./FileInfoTab";
 import {IFilePanel} from "./IFilePanel";
 import {TrsdosTab} from "./TrsdosTab";
 import {CpmTab} from "./CpmTab";
 import {MicroDosTab} from "./MicroDosTab";
+import {FloppyFileSystemTab} from "./FloppyFileSystemTab";
 import {BasicTab} from "./BasicTab";
 import {CmdTab} from "./CmdTab";
 import {DisassemblyTab} from "./DisassemblyTab";
@@ -60,6 +61,14 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
                     this.pageTabs.addTab(new CpmTab(this, trs80File, fileSystem));
                 } else if (fileSystem instanceof MicroDos) {
                     this.pageTabs.addTab(new MicroDosTab(this, trs80File, fileSystem));
+                } else if (fileSystem instanceof ModelIITrsdos) {
+                    this.pageTabs.addTab(new FloppyFileSystemTab("Model II TRSDOS", this, trs80File, fileSystem,
+                        "trsdos2"));
+                } else if (fileSystem instanceof TrsdosII) {
+                    this.pageTabs.addTab(new FloppyFileSystemTab("TRSDOS-II", this, trs80File, fileSystem,
+                        "trsdos-ii"));
+                } else if (fileSystem instanceof XenixTar) {
+                    this.pageTabs.addTab(new FloppyFileSystemTab("Xenix", this, trs80File, fileSystem, "xenix"));
                 }
                 this.pageTabs.addTab(new MountTab(this.context, trs80File));
                 break;
