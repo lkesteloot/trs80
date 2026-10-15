@@ -339,6 +339,45 @@ ours. Measured on the 80 disks that decode in the 1.3 layout:
   Bowl` slots 8-14 hold cylinders up to 240, or no granules, and are skipped, as
   are slots that start in the directory.
 
+## Tandy's protection track
+
+Many Tandy originals for the Model III have a 41st track, cylinder 40, that
+no manual in the library mentions. It's Tandy's copy protection, which limits
+the number of backups, not a bad read. Measured on 18 disks in
+`ira/odderrors-420/` (one also in `ira/no-extract/`):
+
+- **Layout.** Eighteen double-density 256-byte sectors with every ID and data
+  CRC good. The ID fields say cylinder 0x28 and number the sectors **0x81-0x92**,
+  that is 1-18 with bit 7 set, in the same 3:1 interleave as the other tracks.
+  TRSDOS's FORMAT and BACKUP stop at cylinder 39 and number sectors from 1, so
+  neither can make or copy this track.
+- **Contents.** Each sector is 0xE5 filler ending in the 16 bytes
+  `(c) 1980 Tandy  `. Sectors 0x90-0x92 hold 0x300 bytes of Z80 code,
+  byte-identical on every disk that has it. Its messages are XOR 0x55, and
+  decoded they name it "TRS-80 Protection Utility Ver 1.1" and ask which file to
+  protect and how many backups to allow.
+- **Marks.** On protected disks every sector has the 0xF8 deleted mark, which
+  TRSDOS 1.1 also uses for its system cylinders 0 and 1. Two disks (a Radio
+  Shack data disk, and a DOSPLUS disk probably formatted over a Tandy blank)
+  have the track with 0xFB marks and no code: formatted but never protected.
+- **The DOS loads it.** On nine of the disks, TRSDOS 1.1 and 1.2-era system
+  disks, a system sector on cylinder 1 starts with `LD DE,2890h / LD BC,0300h`
+  and reads the three code sectors, cylinder 0x28 from sector 0x90. TRSDOS 1.3
+  disks have the track and the same code, but no such loader, so where 1.3 reads
+  it is unknown.
+- **Not only Tandy's.** The track is on Random House, Snapp, and Rhino Robots
+  disks, the last from 1983. On the three Snapp disks, sectors 0x81-0x8F hold
+  scrambled, non-filler data, probably part of the program, so the track
+  can't be ignored. One Model I disk (`Profile v1.0 ... [M1]`, TRSDOS 2.3) is
+  single density everywhere else but has this track in double density, which a
+  stock Model I can't write, so the track was probably put there when the disk
+  was duplicated rather than by the DOS.
+
+The track is numbered apart from the rest of the disk, so
+`FloppyDiskGeometry` gives it its own expected range (129-146) rather than
+merging it with the disk's (1-18), which used to report sectors 19-128 as
+missing. The `sectors` map lists it under the strays.
+
 ## TRSDOS 2.3B
 
 Measured on `trsdos-2.3B-sssd.dmk`, which boots on an emulator and calls itself

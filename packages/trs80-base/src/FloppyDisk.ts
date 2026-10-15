@@ -522,11 +522,14 @@ export class FloppyDiskGeometry {
     public readonly firstSectorNumber: number;
     public readonly lastSectorNumber: number;
     // The lowest and highest of every track's expected sector range (see getExpectedSectorRange()),
-    // which are the columns to use when displaying a table of sectors.
+    // which are the columns to use when displaying a table of sectors. Tracks numbered apart from
+    // the rest of the disk are left out, so their sectors can fall outside these columns.
     public readonly expectedFirstSectorNumber: number;
     public readonly expectedLastSectorNumber: number;
     // Map from TrackPosition key to that track's expected sector range.
     private readonly expectedSectorRanges = new Map<string,SectorNumberRange>();
+    // TrackPosition keys of the tracks whose numbering doesn't overlap that of their group.
+    private readonly offNumberingTracks = new Set<string>();
     // Information about the boot track (cylinder 0 side 0).
     public readonly bootTrack: TrackGeometry;
     // Most common values across the side 0 tracks other than the boot track, or of the boot
@@ -604,11 +607,14 @@ export class FloppyDiskGeometry {
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
 
+        // Every group has at least one track that matches its own numbering, so the columns
+        // always have at least one range.
         this.computeExpectedSectorRanges(tracks);
-        this.expectedFirstSectorNumber = Math.min(
-            ... [... this.expectedSectorRanges.values()].map(range => range.firstSectorNumber));
-        this.expectedLastSectorNumber = Math.max(
-            ... [... this.expectedSectorRanges.values()].map(range => range.lastSectorNumber));
+        const columnRanges = [... this.expectedSectorRanges.entries()]
+            .filter(([trackKey]) => !this.offNumberingTracks.has(trackKey))
+            .map(([, range]) => range);
+        this.expectedFirstSectorNumber = Math.min(... columnRanges.map(range => range.firstSectorNumber));
+        this.expectedLastSectorNumber = Math.max(... columnRanges.map(range => range.lastSectorNumber));
 
         // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
         // below are computed from these, so that a disk whose second side is garbage (or holds a
@@ -630,7 +636,8 @@ export class FloppyDiskGeometry {
      * puts cylinder 0 in groups of its own, since boot tracks often have their own layout. Finds
      * the most common core range in each group, and gives each track the union of its own core
      * range and its group's. The union means a damaged track that lost its last sectors still has
-     * them reported, and it never shrinks a track's own core.
+     * them reported, and it never shrinks a track's own core. A track whose core doesn't overlap
+     * its group's range gets only its own core, and is noted in offNumberingTracks.
      */
     private computeExpectedSectorRanges(tracks: TrackGeometry[]): void {
         // Map from group key to the tracks in the group.
@@ -649,10 +656,26 @@ export class FloppyDiskGeometry {
         for (const group of groups.values()) {
             const modalRange = modalCoreRange(group);
             for (const track of group) {
-                this.expectedSectorRanges.set(track.trackPosition.key(), {
-                    firstSectorNumber: Math.min(track.coreFirstSectorNumber, modalRange.firstSectorNumber),
-                    lastSectorNumber: Math.max(track.coreLastSectorNumber, modalRange.lastSectorNumber),
-                });
+                const overlapsGroup = track.coreFirstSectorNumber <= modalRange.lastSectorNumber &&
+                    track.coreLastSectorNumber >= modalRange.firstSectorNumber;
+                let range: SectorNumberRange;
+                if (overlapsGroup) {
+                    range = {
+                        firstSectorNumber: Math.min(track.coreFirstSectorNumber, modalRange.firstSectorNumber),
+                        lastSectorNumber: Math.max(track.coreLastSectorNumber, modalRange.lastSectorNumber),
+                    };
+                } else {
+                    // A track numbered apart from the rest of its group, such as a copy-protection
+                    // track whose sectors are 129 to 146 on a disk numbered 1 to 18 (see
+                    // FLOPPY_FORMATS.md). The union would claim every number in the gap is missing,
+                    // so keep the track's own range, and leave it out of the disk's columns.
+                    range = {
+                        firstSectorNumber: track.coreFirstSectorNumber,
+                        lastSectorNumber: track.coreLastSectorNumber,
+                    };
+                    this.offNumberingTracks.add(track.trackPosition.key());
+                }
+                this.expectedSectorRanges.set(track.trackPosition.key(), range);
             }
         }
     }

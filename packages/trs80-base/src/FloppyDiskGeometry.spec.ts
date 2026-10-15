@@ -169,4 +169,18 @@ describe("FloppyDiskGeometry expected sector ranges", () => {
         expect(geometry.expectedFirstSectorNumber).to.eql(0);
         expect(geometry.expectedLastSectorNumber).to.eql(9);
     });
+
+    it("keeps a track numbered apart from its group to its own range", () => {
+        const geometry = makeGeometry([
+            {cylinder: 0, side: 0, sectorNumbers: range(1, 18)},
+            ... makeOtherTracks(range(1, 18)),
+            {cylinder: 5, side: 0, sectorNumbers: range(129, 146)},
+        ]);
+        expect(geometry.getExpectedSectorRange(new TrackPosition(5, 0)))
+            .to.eql({firstSectorNumber: 129, lastSectorNumber: 146});
+        expect(geometry.getExpectedSectorRange(new TrackPosition(1, 0)))
+            .to.eql({firstSectorNumber: 1, lastSectorNumber: 18});
+        expect(geometry.expectedFirstSectorNumber).to.eql(1);
+        expect(geometry.expectedLastSectorNumber).to.eql(18);
+    });
 });
