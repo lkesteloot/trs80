@@ -6,7 +6,7 @@ import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
     Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, MicroDos, modelIITrsdosLayoutToString,
-    ModelIITrsdos, TrackGeometry, Trsdos, TrsdosII, XenixTar} from "trs80-base";
+    ModelIITrsdos, TrackGeometry, Trsdos, TrsdosII, Ucsd, XenixTar} from "trs80-base";
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -135,6 +135,13 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                             verboseLines.push(`Directory entries: ${cpm.format.dirEntryCount}`);
                         } else if (fileSystem instanceof MicroDos) {
                             verboseLines.push("Directory: sectors 20-29");
+                        } else if (fileSystem instanceof Ucsd) {
+                            const ucsd = fileSystem;
+                            verboseLines.push("Volume name: " + ucsd.volumeName);
+                            verboseLines.push(`First track: ${ucsd.format.firstTrack}`);
+                            verboseLines.push(`Interleave: ${ucsd.format.interleave}`);
+                            verboseLines.push(`Track skew: ${ucsd.format.trackSkew}`);
+                            verboseLines.push(`Blocks: ${ucsd.blockCount}`);
                         } else if (fileSystem instanceof ModelIITrsdos) {
                             const modelIITrsdos = fileSystem;
                             if (modelIITrsdos.diskName !== undefined && modelIITrsdos.diskName !== "") {
