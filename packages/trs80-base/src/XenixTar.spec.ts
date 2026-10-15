@@ -127,6 +127,11 @@ interface HeaderOptions {
     rawSize?: string | undefined;
     // Make a ustar header with this prefix.
     prefix?: string | undefined;
+    // Text for the extent number field (bytes 257-260), the extent count field (261-264), and the
+    // whole file's size field (265-276), as the raw characters including any NUL.
+    rawExtentNumber?: string | undefined;
+    rawExtentCount?: string | undefined;
+    rawExtentFileSize?: string | undefined;
 }
 
 /**
@@ -148,6 +153,9 @@ function makeHeader(name: string, size: number, options: HeaderOptions = {}): Ui
         putString(header, 257, "ustar\0" + "00");
         putString(header, 345, options.prefix);
     }
+    putString(header, 257, options.rawExtentNumber ?? "");
+    putString(header, 261, options.rawExtentCount ?? "");
+    putString(header, 265, options.rawExtentFileSize ?? "");
 
     // Checksum: sum of all bytes, with the checksum field as spaces.
     putString(header, 148, "        ");
@@ -462,6 +470,65 @@ describe("decodeXenixTar", () => {
         disk.writeArchive(concat(makeMember("/etc/termcap", SMALL), makeMember("./etc/passwd", SMALL), END_BLOCKS));
         const tar = decodeXenixTar(disk)!;
         expect(tar.getDirEntries(true).map(file => file.getFilename("."))).to.eql(["etc/termcap", "etc/passwd"]);
+    });
+});
+
+/**
+ * Decode an archive holding one member with the given options, and return that member.
+ */
+function decodeSingleMember(name: string, data: Uint8Array, options: HeaderOptions) {
+    const disk = new MemoryFloppyDisk(77, 1);
+    disk.writeArchive(concat(makeMember(name, data, options), END_BLOCKS));
+    const tar = decodeXenixTar(disk)!;
+    return tar.getDirEntries(true)[0];
+}
+
+describe("XenixTar extents", () => {
+    it("reads the extent fields of a part of a split file", () => {
+        const file = decodeSingleMember("usr/games/vtrek", MEDIUM, {
+            rawExtentNumber: "1\0",
+            rawExtentCount: "2\0",
+            rawExtentFileSize: "167336\0",
+        });
+        expect(file.extent).to.eql({number: 1, count: 2, fileSize: 0o167336});
+        expect(file.size).to.equal(MEDIUM.length);
+    });
+
+    it("has no extent without the fields", () => {
+        expect(decodeSingleMember("plain", SMALL, {}).extent).to.be.undefined;
+    });
+
+    it("doesn't read a ustar header as an extent", () => {
+        expect(decodeSingleMember("file.c", SMALL, {prefix: "src"}).extent).to.be.undefined;
+    });
+
+    it("ignores inconsistent extent fields", () => {
+        // Number past the count.
+        expect(decodeSingleMember("a", SMALL, {
+            rawExtentNumber: "3\0", rawExtentCount: "2\0", rawExtentFileSize: "1000\0",
+        }).extent).to.be.undefined;
+        // A single extent.
+        expect(decodeSingleMember("b", SMALL, {
+            rawExtentNumber: "1\0", rawExtentCount: "1\0", rawExtentFileSize: "1000\0",
+        }).extent).to.be.undefined;
+        // Whole file smaller than the extent (SMALL is 100 bytes, 0o100 is 64).
+        expect(decodeSingleMember("c", SMALL, {
+            rawExtentNumber: "1\0", rawExtentCount: "2\0", rawExtentFileSize: "100\0",
+        }).extent).to.be.undefined;
+    });
+
+    it("gives a hard link no extent", () => {
+        const disk = new MemoryFloppyDisk(77, 1);
+        disk.writeArchive(concat(
+            makeMember("bin/target", MEDIUM),
+            makeMember("bin/link", new Uint8Array(0), {
+                typeFlag: "1", linkName: "bin/target",
+                rawExtentNumber: "1\0", rawExtentCount: "2\0", rawExtentFileSize: "10000\0",
+            }),
+            END_BLOCKS));
+        const files = decodeXenixTar(disk)!.getDirEntries(true);
+        expect(files[1].type).to.equal(XenixTarType.HARD_LINK);
+        expect(files[1].extent).to.be.undefined;
     });
 });
 

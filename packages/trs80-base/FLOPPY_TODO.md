@@ -263,6 +263,21 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         install" disks): a Unix file system with a big-endian superblock in block 1
         (magic 0x2B5544 at 0x1F0 on Xenix 3; older TRS-XENIX disks lack it),
         64-byte inodes from block 2, 16-byte directory entries.
+      - **Xenix tar extents** (files split across disks; see "Xenix tar disks"
+        in `FLOPPY_FORMATS.md`): `XenixTarFile.extent` holds the fields, and
+        `extract` warns about a first part and appends a later part to the file
+        that the earlier parts made in the output directory. What's left:
+        - `dir`, `info` and the web app don't show that a file is only a part,
+          and the web app's ZIP export writes each part as if it were the whole
+          file.
+        - `extract` can't check where a middle part (of three or more) belongs,
+          only that it leaves room for the rest; no set has more than two parts.
+        - The regression suite has no disk with extents, and `info --json`
+          doesn't report them. `GAMES1.IMD` and `GAMES2.IMD` (`vtrek`) or
+          `XNX130D3.IMD` and `XNX130D4.IMD` (`bin/awk`) from Pete's archive would
+          cover it.
+      - **Tar after a file system:** `XNX320FM` has a tar archive after its
+        Xenix file system, which isn't read (see "Xenix tar disks").
       - **OASIS** (`OASIS55A.IMD`) and **RM/COS** (`RMCOS243.IMD`), one disk each.
       - DOSPLUS II data disks are "Unknown DOS": GAT byte 0xCB is 0x10, which
         MultiDOS 1.x also writes, and they have no banner. A boot sector hash

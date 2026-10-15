@@ -1,10 +1,10 @@
 /**
  * Classes for reading TRS-80 Model 16 and 6000 Xenix floppies that hold a raw tar archive,
- * the way Xenix distribution and backup disks do. See "Xenix tar floppies" in FLOPPY_FORMATS.md.
+ * the way Xenix distribution and backup disks do. See "Xenix tar disks" in FLOPPY_FORMATS.md.
  *
- * There's no file system: the disk's data tracks are the archive, end to end. A member
- * that doesn't fit on the disk continues on the next disk of the set, so the last member
- * of a disk can be cut off.
+ * There's no file system: the disk's data tracks are the archive, end to end. Each disk of a
+ * multi-disk set is a complete archive. A file that doesn't fit is split into extents, which are
+ * stored as members of the same name on consecutive disks (see FLOPPY_FORMATS.md).
  */
 
 import {assertNever} from "z80-base";
@@ -47,6 +47,14 @@ const TYPE_FLAG_OFFSET = 156;
 const LINK_NAME_OFFSET = 157;
 const LINK_NAME_LENGTH = 100;
 const MAGIC_OFFSET = 257;
+// Xenix's extent fields, for a file split across disks. They're in bytes that old tar leaves
+// zero (and that ustar uses for its magic, so a ustar header has no extent).
+const EXTENT_NUMBER_OFFSET = 257;
+const EXTENT_NUMBER_LENGTH = 4;
+const EXTENT_COUNT_OFFSET = 261;
+const EXTENT_COUNT_LENGTH = 4;
+const EXTENT_FILE_SIZE_OFFSET = 265;
+const EXTENT_FILE_SIZE_LENGTH = 12;
 const PREFIX_OFFSET = 345;
 const PREFIX_LENGTH = 155;
 
@@ -182,6 +190,19 @@ function streamSectorPosition(sectorIndex: number, sideCount: number): SectorPos
 }
 
 /**
+ * Which part of a file split across disks a member holds. The member's own size is the size of
+ * this part.
+ */
+export interface XenixTarExtent {
+    // The number of this part, from 1.
+    number: number;
+    // The number of parts the file is split into.
+    count: number;
+    // The size in bytes of the whole file, all parts together.
+    fileSize: number;
+}
+
+/**
  * A member of the archive that's listed as a file: a regular file or a hard link.
  */
 export class XenixTarFile implements FloppyDirEntry {
@@ -203,6 +224,8 @@ export class XenixTarFile implements FloppyDirEntry {
     // Positions of the sectors that hold the data, in order. For a member cut off by the end
     // of the disk, this includes positions that don't exist on the disk.
     public readonly sectorPositions: SectorPosition[];
+    // The part of a file split across disks that this member holds, or undefined if it's a whole file.
+    public readonly extent: XenixTarExtent | undefined;
 
     /**
      * @param name the full path name.
@@ -215,9 +238,11 @@ export class XenixTarFile implements FloppyDirEntry {
      * @param type the type decoded from the flag.
      * @param linkName the name of the target, for a hard link.
      * @param sectorPositions the positions of the data sectors, in order.
+     * @param extent the part of a split file that this member holds, or undefined for a whole file.
      */
     constructor(name: string, mode: number, uid: number, gid: number, size: number, mtime: number,
-                typeFlag: string, type: XenixTarType, linkName: string, sectorPositions: SectorPosition[]) {
+                typeFlag: string, type: XenixTarType, linkName: string, sectorPositions: SectorPosition[],
+                extent: XenixTarExtent | undefined) {
 
         this.name = name;
         this.mode = mode;
@@ -229,6 +254,7 @@ export class XenixTarFile implements FloppyDirEntry {
         this.type = type;
         this.linkName = linkName;
         this.sectorPositions = sectorPositions;
+        this.extent = extent;
     }
 
     /**
@@ -405,6 +431,30 @@ interface TarHeader {
     typeFlag: string;
     type: XenixTarType;
     linkName: string;
+    extent: XenixTarExtent | undefined;
+}
+
+/**
+ * Parse the extent fields of a header block, or return undefined if the member isn't a part of
+ * a split file: the fields must be numbers and consistent with each other and with the member's size.
+ * The number and count have only been seen as single digits, so we can't tell whether they're
+ * octal or decimal; we read them as octal like the other numbers.
+ *
+ * @param block the header block.
+ * @param size the member's own size.
+ */
+function parseExtent(block: Uint8Array, size: number): XenixTarExtent | undefined {
+    const number = readOctal(block, EXTENT_NUMBER_OFFSET, EXTENT_NUMBER_LENGTH);
+    const count = readOctal(block, EXTENT_COUNT_OFFSET, EXTENT_COUNT_LENGTH);
+    const fileSize = readOctal(block, EXTENT_FILE_SIZE_OFFSET, EXTENT_FILE_SIZE_LENGTH);
+    if (number === undefined || count === undefined || fileSize === undefined) {
+        return undefined;
+    }
+    if (number < 1 || number > count || count < 2 || fileSize < size) {
+        return undefined;
+    }
+
+    return {number, count, fileSize};
 }
 
 /**
@@ -443,6 +493,7 @@ function parseHeader(block: Uint8Array): TarHeader | undefined {
         typeFlag,
         type: xenixTarTypeFromFlag(typeFlag),
         linkName: readString(block, LINK_NAME_OFFSET, LINK_NAME_LENGTH),
+        extent: parseExtent(block, size),
     };
 }
 
@@ -466,11 +517,14 @@ function makeFile(header: TarHeader, sectorPositions: SectorPosition[],
 
     let size = header.size;
     let positions = sectorPositions;
+    let extent = header.extent;
     switch (header.type) {
         case XenixTarType.HARD_LINK: {
             const target = filesByName.get(header.linkName);
             size = target?.size ?? 0;
             positions = target?.sectorPositions ?? [];
+            // A link takes its target's data, so it isn't a part of anything.
+            extent = undefined;
             break;
         }
         case XenixTarType.FILE:
@@ -487,7 +541,7 @@ function makeFile(header: TarHeader, sectorPositions: SectorPosition[],
     }
 
     return new XenixTarFile(header.name, header.mode, header.uid, header.gid, size, header.mtime,
-        header.typeFlag, header.type, header.linkName, positions);
+        header.typeFlag, header.type, header.linkName, positions, extent);
 }
 
 /**
