@@ -313,9 +313,7 @@ Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
             Text files from CP/M floppies are written up to their first Ctrl-Z, without
             the padding that fills the rest of the last 128-byte record. Use the
             <code>--cpm-records</code> flag to keep the whole records.
-            Text files from UCSD Pascal floppies are converted to plain text: the
-            editor’s header and the padding at the end of each page are dropped, the
-            indentation codes become spaces, and lines end in newlines. Use the
+            Text files from UCSD Pascal floppies are converted to plain text. Use the
             <code>--ucsd-pascal-raw</code> flag to write them as they are on the disk.
             Use the <code>--lowercase</code> flag to write the files with lowercase names.
             Files on Xenix tar floppies keep their directories: <code>usr/bin/vi</code> is
@@ -542,25 +540,26 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-15">October 15, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code> v4.3.0: Can read FMG’s UCSD Pascal disks for the
-                    Model I. <a href="#extract"><code>extract</code></a> converts their text
-                    files to plain text, unless given the new <code>--ucsd-pascal-raw</code> flag,
-                    and no longer overwrites files whose names differ only in case. Reads more
-                    CP/M disk formats and truncated CP/M images, and more robust reading of
-                    damaged and copy-protected disk images.</li>
-                <li>My TRS-80: Lists the files of UCSD Pascal disks, and exports them as a ZIP
-                    file with their text files converted to plain text.</li>
+                <li><code>trs80-tool</code> v4.2.0:
+                    <ul>
+                        <li>Can read Model II disks: Model II TRSDOS 1.x
+                            and 2.0, TRSDOS-II, DOSPLUS II, the Model II’s CP/M formats (standard 8-inch,
+                            Lifeboat, Aton, Pickles &amp; Trout, and CP/M Plus), and Xenix disks that hold
+                            a tar archive.</li>
+                        <li>Can read FMG’s UCSD Pascal disks for the Model I.
+                            <a href="#extract"><code>extract</code></a>
+                            converts their text files to plain text, unless
+                            given the new <code>--ucsd-pascal-raw</code> flag.</li>
+                        <li>Can read more CP/M disk formats.</li>
+                        <li>More robust reading of damaged and copy-protected disk images.</li>
+                        <li>The <code>extract</code> command no longer overwrites files whose
+                            names differ only in case; it adds “(2)” etc. to the output filename.</li>
+                    </ul>
+                </li>
             </ul>
 
             <h3 id="2026-10-14">October 14, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code> v4.2.0: Can read Model II disks: Model II TRSDOS 1.x
-                    and 2.0, TRSDOS-II, DOSPLUS II, the Model II’s CP/M formats (standard 8-inch,
-                    Lifeboat, Aton, Pickles &amp; Trout, and CP/M Plus), and Xenix disks that hold
-                    a tar archive, whose directories <a href="#extract"><code>extract</code></a>
-                    recreates. Shows file times on LDOS 5.3 and LS-DOS 6.3 disks, and lists
-                    the system files of TRSDOS 1.3 disks.</li>
-                <li>My TRS-80: Lists the files of Model II disks and exports them as a ZIP file.</li>
                 <li><code>trs80-tool</code> v4.1.0: Can read ImageDisk (IMD) floppy images,
                     and disk images of Percom MicroDOS for the Model I. Reads more
                     TRSDOS-family disks, and more robust reading of damaged disk images.
