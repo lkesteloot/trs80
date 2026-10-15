@@ -7,7 +7,6 @@
  * the one whose directory makes the most sense.
  */
 
-import {concatByteArrays} from "teamten-ts-utils";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {FloppyDisk, FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
@@ -30,6 +29,11 @@ const RECORD_SIZE = 128;
 
 // Records in a logical extent, the unit of the extent number.
 const RECORDS_PER_EXTENT = 128;
+
+// The usual sizes of drives, in cylinders. An image that holds fewer cylinders than the disk had
+// (it's truncated) is tried as each of these that's bigger than it, since the directory may
+// point at blocks that the image doesn't hold.
+const NOMINAL_CYLINDER_COUNTS = [35, 40, 80];
 
 // Characters that can't be in a filename, besides control characters.
 const BAD_FILENAME_CHARACTERS = "<>.,;:=?*[]";
@@ -70,6 +74,10 @@ export interface CpmFormat {
     readonly blockSize: number;
     // Number of directory entries, which fill the first blocks.
     readonly dirEntryCount: number;
+    // The size of the last physical sector on each data track (the highest-numbered one), when
+    // it's shorter than the others, as on Montezuma's "Super Data" format. Absent means all
+    // sectors are the same size (the geometry's modal size).
+    readonly lastSectorSize?: number;
 }
 
 /**
@@ -101,6 +109,19 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         sectorsPerTrack: [18],
         firstSectorNumber: 1,
         skew: 4,
+        reservedTrackCounts: [2],
+        blockSize: 2048,
+        dirEntryCount: 128,
+    },
+    // Montezuma's extended 10 × 512 layout, but with the data tracks interleaved physically
+    // and no skew in the BIOS, measured from the disks (see FLOPPY_FORMATS.md). The vendor is
+    // unknown. After Montezuma's entry, so it wins only when skew 2 reads bad entries.
+    {
+        name: "Unknown vendor",
+        sectorSizes: [512],
+        sectorsPerTrack: [10],
+        firstSectorNumber: 1,
+        skew: 1,
         reservedTrackCounts: [2],
         blockSize: 2048,
         dirEntryCount: 128,
@@ -178,6 +199,21 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         firstSectorNumber: 1,
         skew: 1,
         reservedTrackCounts: [2],
+        blockSize: 2048,
+        dirEntryCount: 128,
+    },
+    // Montezuma Micro's "Super Data" format for 5¼" double density, measured from the disks
+    // (see FLOPPY_FORMATS.md): five sectors of 1024 bytes and one of 512 on every track, since
+    // six 1K sectors don't fit, for 5.5K a track. No reserved tracks, so 40 tracks make 220K.
+    // Blocks don't start on sector boundaries.
+    {
+        name: "Montezuma Micro",
+        sectorSizes: [1024],
+        sectorsPerTrack: [6],
+        lastSectorSize: 512,
+        firstSectorNumber: 1,
+        skew: 2,
+        reservedTrackCounts: [0],
         blockSize: 2048,
         dirEntryCount: 128,
     },
@@ -449,6 +485,15 @@ export interface CpmEvaluation {
 }
 
 /**
+ * Where a 128-byte record of a data track is: the number of its sector and its byte offset
+ * within the sector.
+ */
+interface CpmRecordLocation {
+    sectorNumber: number;
+    offset: number;
+}
+
+/**
  * A CP/M diskette, as one candidate layout.
  */
 export class Cpm implements FloppyFileSystem<CpmFile> {
@@ -458,11 +503,20 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     // Sides the file system uses, which may be fewer than the image has.
     public readonly allocationSides: number;
     public readonly reservedTrackCount: number;
+    // Cylinders the file system assumes the disk has, which may be more than the image holds
+    // if the image is truncated. Sectors past the end of the image read as missing.
+    public readonly cylinderCount: number;
     public readonly sectorsPerTrack: number;
+    // Size of the physical sectors, which for formats with a shorter last sector is the size of the others.
     public readonly sectorSize: number;
-    public readonly sectorsPerBlock: number;
+    // Number of 128-byte records on each data track.
+    public readonly recordsPerTrack: number;
+    // Number of 128-byte records in an allocation block.
+    public readonly recordsPerBlock: number;
     // Physical sector index (from 0) of each logical sector on a track.
     public readonly skewTable: number[];
+    // Where each record on a data track is, in logical order.
+    private readonly recordLocations: CpmRecordLocation[];
     // Total blocks, including the directory's (DSM + 1).
     public readonly blockCount: number;
     // Whether directory entries hold 16-bit block numbers (8 of them) instead of 8-bit (16).
@@ -477,8 +531,12 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     // Whether files keep their whole 128-byte records, instead of ending text files at their Ctrl-Z.
     public readonly wholeRecords: boolean;
 
+    /**
+     * @param cylinderCount the cylinders to assume the disk has, which is the geometry's unless the
+     * image is truncated.
+     */
     constructor(disk: FloppyDisk, format: CpmFormat, allocationSides: number, reservedTrackCount: number,
-                wholeRecords: boolean) {
+                cylinderCount: number, wholeRecords: boolean) {
 
         this.disk = disk;
         this.wholeRecords = wholeRecords;
@@ -486,12 +544,28 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         this.format = format;
         this.allocationSides = allocationSides;
         this.reservedTrackCount = reservedTrackCount;
+        this.cylinderCount = cylinderCount;
         this.sectorsPerTrack = this.geometry.modalDataSectorSpan;
         this.sectorSize = this.geometry.modalDataSectorSize;
-        this.sectorsPerBlock = format.blockSize / this.sectorSize;
         this.skewTable = makeSkewTable(this.sectorsPerTrack, format.skew);
-        const dataTrackCount = this.geometry.cylinderCount*allocationSides - reservedTrackCount;
-        this.blockCount = Math.floor(dataTrackCount*this.sectorsPerTrack*this.sectorSize/format.blockSize);
+
+        // The sectors of a track in logical order, and from them where each record is. Blocks
+        // needn't start on sector boundaries, so the BIOS addresses records.
+        this.recordLocations = [];
+        for (let logical = 0; logical < this.sectorsPerTrack; logical++) {
+            const physical = this.skewTable[logical];
+            const isLast = physical === this.sectorsPerTrack - 1;
+            const size = isLast && format.lastSectorSize !== undefined ? format.lastSectorSize : this.sectorSize;
+            const sectorNumber = format.firstSectorNumber + physical;
+            for (let offset = 0; offset + RECORD_SIZE <= size; offset += RECORD_SIZE) {
+                this.recordLocations.push({sectorNumber, offset});
+            }
+        }
+        this.recordsPerTrack = this.recordLocations.length;
+        this.recordsPerBlock = format.blockSize/RECORD_SIZE;
+
+        const dataTrackCount = cylinderCount*allocationSides - reservedTrackCount;
+        this.blockCount = Math.floor(dataTrackCount*this.recordsPerTrack*RECORD_SIZE/format.blockSize);
         this.wideBlockPointers = this.blockCount > 256;
         this.extentMask = format.blockSize/(this.wideBlockPointers ? 2048 : 1024) - 1;
         this.dirBlockCount = Math.ceil(format.dirEntryCount*DIR_ENTRY_SIZE/format.blockSize);
@@ -522,6 +596,13 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         if (a.missingSectorCount !== b.missingSectorCount) {
             return a.missingSectorCount - b.missingSectorCount;
         }
+        // A truncated image can be read as any bigger drive size, and the readings often
+        // agree on every file. Believe the image's own size when they do.
+        const aIsImageSize = this.cylinderCount === this.geometry.cylinderCount;
+        const bIsImageSize = other.cylinderCount === other.geometry.cylinderCount;
+        if (aIsImageSize !== bIsImageSize) {
+            return aIsImageSize ? -1 : 1;
+        }
         // Small double-sided disks read the same directory either way, and their files
         // may all fit within blocks that both readings find. Unlike TRSDOS, CP/M has no
         // allocation map to tell us, so believe the image.
@@ -530,46 +611,70 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     }
 
     /**
-     * Physical position of a sector of the data area, which starts after the reserved tracks
-     * and is counted in physical sectors.
+     * Where a record of the data area is, which starts after the reserved tracks and is counted
+     * in 128-byte records.
      */
-    private dataSectorPosition(sectorIndex: number): SectorPosition {
-        const track = this.reservedTrackCount + Math.floor(sectorIndex / this.sectorsPerTrack);
-        const sectorOnTrack = this.skewTable[sectorIndex % this.sectorsPerTrack];
-        return SectorPosition.make(Math.floor(track / this.allocationSides), track % this.allocationSides,
-            this.format.firstSectorNumber + sectorOnTrack);
+    private recordLocation(record: number): {position: SectorPosition, offset: number} {
+        const track = this.reservedTrackCount + Math.floor(record/this.recordsPerTrack);
+        const location = this.recordLocations[record % this.recordsPerTrack];
+        const position = SectorPosition.make(Math.floor(track/this.allocationSides), track % this.allocationSides,
+            location.sectorNumber);
+        return {position, offset: location.offset};
     }
 
     /**
-     * Physical positions of the sectors of an allocation block.
+     * The records of an allocation block, as indices into the data area.
      */
-    private blockSectorPositions(block: number): SectorPosition[] {
-        const positions: SectorPosition[] = [];
-        for (let i = 0; i < this.sectorsPerBlock; i++) {
-            positions.push(this.dataSectorPosition(block*this.sectorsPerBlock + i));
+    private blockRecords(block: number): number[] {
+        const records: number[] = [];
+        for (let i = 0; i < this.recordsPerBlock; i++) {
+            records.push(block*this.recordsPerBlock + i);
         }
-        return positions;
+        return records;
     }
 
     /**
-     * Read sectors, zero-filling those that can't be read.
-     *
-     * @param positions the sectors to read.
-     * @param damage where to record sectors that are missing or have CRC errors, or undefined
-     * to ignore them.
+     * The first recordSize bytes' worth of records of the blocks, which may stop partway
+     * through the last block.
      */
-    private readSectors(positions: SectorPosition[], damage: FileDamage | undefined): Uint8Array {
-        return concatByteArrays(positions.map(position => {
-            const sector = this.disk.readSector(position);
-            if (sector === undefined) {
-                damage?.missingSectors.push(position);
-                return new Uint8Array(this.sectorSize);
+    private fileRecords(blocks: number[], recordSize: number): number[] {
+        return blocks
+            .flatMap(block => this.blockRecords(block))
+            .slice(0, Math.ceil(recordSize/RECORD_SIZE));
+    }
+
+    /**
+     * Read records, zero-filling those whose sectors can't be read. Each sector is read once.
+     *
+     * @param records the records to read, as indices into the data area.
+     * @param damage where to record sectors that are missing or have CRC errors (once each, in
+     * the order they're first needed), or undefined to ignore them.
+     */
+    private readRecords(records: number[], damage: FileDamage | undefined): Uint8Array {
+        const result = new Uint8Array(records.length*RECORD_SIZE);
+        // Data of each sector read, or undefined if it's missing.
+        const sectors = new Map<string, Uint8Array | undefined>();
+        for (let i = 0; i < records.length; i++) {
+            const {position, offset} = this.recordLocation(records[i]);
+            const key = position.key();
+            if (!sectors.has(key)) {
+                const sector = this.disk.readSector(position);
+                if (sector === undefined) {
+                    damage?.missingSectors.push(position);
+                    sectors.set(key, undefined);
+                } else {
+                    if (sector.crcError) {
+                        damage?.crcErrorSectors.push(position);
+                    }
+                    sectors.set(key, sector.data);
+                }
             }
-            if (sector.crcError) {
-                damage?.crcErrorSectors.push(position);
+            const data = sectors.get(key);
+            if (data !== undefined) {
+                result.set(data.subarray(offset, offset + RECORD_SIZE), i*RECORD_SIZE);
             }
-            return sector.data;
-        }));
+        }
+        return result;
     }
 
     /**
@@ -655,20 +760,8 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         }
         const recordSize = computeRecordSize(extents);
         const blocks = extents.flatMap(extent => extent.blocks);
-        const positions = this.recordSectorPositions(blocks, recordSize);
-        const data = this.readSectors(positions, undefined);
+        const data = this.readRecords(this.fileRecords(blocks, recordSize), undefined);
         return findCpmTextEnd(data.subarray(0, recordSize), extents[0].extension);
-    }
-
-    /**
-     * Positions of the sectors that hold the first recordSize bytes of the blocks, which
-     * may stop partway through the last block.
-     */
-    private recordSectorPositions(blocks: number[], recordSize: number): SectorPosition[] {
-        const sectorCount = Math.ceil(recordSize / this.sectorSize);
-        return blocks
-            .flatMap(block => this.blockSectorPositions(block))
-            .slice(0, sectorCount);
     }
 
     /**
@@ -676,11 +769,11 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      */
     private readDirectory(): { files: CpmFile[], evaluation: CpmEvaluation } {
         // The directory fills the first blocks.
-        const dirPositions: SectorPosition[] = [];
+        const dirRecords: number[] = [];
         for (let block = 0; block < this.dirBlockCount; block++) {
-            dirPositions.push(... this.blockSectorPositions(block));
+            dirRecords.push(... this.blockRecords(block));
         }
-        const dir = this.readSectors(dirPositions, undefined);
+        const dir = this.readRecords(dirRecords, undefined).subarray(0, this.format.dirEntryCount*DIR_ENTRY_SIZE);
 
         let goodEntryCount = 0;
         let badEntryCount = 0;
@@ -741,10 +834,22 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
 
     /**
      * Positions of the sectors that hold the file's whole records, which may stop partway
-     * through its last block. This doesn't depend on whether text files are clipped.
+     * through its last block, in order of first use and without repeats. Blocks needn't
+     * start on sector boundaries, so a sector can hold parts of several files, or of
+     * several of one file's blocks. This doesn't depend on whether text files are clipped.
      */
     public getFileSectorPositions(file: CpmFile): SectorPosition[] {
-        return this.recordSectorPositions(file.getBlocks(), file.getRecordSize());
+        const positions: SectorPosition[] = [];
+        const seen = new Set<string>();
+        for (const record of this.fileRecords(file.getBlocks(), file.getRecordSize())) {
+            const {position} = this.recordLocation(record);
+            const key = position.key();
+            if (!seen.has(key)) {
+                seen.add(key);
+                positions.push(position);
+            }
+        }
+        return positions;
     }
 
     /**
@@ -760,7 +865,8 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      */
     public readFileWithDamage(file: CpmFile): FloppyFileContents {
         const damage = new FileDamage();
-        const binary = this.readSectors(this.getFileSectorPositions(file), damage).subarray(0, file.getSize());
+        const records = this.fileRecords(file.getBlocks(), file.getRecordSize());
+        const binary = this.readRecords(records, damage).subarray(0, file.getSize());
         return {binary, damage};
     }
 }
@@ -771,6 +877,10 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
 function generateCpmCandidates(disk: FloppyDisk, wholeRecords: boolean): Cpm[] {
     const geometry = disk.getGeometry();
     const candidates: Cpm[] = [];
+
+    // The image's own size, then each bigger drive size, in case the image is truncated.
+    const cylinderCounts = [geometry.cylinderCount,
+        ... NOMINAL_CYLINDER_COUNTS.filter(count => count > geometry.cylinderCount)];
 
     for (const format of CPM_FORMATS) {
         if (!format.sectorSizes.includes(geometry.modalDataSectorSize) ||
@@ -784,7 +894,10 @@ function generateCpmCandidates(disk: FloppyDisk, wholeRecords: boolean): Cpm[] {
         // cylinder.
         for (const allocationSides of [1, 2]) {
             for (const reservedTrackCount of format.reservedTrackCounts) {
-                candidates.push(new Cpm(disk, format, allocationSides, reservedTrackCount, wholeRecords));
+                for (const cylinderCount of cylinderCounts) {
+                    candidates.push(new Cpm(disk, format, allocationSides, reservedTrackCount,
+                        cylinderCount, wholeRecords));
+                }
             }
         }
     }

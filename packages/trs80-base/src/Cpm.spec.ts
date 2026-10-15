@@ -19,18 +19,24 @@ class MemoryFloppyDisk extends FloppyDisk {
     private readonly sectors = new Map<string, Uint8Array>();
     private readonly crcErrorKeys = new Set<string>();
 
-    constructor() {
+    /**
+     * @param cylinderCount the number of cylinders in the image.
+     * @param sectorSizes the sizes of the sectors on every track, which are numbered from 1.
+     */
+    constructor(cylinderCount = CYLINDER_COUNT,
+                sectorSizes: readonly number[] = new Array<number>(SECTORS_PER_TRACK).fill(SECTOR_SIZE)) {
+
         super(new Uint8Array(0), undefined, []);
 
         const sectorInfos: SectorInfo[] = [];
-        for (let cylinder = 0; cylinder < CYLINDER_COUNT; cylinder++) {
-            for (let sector = 1; sector <= SECTORS_PER_TRACK; sector++) {
-                const position = SectorPosition.make(cylinder, 0, sector);
-                sectorInfos.push(new SectorInfo(position, Density.DOUBLE, SECTOR_SIZE));
-                this.sectors.set(position.key(), new Uint8Array(SECTOR_SIZE).fill(0xE5));
+        for (let cylinder = 0; cylinder < cylinderCount; cylinder++) {
+            for (let i = 0; i < sectorSizes.length; i++) {
+                const position = SectorPosition.make(cylinder, 0, i + 1);
+                sectorInfos.push(new SectorInfo(position, Density.DOUBLE, sectorSizes[i]));
+                this.sectors.set(position.key(), new Uint8Array(sectorSizes[i]).fill(0xE5));
             }
         }
-        this.geometry = FloppyDiskGeometry.make(CYLINDER_COUNT, 1, sectorInfos)!;
+        this.geometry = FloppyDiskGeometry.make(cylinderCount, 1, sectorInfos)!;
     }
 
     /**
@@ -88,6 +94,42 @@ function dataSectorPosition(sectorIndex: number): SectorPosition {
     const logical = sectorIndex % SECTORS_PER_TRACK;
     const physical = logical < SECTORS_PER_TRACK/2 ? logical*2 : (logical - SECTORS_PER_TRACK/2)*2 + 1;
     return SectorPosition.make(track, 0, physical + 1);
+}
+
+// Sizes of the sectors on a Montezuma Micro "Super Data" track, numbered from 1.
+const SUPER_DATA_SECTOR_SIZES = [1024, 1024, 1024, 1024, 1024, 512];
+
+// Sectors of a Super Data track in the order that the BIOS uses them (skew 2).
+const SUPER_DATA_LOGICAL_SECTORS = [1, 3, 5, 2, 4, 6];
+
+// Records (128 bytes) on a Super Data track: (5*1024 + 512)/128.
+const SUPER_DATA_RECORDS_PER_TRACK = 44;
+
+/**
+ * Where a record of a Super Data disk is, written out independently of the decoder. There
+ * are no reserved tracks and the disk is single-sided, so the track is the cylinder.
+ */
+function superDataLocation(record: number): {position: SectorPosition, offset: number} {
+    const cylinder = Math.floor(record/SUPER_DATA_RECORDS_PER_TRACK);
+    let remaining = record % SUPER_DATA_RECORDS_PER_TRACK;
+    for (const sectorNumber of SUPER_DATA_LOGICAL_SECTORS) {
+        const sectorRecords = SUPER_DATA_SECTOR_SIZES[sectorNumber - 1]/128;
+        if (remaining < sectorRecords) {
+            return {position: SectorPosition.make(cylinder, 0, sectorNumber), offset: remaining*128};
+        }
+        remaining -= sectorRecords;
+    }
+    throw new Error("record not on track");
+}
+
+/**
+ * Write bytes to consecutive records of a Super Data disk, starting at the given one.
+ */
+function writeSuperDataRecords(disk: MemoryFloppyDisk, firstRecord: number, bytes: Uint8Array): void {
+    for (let offset = 0; offset < bytes.length; offset += 128) {
+        const {position, offset: sectorOffset} = superDataLocation(firstRecord + offset/128);
+        disk.getSectorData(position).set(bytes.subarray(offset, offset + 128), sectorOffset);
+    }
 }
 
 /**
@@ -344,6 +386,114 @@ describe("cpm", () => {
         expect(wholeNote.getSize()).to.equal(records.length);
         expect(whole.readFile(wholeNote)).to.eql(records);
         expect(whole.getFileSectorPositions(wholeNote)).to.eql(clipped.getFileSectorPositions(clippedNote));
+    });
+
+    it("reads blocks that don't start on sector boundaries from a Montezuma Micro Super Data disk", () => {
+        const disk = new MemoryFloppyDisk(40, SUPER_DATA_SECTOR_SIZES);
+
+        // Each track holds 44 records and a block is 16 records, so block b starts at record
+        // 16*b, which is track floor(16*b/44), record (16*b) % 44. The logical sector order is
+        // 1, 3, 5, 2, 4, 6 with 8, 8, 8, 8, 8, and 4 records.
+        //
+        // Block 2 is records 32-47: track 0 records 32-43 (all of sector 4, then all of sector
+        // 6) and track 1 records 0-3 (the first half of sector 1).
+        const across = makeContents(2048, 11);
+        writeSuperDataRecords(disk, 2*16, across);
+
+        // Block 3 is records 48-63: track 1 records 4-19, which are the second half of sector 1
+        // (records 4-7), all of sector 3 (records 8-15) and the first half of sector 5
+        // (records 16-19).
+        const middle = makeContents(2048, 12);
+        writeSuperDataRecords(disk, 3*16, middle);
+
+        // Block 4 is records 64-79: track 1 records 20-35. A file of its first 4 records
+        // (track 1 records 20-23) is the second half of sector 5, which it shares with block 3.
+        const shared = makeContents(4*128, 13);
+        writeSuperDataRecords(disk, 4*16, shared);
+
+        // The directory is in blocks 0 and 1, which are track 0 and part of track 1.
+        const dir = new Uint8Array(3*32);
+        dir.set(makeDirEntry(0, "ACROSS.DAT", 0, 16, [2]), 0);
+        dir.set(makeDirEntry(0, "MIDDLE.DAT", 0, 16, [3]), 32);
+        dir.set(makeDirEntry(0, "SHARED.DAT", 0, 4, [4]), 64);
+        writeSuperDataRecords(disk, 0, padToRecords(dir, 0xE5));
+
+        const cpm = decodeCpm(disk);
+        expect(cpm).to.not.be.undefined;
+        expect(cpm!.nameAndVersion).to.equal("Montezuma Micro CP/M");
+        expect(cpm!.reservedTrackCount).to.equal(0);
+        expect(cpm!.cylinderCount).to.equal(40);
+        expect(cpm!.recordsPerTrack).to.equal(44);
+        expect(cpm!.recordsPerBlock).to.equal(16);
+        // 40 tracks of 44 records of 128 bytes, in blocks of 2048 bytes.
+        expect(cpm!.blockCount).to.equal(110);
+
+        const files = cpm!.getDirEntries(true);
+        expect(files.map(file => file.getFilename("."))).to.eql(["ACROSS.DAT", "MIDDLE.DAT", "SHARED.DAT"]);
+        const [acrossFile, middleFile, sharedFile] = files;
+        expect(cpm!.readFile(acrossFile)).to.eql(across);
+        expect(cpm!.readFile(middleFile)).to.eql(middle);
+        expect(cpm!.readFile(sharedFile)).to.eql(shared);
+
+        // Block 2 starts in sector 4 of cylinder 0, then goes to sector 6, then sector 1 of cylinder 1.
+        expect(cpm!.getFileSectorPositions(acrossFile).map(position => position.key())).to.eql([
+            SectorPosition.make(0, 0, 4).key(),
+            SectorPosition.make(0, 0, 6).key(),
+            SectorPosition.make(1, 0, 1).key(),
+        ]);
+        // Block 3 uses sectors 1, 3, and 5 of cylinder 1.
+        expect(cpm!.getFileSectorPositions(middleFile).map(position => position.key())).to.eql([
+            SectorPosition.make(1, 0, 1).key(),
+            SectorPosition.make(1, 0, 3).key(),
+            SectorPosition.make(1, 0, 5).key(),
+        ]);
+        // The shared file is only in the second half of sector 5, which the block-3 file also uses.
+        expect(cpm!.getFileSectorPositions(sharedFile).map(position => position.key())).to.eql([
+            SectorPosition.make(1, 0, 5).key(),
+        ]);
+    });
+
+    it("reads a truncated image as the drive size that its directory fits", () => {
+        // The directory has a file in blocks 72 to 75, which are on cylinders 34 and 35 of a
+        // disk of 40 cylinders: block b starts at sector 8*b, which is track 2 + floor(8*b/18).
+        // The nominal size of 35 has 74 blocks and can't hold them.
+        //
+        // A second file in blocks 2 to 9 is on tracks 2 to 6. Without it, reading the 30
+        // cylinders as double-sided would find the late file's first blocks on side 0 of
+        // cylinder 17 and lose fewer sectors than the real reading does.
+        const entry = concat(makeDirEntry(0, "LATE.DAT", 0, 64, range(72, 4)),
+            makeDirEntry(0, "EARLY.DAT", 0, 128, range(2, 8)));
+        const contents = makeContents(4*2048, 7);
+
+        // A full image, which is not read as the next bigger size, 80.
+        const full = new MemoryFloppyDisk();
+        writeBlocks(full, 72, contents);
+        writeBlocks(full, 0, entry);
+        const fullCpm = decodeCpm(full)!;
+        expect(fullCpm).to.not.be.undefined;
+        expect(fullCpm.cylinderCount).to.equal(40);
+        expect(fullCpm.blockCount).to.equal(85);
+        const [fullFile] = fullCpm.getDirEntries(true);
+        expect(fullFile.getFilename(".")).to.equal("LATE.DAT");
+        expect(fullCpm.readFile(fullFile)).to.eql(contents);
+
+        // The same disk with only 30 cylinders in the image. The file's blocks are all
+        // missing, and only a size of 40 or more accepts them, of which 40 wins.
+        const truncated = new MemoryFloppyDisk(30);
+        writeBlocks(truncated, 0, entry);
+        const truncatedCpm = decodeCpm(truncated)!;
+        expect(truncatedCpm).to.not.be.undefined;
+        expect(truncatedCpm.geometry.cylinderCount).to.equal(30);
+        expect(truncatedCpm.cylinderCount).to.equal(40);
+        expect(truncatedCpm.blockCount).to.equal(85);
+        const files = truncatedCpm.getDirEntries(true);
+        expect(files.map(file => file.getFilename("."))).to.eql(["LATE.DAT", "EARLY.DAT"]);
+        const {binary, damage} = truncatedCpm.readFileWithDamage(files[0]);
+        expect(damage.missingSectors.length).to.equal(4*8);
+        expect(damage.crcErrorSectors.length).to.equal(0);
+        expect(binary.length).to.equal(contents.length);
+        expect(Array.from(binary)).to.eql(new Array(contents.length).fill(0));
+        expect(truncatedCpm.evaluation.missingSectorCount).to.equal(4*8);
     });
 
     it("rejects a blank disk", () => {

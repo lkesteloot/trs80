@@ -1385,6 +1385,44 @@ there's no CP/M on the disk, so nothing on them names the version.
   nothing in the directory tells them apart, and the table's order picks
   skew 2.
 
+**Montezuma "Super Data"** (220K). Ira's three `CP-M Public Domain Disk C354`,
+`C900` and `C901` disks (`ira/lk-410-to-do`, labeled "40T SS DD 220K M M Super
+Data") are in a format not among the 12 above, worked out from the disks with
+no DPB:
+
+- Every track has five 1024-byte sectors (1-5) and one 512-byte sector (6), 44
+  records, since six 1K sectors don't fit on a 5¼" double-density track
+  (`CpmFormat.lastSectorSize`).
+- No reserved tracks, 2K blocks, 128 entries, 8-bit pointers, EXM 1: 40 tracks
+  of 5.5K make 110 blocks, the 220K of the label.
+- Skew 2 over all six sectors, which puts the short one last: physical order 1,
+  3, 5, 2, 4, 6. Measured from the files: every text file reads cleanly but one
+  (below), and three squeezed files (`MEX.DQC`, `MEX.HQP`, `MXO-RS20.AQM`)
+  unsqueeze with good checksums. `MDM740.AQM` unsqueezes to clean text from
+  start to `END`, but its checksum is off by 0x72.
+- Blocks aren't aligned to sectors: track 0's records 32-43 begin block 2, and
+  block 3 starts halfway through track 1's first sector, so the BIOS addresses
+  records, not sectors (see "Records, not sectors" below).
+- `M7LIB.DOC` on C354 is damaged on the disk: its text stops mid-word at the end
+  of its first block, and its last three records (sector 6 of track 22) hold the
+  start of some other program. No sector on the disk continues the text, so
+  it's not the layout.
+
+**10 × 512 with no skew** (`Turbo Pascal System v2.00A ... [No Preset Terminal]`
+in `ira/lk-410-to-do`): Montezuma's extended layout (sectors numbered from 1, 2
+reserved tracks, 2K blocks, 128 entries) on 35 cylinders, but the data tracks
+are interleaved physically (1, 8, 5, 2, 9, 6, 3, 10, 7, 4) and the BIOS uses no
+skew. With skew 1 all 19 files read and the text files are clean; with
+Montezuma's skew 2, 14 entries are bad. The boot sector says "Not a SYSTEM
+Disk", which isn't Montezuma's message, so the vendor is unknown, and the
+table's entry ("Unknown vendor") comes after Montezuma's so it wins only when
+skew 2 fails.
+
+`Hi-Tech Z-80 CP-M C Compiler V3.09 [Disk 0]` (`ira/lk-410-to-do`) is a
+Montezuma 18 × 256 system disk whose 24 directory entries all have user byte
+0xE5: every file was erased, so there's nothing to extract, and it stays
+undecoded like a blank disk.
+
 **Lifeboat CP/M 1.4** (Model I; telanoc's README adds "Small Systems
 Software"). telanoc's system disk (`m1_cpm14_ss_sd_35.hfe`) is single-sided,
 35 cylinders, all single density. Its 3 system tracks have 10 sectors of 256 bytes, numbered 0-9; the
@@ -1405,6 +1443,18 @@ layout was worked out from the disk:
 
 The blank data disk (`_data`) has an empty directory, so it stays undecoded
 like any blank CP/M disk.
+
+Two Lifeboat-layout disks are truncated images (see "Truncated images" below):
+
+- `C Compiler (1983)(Software Toolworks)[CP-M]` (`ira/lk-410-to-do`) has all
+  tracks 18 × 128, so it's a data disk (skew 4 reads `CLIBIO.C` cleanly). The
+  DMK header says 43 tracks, but the file holds only 27, and four of the eight
+  entries point at blocks past the end. Read as 40 tracks, `C.COM` is intact and
+  the other files report their missing sectors.
+- `ira/bad-disks/Omikron CP-M v2.2 ... [48K Memory][Set 1]` has 35 cylinders,
+  but `SHOW.COM` and `H14DVR.COM` use blocks 72 and 73, past block 71, the last
+  of a 35-track disk. A 35-track BIOS never allocates them, so the disk was
+  written on 40 tracks, and the image stops at 35.
 
 **Holmes Engineering CP/M 2.2** (Model I with Holmes's VID-80 80-column board).
 mloewen's `Holmes-Engineering-VID80/holmes-cpm.dmk` is single-sided, 40 tracks,
@@ -1471,6 +1521,21 @@ disk, Aton 2.25B, uses only 38 of them, so a reading with 128 finds every file.
 CP/M Plus's 1024-byte format reserves four tracks (page 9) and isn't in the
 table either, since no disk uses it. FMG CP/M 2.21 (26 × 256, interleave 1,
 10, 19) doesn't decode.
+
+**Records, not sectors.** The BIOS hands the BDOS 128-byte records, and
+blocks are counted in records, so `Cpm` maps each record of a data track to a
+sector and an offset in it (in skew order), rather than assuming that blocks
+start on sectors. The sector map (`getFileSectorPositions()`) lists each sector
+a file uses once, in order of first use: a sector can hold parts of two files on
+Super Data disks, and a damaged block list can repeat blocks (`PROBE.TXT` on
+mloewen's disks).
+
+**Truncated images.** The image's cylinder count can be less than the disk's,
+when the imager stopped early, and then the directory points at blocks past
+the end. So each layout is also tried as a 35-, 40-, and 80-cylinder disk
+(whichever are bigger than the image), with the sectors past the end reported
+missing. When readings tie on score and missing sectors, the image's own size
+wins.
 
 **Formats are matched by sectors per track as well as sector size**
 (`CpmFormat.sectorsPerTrack`). Montezuma's entry has 512-byte sectors and skew
