@@ -125,6 +125,9 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                             if (cpm.allocationSides < geometry.sideCount) {
                                 verboseLines.push("Only uses side 0");
                             }
+                            if (cpm.cylinderCount !== geometry.cylinderCount) {
+                                verboseLines.push(`Cylinders: ${cpm.cylinderCount} (the image has ${geometry.cylinderCount})`);
+                            }
                             verboseLines.push(`Reserved tracks: ${cpm.reservedTrackCount}`);
                             verboseLines.push(`Sector skew: ${cpm.format.skew}`);
                             verboseLines.push(`Block size: ${cpm.format.blockSize} bytes`);
