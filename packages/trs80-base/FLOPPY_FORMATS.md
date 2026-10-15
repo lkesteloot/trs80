@@ -1752,14 +1752,26 @@ count, little-endian track length, flags. Flag bit 4 is single-sided, bit 6 is
 single-density size, bit 7 is ignore-density. **Bits 6 or 7 mean single-density
 bytes are stored once; otherwise every single-density byte is doubled**, with
 CRCs computed over the un-doubled bytes. Track length includes the 128-byte
-header (0x1900 is the usual double-density value, 0x0CC0 single density, max
-0x2940). Each track has 64 IDAM pointers, LSB/MSB, bit 15 for double density,
+header (0x1900 is the usual double-density value, 0x0CC0 single density; the
+spec's max is 0x2940, but see below). Each track has 64 IDAM pointers, LSB/MSB, bit 15 for double density,
 bit 14 undefined, offsets masked with 0x3FFF and including the header, in
 ascending order and zero-terminated. Verified across the 84 DMK files present at
 the time (the five NEWDOS/80 additions were checked the same way and agree): no
 entries after a terminator, none out of order, and every file's doubling matches
 its flags (checked by recomputing IDAM CRCs at both strides). Sector size codes
 are 128, 256, 512, 1024.
+
+**Track lengths can exceed the spec's 0x2940.** Eric Smith's dmklib (and its
+`rfloppy` imager) stores an 8" double-density track as 0x2900 bytes plus the
+header, so 0x2980, and sizes other tracks as `rate × 7500 / rpm` plus the header,
+about 0x3154 for a 3½" high-density disk. The reader accepts up to 0x4000, all
+that the pointers' 14-bit offsets can reach. None of the collection's 691 DMK
+images (October 2026) is over 0x2940.
+
+**Size codes use only their low two bits**, as on the WD179x, so a code above 3
+means `128 << (code & 3)`, which is also what the emulator's FDC does. (The
+FD1771's non-IBM mode instead reads 16 × N bytes, but the Model I DOSes don't use
+it.) No ID with a good CRC in the collection has a code above 3.
 
 **Double-density CRCs cover A1 A1 A1, whatever the image stores before the
 mark.** The controller finds an MFM address mark by its sync bytes, so they're
