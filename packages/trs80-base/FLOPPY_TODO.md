@@ -288,6 +288,20 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
       - `peter/104 Elephant ... CP-M 2.2 ...` is far shorter than its header
         says (39,184 bytes of a promised 287,248), and its six tracks have no
         sectors, so there's nothing to read.
+      - Three formats from Ira's 4.2.0 report (`ira/lk-410-to-do`, not yet in
+        the suite) are measured but not decoded; see "Measured, but not
+        decoded yet" under "CP/M" in `FLOPPY_FORMATS.md`:
+        - Montezuma "Super Data" (5 × 1024 + 1 × 512 per track, three disks).
+          `Cpm` assumes one sector size and blocks that start on a sector, so
+          it needs to map 128-byte records to (sector, offset), a track at a
+          time, before this is just a table entry.
+        - 10 × 512 with skew 1 (the Turbo Pascal disk): a table entry after
+          Montezuma's, which then loses only when skew 2 reads bad entries.
+        - Truncated images: `blockCount` comes from the image's cylinders, so
+          the truncated Lifeboat `C Compiler` disk rejects four of its eight
+          entries as out of range. Trying the usual 35, 40 and 80 tracks as
+          well (with sectors past the end reported missing) would decode it
+          with C.COM intact.
 - [ ] **HFE leftovers.** `HfeFloppyDisk.ts` reads version 1 images (see
       "Image formats" in `FLOPPY_FORMATS.md`). Not done:
       - Version 3 (`HXCHFEV3`) is rejected. It interleaves opcodes with the

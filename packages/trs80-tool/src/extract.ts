@@ -30,6 +30,24 @@ function safeOutputPath(filename: string, hasDirectories: boolean): string[] {
 }
 
 /**
+ * Give the path a name that no earlier file of this extraction has, so that it doesn't overwrite
+ * one. Names are compared ignoring case, as macOS and Windows do: a disk can have both "PRINTER"
+ * and "Printer", and --lowercase makes "FOO" and "foo" the same everywhere. The first file keeps
+ * its name, and later ones get " (2)", " (3)", and so on. The result is added to usedPaths.
+ *
+ * @param components the path to create in the output directory, which may be changed.
+ * @param usedPaths paths written so far, joined with "/" and in lower case.
+ */
+function makeUniquePath(components: string[], usedPaths: Set<string>): void {
+    const last = components.length - 1;
+    const name = components[last];
+    for (let copy = 2; usedPaths.has(components.join("/").toLowerCase()); copy++) {
+        components[last] = name + " (" + copy + ")";
+    }
+    usedPaths.add(components.join("/").toLowerCase());
+}
+
+/**
  * Whether the error is the file system's complaint that a file is in the way of a directory or a
  * directory in the way of a file, as when a disk has both a file "a" and a file "a/b".
  */
@@ -67,11 +85,13 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
     const inFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
 
     let writtenCount = 0;
+    const usedPaths = new Set<string>();
     for (const infile of inFiles) {
         const damage = infile.damage;
         const filename = lowercase ? infile.filename.toLowerCase() : infile.filename;
         const components = safeOutputPath(filename, infile.hasDirectories());
         components[components.length - 1] += damage !== undefined && markDamaged ? " [DAMAGED]" : "";
+        makeUniquePath(components, usedPaths);
         const outpath = path.join(outDirname, ... components);
         const binary = infile.binary;
         try {
