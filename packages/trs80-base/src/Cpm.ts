@@ -56,6 +56,9 @@ export interface CpmFormat {
     readonly name: string;
     // Physical sector sizes this format uses.
     readonly sectorSizes: readonly number[];
+    // Sectors per data track this format uses. Formats that share a sector size can
+    // read the same directory with different skews, so this keeps each to its own disks.
+    readonly sectorsPerTrack: readonly number[];
     // Number of the first sector on each track.
     readonly firstSectorNumber: number;
     // Distance between consecutive logical sectors on a track, as in cpmtools' "skew".
@@ -82,6 +85,7 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
     {
         name: "Montezuma Micro",
         sectorSizes: [256, 512],
+        sectorsPerTrack: [18, 10],
         firstSectorNumber: 1,
         skew: 2,
         reservedTrackCounts: [0, 2, 4],
@@ -94,6 +98,7 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
     {
         name: "Montezuma Micro",
         sectorSizes: [256],
+        sectorsPerTrack: [18],
         firstSectorNumber: 1,
         skew: 4,
         reservedTrackCounts: [2],
@@ -105,6 +110,7 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
     {
         name: "Lifeboat",
         sectorSizes: [128],
+        sectorsPerTrack: [18],
         firstSectorNumber: 1,
         skew: 4,
         reservedTrackCounts: [3],
@@ -118,6 +124,7 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
     {
         name: "Holmes Engineering",
         sectorSizes: [512],
+        sectorsPerTrack: [10],
         firstSectorNumber: 0,
         skew: 1,
         reservedTrackCounts: [1],
@@ -130,11 +137,49 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
     {
         name: "Digital Research",
         sectorSizes: [512],
+        sectorsPerTrack: [8],
         firstSectorNumber: 1,
         skew: 1,
         reservedTrackCounts: [1],
         blockSize: 1024,
         dirEntryCount: 64,
+    },
+    // The standard 8" single-density format (IBM 3740): 26 sectors of 128 bytes on every
+    // track, two system tracks, and skew 6, as on most 8" CP/M disks, the Model II's included.
+    {
+        name: "Standard 8-inch",
+        sectorSizes: [128],
+        sectorsPerTrack: [26],
+        firstSectorNumber: 1,
+        skew: 6,
+        reservedTrackCounts: [2],
+        blockSize: 1024,
+        dirEntryCount: 64,
+    },
+    // Lifeboat and Aton CP/M for the Model II ("extended density"): 8 sectors of 1024 bytes
+    // after the single-density cylinder 0, which with cylinder 1 makes two system tracks.
+    // Double-sided disks have 192 entries.
+    {
+        name: "Lifeboat or Aton",
+        sectorSizes: [1024],
+        sectorsPerTrack: [8],
+        firstSectorNumber: 1,
+        skew: 3,
+        reservedTrackCounts: [2],
+        blockSize: 2048,
+        dirEntryCount: 128,
+    },
+    // Pickles & Trout CP/M and Digital Research's CP/M Plus for the Model II: 16 sectors of
+    // 512 bytes, interleaved physically, so no skew. Double-sided disks have 192 entries.
+    {
+        name: "Pickles & Trout",
+        sectorSizes: [512],
+        sectorsPerTrack: [16],
+        firstSectorNumber: 1,
+        skew: 1,
+        reservedTrackCounts: [2],
+        blockSize: 2048,
+        dirEntryCount: 128,
     },
 ];
 
@@ -728,7 +773,8 @@ function generateCpmCandidates(disk: FloppyDisk, wholeRecords: boolean): Cpm[] {
     const candidates: Cpm[] = [];
 
     for (const format of CPM_FORMATS) {
-        if (!format.sectorSizes.includes(geometry.modalDataSectorSize)) {
+        if (!format.sectorSizes.includes(geometry.modalDataSectorSize) ||
+            !format.sectorsPerTrack.includes(geometry.modalDataSectorSpan)) {
             continue;
         }
 

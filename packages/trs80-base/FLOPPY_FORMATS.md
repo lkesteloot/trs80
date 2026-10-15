@@ -45,7 +45,14 @@ quoted documentation; guesses are labeled as such.
     the source of a password finder (pages 116-118, checked on the scan), the
     fact that TRSDOS and VTOS store their SYS0 boot messages negated (page 93),
     and the Model I and III track formats (pages 18-28, 96-97).
-- **CP/M**: the library has no CP/M manuals. The directory entry and disk
+- **Model II manuals** are in `~/Dropbox/Personal/Books/TRS-80/Model II/`, copied
+  from Pete's Model II archive (`~/others/model2archive`, github.com/pski/model2archive):
+  the *Model II Disk Operating System Reference Manual* (TRSDOS 2.0), the *Model II
+  TRSDOS 1.1 Manual*, two editions of the *TRSDOS-II Reference Manual*, *DOSPLUS II
+  and EDAS for the Model II*, and the Pickles & Trout, Lifeboat, Aton and Digital
+  Research CP/M manuals. None gives the byte layout of a directory except DOSPLUS
+  II's; what's below about Model II TRSDOS and TRSDOS-II was measured.
+- **CP/M**: the Model I/III/4 CP/Ms have no manuals in the library. The directory entry and disk
   parameter block are as in Digital Research's *CP/M 2.2 Alteration Guide* and
   the cpmtools package. Montezuma Micro's parameters come from `PROBE.TXT` on
   each of mloewen's disks, a dump that the PROBE utility made of the DPB.
@@ -600,6 +607,20 @@ counts that are too large: `Dungeon Escape` (MultiDOS, 2 per track) read as
 4 per two-track lump, with its directory at the same sector, and every file
 came from the wrong track; and `m2-lsdos-blank.dmk` now reads as 3 granules
 of 10 sectors, not 6 of 5.
+
+**DOSPLUS II** (MicroPower's, for the Model II) is the exception: six granules of
+5 sectors on the 30-sector tracks of an 8" double-density disk, where LS-DOS on the
+same disks uses three of 10 (*DOSPLUS II and EDAS for the Model II*, PDF page 104).
+Measured on the three DOSPLUS II disks in Pete's archive: free GAT bytes read 0xC0,
+and DIR/SYS and SYS0/SYS are each 30 sectors in an extent of 6 granules. Read with
+three granules, the 2.3 generator's only choice until October 2026, the decoder took
+a two-sided reading (6 granules per lump) and every file past its first lump had
+missing sectors. So for 30-sector tracks `generateTrsdos23Candidates()` also tries
+six granules. It doesn't try every count that divides the track: with 4 granules of
+9 sectors on two sides, a lump has 8 granules and no unused GAT bits, so the strict
+check passes any GAT, and that reading beat the right one on four LDOS and MultiDOS
+disks. GAT byte 0xCB is 0x10, as on MultiDOS 1.x, so only the system disk is named,
+from SYS0's banner, "DosPLUS II - Series A.00".
 
 ## Identifying the DOS
 
@@ -1425,6 +1446,39 @@ from the disks, not from a DPB:
   0x113-0x116, which also confirms the layout: any misplaced sector would
   differ in whole blocks.
 
+**Model II CP/M** (8" disks). Measured on the 30 CP/M images in Pete's Model II
+archive (see "IMD"). Every vendor reserves two tracks (cylinder 0, FM 26 × 128,
+and cylinder 1) and puts the directory at the start of cylinder 2. Three
+layouts cover all but one disk:
+
+- **Standard 8" single density** (IBM 3740): FM, 26 × 128 on every track, skew
+  6, 1K blocks, 64 entries. The WordStar disk, the Corvus utility disks, the
+  Pickles & Trout ACP disk and TriSoft's CP/M-68K distribution disks.
+- **Lifeboat and Aton** ("extended density"): 8 sectors of 1024 bytes (Lifeboat
+  manual, PDF page 18), 2K blocks, 128 entries, skew 3, as in cpmtools' `trs5`
+  (Lifeboat) and `trse` (Aton) disk definitions. STAT.COM reads byte-identical
+  from Aton 2.23I, Aton 2.25B and Lifeboat 2.25, and every text file on them is
+  clean. The two vendors share the layout, so a disk's name says both.
+- **Pickles & Trout and Digital Research's CP/M Plus**: 16 sectors of 512 bytes,
+  2K blocks, 128 entries, no skew (the sectors are interleaved physically). The
+  P&T manual gives 128 entries for single-sided double density and 192 for
+  double-sided (PDF page 10), and the two reserved tracks (page 64); the CP/M
+  Plus manual says its 512-byte format is P&T's (page 9). PIP.COM and STAT.COM
+  are byte-identical on P&T 2.2mH and TriSoft's boot disk.
+
+The double-sided formats' 192 entries aren't in the table: the one double-sided
+disk, Aton 2.25B, uses only 38 of them, so a reading with 128 finds every file.
+CP/M Plus's 1024-byte format reserves four tracks (page 9) and isn't in the
+table either, since no disk uses it. FMG CP/M 2.21 (26 × 256, interleave 1,
+10, 19) doesn't decode.
+
+**Formats are matched by sectors per track as well as sector size**
+(`CpmFormat.sectorsPerTrack`). Montezuma's entry has 512-byte sectors and skew
+2. On a P&T disk its directory reads the same as with no skew, since all the
+entries are found either way, so the tie would go to Montezuma, the earlier
+entry, and every file would come out scrambled. The track lengths keep each
+format to its own disks.
+
 ## Percom MicroDOS
 
 Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
@@ -1497,6 +1551,141 @@ OS-80 1.5, and the manual disk. The rest don't have one:
   a count of 13 and the text `HELLO SAILOR!`. They have no directory: their
   BASIC addresses files by absolute sector (`LOAD 10055`, `GET A$,10020`), and
   their menu program lists the files in DATA lines.
+
+## Model II TRSDOS
+
+Tandy's TRSDOS for the Model II, versions 1.1, 1.2 and 2.0 (2.0a, 2.0b), decoded
+by `ModelIITrsdos.ts`. It isn't the Model I/III TRSDOS, though Model III TRSDOS 1.3
+and Model I 2.7DD descend from it (see "Which DOSes share a layout"), so the
+decoder calls it "Model II TRSDOS 1.x" or "2.0". The 2.0 manual (*Model II Disk
+Operating System Reference Manual*) gives the geometry and the fields of a
+directory record but no byte layout; the rest was measured on the 137 disks in
+Pete's archive that hold it, all of which decode.
+
+- **Geometry:** 77 cylinders, one side. Cylinder 0 is FM, 26 × 128; the rest are
+  MFM, 26 × 256, sectors 1-26 (2.0 interleaves them physically). A granule is 5
+  sectors, 5 per cylinder; sector 26 is never used (manual, PDF page 174).
+- **The directory** is 5 granules (sectors 1-25) on cylinder 44 unless FORMAT's
+  `DIR=` put it elsewhere, with an alternate copy on cylinder 52, or the directory
+  plus 8 (PDF pages 120-121). Three SCRIPSIT disks have it on cylinder 1. Cylinder 0
+  sector 2 says where: byte 0 is the directory cylinder, byte 1 the layout (1 or 2,
+  below), bytes 2-9 "TRSDOS  ", and byte 10 a BCD version (0x20 on 2.0, 0x12 on
+  1.2, 0 on 1.1), which isn't reliable: six 2.0-layout disks say 0x12.
+- **Two directory layouts.** 1.x keeps the GAT in sector 1 (a byte per cylinder at
+  0x00 with the unused high bits set, so 0xE0 is free; a 77-byte table at 0x4D;
+  the directory cylinder at 0x9A, then 0x01), the HIT in sector 2, and entries from
+  sector 3. 2.0 puts the HIT at 0x00-0x5F of sector 1 and the GAT at 0x60 plus the
+  cylinder (low 5 bits the granules, 0x40 the directory cylinder, 0x20 the
+  alternate, 0x80 locked out), the directory cylinder at 0xAD, then 0x02, and
+  entries from sector 2: 96 of them. The manual (PDF page 2) says 1.x and 2.0
+  can't read each other's disks. Four disks have a 1.x-style ID sector over a 2.0
+  directory, converted ones, so the decoder picks the layout by content.
+- **The HIT** uses the Model I hash ("The HIT"), dense: entry sector times 4 plus
+  the entry. 0 marks a free slot. Every in-use entry on every disk matches.
+- **Entries** are 64 bytes, four per sector:
+
+      0      attributes: bit 7 system file, bit 5 program; other bits are the
+             "user attribute byte" of the manual's RAMDIR record (PDF page 226),
+             set by applications (0x02, 0x10, 0x40, ...)
+      3      EOF: offset of the first byte of the last record
+      4      LRL, 0 meaning 256
+      5-15   name and extension
+      16-19  update and access password hashes, the 2.3 family's (0x4296 blank)
+      20-21  ERN: the relative sector holding the last record
+      22-53  sixteen extents: a cylinder, then bits 7-5 the granule and bits 4-0
+             the count minus 1; 0xFF ends them. No extended entries.
+      54-56  created: year - 1900, month, day
+      57     protection level, 0-7 (6 or 7 on system programs)
+      58-60  updated, the same way
+
+- **File size** is ERN × 256 + EOF + LRL, which follows from the manual's
+  definition of EOF. Checked by content: text files end exactly at their last
+  carriage return, every fixed-record file is a whole number of records, 1,123
+  load modules end inside the file (one more, `TO2` on `DIAGNOST.IMD`, runs 36 bytes
+  past the end, on the disk's last granule), and `BASIC` on 2.0a (ERN 69) owns exactly the
+  14 granules that 70 sectors need. An empty file has ERN 0xFFFF, EOF 0xFF and no
+  extents.
+- **Versions** can't be told apart beyond the layout: the ID sector (cylinder 0
+  sector 1, the disk name and the master password hash, "PASSWORD" being E0 42 as
+  in the 2.3 family) is the same on 2.0, 2.0a and 2.0b.
+
+## TRSDOS-II
+
+TRSDOS-II 4.1-4.4, for the Model II, 12, 16 and 6000, decoded by `TrsdosII.ts`.
+It shares nothing on disk with Model II TRSDOS. The *TRSDOS-II Reference Manual*
+gives commands and the RAM directory record but no byte layouts; this was
+measured on the 35 TRSDOS-II disks in Pete's archive (31 single-sided, 4
+double-sided), all of which decode, with every file read to exactly its size.
+
+- **Geometry:** cylinder 0 side 0 is FM 26 × 128; everything else is MFM 16 × 512,
+  sectors 1-16. **The allocation unit is a 256-byte half sector** (a granule
+  here), 32 per track: granule g is in track g / 32, sector (g % 32) / 2 + 1, half
+  g % 2. Tracks run side 0, side 1, then the next cylinder, and on double-sided
+  disks cylinder 0 side 1 holds data. Granules below 32 are cylinder 0 side 0.
+- **Parameter block:** cylinder 0 sector 3, 128 bytes, big-endian. 0x00 disk name,
+  0x08 master password hash (little-endian; E0 42 is "PASSWORD", FORMAT's default,
+  manual PDF page 75), 0x13 and 0x17 the root directory and its backup, 0x1B and
+  0x1F the allocation bitmap and its backup, 0x23 the number of granules (3
+  bytes), 0x26 the device type (0x15 floppy, 0x10 double-sided floppy, 0x05 hard
+  disk), 0x30 a version byte (0x41-0x43, which doesn't follow the DOS version), and
+  0x31 the directory type, 3. Sides come from the granule count, not the device
+  type: three double-sided disks say 0x15.
+- **Files** are found by number: a file number (3 bytes) is the granule holding its
+  block table, 64 four-byte runs of a count and a start granule (3 bytes),
+  ended by a zero.
+- **Directories:** the root lists only SYSTEM/DIR and USER001/DIR, each with a
+  backup block table at 0x33 of its root entry. The backups (of the root, the
+  subdirectories and the parameter block's files) are often stale, so they're
+  used only when the primary can't be read.
+- **Entries** are 64 bytes:
+
+      0x00   flags: 0x80 system, 0x40 Z80 program, 0x20 data (including 68000
+             programs), 0x04 variable-length records; 0 a free slot
+      0x02   name and extension, "NAME/EXT", 23 bytes; byte 0x19 is "*" on 4.4
+      0x1A   created: minutes since January 1 (3 bytes) and year - 1900
+      0x1E   modified, the same way
+      0x26   privilege (16 bits): the low 3 bits the protection level (manual,
+             PDF page 51)
+      0x28   EOF (32 bits): offset of the first byte of the last record;
+             0xFFFFFFFF for an empty file
+      0x2C   LRL (16 bits); in a variable-record file, the last record's length
+      0x2F   block table granule
+      0x3C   update and access password hashes (little-endian, 0x4296 none)
+
+- **File size** is EOF + LRL, as in Model II TRSDOS. Variable-length records start
+  with a length byte that counts itself, and walking them from 0 lands exactly on
+  EOF on all 19 such files. Files are often over-allocated, with stale data after
+  the end.
+- **Programs** (flag 0x40) are ordinary CMD load modules: all 911 decode.
+- **System files** are the ones in SYSTEM/DIR, which is what FILES/DIR "SYS" shows
+  (PDF page 72). The 0x80 flag isn't set on all of them.
+- **Version:** system disks through 4.3 say it on cylinder 0 sector 1 ("TRSDOS disk
+  operating system version 4.2."); 4.4 disks don't, but SYSTEM/SYS says
+  "TRSDOS-II ver. 04.04.00". Four data disks have neither.
+
+## Xenix tar disks
+
+Many of Tandy's Xenix distribution floppies (Model 16 and 6000) hold a plain tar
+archive rather than a file system, decoded by `XenixTar.ts`. Measured on Pete's
+archive: 71 of its 156 Xenix images decode this way, 5,043 members, each matching
+Python's `tarfile` field for field. The rest hold a Xenix file system (a
+superblock in block 1), which we don't read.
+
+- **Layout:** cylinder 0 side 0 is FM 26 × 128 filler; the data tracks are MFM 16 ×
+  512. The archive starts at linear track 1 (cylinder × sides + side), so at
+  cylinder 1 on single-sided disks and at cylinder 0 side 1 on the four
+  double-sided ones, and runs through the sectors in ID order.
+- **Old tar headers:** only regular files and hard links, no directories, no ustar.
+  Numbers are octal, space-padded, ended by a space or NUL, and the size field can
+  have stale digits after its NUL (`132000\0` then `1654 `), which `bsdtar`
+  rejects and GNU tar accepts. Archives end with a zero block (one ends at 0xE5
+  filler). None is cut off by the end of the disk, though the decoder would
+  report such a member's missing sectors as damage.
+- **Stale headers:** eight Xenix file system disks have a valid tar header at
+  cylinder 1 sector 1 followed by file system data. One header followed by junk
+  isn't an archive, so they're rejected.
+- **Names** are Unix paths, so a file's name contains "/". The web app's ZIP export
+  makes folders for them; `extract` turns each "/" into "_".
 
 ## Image formats
 
@@ -1701,8 +1890,7 @@ them with their ID-field position.
 As of October 14, 2026 the collection is 665 images: 598 DMK, 32 HFE, 13 DSK,
 13 IMD, 5 JV1, 4 JV3, all with sidecars and snapshots. `model2/` holds the IMD
 images, a sample of Pete's Model II archive (see its `README.md`). Of its
-Model II disks only LS-DOS 6.3.1 decodes; Model II TRSDOS, TRSDOS-II and the 8"
-CP/M formats don't yet. The biggest part is `peter/` (152): Ira's set
+Model II disks all decode, though `RACM2DEV.IMD` has an empty directory. The biggest part is `peter/` (152): Ira's set
 of disks that trsread and trstools couldn't read but VDISK could (see its
 `README.md`). Thirteen byte-identical copies were removed when it was added,
 and their names kept as aliases. `telanoc/` holds all 31 HFE images, made by

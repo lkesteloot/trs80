@@ -175,7 +175,9 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
   - `FloppyDiskGeometry.advanceTrackPosition()` and `advanceSectorPosition()`
     predate the lump model and nothing calls them; delete them.
   - `getFileSectorPositions()` assumes 256-byte sectors (`BYTES_PER_SECTOR`),
-    which is fine while other sizes are out of scope.
+    which is fine: `decodeTrsdos()` rejects disks whose data sectors are any
+    other size, since that took a Xenix file system disk (512-byte sectors) as
+    NEWDOS/80.
   - Cleanups: `decodeDirEntry()` repeats `isActive()`; `logicalToPhysical()`
     has a debug parameter and `getDirEntries()` a dead debugging block, both
     marked for removal; `getDirEntries()` silently drops entries that don't
@@ -236,35 +238,29 @@ more.
 In planned order. People on a TRS-80 Discord asked for all of these after the
 3.0.0 release, except the Model II file systems.
 
-- [ ] **Model II file systems.** `ImdFloppyDisk.ts` reads the IMD images in
-      `model2/` (see "IMD" in `FLOPPY_FORMATS.md`). Of their Model II disks, only
-      LS-DOS 6.3.1 (`LSD631DS.IMD`) decodes. Not decoded:
-      - **Model II TRSDOS 1.x and 2.0:** `TDOS112.IMD`, `TSDOS20A.IMD`,
-        `TD2BLANK.IMD`, `CPMPLUS4.IMD`, `RACM2DEV.IMD` and
-        `AXX-2037-051286-WORK.IMD`. They use 26 × 256 MFM data cylinders.
-        Measured on `TDOS112.IMD`:
-        - The directory is on cylinder 44.
-        - Sector 2 looks like a HIT.
-        - From sector 3 on, entries are 64 bytes, four per sector.
-        - 2.0's data tracks are interleaved (1, 22, 17, ...).
-        Model I TRSDOS 2.7DD descends from this DOS (see "Tandy's Model II
-        lineage"), which may be why `AXX-2037-051286-WORK.IMD` wrongly decodes
-        as TRSDOS 2.7. It gets one garbage file from a "directory" on cylinder
-        36, with one HIT hash hit. A Model II candidate should outscore that.
-      - **TRSDOS-II 4.x** (Model 12/16/6000): `26-4912.IMD`. It uses 16 × 512
-        MFM data cylinders.
-      - **8" CP/M:**
-        - `WORDSTAR.IMD` uses FM 26 × 128 throughout, the standard 8" single
-          density format.
-        - `LB224A.IMD` (Lifeboat) uses 8 × 1024 MFM data cylinders.
-        - Neither is in `CPM_FORMATS`.
-      - Xenix (`XNX320D2.IMD`) is out of scope.
+- [ ] **Model II leftovers.** Model II TRSDOS, TRSDOS-II, DOSPLUS II, LS-DOS, the
+      CP/M formats and Xenix tar disks decode (see their sections in
+      `FLOPPY_FORMATS.md`), covering all but about 80 of the 368 disks in Pete's
+      Model II archive. What's left:
+      - **Xenix file systems** (77 disks, the boot, application and "special
+        install" disks): a Unix file system with a big-endian superblock in block 1
+        (magic 0x2B5544 at 0x1F0 on Xenix 3; older TRS-XENIX disks lack it),
+        64-byte inodes from block 2, 16-byte directory entries.
+      - **OASIS** (`OASIS55A.IMD`) and **RM/COS** (`RMCOS243.IMD`), one disk each.
+      - DOSPLUS II data disks are "Unknown DOS": GAT byte 0xCB is 0x10, which
+        MultiDOS 1.x also writes, and they have no banner. A boot sector hash
+        table (see "What `nameAndVersion` still can't tell") would name them.
+      - TRSDOS-II's flag bit 0x08 (only on SYSRES/SYS, SYSTEM/SYS and BOOT/SYS),
+        its second flag byte, privilege bits 3-4, and the allocation bitmap, which
+        isn't read. Model II TRSDOS's bytes 1-2 and 61-63.
+      - The disks are read-only, as IMD images are.
 - [ ] **IMD leftovers.** The reader is read-only, so a mounted IMD disk can't be
       written to. The 0xFF per-sector size table is supported, as in MAME, but no
       image uses it, so only the unit tests exercise it.
 
-- [ ] **More CP/M formats.** `Cpm.ts` reads Montezuma Micro CP/M 2.2 and
-      Lifeboat CP/M 1.4 (see "CP/M" in `FLOPPY_FORMATS.md`); each further
+- [ ] **More CP/M formats.** `Cpm.ts` reads Montezuma Micro CP/M 2.2,
+      Lifeboat CP/M 1.4, Holmes, CP/M Plus and the Model II formats (see "CP/M"
+      in `FLOPPY_FORMATS.md`); each further
       format is mostly a new entry in `CPM_FORMATS`, checked against real disks.
       - Omikron CP/M on the Model I was also requested, though it's more of a
         novelty: it needed the Omikron Mapper board, which rearranges the
@@ -283,6 +279,12 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         Other BIOSes go up side 0 and back down side 1, or use side 0 then
         side 1; add a field to `CpmFormat` when one turns up.
       - CP/M 3 date stamps (user 0x21 entries) aren't read, so files have no dates.
+      - Model II CP/M (see "Model II CP/M" in `FLOPPY_FORMATS.md`): the
+        double-sided P&T and Aton formats have 192 directory entries, and the
+        table reads them with 128, which loses any file past entry 128 (none
+        of the archive's disks has one). CP/M Plus's 1024-byte format with
+        four reserved tracks isn't in the table. FMG CP/M 2.21 (26 × 256,
+        interleave 1, 10, 19; `FMG221.IMD` in Pete's archive) doesn't decode.
       - `peter/104 Elephant ... CP-M 2.2 ...` is far shorter than its header
         says (39,184 bytes of a promised 287,248), and its six tracks have no
         sectors, so there's nothing to read.
@@ -360,3 +362,10 @@ October 14, 2026: on 52 LDOS 5.3 and LS-DOS 6.3 disks and two NEWDOS 3.0 disks
 (same GAT byte 0xCB), time stamps gave 848 files a time (481 of them a year of
 1988 or later), and 505 system files lost their dates. TRSDOS 1.3's system files added 651 files on 49 disks, 590 of them
 load modules. Nothing else changed.
+
+Later on October 14, 2026: the Model II file systems (Model II TRSDOS, TRSDOS-II,
+Xenix tar), three 8" CP/M formats and DOSPLUS II's six granules per track. Ten
+disks from Pete's archive were added to `model2/`. Of the suite's 676 disks, 648
+decode; nothing that decoded before changed except to get better, and a Xenix file
+system disk that the TRSDOS decoder took for NEWDOS/80 is now rejected (512-byte
+sectors). Over Pete's whole archive (368 images), about 285 decode.
