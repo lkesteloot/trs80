@@ -60,14 +60,20 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **Stray sector IDs inflate `TrackGeometry`'s range.** Its first/last
       sector numbers include stray IDs (copy protection writes a few sectors
       numbered far outside the track's numbering, e.g. 124-126 on a 0-9 track,
-      or 255 on a 0-17 track). So `sectorSpan()`, `modalDataSectorSpan`,
-      `cylinder0Differs`, `info`'s verbose "sectors X to Y",
-      `advanceSectorPosition()`, and `info --json`'s per-track
-      `firstSector`/`lastSector` all see the inflated range. The expected range
-      (`getExpectedSectorRange()`) could replace it, but that changes decoding
-      and the report, so it needs a regression run and a REPORT_VERSION bump.
-      Evidence: the VTOS 3.x/4.x disks and the TRSDOS Training Course disks in
-      `ira/lk-410-crazy-errors`.
+      or 255 on a 0-17 track). `sectors` uses the expected range
+      (`getExpectedSectorRange()`) instead, but decoding still sees the raw one
+      in two places: `cylinder0Differs`, which makes NEWDOS/80 candidates skip
+      cylinder 0, and the BOOT/SYS filter in `Trsdos.ts`, which drops sectors
+      past the end of a short boot track. Neither hurts any disk in the suite:
+      the stray IDs turn on `cylinder0Differs` for 42 disks (VTOS, Talking
+      Adventure, Tic-Toc-80, Purge Master), none of them NEWDOS/80. An
+      experiment in October 2026 that made first/last the core range changed
+      no decoding on any disk, and made the geometry worse on
+      `difficult/ORGADV1M.DMK` (boot sector 0 became 111) and the two
+      `super-utility` disks (41 sectors per track became 1), so leave it
+      until a disk needs it. `info`'s verbose "sectors X to Y" and
+      `info --json`'s per-track `firstSector`/`lastSector` also show the raw
+      range.
 - [ ] **The hit floor.** The `hashHits < 2` floor in `evaluate()` would reject
       a blank TRSDOS 2.3B data disk, which may have no entries at all, and a
       blank MultiDOS or UltraDOS disk, which has no BOOT/SYS. Use "≥1 hit, or a
