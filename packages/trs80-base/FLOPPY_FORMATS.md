@@ -1472,6 +1472,38 @@ CP/M Plus's 1024-byte format reserves four tracks (page 9) and isn't in the
 table either, since no disk uses it. FMG CP/M 2.21 (26 × 256, interleave 1,
 10, 19) doesn't decode.
 
+**Measured, but not decoded yet.** Five CP/M disks from Ira's 4.2.0 report
+(`ira/lk-410-to-do`, October 2026), worked out from the disks with no DPB:
+
+- **Montezuma "Super Data"** (220K, the three `CP-M Public Domain Disk C354`,
+  `C900` and `C901` disks, labeled "40T SS DD 220K M M Super Data"). Every track
+  has five 1024-byte sectors (1-5) and one 512-byte sector (6), 44 records,
+  since six 1K sectors don't fit on a 5¼" double-density track. No reserved
+  tracks, 2K blocks, 128 entries, 8-bit pointers, EXM 1: 40 tracks of 5.5K make
+  110 blocks, the 220K of the label. Skew 2 over the 1K sectors, then the short
+  one (physical order 1, 3, 5, 2, 4, 6), measured from the files: every text
+  file reads cleanly, and three squeezed files (`MEX.DQC`, `MEX.HQP`,
+  `MXO-RS20.AQM`) unsqueeze with good checksums. (`MDM740.AQM` unsqueezes to
+  clean text from start to `END`, but its checksum is off by 0x72.) Blocks
+  aren't aligned to sectors: track 0's records 32-39 begin block 2, and block
+  3 starts halfway through track 1's first sector, so the BIOS addresses
+  records, not sectors.
+- **10 × 512 with skew 1** (`Turbo Pascal System v2.00A ... [No Preset
+  Terminal]`): Montezuma's extended layout (sectors numbered from 1, 2 reserved
+  tracks, 2K blocks, 128 entries) on 35 cylinders, but the data tracks are
+  interleaved physically (1, 8, 5, 2, 9, 6, 3, 10, 7, 4) and the BIOS uses no
+  skew. With skew 1 all 19 files read, and the text files are clean. With
+  Montezuma's skew 2, 14 entries are bad. The boot sector says "Not a SYSTEM
+  Disk", which isn't Montezuma's message, so the vendor is unknown.
+- **Lifeboat, truncated** (`C Compiler (1983)(Software Toolworks)[CP-M]`):
+  Lifeboat's layout (skew 4 reads `CLIBIO.C` cleanly), with all tracks 18 × 128,
+  so it's a data disk. The DMK header says 43 tracks, but the file holds only
+  27, and four of the eight entries point at blocks past the end.
+- `Hi-Tech Z-80 CP-M C Compiler V3.09 [Disk 0]` is a Montezuma 18 × 256 system
+  disk whose 24 directory entries all have user byte 0xE5: every file was
+  erased, so there's nothing to extract, and it stays undecoded like a blank
+  disk.
+
 **Formats are matched by sectors per track as well as sector size**
 (`CpmFormat.sectorsPerTrack`). Montezuma's entry has 512-byte sectors and skew
 2. On a P&T disk its directory reads the same as with no skew, since all the
