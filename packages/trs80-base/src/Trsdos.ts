@@ -927,12 +927,16 @@ export class TrsdosDirEntry implements FloppyDirEntry {
 
     /**
      * Return the date (and time, if known) as an object, or undefined if the file has no date.
+     * A missing month or day (zero) becomes the first, so that a year-only date is January 1 of
+     * that year rather than rolling back into the previous one.
      */
     public getDate(): Date | undefined {
         if (this.year === undefined) {
             return undefined;
         }
-        return new Date(this.year, this.month - 1, this.day, this.hour ?? 0, this.minute ?? 0);
+        const month = this.month === 0 ? 1 : this.month;
+        const day = this.day === 0 ? 1 : this.day;
+        return new Date(this.year, month - 1, day, this.hour ?? 0, this.minute ?? 0);
     }
 }
 
