@@ -184,3 +184,35 @@ describe("FloppyDiskGeometry expected sector ranges", () => {
         expect(geometry.expectedLastSectorNumber).to.eql(18);
     });
 });
+
+/**
+ * Makes the geometry of a disk with a boot track and two sector infos at the same position.
+ *
+ * @param firstHasData whether the first copy of the sector has a data field.
+ * @param secondHasData whether the second copy of the sector has a data field.
+ */
+function makeDuplicateGeometry(firstHasData: boolean, secondHasData: boolean): FloppyDiskGeometry {
+    const position = SectorPosition.make(0, 0, 3);
+    const first = new SectorInfo(position, Density.DOUBLE, 256);
+    first.hasDataField = firstHasData;
+    const second = new SectorInfo(position, Density.DOUBLE, 256);
+    second.hasDataField = secondHasData;
+    return FloppyDiskGeometry.make(1, 1, [first, second])!;
+}
+
+describe("FloppyDiskGeometry duplicate sectors", () => {
+    it("keeps an earlier sector with data over a later one without", () => {
+        const geometry = makeDuplicateGeometry(true, false);
+        expect(geometry.sectorMap.get("0:0:3")).to.equal(geometry.sectorInfos[0]);
+    });
+
+    it("replaces an earlier sector without data by a later one with", () => {
+        const geometry = makeDuplicateGeometry(false, true);
+        expect(geometry.sectorMap.get("0:0:3")).to.equal(geometry.sectorInfos[1]);
+    });
+
+    it("lets the later of two equal sectors win", () => {
+        const geometry = makeDuplicateGeometry(true, true);
+        expect(geometry.sectorMap.get("0:0:3")).to.equal(geometry.sectorInfos[1]);
+    });
+});

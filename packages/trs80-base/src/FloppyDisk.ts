@@ -310,6 +310,13 @@ export class SectorInfo {
      */
     public sectorSize: number;
 
+    /**
+     * Whether a data field (a data address mark and the data) follows the ID field. Some images have
+     * IDs whose data mark runs off the end of the track. Formats that store only the sectors that
+     * have data always have one.
+     */
+    public hasDataField = true;
+
     constructor(sectorPosition: SectorPosition, density: Density, sectorSize: number) {
         this.sectorPosition = sectorPosition;
         this.density = density;
@@ -332,6 +339,51 @@ export class SectorInfo {
     public hasValidIdCrc(): boolean {
         return this.crc?.idCrc.valid() ?? true;
     }
+
+    /**
+     * Whether a data field follows the ID field. See hasDataField.
+     */
+    public hasData(): boolean {
+        return this.hasDataField;
+    }
+}
+
+/**
+ * What laterSectorReplaces() needs to know about a sector.
+ */
+export interface SectorCopy {
+    /**
+     * Whether the ID field's CRC is good, or not known to be bad.
+     */
+    hasValidIdCrc(): boolean;
+
+    /**
+     * Whether a data field follows the ID field.
+     */
+    hasData(): boolean;
+}
+
+/**
+ * Decides which of two IDs for the same physical sector position the disk keeps. A real controller
+ * looking for a sector skips IDs with a bad CRC and finds the one whose data field it can read, but
+ * imagers record noise as IDs, and partial re-reads of a sector near the end of a track that have an
+ * ID but no data. Neither should hide a good copy. Ranks each copy (good ID CRC counts 2, having
+ * data counts 1), and lets the later one replace the earlier one when it ranks at least as high, so
+ * that among equals the later one wins.
+ *
+ * @param earlier the copy already kept.
+ * @param later the copy found after it.
+ * @return whether the later copy should replace the earlier one.
+ */
+export function laterSectorReplaces(earlier: SectorCopy, later: SectorCopy): boolean {
+    return sectorCopyRank(later) >= sectorCopyRank(earlier);
+}
+
+/**
+ * How good a copy of a sector is, for laterSectorReplaces().
+ */
+function sectorCopyRank(sector: SectorCopy): number {
+    return (sector.hasValidIdCrc() ? 2 : 0) + (sector.hasData() ? 1 : 0);
 }
 
 /**
@@ -590,12 +642,12 @@ export class FloppyDiskGeometry {
         this.trackMap = trackMap;
         this.bootTrack = bootTrack;
 
-        // A later sector with the same position replaces an earlier one, unless only the earlier
-        // one's ID field is good. The DMK reader picks the same way.
+        // A later sector with the same position replaces an earlier one unless it's worse (see
+        // laterSectorReplaces()). The DMK reader picks the same way.
         for (const sectorInfo of sectorInfos) {
             const key = sectorInfo.sectorPosition.key();
             const existing = this.sectorMap.get(key);
-            const replace = existing === undefined || sectorInfo.hasValidIdCrc() || !existing.hasValidIdCrc();
+            const replace = existing === undefined || laterSectorReplaces(existing, sectorInfo);
             if (replace) {
                 this.sectorMap.set(key, sectorInfo);
             }
