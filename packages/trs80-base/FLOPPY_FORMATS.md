@@ -343,8 +343,8 @@ ours. Measured on the 80 disks that decode in the 1.3 layout:
 
 Many Tandy originals for the Model III have a 41st track, cylinder 40, that
 no manual in the library mentions. It's Tandy's copy protection, which limits
-the number of backups, not a bad read. Measured on 18 disks in
-`ira/odderrors-420/` (one also in `ira/no-extract/`):
+the number of backups, not a bad read. Measured on 17 disks in
+`ira/odderrors-420/`, and an identical copy of one of them in `ira/no-extract/`:
 
 - **Layout.** Eighteen double-density 256-byte sectors with every ID and data
   CRC good. The ID fields say cylinder 0x28 and number the sectors **0x81-0x92**,
@@ -374,9 +374,112 @@ the number of backups, not a bad read. Measured on 18 disks in
   was duplicated rather than by the DOS.
 
 The track is numbered apart from the rest of the disk, so
-`FloppyDiskGeometry` gives it its own expected range (129-146) rather than
-merging it with the disk's (1-18), which used to report sectors 19-128 as
-missing. The `sectors` map lists it under the strays.
+`FloppyDiskGeometry` puts it in a sector-number group of its own (129-146)
+rather than merging it with the disk's (1-18), which used to report sectors
+19-128 as missing. The `sectors` map shows it as a table of its own.
+
+## Leftovers from earlier formats
+
+Disks were often formatted more than once. When the later format covers fewer
+cylinders than the earlier one, or a copier formats only the cylinders it
+copies, the cylinders past it keep the old format and whatever was written on
+it. They're outside the file system (past the GAT's cylinder count, or CP/M's
+tracks), so their errors damage no file, but `sectors --bad` lists them. Most of
+what was left in Ira's `sectors --bad` run (`ira/odderrors-420/`) is this.
+
+**The filler names the formatter.** Measured on `telanoc/`, whose disks were
+each formatted by their DOS on real hardware: DOSPLUS 3.5 and DOSPLUS IV fill
+new sectors with 0x6C in both densities; LDOS 5.3, LS-DOS 6.3, and MultiDOS 1.7
+with `6D B6` repeated in double density and 0xE5 in single density; TRSDOS 2.3
+and CP/M 1.4 with 0xE5; and TRSDOS 1.3 with 0xE5 ending in `(c) 1980 Tandy  `,
+like the protection track above. The blank LDOS, LS-DOS and TRSDOS 6 disks in
+`simple/trs80gp/formatted/` have `6D B6` too. Other DOSPLUS versions differ:
+the free cylinders of most DOSPLUS 3.1, 3.3 and 3.4 disks in the collection
+hold 0x00 or 0xE5. DOSPLUS 3.5 numbers double-density sectors 0-17 in a 3:1
+interleave, and DOSPLUS IV in 2:1.
+An IBM PC-DOS 160K format is eight 512-byte sectors numbered 1-8, filled with
+0xF6, 654 bytes from one ID to the next (an 80-byte gap 3).
+
+The leftovers in `ira/odderrors-420/`:
+
+- **`CLOAD Magazine Issue 58 [Set 3]`**, cylinders 35-39: LDOS 5.1 on 35
+  single-density cylinders (GAT 0xCC is 0) over a 40-cylinder double-density
+  disk of the *TRS-Link* magazine. Its sidecar in `ira/oddity2/` (the same image)
+  describes it. The six errors on cylinder 35 are where the single-density
+  sector 7 of cylinder 34 was written over the old track, ID and all.
+- **`Dunjonquest Hellfire Warrior v2.1 [Original]`** (Sets 1 and 2), cylinders
+  35-39: TRSDOS 2.3 on 35 single-density cylinders, over a PC-DOS 160K format
+  (0xF6 filler, 80-byte gap 3). Its ten CRC errors per disk are dropped bits
+  (0xF6 read as 0xF4, 0xE4, 0x76) and, on cylinder 37, bit slips that turn the
+  filler into 0xED, 0xDB, and 0xB7: an old recording that nothing rewrote. The
+  two images were read separately, but their cylinders 35-39 have the same
+  layout, and their errors fall in nearly the same places: sector 8 of every
+  cylinder, sector 3 of 35 and 36, sector 7 of 37, and sector 1 of 38.
+- **`LOAD-80 Issue 023`**, cylinder 40: DOSPLUS 3.4 on 40 double-density
+  cylinders (GAT 0xCC is 5). Cylinder 40 is single density with nine sectors,
+  numbered 0 and 2-9: the usual 2:1 order with sector 1's slot gone and the rest
+  spread evenly. They hold 0x00, three of them with a few bits set. Who wrote it
+  is unknown.
+- **`Data Base Management System (Condor)`** (CP/M, double-sided), cylinders
+  40-41 on both sides, **`SuperScripsit v1.1.0 [M3][Set 3]`** (TRSDOS 1.3),
+  cylinders 40-41, and **`Xenos [Set 3]`** (TRSDOS 1.3), cylinders 40-42:
+  0x6C filler, sectors 0-17 in DOSPLUS 3.5's 3:1 interleave. So these were
+  blanks formatted by DOSPLUS to 42 cylinders, and a 40-cylinder disk was then
+  copied onto them. (Xenos's cylinder 42 is an imaging artifact; see the next
+  section.)
+- **`WordStar with MailMerge v3.0 [Disk 2 of 2]`** (CP/M), cylinder 40, and
+  **`TASMON v2.12`**, cylinders 35-39: `6D B6` filler, sectors 0-17, an
+  LDOS-family format. TASMON's disk has been through at least three formats:
+  that one, a double-density 1-18 format (with deleted marks on most of its
+  tracks) left on cylinders 3, 4, 6, and 28-34, and the single-density 10-sector
+  tracks that hold TASMON now, with a lone sector 0 on cylinder 0. `info` says
+  "Unknown DOS with 2 files".
+
+The last two groups have complete tracks numbered 0-17 next to the disk's 1-18
+tracks of the same density and sector size. `FloppyDiskGeometry` used to give
+each track the union of its numbering and its neighbors', 0-18 here, so
+`sectors` reported their sector 18 as missing: 15 reports on five disks, and
+none anywhere else in the collection. Now a track joins a sector-number group
+only if its numbering fits inside the group's (as a damaged track's does), so
+these tracks get a group, and a table in the map, of their own.
+
+## Damage and imaging artifacts in Ira's sectors run
+
+The rest of `ira/odderrors-420/`:
+
+- **`NEWDOS-80 Patches for AJ v6.0a Mods`**: cylinder 39 is damaged. There's a
+  signal all the way around, but it decodes only as bit-slipped `6D B6` filler
+  (0xDB, 0xB6, 0x6D, 0x36), with five IDs in its first two-thirds, two of them
+  followed by data with bad CRCs. Three of the missing sectors belong to
+  `ZAPM3/JCL`.
+- **`SuperScripsit v1.00.01 [M4][Set 03]`** (TRSDOS 6.2): cylinders 40-41 hold
+  `6D B6`, formatted along with the rest. The GAT's 0xCC is 8 and its
+  allocation table covers 43 cylinders, but the media block says 40 (0xFC is
+  0x27), and the image has 42. Cylinder 41 is weak for about a third of a turn:
+  six of the IDs there have bad CRCs, five of them with the cylinder byte read
+  as 0x28 (bit 0 lost), and five have bad data CRCs. No file is there.
+- **`Make-80 v1.2 [M1][Set 2][Disk 1 of 2]`**: a 35-cylinder single-density disk
+  imaged in an 80-track drive that stepped once per track, so the image has 70
+  tracks. Track 2*n* holds cylinder *n* (track 1 holds cylinder 1 too, and track
+  3 one sector of it), and the odd tracks hold the noise between tracks. Four
+  odd tracks near the hub pick up a few IDs of the cylinder before them, which
+  make 40 of its 57 errors, and track 3 makes 9 more. `info` says "Unknown DOS
+  with 1 file". The disk was once
+  formatted with 80 cylinders, and some of that survives between the wider
+  40-track tracks: track 9 is a whole single-density track whose IDs say
+  cylinder 9, and track 8 ends with a sector of cylinder 8 where cylinder 4's
+  sectors 2 and 6 should be. Six of the even tracks also end with a second
+  copy of their first sector, cut off by the end of the track, which the reader
+  used to take over the good one (see "An IDAM pointer can point past the end
+  of its track").
+- **`LOAD-80 Issue 023`**: cylinder 40's IDAM table, after its nine
+  single-density pointers, has nine double-density ones copied from cylinder 39's
+  table (offsets 0x0CB5 to 0x1765), which point into the single-density
+  sectors. The imager didn't clear the table between tracks. Their ID CRCs fail,
+  so the readers ignore them.
+- **`Xenos [Set 3]`**: track 42 of its 43 is cylinder 40 again. Its IDs say
+  cylinder 40, and it matches track 40 except for one byte before the first
+  gap. `FloppyDiskGeometry` takes it as cylinder 42.
 
 ## TRSDOS 2.3B
 
@@ -607,7 +710,11 @@ technical reference (pages 18-19) describe the same GAT, with these additions:
   (against the allocation sides), sectors per track, granules per track and
   granule size (against the decoded files), the directory cylinder, and the
   cylinder count (against 0xCC). That includes data disks and both 8" disks,
-  but only one double-sided disk (`LOAD-80 Issue 85-03`). It's the most
+  but only one double-sided disk (`LOAD-80 Issue 85-03`). One disk added
+  later disagrees: `SuperScripsit v1.00.01 [M4][Set 03]` (in
+  `ira/odderrors-420/`) has 0xFC = 0x27 (40 cylinders) but 0xCC = 8 and an
+  allocation table of 43 cylinders, on a 42-track image whose last two
+  cylinders are formatted like the rest. It's the most
   complete self-description any disk in the collection carries, and FORMAT
   writes it on data disks too, unlike the system information sector below.
 - **The system information sector** is cylinder 0 sector 2 (guide, page 145):
@@ -1960,7 +2067,12 @@ drops pointers whose 7-byte ID field doesn't fit in the track. A real FDC would
 have found the real sector anyway, since it searches again when no data mark
 follows an ID. Of the 182 duplicate IDs in the collection at the time, none
 other had a later copy that is worse than an earlier one; see the next note for
-disks added since.
+disks added since. Since then `Make-80 v1.2 [M1][Set 2][Disk 1 of 2]` (in
+`ira/lk-410-crazy-errors/`) has six: tracks that end with a re-read of their
+first sector, whose ID fits in the track but whose data mark doesn't, so the
+later copy, with no data, replaced the good one. They're the only ones in the
+collection. So a copy with no data field no longer replaces one that has one
+(see the rule at the end of the next note).
 
 **An IDAM pointer can point at data.** On `French Teacher #1 ... [Set 2].dmk`,
 every track ends, after sector 9's gap, with about 50 bytes of what looks like
@@ -1978,8 +2090,9 @@ ones claiming sector 0 replaced the real sector 0 of their track, which hid the
 directory on cylinder 5. So two rules: `TrackGeometry` takes a track's sector
 range, density, and size only from IDs whose CRC is good; and in both the DMK
 reader's and the geometry's sector maps, a later duplicate doesn't replace an
-earlier one whose ID CRC is good unless its own is too. The bad IDs stay in the
-geometry's sector list. These rules also let `MultiDOS II ... [Incomplete].dmk`
+earlier one whose ID CRC is good unless its own is too, nor (since `Make-80`,
+above) an equally good one that has a data field when it has none. The bad IDs
+stay in the geometry's sector list. These rules also let `MultiDOS II ... [Incomplete].dmk`
 decode.
 
 **A track whose IDs are all bad is unformatted.** Imagers also find 0xFE bytes
