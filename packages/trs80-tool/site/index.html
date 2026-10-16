@@ -540,6 +540,11 @@ C CRC error (ID or data).
 
             <h3 id="2026-10-15">October 15, 2026</h3>
             <ul>
+                <li><code>trs80-tool</code> v4.2.1: When extracting a set of Xenix disks
+                    in order into the same directory, <code>extract</code> joins the files
+                    that are split across disks. The <code>sectors</code> map shows tracks with
+                    unusual sector numbers each in their own tables. More robust reading of
+                    copy-protected disk images.</li>
                 <li><code>trs80-tool</code> v4.2.0:
                     <ul>
                         <li>Can read Model II disks: Model II TRSDOS 1.x
