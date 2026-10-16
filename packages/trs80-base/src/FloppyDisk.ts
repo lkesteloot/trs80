@@ -59,7 +59,7 @@ function modeOf(values: number[]): { value: number, count: number } {
  * as the same run of numbers. A gap of up to 2 missing numbers stays inside one cluster, while
  * the strays that copy protection writes (such as 124-126 on a track numbered 0-9, or a lone 23
  * on a track numbered 0-18) form their own clusters. Longer gaps from damage are still reported,
- * because a track's expected range also covers its group's usual range.
+ * because a damaged track's expected range is its group's range.
  */
 const MAX_SECTOR_NUMBER_GAP = 3;
 
@@ -148,6 +148,13 @@ export class TrackPosition {
         return this.cylinderNumber === other.cylinderNumber && this.side === other.side;
     }
 
+}
+
+/**
+ * Compares track positions by cylinder, then side, for sorting.
+ */
+function compareTrackPositions(a: TrackPosition, b: TrackPosition): number {
+    return a.cylinderNumber - b.cylinderNumber || a.side - b.side;
 }
 
 /**
@@ -516,46 +523,21 @@ export class TrackGeometry {
 }
 
 /**
- * The most common core sector range among the tracks. Ties go to the lowest first sector number,
- * then the lowest last sector number.
- *
- * @param tracks the tracks to look at. Must not be empty.
+ * A set of tracks numbered alike (same density, sector size, and sector range), which the sectors
+ * map shows as one table.
  */
-function modalCoreRange(tracks: TrackGeometry[]): SectorNumberRange {
-    // Map from "first,last" to its count and range.
-    const counts = new Map<string,{ range: SectorNumberRange, count: number }>();
-    for (const track of tracks) {
-        const key = track.coreFirstSectorNumber + "," + track.coreLastSectorNumber;
-        const entry = counts.get(key);
-        if (entry === undefined) {
-            counts.set(key, {
-                range: {
-                    firstSectorNumber: track.coreFirstSectorNumber,
-                    lastSectorNumber: track.coreLastSectorNumber,
-                },
-                count: 1,
-            });
-        } else {
-            entry.count++;
-        }
-    }
-
-    let best: { range: SectorNumberRange, count: number } | undefined = undefined;
-    for (const entry of counts.values()) {
-        if (best === undefined || entry.count > best.count ||
-            (entry.count === best.count &&
-                (entry.range.firstSectorNumber < best.range.firstSectorNumber ||
-                    (entry.range.firstSectorNumber === best.range.firstSectorNumber &&
-                        entry.range.lastSectorNumber < best.range.lastSectorNumber)))) {
-
-            best = entry;
-        }
-    }
-    if (best === undefined) {
-        throw new Error("Must have at least one track for modalCoreRange()");
-    }
-
-    return best.range;
+export interface SectorNumberGroup {
+    /**
+     * The sector numbers that each of these tracks is expected to have. A damaged track that lost
+     * sectors is in the group whose range contains its own, so that the missing sectors are reported.
+     */
+    range: SectorNumberRange;
+    density: Density;
+    sectorSize: number;
+    /**
+     * The tracks in the group, sorted by cylinder, then side.
+     */
+    trackPositions: TrackPosition[];
 }
 
 /**
@@ -570,18 +552,14 @@ export class FloppyDiskGeometry {
     // Map from TrackPosition key to TrackGeometry.
     public readonly trackMap: Map<string,TrackGeometry>;
     // These include all tracks and all stray IDs, so they can be much wider than any track's
-    // usual numbering. See the expected numbers below for displaying a table of sectors.
+    // usual numbering. See the sector number groups below for displaying tables of sectors.
     public readonly firstSectorNumber: number;
     public readonly lastSectorNumber: number;
-    // The lowest and highest of every track's expected sector range (see getExpectedSectorRange()),
-    // which are the columns to use when displaying a table of sectors. Tracks numbered apart from
-    // the rest of the disk are left out, so their sectors can fall outside these columns.
-    public readonly expectedFirstSectorNumber: number;
-    public readonly expectedLastSectorNumber: number;
-    // Map from TrackPosition key to that track's expected sector range.
-    private readonly expectedSectorRanges = new Map<string,SectorNumberRange>();
-    // TrackPosition keys of the tracks whose numbering doesn't overlap that of their group.
-    private readonly offNumberingTracks = new Set<string>();
+    // The tracks grouped by how they're numbered, sorted by each group's first track. Each
+    // group's range is what its tracks are expected to have (see getExpectedSectorRange()).
+    public readonly sectorNumberGroups: SectorNumberGroup[];
+    // Map from TrackPosition key to that track's group.
+    private readonly sectorNumberGroupMap = new Map<string,SectorNumberGroup>();
     // Information about the boot track (cylinder 0 side 0).
     public readonly bootTrack: TrackGeometry;
     // Most common values across the side 0 tracks other than the boot track, or of the boot
@@ -659,14 +637,7 @@ export class FloppyDiskGeometry {
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
 
-        // Every group has at least one track that matches its own numbering, so the columns
-        // always have at least one range.
-        this.computeExpectedSectorRanges(tracks);
-        const columnRanges = [... this.expectedSectorRanges.entries()]
-            .filter(([trackKey]) => !this.offNumberingTracks.has(trackKey))
-            .map(([, range]) => range);
-        this.expectedFirstSectorNumber = Math.min(... columnRanges.map(range => range.firstSectorNumber));
-        this.expectedLastSectorNumber = Math.max(... columnRanges.map(range => range.lastSectorNumber));
+        this.sectorNumberGroups = this.computeSectorNumberGroups(tracks);
 
         // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
         // below are computed from these, so that a disk whose second side is garbage (or holds a
@@ -683,62 +654,111 @@ export class FloppyDiskGeometry {
     }
 
     /**
-     * Fills in expectedSectorRanges. Groups the tracks by side, density, and sector size (so that
-     * a side numbered differently, or tracks laid out in another density, stay separate), and
-     * puts cylinder 0 in groups of its own, since boot tracks often have their own layout. Finds
-     * the most common core range in each group, and gives each track the union of its own core
-     * range and its group's. The union means a damaged track that lost its last sectors still has
-     * them reported, and it never shrinks a track's own core. A track whose core doesn't overlap
-     * its group's range gets only its own core, and is noted in offNumberingTracks.
+     * Groups the tracks by how they're numbered, and fills in sectorNumberGroupMap. Tracks have the
+     * same key if they have the same density, sector size, and core sector range (the side doesn't
+     * matter). Tracks not on cylinder 0 are handled first, most common key first (ties go to the key
+     * with the earliest track). A key joins the first existing group of the same density and sector
+     * size whose range contains the key's core range, so that a damaged track that lost sectors is
+     * numbered like the others and has them reported as missing. Otherwise it starts a group with
+     * its own core range, so a complete track numbered 0-17 among tracks numbered 1-18 isn't
+     * reported as missing sector 18. Boot tracks often have their own layout, so tracks on cylinder 0
+     * join a group only if it has exactly the same density, sector size, and range.
+     *
+     * @return the groups, with their tracks sorted by cylinder then side, and themselves sorted by
+     * their first track.
      */
-    private computeExpectedSectorRanges(tracks: TrackGeometry[]): void {
-        // Map from group key to the tracks in the group.
-        const groups = new Map<string,TrackGeometry[]>();
+    private computeSectorNumberGroups(tracks: TrackGeometry[]): SectorNumberGroup[] {
+        // Map from key to the tracks with that key, separately for the other cylinders and for cylinder 0.
+        const otherKeys = new Map<string,TrackGeometry[]>();
+        const cylinder0Keys = new Map<string,TrackGeometry[]>();
         for (const track of tracks) {
-            const isCylinder0 = track.trackPosition.cylinderNumber === 0;
-            const groupKey = [isCylinder0, track.trackPosition.side, track.modalDensity, track.modalSectorSize].join(",");
-            let group = groups.get(groupKey);
-            if (group === undefined) {
-                group = [];
-                groups.set(groupKey, group);
+            const key = [track.modalDensity, track.modalSectorSize,
+                track.coreFirstSectorNumber, track.coreLastSectorNumber].join(",");
+            const keys = track.trackPosition.cylinderNumber === 0 ? cylinder0Keys : otherKeys;
+            let keyTracks = keys.get(key);
+            if (keyTracks === undefined) {
+                keyTracks = [];
+                keys.set(key, keyTracks);
             }
-            group.push(track);
+            keyTracks.push(track);
         }
 
-        for (const group of groups.values()) {
-            const modalRange = modalCoreRange(group);
-            for (const track of group) {
-                const overlapsGroup = track.coreFirstSectorNumber <= modalRange.lastSectorNumber &&
-                    track.coreLastSectorNumber >= modalRange.firstSectorNumber;
-                let range: SectorNumberRange;
-                if (overlapsGroup) {
-                    range = {
-                        firstSectorNumber: Math.min(track.coreFirstSectorNumber, modalRange.firstSectorNumber),
-                        lastSectorNumber: Math.max(track.coreLastSectorNumber, modalRange.lastSectorNumber),
-                    };
-                } else {
-                    // A track numbered apart from the rest of its group, such as a copy-protection
-                    // track whose sectors are 129 to 146 on a disk numbered 1 to 18 (see
-                    // FLOPPY_FORMATS.md). The union would claim every number in the gap is missing,
-                    // so keep the track's own range, and leave it out of the disk's columns.
-                    range = {
-                        firstSectorNumber: track.coreFirstSectorNumber,
-                        lastSectorNumber: track.coreLastSectorNumber,
-                    };
-                    this.offNumberingTracks.add(track.trackPosition.key());
-                }
-                this.expectedSectorRanges.set(track.trackPosition.key(), range);
-            }
+        const groups: SectorNumberGroup[] = [];
+
+        // Most common key first, and the earliest track for ties.
+        const sortedOtherKeys = [... otherKeys.values()].map(keyTracks =>
+            keyTracks.sort((a, b) => compareTrackPositions(a.trackPosition, b.trackPosition)));
+        sortedOtherKeys.sort((a, b) => b.length - a.length ||
+            compareTrackPositions(a[0].trackPosition, b[0].trackPosition));
+        for (const keyTracks of sortedOtherKeys) {
+            const core = keyTracks[0];
+            const group = groups.find(group =>
+                group.density === core.modalDensity &&
+                group.sectorSize === core.modalSectorSize &&
+                group.range.firstSectorNumber <= core.coreFirstSectorNumber &&
+                core.coreLastSectorNumber <= group.range.lastSectorNumber);
+            this.addTracksToGroup(groups, group, keyTracks);
+        }
+
+        for (const keyTracks of cylinder0Keys.values()) {
+            const core = keyTracks[0];
+            const group = groups.find(group =>
+                group.density === core.modalDensity &&
+                group.sectorSize === core.modalSectorSize &&
+                group.range.firstSectorNumber === core.coreFirstSectorNumber &&
+                group.range.lastSectorNumber === core.coreLastSectorNumber);
+            this.addTracksToGroup(groups, group, keyTracks);
+        }
+
+        for (const group of groups) {
+            group.trackPositions.sort(compareTrackPositions);
+        }
+        groups.sort((a, b) => compareTrackPositions(a.trackPositions[0], b.trackPositions[0]));
+
+        return groups;
+    }
+
+    /**
+     * Adds tracks that share a key to a group, or to a new group (with the tracks' core range, which
+     * is added to "groups") if "group" is undefined. Records the group of each track.
+     */
+    private addTracksToGroup(groups: SectorNumberGroup[], group: SectorNumberGroup | undefined,
+                             keyTracks: TrackGeometry[]): void {
+
+        if (group === undefined) {
+            const track = keyTracks[0];
+            group = {
+                range: {
+                    firstSectorNumber: track.coreFirstSectorNumber,
+                    lastSectorNumber: track.coreLastSectorNumber,
+                },
+                density: track.modalDensity,
+                sectorSize: track.modalSectorSize,
+                trackPositions: [],
+            };
+            groups.push(group);
+        }
+
+        for (const track of keyTracks) {
+            group.trackPositions.push(track.trackPosition);
+            this.sectorNumberGroupMap.set(track.trackPosition.key(), group);
         }
     }
 
     /**
      * The range of sector numbers that the track at the given position is expected to have,
-     * ignoring stray IDs, or undefined if getTrack() is. This is for display only; decoding uses
-     * the track's first and last sector numbers.
+     * ignoring stray IDs, or undefined if getTrack() is. This is the range of the track's sector
+     * number group. This is for display only; decoding uses the track's first and last sector numbers.
      */
     public getExpectedSectorRange(trackPosition: TrackPosition): SectorNumberRange | undefined {
-        return this.expectedSectorRanges.get(trackPosition.key());
+        return this.getSectorNumberGroup(trackPosition)?.range;
+    }
+
+    /**
+     * The group of tracks numbered like the track at the given position, or undefined if getTrack() is.
+     */
+    public getSectorNumberGroup(trackPosition: TrackPosition): SectorNumberGroup | undefined {
+        return this.sectorNumberGroupMap.get(trackPosition.key());
     }
 
     /**

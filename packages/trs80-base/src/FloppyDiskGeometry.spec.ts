@@ -159,15 +159,17 @@ describe("FloppyDiskGeometry expected sector ranges", () => {
             .to.eql({firstSectorNumber: 0, lastSectorNumber: 17});
     });
 
-    it("computes the columns for the whole disk", () => {
+    it("computes the sector number groups for the whole disk", () => {
         const geometry = makeGeometry([
             {cylinder: 0, side: 0, sectorNumbers: [... range(0, 3), ... range(5, 9), 124, 125, 126]},
             ... makeOtherTracks(range(0, 9)),
         ]);
         expect(geometry.firstSectorNumber).to.eql(0);
         expect(geometry.lastSectorNumber).to.eql(126);
-        expect(geometry.expectedFirstSectorNumber).to.eql(0);
-        expect(geometry.expectedLastSectorNumber).to.eql(9);
+        expect(geometry.sectorNumberGroups.length).to.eql(1);
+        expect(geometry.sectorNumberGroups[0].range).to.eql({firstSectorNumber: 0, lastSectorNumber: 9});
+        expect(geometry.sectorNumberGroups[0].trackPositions.map(position => position.key()))
+            .to.eql(["0:0", "1:0", "2:0", "3:0", "4:0"]);
     });
 
     it("keeps a track numbered apart from its group to its own range", () => {
@@ -180,8 +182,53 @@ describe("FloppyDiskGeometry expected sector ranges", () => {
             .to.eql({firstSectorNumber: 129, lastSectorNumber: 146});
         expect(geometry.getExpectedSectorRange(new TrackPosition(1, 0)))
             .to.eql({firstSectorNumber: 1, lastSectorNumber: 18});
-        expect(geometry.expectedFirstSectorNumber).to.eql(1);
-        expect(geometry.expectedLastSectorNumber).to.eql(18);
+        expect(geometry.sectorNumberGroups.length).to.eql(2);
+    });
+
+    it("gives a complete 0-17 track among 1-18 tracks its own group", () => {
+        const geometry = makeGeometry([
+            {cylinder: 0, side: 0, sectorNumbers: range(1, 18)},
+            ... makeOtherTracks(range(1, 18)),
+            {cylinder: 5, side: 0, sectorNumbers: range(0, 17)},
+        ]);
+        expect(geometry.getExpectedSectorRange(new TrackPosition(5, 0)))
+            .to.eql({firstSectorNumber: 0, lastSectorNumber: 17});
+        expect(geometry.getExpectedSectorRange(new TrackPosition(2, 0)))
+            .to.eql({firstSectorNumber: 1, lastSectorNumber: 18});
+        expect(geometry.sectorNumberGroups.length).to.eql(2);
+        const group = geometry.getSectorNumberGroup(new TrackPosition(5, 0))!;
+        expect(group.trackPositions.map(position => position.key())).to.eql(["5:0"]);
+        expect(group).not.to.equal(geometry.getSectorNumberGroup(new TrackPosition(1, 0)));
+    });
+
+    it("orders the groups by their first track", () => {
+        const geometry = makeGeometry([
+            {cylinder: 0, side: 0, sectorNumbers: range(0, 9), density: Density.SINGLE},
+            ... makeOtherTracks(range(1, 18)),
+            {cylinder: 5, side: 0, sectorNumbers: range(129, 146)},
+        ]);
+        const groups = geometry.sectorNumberGroups;
+        expect(groups.length).to.eql(3);
+        expect(groups[0].range).to.eql({firstSectorNumber: 0, lastSectorNumber: 9});
+        expect(groups[0].density).to.eql(Density.SINGLE);
+        expect(groups[0].trackPositions.map(position => position.key())).to.eql(["0:0"]);
+        expect(groups[1].range).to.eql({firstSectorNumber: 1, lastSectorNumber: 18});
+        expect(groups[1].density).to.eql(Density.DOUBLE);
+        expect(groups[1].trackPositions.map(position => position.key())).to.eql(["1:0", "2:0", "3:0", "4:0"]);
+        expect(groups[2].range).to.eql({firstSectorNumber: 129, lastSectorNumber: 146});
+        expect(groups[2].trackPositions.map(position => position.key())).to.eql(["5:0"]);
+    });
+
+    it("makes one group when both sides are numbered alike", () => {
+        const tracks: TrackSpec[] = [];
+        for (let cylinder = 0; cylinder < 3; cylinder++) {
+            tracks.push({cylinder, side: 0, sectorNumbers: range(1, 10)});
+            tracks.push({cylinder, side: 1, sectorNumbers: range(1, 10)});
+        }
+        const geometry = makeGeometry(tracks);
+        expect(geometry.sectorNumberGroups.length).to.eql(1);
+        expect(geometry.sectorNumberGroups[0].trackPositions.map(position => position.key()))
+            .to.eql(["0:0", "0:1", "1:0", "1:1", "2:0", "2:1"]);
     });
 });
 

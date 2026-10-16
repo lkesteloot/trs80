@@ -89,7 +89,7 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
                 }
                 const expected = geometry.getExpectedSectorRange(trackPosition);
                 for (const sectorNumber of sectorNumbersToVisit(trackGeometry, expected)) {
-                    const outsideExpected = !isUsualSectorNumber(geometry, expected, sectorNumber);
+                    const outsideExpected = !isUsualSectorNumber(expected, sectorNumber);
                     let header = `Cylinder ${cylinder}, side ${side}, sector ${sectorNumber}: `;
 
                     const sectorPosition = new SectorPosition(trackPosition, sectorNumber);
@@ -173,51 +173,72 @@ function sectorNumbersToVisit(trackGeometry: TrackGeometry, expected: SectorNumb
 }
 
 /**
- * Whether the sector number is within the track's expected range and within the disk's columns
- * (the expected ranges of the tracks numbered like the rest of the disk). A track numbered apart
- * from the rest, such as a copy-protection track, has its own expected range but falls outside
- * the columns, so all of its sectors count as strays.
+ * Whether the sector number is within the track's expected range (the range of its sector number
+ * group), or the track has no expected range.
  */
-function isUsualSectorNumber(geometry: FloppyDiskGeometry, expected: SectorNumberRange | undefined,
-                             sectorNumber: number): boolean {
-
-    return (expected === undefined ||
-            (sectorNumber >= expected.firstSectorNumber && sectorNumber <= expected.lastSectorNumber)) &&
-        sectorNumber >= geometry.expectedFirstSectorNumber && sectorNumber <= geometry.expectedLastSectorNumber;
+function isUsualSectorNumber(expected: SectorNumberRange | undefined, sectorNumber: number): boolean {
+    return expected === undefined ||
+        (sectorNumber >= expected.firstSectorNumber && sectorNumber <= expected.lastSectorNumber);
 }
 
 /**
- * A table of sectors that the main map can't show, for tracks on one side that share the same
- * columns.
+ * A table of the sector map: the tracks on one side that share the same columns.
  */
-interface StrayTable {
+interface MapTable {
     side: number;
     // The sector numbers to show, in ascending order. Not necessarily consecutive.
     columns: number[];
+    // In cylinder order.
     trackPositions: TrackPosition[];
 }
 
 /**
- * Print a map of the sectors on the disk: one table per side, with a column for every sector
- * number that the disk usually has, then tables of the sectors outside those numbers.
+ * Print a map of the sectors on the disk: one table for each side of each group of tracks that are
+ * numbered alike (see FloppyDiskGeometry.sectorNumberGroups), with a column for every sector number
+ * in the group's range. Then lists the cylinders with no sectors, and prints tables of the sectors
+ * outside their tracks' usual numbers.
  */
 function printMap(file: Trs80Floppy) {
     const geometry = file.getGeometry();
     const usedLetters = new Set<string>();
-    const mainColumns: number[] = [];
-    for (let sectorNumber = geometry.expectedFirstSectorNumber;
-         sectorNumber <= geometry.expectedLastSectorNumber; sectorNumber++) {
 
-        mainColumns.push(sectorNumber);
+    // The tables of the groups, one per side.
+    const groupTables: MapTable[] = [];
+    for (const group of geometry.sectorNumberGroups) {
+        const columns: number[] = [];
+        for (let sectorNumber = group.range.firstSectorNumber; sectorNumber <= group.range.lastSectorNumber;
+             sectorNumber++) {
+
+            columns.push(sectorNumber);
+        }
+        // Group tracks are sorted by cylinder, so each side's tracks are too.
+        const sides = [... new Set(group.trackPositions.map(trackPosition => trackPosition.side))];
+        for (const side of sides) {
+            groupTables.push({
+                side,
+                columns,
+                trackPositions: group.trackPositions.filter(trackPosition => trackPosition.side === side),
+            });
+        }
     }
-    // Map from side and columns to the table of tracks with those strays.
-    const strayTables = new Map<string,StrayTable>();
+    // Order by first track, by cylinder and then side.
+    groupTables.sort((a, b) =>
+        a.trackPositions[0].cylinderNumber - b.trackPositions[0].cylinderNumber || a.side - b.side);
+    for (const groupTable of groupTables) {
+        printTable(file, groupTable.side, groupTable.columns, groupTable.trackPositions, false, usedLetters);
+    }
 
+    // Cylinders with no sectors, by side, and the stray tables, which are keyed by side and columns.
+    const strayTables = new Map<string,MapTable>();
+    let printedEmptyCylinders = false;
     for (let side = 0; side < geometry.sideCount; side++) {
-        const trackPositions: TrackPosition[] = [];
+        const emptyCylinders: number[] = [];
         for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
             const trackPosition = new TrackPosition(cylinder, side);
-            trackPositions.push(trackPosition);
+            if (geometry.getTrack(trackPosition) === undefined) {
+                emptyCylinders.push(cylinder);
+                continue;
+            }
 
             const columns = strayColumns(geometry, trackPosition);
             if (columns.length > 0) {
@@ -230,7 +251,15 @@ function printMap(file: Trs80Floppy) {
                 strayTable.trackPositions.push(trackPosition);
             }
         }
-        printTable(file, side, mainColumns, trackPositions, false, usedLetters);
+
+        if (emptyCylinders.length > 0) {
+            const noun = emptyCylinders.length === 1 ? "cylinder" : "cylinders";
+            console.log("Side " + side + " has no sectors on " + noun + " " + describeNumbers(emptyCylinders) + ".");
+            printedEmptyCylinders = true;
+        }
+    }
+    if (printedEmptyCylinders) {
+        console.log("");
     }
 
     if (strayTables.size > 0) {
@@ -255,9 +284,27 @@ function printMap(file: Trs80Floppy) {
 }
 
 /**
- * The sector numbers of a track that the main map can't show, in ascending order: its stray
- * sectors, plus any part of its expected range outside the main map's columns (as with a track
- * numbered apart from the rest of the disk), so that sectors missing from it are shown too.
+ * Describes a list of numbers like "36-39, 41", collapsing runs of consecutive numbers.
+ *
+ * @param numbers the numbers in ascending order, without duplicates.
+ */
+function describeNumbers(numbers: number[]): string {
+    const parts: string[] = [];
+    let runStart = 0;
+    for (let i = 1; i <= numbers.length; i++) {
+        if (i === numbers.length || numbers[i] !== numbers[i - 1] + 1) {
+            const first = numbers[runStart];
+            const last = numbers[i - 1];
+            parts.push(first === last ? first.toString() : first + "-" + last);
+            runStart = i;
+        }
+    }
+    return parts.join(", ");
+}
+
+/**
+ * The sector numbers of a track that are outside its expected range (its stray sectors), in
+ * ascending order.
  */
 function strayColumns(geometry: FloppyDiskGeometry, trackPosition: TrackPosition): number[] {
     const trackGeometry = geometry.getTrack(trackPosition);
@@ -266,14 +313,7 @@ function strayColumns(geometry: FloppyDiskGeometry, trackPosition: TrackPosition
         return [];
     }
 
-    const columns = new Set<number>(trackGeometry.sectorNumbers.filter(sectorNumber =>
-        !isUsualSectorNumber(geometry, expected, sectorNumber)));
-    for (let sectorNumber = expected.firstSectorNumber; sectorNumber <= expected.lastSectorNumber; sectorNumber++) {
-        if (sectorNumber < geometry.expectedFirstSectorNumber || sectorNumber > geometry.expectedLastSectorNumber) {
-            columns.add(sectorNumber);
-        }
-    }
-    return [... columns].sort((a, b) => a - b);
+    return trackGeometry.sectorNumbers.filter(sectorNumber => !isUsualSectorNumber(expected, sectorNumber));
 }
 
 /**
