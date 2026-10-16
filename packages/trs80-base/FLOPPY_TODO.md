@@ -261,10 +261,6 @@ more.
   sector IDs. The other 18 decode since October 2026; `French Teacher #1` and
   `MultiDOS II [Incomplete]` only needed IDs with bad CRCs ignored (see "An IDAM
   pointer can point at data" in `FLOPPY_FORMATS.md`).
-- `AITech LISP v2.0 [Set 1]` and `Newclock-80 [Set 1]` (in `ira/lk-341-set-1`,
-  tagged `no-boot-track`) have nothing readable on cylinder 0 side 0, so the
-  readers reject them, though TRSREAD extracts their files. Reading them would
-  mean letting a floppy have no boot track, which `FloppyDiskGeometry` assumes.
 
 ## New formats
 

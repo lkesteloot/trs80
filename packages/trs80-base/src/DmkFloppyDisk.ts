@@ -12,6 +12,7 @@ import {
     CrcInfo,
     Density,
     FloppyDisk,
+    FloppyDecodeOptions,
     FloppyDiskGeometry,
     FloppyWrite,
     FormattedTrack,
@@ -465,7 +466,8 @@ export class DmkFloppyDisk extends FloppyDisk {
     /**
      * Compute the geometry from the tracks. Call this after having finished updating the track array.
      *
-     * @return whether successful, which it isn't if the disk has no sectors on cylinder 0 side 0.
+     * @return whether successful, which it isn't if no track has sectors. (A disk with no sectors on
+     * cylinder 0 side 0 still succeeds; the decoder checks for that.)
      */
     public computeGeometry(): boolean {
         const cylinderCount = Math.max(-1, ... this.tracks.map(
@@ -659,8 +661,7 @@ export class DmkFloppyDisk extends FloppyDisk {
         }
         this.computeSectorMap();
 
-        // If the new layout has no boot track (it formatted cylinder 0 with no sectors), keep
-        // the old geometry rather than have none.
+        // If the new layout has no sectors at all, keep the old geometry rather than have none.
         const oldGeometry = this.geometry;
         const geometryValid = this.computeGeometry();
         if (!geometryValid) {
@@ -678,8 +679,10 @@ export class DmkFloppyDisk extends FloppyDisk {
 
 /**
  * Decode a DMK floppy disk file.
+ *
+ * @param options how strict to be; see FloppyDecodeOptions.
  */
-export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefined {
+export function decodeDmkFloppyDisk(binary: Uint8Array, options: FloppyDecodeOptions): DmkFloppyDisk | undefined {
     const error: string | undefined = undefined;
     const annotations: ProgramAnnotation[] = [];
 
@@ -954,6 +957,10 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     floppyDisk.computeSectorMap();
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
+        TRS80_FLOPPY_LOGGER.trace("DMK: No sectors");
+        return undefined;
+    }
+    if (options.requireBootTrack && floppyDisk.getGeometry().bootTrack === undefined) {
         TRS80_FLOPPY_LOGGER.trace("DMK: No sectors on cylinder 0 side 0");
         return undefined;
     }

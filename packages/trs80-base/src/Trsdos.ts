@@ -1975,19 +1975,27 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Whether the boot sector starts with these bytes.
+     * Whether the boot sector starts with these bytes. False if the disk has no boot track.
      */
     private bootSectorStartsWith(...bytes: number[]): boolean {
-        const bootSector = this.disk.readSector(this.geometry.bootTrack.firstSectorPosition());
+        const bootTrack = this.geometry.bootTrack;
+        if (bootTrack === undefined) {
+            return false;
+        }
+        const bootSector = this.disk.readSector(bootTrack.firstSectorPosition());
         return bootSector !== undefined && bytes.every((b, i) => bootSector.data[i] === b);
     }
 
     /**
      * Whether the boot sector loads SYS0/SYS from cylinder 0 sector 5 the way only TRSDOS 2.3B's
-     * does (LD D,0; LD E,5), rather than through the directory.
+     * does (LD D,0; LD E,5), rather than through the directory. False if the disk has no boot track.
      */
     private hasTrsdos23BBootSector(): boolean {
-        const bootSector = this.disk.readSector(this.geometry.bootTrack.firstSectorPosition());
+        const bootTrack = this.geometry.bootTrack;
+        if (bootTrack === undefined) {
+            return false;
+        }
+        const bootSector = this.disk.readSector(bootTrack.firstSectorPosition());
         if (bootSector === undefined) {
             return false;
         }
@@ -2047,10 +2055,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // BOOT/SYS claims whole granules of the boot track, but on disks whose boot track is formatted
         // with fewer sectors than the others (single density on a double-density disk), the sectors
         // past the end of the track were never formatted. They aren't missing, they don't exist.
-        // MultiDOS calls its boot file DOS/SYS.
+        // MultiDOS calls its boot file DOS/SYS. If the disk has no boot track at all, those sectors
+        // are missing from the image, so we don't filter them.
         const filename = firstDirEntry.getFilename("/");
-        if (filename === "BOOT/SYS" || filename === "DOS/SYS") {
-            const bootTrack = this.geometry.bootTrack;
+        const bootTrack = this.geometry.bootTrack;
+        if (bootTrack !== undefined && (filename === "BOOT/SYS" || filename === "DOS/SYS")) {
             return sectorPositions.filter(sectorPosition =>
                 !sectorPosition.trackPosition.equals(bootTrack.trackPosition) ||
                 sectorPosition.sectorNumber <= bootTrack.lastSectorNumber);

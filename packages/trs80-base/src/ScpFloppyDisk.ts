@@ -8,6 +8,7 @@ import {
     CrcInfo,
     Density,
     FloppyDisk,
+    FloppyDecodeOptions,
     FloppyDiskGeometry,
     SectorCrc,
     SectorData,
@@ -223,7 +224,8 @@ export class ScpFloppyDisk extends FloppyDisk {
     /**
      * Compute the geometry from the tracks.
      *
-     * @return whether successful, which it isn't if the disk has no sectors on cylinder 0 side 0.
+     * @return whether successful, which it isn't if no track has sectors. (A disk with no sectors on
+     * cylinder 0 side 0 still succeeds; the decoder checks for that.)
      */
     public computeGeometry(): boolean {
         const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.cylinderNumber)) + 1;
@@ -620,8 +622,10 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
 
 /**
  * Decode a SuperCard Pro (.SCP) file.
+ *
+ * @param options how strict to be; see FloppyDecodeOptions.
  */
-export function decodeScpFloppyDisk(binary: Uint8Array): ScpFloppyDisk | undefined {
+export function decodeScpFloppyDisk(binary: Uint8Array, options: FloppyDecodeOptions): ScpFloppyDisk | undefined {
     if (binary.length < 16) {
         // File too short, doesn't even have a header.
         if (DEBUG) console.log("SCP: file missing header");
@@ -691,6 +695,10 @@ export function decodeScpFloppyDisk(binary: Uint8Array): ScpFloppyDisk | undefin
     const floppyDisk = new ScpFloppyDisk(binary, undefined, [], tracks);
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
+        if (DEBUG) console.log("SCP: No sectors");
+        return undefined;
+    }
+    if (options.requireBootTrack && floppyDisk.getGeometry().bootTrack === undefined) {
         if (DEBUG) console.log("SCP: No sectors on cylinder 0 side 0");
         return undefined;
     }

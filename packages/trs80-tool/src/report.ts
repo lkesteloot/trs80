@@ -71,8 +71,9 @@ export interface DataTrackGeometryReport {
 export interface GeometryReport {
     cylinderCount: number;
     sideCount: number;
-    // Cylinder 0 side 0, which is often formatted differently than the rest of the disk.
-    bootTrack: TrackGeometryReport;
+    // Cylinder 0 side 0, which is often formatted differently than the rest of the disk. Null if
+    // nothing on cylinder 0 side 0 could be read.
+    bootTrack: TrackGeometryReport | null;
     dataTrack: DataTrackGeometryReport;
 }
 
@@ -517,7 +518,7 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
     report.geometry = {
         cylinderCount: geometry.cylinderCount,
         sideCount: geometry.sideCount,
-        bootTrack: reportTrackGeometry(geometry.bootTrack),
+        bootTrack: geometry.bootTrack === undefined ? null : reportTrackGeometry(geometry.bootTrack),
         dataTrack: {
             sectorSpan: geometry.modalDataSectorSpan,
             sectorSize: geometry.modalDataSectorSize,
@@ -525,8 +526,10 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         },
     };
 
-    // Boot sector, whose third byte is the directory track on most DOSes.
-    const bootSector = disk.readSector(geometry.bootTrack.firstSectorPosition());
+    // Boot sector, whose third byte is the directory track on most DOSes. Null if there's no boot track.
+    const bootSector = geometry.bootTrack === undefined
+        ? undefined
+        : disk.readSector(geometry.bootTrack.firstSectorPosition());
     report.bootSectorPrefix = bootSector === undefined
         ? null
         : Array.from(bootSector.data.subarray(0, 3));

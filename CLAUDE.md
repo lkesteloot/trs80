@@ -118,8 +118,13 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   `FloppyDiskGeometry` describes every sector, plus per-track `TrackGeometry`
   and modal values taken from side 0 only. It doesn't throw on odd disks:
   mixed density and garbage address marks are data, not errors. The decoders
-  reject an image with no sectors on cylinder 0 side 0 (blank, unformatted, or
-  missing its boot track), so every floppy has a geometry and a boot track.
+  reject an image with no sectors at all, so every floppy has a geometry. Its
+  `bootTrack` (cylinder 0 side 0) can be undefined: some disks were imaged with
+  an unreadable track 0 but readable files. Each reader takes a required
+  `FloppyDecodeOptions` whose `requireBootTrack` the caller always sets;
+  `decodeTrs80File()` clears it only when the extension names the format,
+  since when guessing (no extension, or `.dsk`), having a boot track is part
+  of telling a disk image from other data.
 - **The lump model.** Every DOS family addresses the disk as (lump, granule,
   sector), which `Trsdos.logicalToPhysical()` maps to a linear sector index and
   then to a physical position, as described in `FLOPPY_FORMATS.md`. Outside

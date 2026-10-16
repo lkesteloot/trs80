@@ -1,10 +1,13 @@
 import {describe, expect, it} from "vitest";
 import {CRC_16_CCITT} from "./Crc16.js";
-import {Density, SectorPosition} from "./FloppyDisk.js";
+import {Density, type FloppyDecodeOptions, SectorPosition} from "./FloppyDisk.js";
 import {decodeHfeFloppyDisk} from "./HfeFloppyDisk.js";
 import {CRC_PRESET, DATA_ADDRESS_MARK, DELETED_DATA_ADDRESS_MARK, ID_ADDRESS_MARK} from "./TrackBytes.js";
 
 // Bytes that go in the gaps of each density.
+// Require a boot track, as when guessing the format.
+const STRICT: FloppyDecodeOptions = {requireBootTrack: true};
+
 const MFM_GAP_BYTE = 0x4E;
 const FM_GAP_BYTE = 0xFF;
 
@@ -324,7 +327,7 @@ describe("HfeFloppyDisk", () => {
     it("reads an all-FM disk", () => {
         const tracks = [0, 1].map(cylinder => [0, 1].map(side =>
             ({sectors: makeSectors(Density.SINGLE, cylinder, side, 5)})));
-        const disk = decodeHfeFloppyDisk(buildHfe(2, tracks));
+        const disk = decodeHfeFloppyDisk(buildHfe(2, tracks), STRICT);
 
         expect(disk).not.to.equal(undefined);
         expect(disk?.getDescription()).to.equal("Floppy disk (HFE)");
@@ -344,7 +347,7 @@ describe("HfeFloppyDisk", () => {
         const tracks = [0, 1, 2].map(cylinder => [0, 1].map(side =>
             ({sectors: makeSectors(Density.DOUBLE, cylinder, side, 8, 1)})));
         tracks[1][1].sectors[2].mark = DELETED_DATA_ADDRESS_MARK;
-        const disk = decodeHfeFloppyDisk(buildHfe(2, tracks));
+        const disk = decodeHfeFloppyDisk(buildHfe(2, tracks), STRICT);
 
         expect(disk).not.to.equal(undefined);
         expect(disk?.getGeometry().cylinderCount).to.equal(3);
@@ -366,7 +369,7 @@ describe("HfeFloppyDisk", () => {
             ... makeSectors(Density.SINGLE, 0, 0, 1, 0),
             ... makeSectors(Density.DOUBLE, 0, 0, 4, 1),
         ];
-        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]));
+        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]), STRICT);
 
         expect(disk).not.to.equal(undefined);
         for (const sector of sectors) {
@@ -381,7 +384,7 @@ describe("HfeFloppyDisk", () => {
             density: Density.DOUBLE, cylinder: 0, side: 0, sector: sizeCode + 1, sizeCode,
             data: makeData(128 << sizeCode, sizeCode),
         }));
-        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]));
+        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]), STRICT);
 
         expect(disk).not.to.equal(undefined);
         for (const sector of sectors) {
@@ -392,7 +395,7 @@ describe("HfeFloppyDisk", () => {
     for (const density of [Density.SINGLE, Density.DOUBLE]) {
         it(`reads a sector whose data straddles the end of the track (density ${density})`, () => {
             const sectors = makeSectors(density, 0, 0, 5, 1);
-            const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors, rotateIntoSector: 2}]]));
+            const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors, rotateIntoSector: 2}]]), STRICT);
 
             expect(disk).not.to.equal(undefined);
             for (const sector of sectors) {
@@ -408,7 +411,7 @@ describe("HfeFloppyDisk", () => {
         const sectors = makeSectors(Density.DOUBLE, 0, 0, 4, 1);
         sectors[1].data.set([0xFF, 0xF5, 0x7E, 0xFF], 19);
         sectors[1].data.set([0x00, 0x01, 0xEA, 0xDE], 39);
-        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]));
+        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]), STRICT);
 
         expect(disk).not.to.equal(undefined);
         expect(disk?.tracks[0].sectors.length).to.equal(4);
@@ -420,7 +423,7 @@ describe("HfeFloppyDisk", () => {
     it("returns sectors with bad CRCs, marked as errors", () => {
         const sectors = makeSectors(Density.DOUBLE, 0, 0, 3, 1);
         sectors[1].badDataCrc = true;
-        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]));
+        const disk = decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]]), STRICT);
 
         expect(disk).not.to.equal(undefined);
         expect(disk?.tracks[0].sectors.length).to.equal(3);
@@ -437,7 +440,7 @@ describe("HfeFloppyDisk", () => {
             {sectors: makeSectors(Density.DOUBLE, cylinder, 0, 4, 1)},
             {sectors: []},
         ]);
-        const disk = decodeHfeFloppyDisk(buildHfe(2, tracks));
+        const disk = decodeHfeFloppyDisk(buildHfe(2, tracks), STRICT);
 
         expect(disk).not.to.equal(undefined);
         expect(disk?.getGeometry().sideCount).to.equal(1);
@@ -447,7 +450,7 @@ describe("HfeFloppyDisk", () => {
     it("skips a track that runs off the end of the file", () => {
         const tracks = [0, 1].map(cylinder => [{sectors: makeSectors(Density.DOUBLE, cylinder, 0, 4, 1)}]);
         const binary = buildHfe(1, tracks);
-        const disk = decodeHfeFloppyDisk(binary.subarray(0, binary.length - 1500));
+        const disk = decodeHfeFloppyDisk(binary.subarray(0, binary.length - 1500), STRICT);
 
         expect(disk).not.to.equal(undefined);
         expect(disk?.getGeometry().cylinderCount).to.equal(1);
@@ -455,11 +458,11 @@ describe("HfeFloppyDisk", () => {
 
     it("rejects version 3 files", () => {
         const sectors = makeSectors(Density.DOUBLE, 0, 0, 4, 1);
-        expect(decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]], "HXCHFEV3"))).to.equal(undefined);
+        expect(decodeHfeFloppyDisk(buildHfe(1, [[{sectors}]], "HXCHFEV3"), STRICT)).to.equal(undefined);
     });
 
     it("rejects other files", () => {
-        expect(decodeHfeFloppyDisk(new Uint8Array(100))).to.equal(undefined);
-        expect(decodeHfeFloppyDisk(new Uint8Array(2048))).to.equal(undefined);
+        expect(decodeHfeFloppyDisk(new Uint8Array(100), STRICT)).to.equal(undefined);
+        expect(decodeHfeFloppyDisk(new Uint8Array(2048), STRICT)).to.equal(undefined);
     });
 });

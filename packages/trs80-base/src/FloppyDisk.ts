@@ -541,6 +541,16 @@ export interface SectorNumberGroup {
 }
 
 /**
+ * Options for the floppy decoders.
+ */
+export interface FloppyDecodeOptions {
+    // Whether to reject an image with no readable sectors on cylinder 0 side 0. Set it when
+    // guessing the format, since a boot track is part of what tells a disk image from other
+    // data. Clear it when the file's extension names the format.
+    requireBootTrack: boolean;
+}
+
+/**
  * Information about the physical layout of tracks, sides, and sectors on a floppy.
  */
 export class FloppyDiskGeometry {
@@ -560,10 +570,12 @@ export class FloppyDiskGeometry {
     public readonly sectorNumberGroups: SectorNumberGroup[];
     // Map from TrackPosition key to that track's group.
     private readonly sectorNumberGroupMap = new Map<string,SectorNumberGroup>();
-    // Information about the boot track (cylinder 0 side 0).
-    public readonly bootTrack: TrackGeometry;
+    // Information about the boot track (cylinder 0 side 0). Undefined if nothing on cylinder 0
+    // side 0 could be read.
+    public readonly bootTrack: TrackGeometry | undefined;
     // Most common values across the side 0 tracks other than the boot track, or of the boot
-    // track if it's the only one on side 0.
+    // track if it's the only one on side 0 (or of all tracks if there's no boot track and
+    // nothing else on side 0).
     public readonly modalDataDensity: Density;
     public readonly modalDataSectorSize: number;
     public readonly modalDataSectorSpan: number;
@@ -576,9 +588,11 @@ export class FloppyDiskGeometry {
     // isHomogeneous()           // every track matches dataTrack
 
     /**
-     * Make the geometry of a disk from all of its sectors, or return undefined if it has no
-     * boot track (no sectors on cylinder 0 side 0, or only ones with bad ID fields), as with a
-     * blank or unformatted disk.
+     * Make the geometry of a disk from all of its sectors, or return undefined if no track has
+     * a geometry (no sectors anywhere, or only ones with bad ID fields), as with a blank or
+     * unformatted disk. A disk with no readable sectors on cylinder 0 side 0 still gets a
+     * geometry, with an undefined boot track. Readers that want to reject such disks must check
+     * for that themselves.
      */
     public static make(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[]): FloppyDiskGeometry | undefined {
         // Track position key to list of sectors on that track.
@@ -603,16 +617,17 @@ export class FloppyDiskGeometry {
             }
         }
 
-        const bootTrack = trackMap.get(new TrackPosition(0, 0).key());
-        if (bootTrack === undefined) {
+        if (trackMap.size === 0) {
             return undefined;
         }
+
+        const bootTrack = trackMap.get(new TrackPosition(0, 0).key());
 
         return new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos, trackMap, bootTrack);
     }
 
     private constructor(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[],
-                        trackMap: Map<string,TrackGeometry>, bootTrack: TrackGeometry) {
+                        trackMap: Map<string,TrackGeometry>, bootTrack: TrackGeometry | undefined) {
 
         this.cylinderCount = cylinderCount;
         this.sideCount = sideCount;
@@ -632,7 +647,7 @@ export class FloppyDiskGeometry {
         }
 
         // Every sector belongs to a track, so the min and max over the tracks are the min and max
-        // over the whole disk. We have at least one track, the boot track.
+        // over the whole disk. We have at least one track (make() guarantees it).
         const tracks = [... trackMap.values()];
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
@@ -643,14 +658,25 @@ export class FloppyDiskGeometry {
         // below are computed from these, so that a disk whose second side is garbage (or holds a
         // different file system, as MultiDOS disks do) still reports the geometry that matters.
         // Sometimes track 1 is garbage or leftover from a previous format. If the boot track is
-        // the only one, use it.
+        // the only one, use it. If there's no boot track and nothing else on side 0, use all the
+        // tracks.
         const otherTracks = tracks.filter(track => track.trackPosition.side === 0 && track !== bootTrack);
-        const dataTracks = otherTracks.length > 0 ? otherTracks : [bootTrack];
+        let dataTracks: TrackGeometry[];
+        if (otherTracks.length > 0) {
+            dataTracks = otherTracks;
+        } else if (bootTrack !== undefined) {
+            dataTracks = [bootTrack];
+        } else {
+            dataTracks = tracks;
+        }
         this.modalDataDensity = modeOf(dataTracks.map(track => track.modalDensity)).value;
         this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
-        this.homogeneous = dataTracks.every(track => track.hasSameLayoutAs(bootTrack));
-        this.cylinder0Differs = bootTrack.modalDensity !== this.modalDataDensity || bootTrack.sectorSpan() !== this.modalDataSectorSpan;
+        const referenceTrack = bootTrack ?? dataTracks[0];
+        this.homogeneous = dataTracks.every(track => track.hasSameLayoutAs(referenceTrack));
+        // Without a boot track we can't tell.
+        this.cylinder0Differs = bootTrack !== undefined &&
+            (bootTrack.modalDensity !== this.modalDataDensity || bootTrack.sectorSpan() !== this.modalDataSectorSpan);
     }
 
     /**
@@ -860,12 +886,15 @@ export abstract class FloppyDisk extends AbstractTrs80File {
 
     /**
      * The contents of the boot track as Latin-1 text, one character per byte, for finding strings that
-     * FORMAT wrote there, such as the DOS's name. Sectors that can't be read are skipped.
+     * FORMAT wrote there, such as the DOS's name. Sectors that can't be read are skipped. Returns
+     * an empty string if there's no boot track.
      */
     public getBootTrackText(): string {
         if (this.bootTrackText === undefined) {
             let text = "";
-            for (const sectorPosition of this.getGeometry().bootTrack.sectorPositions()) {
+            const bootTrack = this.getGeometry().bootTrack;
+            const sectorPositions = bootTrack === undefined ? [] : bootTrack.sectorPositions();
+            for (const sectorPosition of sectorPositions) {
                 const data = this.readSector(sectorPosition)?.data;
                 if (data !== undefined) {
                     for (const b of data) {

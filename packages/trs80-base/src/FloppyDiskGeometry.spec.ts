@@ -263,3 +263,40 @@ describe("FloppyDiskGeometry duplicate sectors", () => {
         expect(geometry.sectorMap.get("0:0:3")).to.equal(geometry.sectorInfos[1]);
     });
 });
+
+describe("FloppyDiskGeometry without a boot track", () => {
+    it("has no boot track when nothing is on cylinder 0 side 0", () => {
+        const geometry = makeGeometry(makeOtherTracks(range(1, 18)));
+        expect(geometry.bootTrack).to.equal(undefined);
+        expect(geometry.cylinder0Differs).to.equal(false);
+        expect(geometry.homogeneous).to.equal(true);
+        expect(geometry.modalDataDensity).to.equal(Density.DOUBLE);
+        expect(geometry.modalDataSectorSize).to.equal(256);
+        expect(geometry.modalDataSectorSpan).to.equal(18);
+        expect(geometry.firstSectorNumber).to.equal(1);
+        expect(geometry.lastSectorNumber).to.equal(18);
+    });
+
+    it("uses all tracks when only side 1 is present", () => {
+        const geometry = makeGeometry([
+            {cylinder: 1, side: 1, sectorNumbers: range(0, 9)},
+            {cylinder: 2, side: 1, sectorNumbers: range(0, 9)},
+        ]);
+        expect(geometry.bootTrack).to.equal(undefined);
+        expect(geometry.modalDataSectorSpan).to.equal(10);
+        expect(geometry.homogeneous).to.equal(true);
+    });
+
+    it("is not homogeneous if the other tracks differ", () => {
+        const geometry = makeGeometry([
+            {cylinder: 1, side: 0, sectorNumbers: range(0, 9)},
+            {cylinder: 2, side: 0, sectorNumbers: range(0, 17)},
+        ]);
+        expect(geometry.bootTrack).to.equal(undefined);
+        expect(geometry.homogeneous).to.equal(false);
+    });
+
+    it("has no geometry when there are no sectors at all", () => {
+        expect(FloppyDiskGeometry.make(0, 1, [])).to.equal(undefined);
+    });
+});

@@ -2361,6 +2361,16 @@ SYS0 banner, the boot track and the GAT.
   `Super Utility + Copy Utility [Set 3]` keeps its directory on cylinder 3, as
   boot byte 2 says, while DIR/SYS's extent points at cylinder 17, every sector of
   which has a CRC error: copy protection, left undecoded.
+- `Newclock-80 [Set 1]` and `AITech LISP v2.0 [Set 1]` (in `ira/lk-341-set-1`,
+  tagged `no-boot-track`): DMK images whose track 0 has no IDAMs. Its bytes
+  aren't a decodable track either: on Newclock the 1 bits are mostly 3 or 9
+  apart, which fits neither FM nor MFM. The other tracks are fine. Newclock
+  Set 1's tracks 1-34 hold the same sector data as `ira/newclokd`'s Set 2,
+  except for the disk name and date in the GAT, so Set 2 shows what's missing:
+  BOOT/SYS, and TIMESET's first granule (cylinder 0 sectors 5-9). AITech is
+  LDOS 5.3 and loses BOOT/SYS and SYS0/SYS, while its 17 user files are clean.
+  Both decode since October 2026, when the readers stopped requiring a boot
+  track for files whose extension names the format.
 - `ira/Montezuma-1.42`, `ira/Montezuma-2.32`, and `ira/QuickTerm`: Montezuma
   CP/M disks where TRSREAD's files differed from ours, and ours are right on
   all three. TRSREAD cuts files with text extensions (`.DOC`, `.ASM`, `.BUG`,

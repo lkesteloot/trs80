@@ -12,6 +12,7 @@ import {decodeImdFloppyDisk, ImdFloppyDisk} from "./ImdFloppyDisk.js";
 import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
 import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
 import {decodeBootSector, BootSector} from "./BootSector.js";
+import {type FloppyDecodeOptions} from "./FloppyDisk.js";
 
 /**
  * The various floppy formats we support.
@@ -79,6 +80,18 @@ function getFilenameExtension(filename: string): string {
     return dot > 0 ? filename.substring(dot).toUpperCase() : "";
 }
 
+// Floppy decoding when we're guessing the format: having a boot track is part of what tells a disk
+// image from other data.
+const GUESSED_FORMAT_OPTIONS: FloppyDecodeOptions = {
+    requireBootTrack: true,
+};
+
+// Floppy decoding when the extension names the format: a missing boot track is allowed, because some
+// disks were imaged with an unreadable track 0 but have files that can still be read.
+const NAMED_FORMAT_OPTIONS: FloppyDecodeOptions = {
+    requireBootTrack: false,
+};
+
 /**
  * Decode a file that's known to be a floppy disk, but not what kind specifically.
  */
@@ -88,7 +101,7 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
 
     let trs80File: Trs80File | undefined;
 
-    trs80File = decodeDmkFloppyDisk(binary);
+    trs80File = decodeDmkFloppyDisk(binary, GUESSED_FORMAT_OPTIONS);
     if (trs80File !== undefined) {
         return trs80File;
     }
@@ -98,7 +111,7 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
         return trs80File;
     }
 
-    trs80File = decodeJv3FloppyDisk(binary);
+    trs80File = decodeJv3FloppyDisk(binary, GUESSED_FORMAT_OPTIONS);
     if (trs80File !== undefined) {
         return trs80File;
     }
@@ -156,7 +169,7 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
     }
 
     if (extension === ".JV3") {
-        return decodeJv3FloppyDisk(binary) ?? new RawBinaryFile(binary);
+        return decodeJv3FloppyDisk(binary, NAMED_FORMAT_OPTIONS) ?? new RawBinaryFile(binary);
     }
 
     if (extension === ".DSK") {
@@ -165,20 +178,25 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
 
     if (extension === ".DMK") {
         // Some JV3 images in circulation are named .DMK. The JV3 decoder rejects anything
-        // without a plausible sector directory, so it's safe as a fallback.
-        return decodeDmkFloppyDisk(binary) ?? decodeJv3FloppyDisk(binary) ?? new RawBinaryFile(binary);
+        // without a plausible sector directory, so it's safe as a fallback. Both are tried as
+        // though guessing first, so that a DMK parse of a JV3 file that happens to find a few
+        // sectors can't steal it. Only then do we accept a DMK with no boot track.
+        return decodeDmkFloppyDisk(binary, GUESSED_FORMAT_OPTIONS) ??
+            decodeJv3FloppyDisk(binary, GUESSED_FORMAT_OPTIONS) ??
+            decodeDmkFloppyDisk(binary, NAMED_FORMAT_OPTIONS) ??
+            new RawBinaryFile(binary);
     }
 
     if (extension === ".SCP") {
-        return decodeScpFloppyDisk(binary) ?? new RawBinaryFile(binary);
+        return decodeScpFloppyDisk(binary, NAMED_FORMAT_OPTIONS) ?? new RawBinaryFile(binary);
     }
 
     if (extension === ".HFE") {
-        return decodeHfeFloppyDisk(binary) ?? new RawBinaryFile(binary);
+        return decodeHfeFloppyDisk(binary, NAMED_FORMAT_OPTIONS) ?? new RawBinaryFile(binary);
     }
 
     if (extension === ".IMD") {
-        return decodeImdFloppyDisk(binary) ?? new RawBinaryFile(binary);
+        return decodeImdFloppyDisk(binary, NAMED_FORMAT_OPTIONS) ?? new RawBinaryFile(binary);
     }
 
     // "Model III BiNary" format, invented by George Phillips for trs80gp.

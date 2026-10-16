@@ -16,6 +16,7 @@ import {
     CrcInfo,
     Density,
     FloppyDisk,
+    FloppyDecodeOptions,
     FloppyDiskGeometry,
     SectorCrc,
     SectorData,
@@ -194,7 +195,8 @@ export class HfeFloppyDisk extends FloppyDisk {
      * Compute the geometry from the decoded sectors. The header's track and side counts aren't
      * reliable (blank trailing tracks, blank second sides), so we use what's actually there.
      *
-     * @return whether successful, which it isn't if the disk has no sectors on cylinder 0 side 0.
+     * @return whether successful, which it isn't if no track has sectors. (A disk with no sectors on
+     * cylinder 0 side 0 still succeeds; the decoder checks for that.)
      */
     public computeGeometry(): boolean {
         const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.cylinderNumber)) + 1;
@@ -602,8 +604,10 @@ function extractSide(binary: Uint8Array, offsetBlocks: number, trackLength: numb
 
 /**
  * Decode an HFE (HxC Floppy Emulator) version 1 file.
+ *
+ * @param options how strict to be; see FloppyDecodeOptions.
  */
-export function decodeHfeFloppyDisk(binary: Uint8Array): HfeFloppyDisk | undefined {
+export function decodeHfeFloppyDisk(binary: Uint8Array, options: FloppyDecodeOptions): HfeFloppyDisk | undefined {
     if (binary.length < BLOCK_SIZE) {
         // File too short, doesn't even have a header.
         if (DEBUG) console.log("HFE: file missing header");
@@ -669,6 +673,10 @@ export function decodeHfeFloppyDisk(binary: Uint8Array): HfeFloppyDisk | undefin
     const floppyDisk = new HfeFloppyDisk(binary, undefined, annotations, tracks);
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
+        if (DEBUG) console.log("HFE: No sectors");
+        return undefined;
+    }
+    if (options.requireBootTrack && floppyDisk.getGeometry().bootTrack === undefined) {
         if (DEBUG) console.log("HFE: No sectors on cylinder 0 side 0");
         return undefined;
     }

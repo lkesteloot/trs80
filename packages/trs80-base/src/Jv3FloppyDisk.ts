@@ -2,6 +2,7 @@ import {toHexByte} from "z80-base";
 import {
     Density,
     FloppyDisk,
+    FloppyDecodeOptions,
     FloppyDiskGeometry,
     FloppyWrite,
     FormattedTrack,
@@ -399,7 +400,8 @@ export class Jv3FloppyDisk extends FloppyDisk {
 }
 
 /**
- * Make the geometry from the sectors, or undefined if there's no boot track.
+ * Make the geometry from the sectors, or undefined if there are no used sectors (or none with a valid
+ * geometry). The geometry's boot track may be undefined.
  */
 function makeGeometry(sectorInfos: Jv3SectorInfo[]): FloppyDiskGeometry | undefined {
     // Only consider used (non-free) sectors.
@@ -412,8 +414,10 @@ function makeGeometry(sectorInfos: Jv3SectorInfo[]): FloppyDiskGeometry | undefi
 
 /**
  * Decode a JV3 floppy disk file.
+ *
+ * @param options how strict to be; see FloppyDecodeOptions.
  */
-export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk | undefined {
+export function decodeJv3FloppyDisk(binary: Uint8Array, options: FloppyDecodeOptions): Jv3FloppyDisk | undefined {
     let error: string | undefined;
     let writeProtected = false;
     const annotations: ProgramAnnotation[] = [];
@@ -493,6 +497,9 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk | undefin
 
     const geometry = makeGeometry(sectorInfos);
     if (geometry === undefined) {
+        return undefined;
+    }
+    if (options.requireBootTrack && geometry.bootTrack === undefined) {
         return undefined;
     }
 

@@ -83,19 +83,19 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                         }
 
                         const geometry = trs80File.getGeometry();
-                        if (geometry.homogeneous) {
-                            verboseLines.push(
-                                `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
-                                `${pluralizeWithCount(geometry.sideCount, "side")}`,
-                                `On every track, ` + getTrackGeometryInfo(geometry.bootTrack));
+                        const bootTrack = geometry.bootTrack;
+                        const otherTracksInfo = `On most other tracks, ` + [`${geometry.modalDataSectorSpan} sectors`,
+                            `${densityToString(geometry.modalDataDensity)} density`,
+                            `${geometry.modalDataSectorSize} bytes per sector`].join(", ");
+                        verboseLines.push(
+                            `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
+                            `${pluralizeWithCount(geometry.sideCount, "side")}`);
+                        if (bootTrack === undefined) {
+                            verboseLines.push(`No readable boot track`, otherTracksInfo);
+                        } else if (geometry.homogeneous) {
+                            verboseLines.push(`On every track, ` + getTrackGeometryInfo(bootTrack));
                         } else {
-                            verboseLines.push(
-                                `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
-                                `${pluralizeWithCount(geometry.sideCount, "side")}`,
-                                `On the boot track, ` + getTrackGeometryInfo(geometry.bootTrack),
-                                `On most other tracks, ` + [`${geometry.modalDataSectorSpan} sectors`,
-                                    `${densityToString(geometry.modalDataDensity)} density`,
-                                    `${geometry.modalDataSectorSize} bytes per sector`].join(", "));
+                            verboseLines.push(`On the boot track, ` + getTrackGeometryInfo(bootTrack), otherTracksInfo);
                         }
 
                         if (fileSystem instanceof Trsdos) {

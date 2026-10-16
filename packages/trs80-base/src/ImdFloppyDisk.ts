@@ -19,6 +19,7 @@ import {assertNever, toHexByte} from "z80-base";
 import {
     Density,
     FloppyDisk,
+    FloppyDecodeOptions,
     FloppyDiskGeometry,
     SectorData,
     SectorInfo,
@@ -261,7 +262,8 @@ export class ImdFloppyDisk extends FloppyDisk {
     /**
      * Compute the geometry from the sectors that have data, at their physical positions.
      *
-     * @return whether successful, which it isn't if the disk has no sectors on cylinder 0 side 0.
+     * @return whether successful, which it isn't if no track has sectors. (A disk with no sectors on
+     * cylinder 0 side 0 still succeeds; the decoder checks for that.)
      */
     public computeGeometry(): boolean {
         // Tracks that have at least one sector with data. The others don't contribute to the geometry.
@@ -514,10 +516,13 @@ function readTrack(binary: Uint8Array, start: number, annotations: ProgramAnnota
 }
 
 /**
- * Decode an ImageDisk (IMD) file. Damaged files are accepted if their good part has a boot track:
- * we stop reading at the first thing we can't read, keep what we have, and log a warning.
+ * Decode an ImageDisk (IMD) file. Damaged files are accepted if their good part has a boot track
+ * (or any track, if the boot track isn't required): we stop reading at the first thing we can't
+ * read, keep what we have, and log a warning.
+ *
+ * @param options how strict to be; see FloppyDecodeOptions.
  */
-export function decodeImdFloppyDisk(binary: Uint8Array): ImdFloppyDisk | undefined {
+export function decodeImdFloppyDisk(binary: Uint8Array, options: FloppyDecodeOptions): ImdFloppyDisk | undefined {
     // The header ends with a 0x1A byte. We don't look for the "IMD " signature because some
     // files have had that line edited out.
     const headerEnd = binary.indexOf(HEADER_END_BYTE);
@@ -569,6 +574,10 @@ export function decodeImdFloppyDisk(binary: Uint8Array): ImdFloppyDisk | undefin
     const floppyDisk = new ImdFloppyDisk(binary, annotations, comment, ignoredData, tracks);
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
+        if (DEBUG) console.log("IMD: No sectors");
+        return undefined;
+    }
+    if (options.requireBootTrack && floppyDisk.getGeometry().bootTrack === undefined) {
         if (DEBUG) console.log("IMD: No sectors on cylinder 0 side 0");
         return undefined;
     }
