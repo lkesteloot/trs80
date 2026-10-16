@@ -1,3 +1,5 @@
+/* When updating this file, bump the v= value in index.html's <link> to force a reload */
+
 :root {
     /* Solarized colors */
     --base03:    #002b36;
@@ -103,6 +105,26 @@ li::marker {
 
 dd {
     margin-bottom: 1em;
+}
+
+/* A command's flags, with each flag on the left and its description on the right. */
+table.flags {
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+table.flags td {
+    vertical-align: top;
+    padding: 0.4em 0;
+}
+
+table.flags td:first-child {
+    padding-right: 1em;
+    white-space: nowrap;
+}
+
+table.flags tr + tr td {
+    border-top: 1px solid var(--background-highlights);
 }
 
 pre {

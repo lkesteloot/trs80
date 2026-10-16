@@ -4,7 +4,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>TRS-80 Tool</title>
         <link href="https://fonts.googleapis.com/css?family=Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
-        <link href="style.css?v=3" rel="stylesheet">
+        <link href="style.css?v=4" rel="stylesheet">
     </head>
     <body class="light-mode">
         <section>
@@ -158,63 +158,75 @@
             <p>The tool takes a command as its first argument:</p>
             <div><pre><code>% trs80-tool COMMAND args ...</code></pre>
             </div>
-            <p>Global flags are:</p>
-            <div><pre><code>--version         Show the tool’s version number.
---help            Show the usage message.
---color=COLOR     Force color mode (off, 16, 256, 16m, or auto).
---no-pager        Don’t send output to a pager.</code></pre>
-            </div>
-            <p>By default <code>trs80-tool</code> detects the color capabilities of the terminal
-            and sets the <code>--color</code> flag automatically. You can override this, either
-            to turn off color (if it bothers you) or to force it on (when piping into
-            another program). For example:</p>
-            <div><pre><code>% trs80-tool --color=16 hexdump in.cmd | grep 5200</code></pre>
-            </div>
-            <p>The tool also honors the <a href="https://no-color.org"><code>NO_COLOR</code></a>
-            and <code>FORCE_COLOR</code> environment variables.</p>
-
-            <p>Commands that can print a lot (<code>dir</code>,
-            <code>info</code>, <code>sectors</code>, <code>hexdump</code>, and <code>disasm</code>)
-            send their output to a pager when it’s going to the terminal, with colors intact.
-            The pager is the <code>TRS80_TOOL_PAGER</code> environment variable if it’s set,
-            then <code>PAGER</code>, then <code>less</code> (except on Windows, which only pages
-            if one of the variables is set). Set it to <code>cat</code> or to an empty string,
-            or use <code>--no-pager</code>, to turn paging off.</p>
-
-            <div><pre><code>--trace=MODULE    show trace logs for module (base, emulator, floppy).</code></pre></div>
-
-            <p>Show tracing logs for the specified module. These log lines can reveal
-            how the module makes various decisions, and can help debugging. This flag
-            is mostly intended for the developer, but can help explain why (for example)
-            a specific floppy isn’t being recognized. The “base” module deals with
-            TRS-80 file formats; the “emulator” module is the TRS-80 emulator itself;
-            and the “floppy” module is for floppy-related messages.
-            Repeat the option to enable tracing for multiple modules.</p>
+            <p>Global flags work with every command:</p>
+            <table class="flags">
+                <tr>
+                    <td><code>--version</code></td>
+                    <td>Show the tool’s version number.</td>
+                </tr>
+                <tr>
+                    <td><code>--help</code></td>
+                    <td>Show the usage message.</td>
+                </tr>
+                <tr>
+                    <td><code>--color COLOR</code></td>
+                    <td>Set the color mode: <code>off</code>, <code>16</code>, <code>256</code>,
+                        <code>16m</code>, or <code>auto</code>. The default, <code>auto</code>, detects
+                        the terminal’s color capabilities. Use the flag to turn color off, or to force
+                        it on when piping into another program. The tool also honors the
+                        <a href="https://no-color.org"><code>NO_COLOR</code></a> and
+                        <code>FORCE_COLOR</code> environment variables.</td>
+                </tr>
+                <tr>
+                    <td><code>--no-pager</code></td>
+                    <td>Don’t send output to a pager (see below).</td>
+                </tr>
+                <tr>
+                    <td><code>--trace MODULE</code></td>
+                    <td>Show trace logs for a module: <code>base</code> (TRS-80 file formats),
+                        <code>emulator</code> (the TRS-80 emulator itself), or <code>floppy</code>
+                        (floppy-related messages). These logs are mostly for the developer.
+                        Repeat the flag to trace several modules.</td>
+                </tr>
+                <tr>
+                    <td><code>--log-file FILE</code></td>
+                    <td>Also write log messages to a file.</td>
+                </tr>
+                <tr>
+                    <td><code>--no-pager</code></td>
+                    <td>Commands that can print a lot (<code>dir</code>, <code>info</code>,
+                        <code>sectors</code>, <code>hexdump</code>, and <code>disasm</code>)
+                        send their output to a pager when it’s going to the terminal.
+                        The pager is the <code>TRS80_TOOL_PAGER</code> environment variable
+                        if it’s set, then <code>PAGER</code>, then <code>less</code> (except on
+                        Windows, which only pages if one of the variables is set). Set it
+                        to <code>cat</code> or to an empty string, or use this flag, to turn
+                        paging off.</td>
+                </tr>
+            </table>
 
             <h3 id="dir"><code>dir</code></h3>
+
             <p>The <code>dir</code> command shows the contents of an archive file. Archives
             files are those that can contain other files. These are cassette files
             (in WAV or CAS format) and floppy disks (in JV1, JV3, DMK, SCP, HFE, or IMD format).</p>
+
             <div><pre><code>% trs80-tool dir FILE</code></pre>
             </div>
-            <p>The output format depends on the type of archive. Cassette files show
-            baud rates, whereas floppy disks show creation date and type of file.
-            CP/M floppies have no dates, and show file attributes instead, and the
-            user number when some files aren’t in user 0. Percom MicroDOS floppies
-            also have no dates, and show the file type (BASIC or Data) and the file’s
-            remark. Model II TRSDOS floppies show S for system files and P for programs,
-            and the protection level; TRSDOS-II floppies show P (program) or D (data),
-            F or V (fixed- or variable-length records), and S (system); UCSD Pascal
-            floppies show each file’s date and kind (Code, Text, Data, and so on); and Xenix tar
-            floppies show each file’s Unix mode and owner, and its path.</p>
 
-            <p>Normally system file are hidden, but can be shown by specifying
-            the <code>--system</code> option.</p>
+            <p>The output format depends on the type of archive.</p>
 
-            <p>CP/M records file sizes only in whole 128-byte records, and pads the
-            last record of a text file after a Ctrl-Z. Files on CP/M disks that look like
-            text end at that Ctrl-Z, and their sizes are of the text. Specify
-            <code>--cpm-records</code> to show the whole records instead.</p>
+            <table class="flags">
+                <tr>
+                    <td><code>--system</code></td>
+                    <td>Show system files, which are normally hidden.</td>
+                </tr>
+                <tr>
+                    <td><code>--cpm-records</code></td>
+                    <td>Show the sizes of CP/M text files in whole records, rather than up to
+                        the Ctrl-Z.</td>
+                </tr>
+            </table>
 
             <p>This command respects the <code>LS_COLORS</code> and
             <code>EZA_COLORS</code> environment variables.</p>
@@ -225,16 +237,20 @@
             description of the contents of the file, such as its type (system
             program, Basic program) and, if known, the embedded filename.</p>
 
-            <div><pre><code>% trs80-tool info in1.cmd in2.bas in3.cas in4.wav</code></pre></div>
+            <div><pre><code>% trs80-tool info in1.cmd in2.bas in3.cas in4.wav in5.dmk</code></pre></div>
 
-            <p>The <code>--verbose</code> flag displays some information (like floppy geometry) for
-            some file types:</p>
-
-            <div><pre><code>% trs80-tool info --verbose in1.dmk in2.dsk</code></pre> </div>
-
-            <p>The <code>--json</code> flag dumps (almost) everything we know about the
-            file in JSON format. This is currently used as part of a regressions suite
-            for floppies, but may also be useful to an AI agent.</p>
+            <table class="flags">
+                <tr>
+                    <td><code>--verbose</code></td>
+                    <td>Show more information for some file types, such as a floppy’s geometry.</td>
+                </tr>
+                <tr>
+                    <td><code>--json</code></td>
+                    <td>Show (almost) everything we know about the file, in JSON format. This
+                        is used by a regression suite for floppies, but may also be useful to
+                        an AI agent.</td>
+                </tr>
+            </table>
 
             <h3 id="convert"><code>convert</code></h3>
             <p>The <code>convert</code> command converts a list of input files to an output file.
@@ -253,53 +269,55 @@
             <div><pre><code>% trs80-tool convert in.dmk out.wav
 % trs80-tool convert in.wav out.cas</code></pre>
             </div>
-            <p>Use the <code>--system</code> flag to include system files from floppies, and the
-            <code>--cpm-records</code> flag to keep the whole records of CP/M files (see
-            <a href="#extract"><code>extract</code></a>).
-            The output must be a file; to write the contents of an archive to a directory, use
+            <p>The output must be a file; to extract the contents of an archive, use
             <a href="#extract"><code>extract</code></a>.</p>
-            <p>When writing a cassette format, the baud rate of the input file will
-            be used, if it’s known:</p>
-            <div><pre><code>% trs80-tool convert in1.cas in2.cas in3.cas out.wav</code></pre>
-            </div>
-            <p>(The baud rate can be guessed from the <code>.CAS</code> file contents.) If the
-            baud rate can’t be guessed, 500 baud (low-speed) will be used:</p>
-            <div><pre><code>% trs80-tool convert in1.bas in2.3bn out.wav</code></pre>
-            </div>
-            <p>This can be overwritten using the <code>--baud</code> command-line flag:</p>
-            <div><pre><code>% trs80-tool convert --baud 1500 in1.cas in2.cas in3.cas out.wav
-% trs80-tool convert --baud 1500 in1.bas in2.3bn out.wav</code></pre>
-            </div>
-            <p>If a system program doesn’t have a built-in start address, one
-            will be guessed by the <code>info</code> command:</p>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--baud RATE</code></td>
+                    <td>Write cassettes at this baud rate (250, 500, or 1500). If not specified,
+                        it will be guessed, if possible, otherwise will be 500 baud (low speed).</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>--start ADDRESS</code></td>
+                    <td>Set the start address of a system program, or <code>auto</code> to
+                        guess one. For <code>.BIN</code> and <code>.ROM</code> input, this is also
+                        the load address.</td>
+                </tr>
+                <tr>
+                    <td><code>--entry ADDRESSES</code></td>
+                    <td>Add entry points (comma-separated) for disassembled output. The
+                        disassembler guesses what is code and what is data, but if the program
+                        relocates itself, some entry points will be missing and their code will be
+                        disassembled as data.</td>
+                </tr>
+                <tr>
+                    <td><code>--system</code></td>
+                    <td>Include system files from floppies.</td>
+                </tr>
+                <tr>
+                    <td><code>--cpm-records</code></td>
+                    <td>Keep the whole records of CP/M text files (see
+                        <a href="#extract"><code>extract</code></a>).</td>
+                </tr>
+            </table>
+
+            <p>If a system program doesn’t have a built-in start address, the <code>info</code>
+            command shows the one it guesses, which you can then set:</p>
             <div><pre><code>% trs80-tool info in.cas
-in.cas: System program (VCEPRN, /17408) on a low speed cassette</code></pre>
-            </div>
-            <p>The start address can be set with the <code>--start</code> flag:</p>
-            <div><pre><code>% trs80-tool convert --start 17408 in.cas out.cas
+in.cas: System program (VCEPRN, /17408) on a low speed cassette
+% trs80-tool convert --start 17408 in.cas out.cas
 Wrote out.cas: System program (VCEPRN) in low speed CAS file
 % trs80-tool info out.cas
 out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
             </div>
-            <p>The address <code>auto</code> can be used to guess an appropriate start address:</p>
-            <div><pre><code>% trs80-tool convert --start auto in.cas out.cas
-Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
+            <p>More examples:</p>
+            <div><pre><code>% trs80-tool convert --baud 1500 in1.bas in2.3bn out.wav
+% trs80-tool convert --start 0x1024 in.rom out.cmd
+% trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst</code></pre>
             </div>
-            <p>When converting <code>.BIN</code> or <code>.ROM</code> files, the <code>--start</code> flag specifies
-            both the load address and the start address:</p>
-            <div><pre><code>% trs80-tool convert --start 0x1024 in.rom out.cmd</code></pre>
-            </div>
-            <p>An assembly language listing disassembly file can be generated from <code>.CMD</code>,
-            <code>.SYS</code>, and <code>.3BN</code> files:</p>
-            <div><pre><code>% trs80-tool convert in.cmd out.asm
-% trs80-tool convert in.3bn out.lst</code></pre>
-            </div>
-            <p>The disassembler attempts to guess what is code and what is data. If the
-            input program relocates itself, some entry points will be missing and code
-            will instead be disassembled as data. You can explicitly list entry points:</p>
-            <div><pre><code>% trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst</code></pre>
-            </div>
-            <p>See also the <code>disasm</code> command.</p>
+            <p>See also the <a href="#disasm"><code>disasm</code></a> command.</p>
 
             <h3 id="extract"><code>extract</code></h3>
             <p>The <code>extract</code> command writes the files inside a floppy image, <code>.CAS</code>
@@ -309,29 +327,46 @@ Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
 % trs80-tool extract in.cas out
 % trs80-tool extract in.wav out</code></pre>
             </div>
-            <p>Use the <code>--system</code> flag to include system files from floppies.
-            Text files from CP/M floppies are written up to their first Ctrl-Z, without
-            the padding that fills the rest of the last 128-byte record. Use the
-            <code>--cpm-records</code> flag to keep the whole records.
-            Text files from UCSD Pascal floppies are converted to plain text. Use the
-            <code>--ucsd-pascal-raw</code> flag to write them as they are on the disk.
-            Use the <code>--lowercase</code> flag to write the files with lowercase names.
-            Files on Xenix tar floppies keep their directories: <code>usr/bin/vi</code> is
-            written to <code>out/usr/bin/vi</code>, creating the directories as needed.</p>
-            <p>Files on floppies that are damaged (unreadable sectors, sectors with CRC errors,
-            or missing directory entries) are written anyway, with unreadable sectors filled with zeros,
-            and what’s wrong is shown in the “Wrote” line. Use the <code>--mark-damaged</code>
-            flag to also add <code>[DAMAGED]</code> to their names, as in <code>HELLO.BAS [DAMAGED]</code>.</p>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--system</code></td>
+                    <td>Include system files from floppies.</td>
+                </tr>
+                <tr>
+                    <td><code>--cpm-records</code></td>
+                    <td>Keep the whole records of CP/M text files, rather than stopping at
+                        the Ctrl-Z.</td>
+                </tr>
+                <tr>
+                    <td><code>--ucsd-pascal-raw</code></td>
+                    <td>Write UCSD Pascal text files as they are on the disk, rather than
+                        converting them to plain text.</td>
+                </tr>
+                <tr>
+                    <td><code>--lowercase</code></td>
+                    <td>Write the files with lowercase names.</td>
+                </tr>
+                <tr>
+                    <td><code>--mark-damaged</code></td>
+                    <td>Add <code>[DAMAGED]</code> to the names of damaged files, as in
+                        <code>HELLO.BAS [DAMAGED]</code>.</td>
+                </tr>
+            </table>
 
             <h3 id="hexdump"><code>hexdump</code></h3>
-            <p>The <code>hexdump</code> command displays a hex dump of the input file, with annotations.
-            See the <code>--color</code> flag for how to force coloring on or off.
-            By default the command will collapse consecutive identical lines:</p>
+
+            <p>The <code>hexdump</code> command displays a hex dump of the input file, with annotations.</p>
+
             <div><pre><code>% trs80-tool hexdump in.cmd</code></pre>
             </div>
-            <p>Use the <code>--no-collapse</code> flag to turn off this collapsing:</p>
-            <div><pre><code>% trs80-tool hexdump --no-collapse in.cmd</code></pre>
-            </div>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--no-collapse</code></td>
+                    <td>Show every line, rather than collapsing identical ones.</td>
+                </tr>
+            </table>
 
             <h3 id="sectors"><code>sectors</code></h3>
             <p>The <code>sectors</code> command displays a table of the sectors in a floppy disk. The columns
@@ -343,94 +378,149 @@ X Deleted sector.
 C CRC error (ID or data).
 ? Missing sector.</code></pre>
             </div>
-            <p>Use the <code>--contents</code> flag to also show the contents of the sectors.</p>
 
-            <p>The <code>--bad</code> flag lists all sectors that are missing or that
-            have a CRC error, as well as which file (if any) is on each bad sector.
-            Can be combined with <code>--contents</code> to also show the contents of the
-            bad sectors.</p>
+            <table class="flags">
+                <tr>
+                    <td><code>--contents</code></td>
+                    <td>Also show the contents of the sectors.</td>
+                </tr>
+                <tr>
+                    <td><code>--bad</code></td>
+                    <td>Instead of the table, list the sectors that are missing or that have
+                        a CRC error, and which file (if any) is on each one.</td>
+                </tr>
+            </table>
 
             <h3 id="asm"><code>asm</code></h3>
+
             <p>The <code>asm</code> command assembles the specified assembly language source code:</p>
-            <div><pre><code>% trs80-tool asm program.asm program.cmd</code></pre>
+            <div><pre><code>% trs80-tool asm program.asm program.cmd
+% trs80-tool asm --baud 1500 program.asm program.cas
+% trs80-tool asm --listing program.lst program.asm program.cmd</code></pre>
             </div>
             <p>It can generate <code>.CMD</code>, <code>.3BN</code>, <code>.CAS</code>, <code>.WAV</code>,
-            <code>BIN</code>, or <code>HEX</code> files. For <code>.CAS</code> or
-            <code>.WAV</code> files the default baud rate is 500, but can be set with the <code>--baud</code>
-            flag:</p>
-            <div><pre><code>% trs80-tool asm --baud 1500 program.asm program.cas</code></pre>
-            </div>
-            <p>A listing file can be generated with the <code>--listing</code> flag:</p>
-            <div><pre><code>% trs80-tool asm --listing program.lst program.asm program.cmd</code></pre>
-            </div>
+            <code>BIN</code>, or <code>HEX</code> files.</p>
 
+            <table class="flags">
+                <tr>
+                    <td><code>--baud RATE</code></td>
+                    <td>The baud rate for <code>.CAS</code> and <code>.WAV</code> files: 250,
+                        500 (the default), or 1500.</td>
+                </tr>
+                <tr>
+                    <td><code>--listing FILE</code></td>
+                    <td>Also write a listing file.</td>
+                </tr>
+            </table>
 
 
             <h3 id="disasm"><code>disasm</code></h3>
             <p>The <code>disasm</code> command disassembles the specified program:</p>
-            <div><pre><code>% trs80-tool disasm saucer.cmd</code></pre>
+            <div><pre><code>% trs80-tool disasm saucer.cmd
+% trs80-tool disasm --org 0x8000 file.bin
+% trs80-tool disasm --entry 0x0000,0x3799,0x377B model3.rom
+% trs80-tool disasm --listing program.cmd</code></pre>
             </div>
-            <p>If the program is a <code>.CMD</code>, <code>.SYS</code>, or <code>.3BN</code> file, it is loaded into the correct place
-            in memory. If it’s a <code>.ROM</code> or <code>.BIN</code> file, it is loaded at 0x0000, but this
-            can be change with the <code>--org</code> flag:</p>
-            <div><pre><code>% trs80-tool disasm --org 0x8000 file.bin</code></pre>
-            </div>
-            <p>The disassembler tries to guess which bytes are code and which are data by
-            following the path of the program, starting with its main entry point. Additional
-            entry points can be specified with the <code>--entry</code> flag:</p>
-            <div><pre><code>% trs80-tool disasm --entry 0x0000,0x3799,0x377B model3.rom</code></pre>
-            </div>
-            <p>Note that if any entry point is listed, then 0x0000 must be specified again if
-            applicable. If you wish to disable this “smart” disassembly and just disassemble continuously
-            through the program, specify the <code>--full</code> flag. If you specify this flag, bytes
-            that were originally data will be disassembled too. To make these bytes easier to find,
-            specify the <code>--data-comment</code> flag, which adds a comment to each instruction with
-            the ASCII of the instructions’s bytes.</p>
-            <p>The output can be controlled with <code>--no-labels</code> to not create labels
-            for jump targets and <code>--no-known</code> to not reference known ROM addresses. The
-            <code>--hex-format</code> flag controls the format of hex numbers, which can be <code>c</code>
-            for <code>0x12</code> (the default), <code>dollar</code> for <code>$12</code>, or <code>h</code> for <code>12h</code>.</p>
-            <p>A listing file can instead be generated with the <code>--listing</code> flag:</p>
-            <div><pre><code>% trs80-tool disasm --listing program.cmd</code></pre>
-            </div>
-            <p>The <code>--no-binary</code> flag will suppress opcode binary in the listing.
-            The <code>--upper</code> flag will generate upper case assembly language.</p>
 
+            <p>If the program is a <code>.CMD</code>, <code>.SYS</code>, or <code>.3BN</code> file, it is loaded into the correct place
+            in memory. If it’s a <code>.ROM</code> or <code>.BIN</code> file, it is loaded at 0x0000.</p>
+            <p>The disassembler tries to guess which bytes are code and which are data by
+            following the path of the program, starting with its main entry point.</p>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--org ADDRESS</code></td>
+                    <td>Load a <code>.ROM</code> or <code>.BIN</code> file at this address
+                        rather than 0x0000.</td>
+                </tr>
+                <tr>
+                    <td><code>--entry ADDRESSES</code></td>
+                    <td>Add entry points (comma-separated).</td>
+                </tr>
+                <tr>
+                    <td><code>--full</code></td>
+                    <td>Disassemble straight through the program rather than following its
+                        path, so bytes that are data are disassembled too.</td>
+                </tr>
+                <tr>
+                    <td><code>--data-comment</code></td>
+                    <td>Comment each instruction with the ASCII of its bytes, to make data
+                        easier to find with <code>--full</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>--no-labels</code></td>
+                    <td>Don’t create labels for jump targets.</td>
+                </tr>
+                <tr>
+                    <td><code>--no-known</code></td>
+                    <td>Don’t refer to known ROM addresses by name.</td>
+                </tr>
+                <tr>
+                    <td><code>--hex-format FORMAT</code></td>
+                    <td>The format of hex numbers: <code>c</code> for <code>0x12</code> (the
+                        default), <code>dollar</code> for <code>$12</code>, or <code>h</code>
+                        for <code>12h</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>--upper</code></td>
+                    <td>Write assembly language in upper case.</td>
+                </tr>
+                <tr>
+                    <td><code>--listing</code></td>
+                    <td>Write a listing instead of assembly language.</td>
+                </tr>
+                <tr>
+                    <td><code>--no-binary</code></td>
+                    <td>Leave the opcode bytes out of the listing.</td>
+                </tr>
+            </table>
 
             <h3 id="run"><code>run</code></h3>
-            <p>Run a TRS-80 emulator in the shell:</p>
-            <div><pre><code>% trs80-tool run</code></pre>
-            </div>
-            <p>This is experimental and does not currently work well with games, and may not
-            work at all in a Microsoft Windows shell.</p>
-            <p>Use the <code>--model</code> flag to specify the model (1, 3, or 4, defaults to 3) and
-            the <code>--level</code> flag to specify the Basic level (1 or 2, defaults to 2).</p>
-            <div><pre><code>% trs80-tool run --model 1 --level 1</code></pre>
-            </div>
 
-            <p>Specify a program or floppy to load and run directly:</p>
+            <p>Run a TRS-80 emulator in the shell. This is experimental and
+            does not currently work well with games, and may not work at all in
+            a Microsoft Windows shell. Specify a program or floppy to load and
+            run directly:</p>
 
-            <div><pre><code>% trs80-tool run tdos13a.dsk
-% trs80-tool run frogger.cmd</code></pre>
+            <div><pre><code>% trs80-tool run
+% trs80-tool run tdos13a.dsk
+% trs80-tool run frogger.cmd
+% trs80-tool run --model 1 --level 1
+% trs80-tool run --mount in.cas in1.dmk in2.dmk in3.dmk</code></pre>
             </div>
 
-            <p>Use the <code>--mount</code> flag to specify a cassette
-            or floppy to mount:</p>
-            <div><pre><code>% trs80-tool run --mount in.cas</code></pre>
-            </div>
 
-            <p>Only one cassette may be mounted, but several floppies can be specified
-            and will be assigned to consecutive drives, starting at 0:</p>
+            <p>If, from within the emulator, you modify a floppy, its file
+            is modified as well.</p>
 
-            <div><pre><code>% trs80-tool run --mount in.cas in1.dmk in2.dmk in3.dmk</code></pre>
-            </div>
-
-            <p>If, from within the emulator, you modify the floppy, the virtual file
-            will be modified as well. Specify the <code>--write-protected</code> option
-            to mount all floppies as write-protected.</p>
-
-            <p>The <code>--xray</code> flag shows nothing in the shell but starts a web server
-            for the X-ray debugger. This is experimental and not yet documented.</p>
+            <table class="flags">
+                <tr>
+                    <td><code>--model MODEL</code></td>
+                    <td>The model: 1, 3 (the default), or 4.</td>
+                </tr>
+                <tr>
+                    <td><code>--level LEVEL</code></td>
+                    <td>The Basic level: 1 or 2 (the default).</td>
+                </tr>
+                <tr>
+                    <td><code>--mount FILES...</code></td>
+                    <td>Mount a cassette and floppies. Only one cassette may be mounted, but
+                        several floppies can be mounted.</td>
+                </tr>
+                <tr>
+                    <td><code>--write-protected</code></td>
+                    <td>Mount all floppies as write-protected.</td>
+                </tr>
+                <tr>
+                    <td><code>--printer FILE</code></td>
+                    <td>Write printer output to a file, rather than showing it below the screen.</td>
+                </tr>
+                <tr>
+                    <td><code>--xray</code></td>
+                    <td>Show nothing in the shell, but start a web server for the X-ray
+                        debugger. This is experimental and not yet documented.</td>
+                </tr>
+            </table>
 
             <h3 id="repl"><code>repl</code></h3>
             <p>Starts an interactive session for exploring the Z80. Type <code>help</code> to get
