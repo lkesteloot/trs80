@@ -15,6 +15,7 @@ import {
     FloppyDiskGeometry,
     FloppyWrite,
     FormattedTrack,
+    laterSectorReplaces,
     SectorCrc,
     SectorData,
     SectorInfo,
@@ -348,6 +349,7 @@ class DmkSector {
         sectorInfo.crcError = !sectorInfo.crc.valid();
         sectorInfo.deleted = this.isDeleted();
         sectorInfo.dataAddressMark = this.getDam();
+        sectorInfo.hasDataField = this.hasData();
     }
 
     /**
@@ -441,13 +443,14 @@ export class DmkFloppyDisk extends FloppyDisk {
     public computeSectorMap(): void {
         this.sectorMap.clear();
 
-        // A later sector with the same position replaces an earlier one, unless only the earlier
-        // one's ID field is good. Some imagers record noise as IDs, with any sector number.
+        // A later sector with the same position replaces an earlier one unless it's worse (see
+        // laterSectorReplaces()). Some imagers record noise as IDs, with any sector number, and
+        // some tracks end with a re-read of the first sector, whose data runs off the end.
         for (const track of this.tracks) {
             for (const sector of track.sectors) {
                 const key = sector.physicalSectorPosition.key();
                 const existing = this.sectorMap.get(key);
-                const replace = existing === undefined || sector.hasValidIdCrc() || !existing.hasValidIdCrc();
+                const replace = existing === undefined || laterSectorReplaces(existing, sector);
                 if (replace) {
                     this.sectorMap.set(key, sector);
                 }

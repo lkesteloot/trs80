@@ -5,7 +5,7 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 14, 2026. "Where things stand" at the end has the regression results.
+Last updated October 15, 2026. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -74,6 +74,22 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       until a disk needs it. `info`'s verbose "sectors X to Y" and
       `info --json`'s per-track `firstSector`/`lastSector` also show the raw
       range.
+- [ ] **Images made by stepping an 80-track drive once per track** of a 40-track
+      disk. `Make-80 v1.2 [M1][Set 2][Disk 1 of 2]` has 70 tracks, track 2*n*
+      holding cylinder *n* and the odd tracks noise, so the DOS isn't
+      identified and one file is found. A
+      reader could notice that the even tracks' IDs say half their track number
+      and read only those, as a real 40-track drive would (NEWDOS/80's PDRIVE
+      has a flag for the opposite case, a 40-track disk in an 80-track drive
+      stepping twice). One disk so far.
+- [ ] **`sectors --bad` doesn't say when a sector is outside the file system.**
+      Most of what `ira/odderrors-420/` still reports is on cylinders past the
+      DOS's own (past GAT byte 0xCC + 35, or CP/M's tracks), where "There is no
+      file at this sector" is true but doesn't say that the DOS never uses that
+      cylinder. `FloppyFileSystem` could expose its cylinder count, and
+      `sectors` could say "outside the file system" there, or list those
+      cylinders apart. Similarly, "missing" covers both a sector with no ID
+      and an ID with no data mark after it.
 - [ ] **The hit floor.** The `hashHits < 2` floor in `evaluate()` would reject
       a blank TRSDOS 2.3B data disk, which may have no entries at all, and a
       blank MultiDOS or UltraDOS disk, which has no BOOT/SYS. Use "≥1 hit, or a
