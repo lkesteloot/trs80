@@ -3,7 +3,7 @@ import {
     BYTES_PER_SECTOR,
     CMD_END_OF_PDS_MEMBER,
     CmdIsamDirectoryEntryChunk,
-    CmdLoadBlockChunk, CmdProgram, SystemProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
+    CmdLoadBlockChunk, CmdProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
 import {toHex, toHexByte } from "z80-base";
 import {Disasm, HexFormat, instructionsToText, InstructionsToTextConfig } from "z80-disasm";
 import {expandFile} from "./InputFile.js";
@@ -81,31 +81,6 @@ function decodePdsFile(trs80File: CmdProgram, createLabels: boolean, useKnownLab
         console.log(text);
         console.log("");
     }
-}
-
-/**
- * Disassemble a program.
- *
- * @param trs80File program to disassemble.
- * @param entryPoints additional entry points in binary.
- * @param makeListing whether to make a listing (as opposed to just disassembling).
- */
-export function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: number[], makeListing: boolean):
-    [binary: Uint8Array, description: string] {
-
-    const disasm = disasmForTrs80Program(trs80File);
-    for (const entryPoint of entryPoints) {
-        disasm.addEntryPoint(entryPoint);
-    }
-    const instructions = disasm.disassemble()
-    const text = instructionsToText(disasm, instructions, {
-        makeListing,
-        hexByteCount: 4,
-    }).join("\n") + "\n";
-    const outBinary = new TextEncoder().encode(text);
-    const description = "Disassembled " + (trs80File.className === "CmdProgram" ? "CMD program" : "system program");
-
-    return [outBinary, description];
 }
 
 /**

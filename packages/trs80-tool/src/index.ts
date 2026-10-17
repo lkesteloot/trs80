@@ -200,24 +200,22 @@ async function main(): Promise<void> {
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
             infile: "WAV, CAS, CMD, 3BN, or BAS file", // TODO these aren't used.
-            outfile: "WAV, CAS, CMD, 3BN, BAS, ASM, or LST file",
+            outfile: "WAV, CAS, CMD, 3BN, BAS, or ASC file",
         })
         .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
-        .option("--entry <addresses>", "add entry points of binary (comma-separated), for ASM or LST output")
         .option("--system", "include system files from source floppies")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .action((files, options) => {
             const speed = parseBaud(options.baud);
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
-            const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
             const includeSystemFiles = options.system;
             if (files.length < 2) {
                 throw new ToolError("Must specify at least one infile and exactly one outfile");
             }
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, speed, start, entryPoints, includeSystemFiles, options.cpmRecords);
+            convert(infiles, outfile, speed, start, includeSystemFiles, options.cpmRecords);
         });
     program
         .command("extract <infile> [outdir]")

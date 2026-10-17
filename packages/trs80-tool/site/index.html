@@ -290,13 +290,6 @@
                         the load address.</td>
                 </tr>
                 <tr>
-                    <td><code>--entry ADDRESSES</code></td>
-                    <td>Add entry points (comma-separated) for disassembled output. The
-                        disassembler guesses what is code and what is data, but if the program
-                        relocates itself, some entry points will be missing and their code will be
-                        disassembled as data.</td>
-                </tr>
-                <tr>
                     <td><code>--system</code></td>
                     <td>Include system files from floppies.</td>
                 </tr>
@@ -318,10 +311,8 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
             </div>
             <p>More examples:</p>
             <div><pre><code>% trs80-tool convert --baud 1500 in1.bas in2.3bn out.wav
-% trs80-tool convert --start 0x1024 in.rom out.cmd
-% trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst</code></pre>
+% trs80-tool convert --start 0x1024 in.rom out.cmd</code></pre>
             </div>
-            <p>See also the <a href="#disasm"><code>disasm</code></a> command.</p>
 
             <h3 id="extract"><code>extract</code></h3>
             <p>The <code>extract</code> command writes the files inside a floppy image, <code>.CAS</code>

@@ -6,7 +6,6 @@ import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio,
     concatAudio, writeWavFile } from "trs80-cassette";
 import {CassetteSpeed, Trs80File} from "trs80-base";
 import { concatByteArrays } from "teamten-ts-utils";
-import {disassemble} from "./disasm.js";
 
 /**
  * Handle the "convert" command.
@@ -15,13 +14,12 @@ import {disassemble} from "./disasm.js";
  * @param outFilename single output filename.
  * @param speed optional new cassette speed.
  * @param start optional start address of system file.
- * @param entryPoints additional entry points in binary.
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of ending
  * text files at their Ctrl-Z.
  */
 export function convert(inFilenames: string[], outFilename: string, speed: CassetteSpeed | undefined,
-                 start: number | "auto" | undefined, entryPoints: number[], includeSystemFiles: boolean,
+                 start: number | "auto" | undefined, includeSystemFiles: boolean,
                  cpmWholeRecords: boolean): void {
 
     const outStat = fs.statSync(outFilename, { throwIfNoEntry: false });
@@ -179,14 +177,6 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         break;
                     }
 
-                    case ".lst":
-                        [outBinary, description] = disassemble(infile.trs80File, entryPoints, true);
-                        break;
-
-                    case ".asm":
-                        [outBinary, description] = disassemble(infile.trs80File, entryPoints, false);
-                        break;
-
                     default:
                         throw new ToolError("Can't convert a system program program to " + outExt.toUpperCase());
                 }
@@ -229,14 +219,6 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                             resolvedSpeed.nominalBaud + " baud WAV file";
                         break;
                     }
-
-                    case ".lst":
-                        [outBinary, description] = disassemble(infile.trs80File, entryPoints, true);
-                        break;
-
-                    case ".asm":
-                        [outBinary, description] = disassemble(infile.trs80File, entryPoints, false);
-                        break;
 
                     default:
                         throw new ToolError("Can't convert a CMD program to " + outExt.toUpperCase());
