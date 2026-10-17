@@ -216,6 +216,10 @@ in that case run `git merge master`.
   Readers skim `if`s when looking for what the code does.
 - **Commits:** short imperative subjects ending in a period, prefixed with the
   package when there's one, e.g. `trs80-tool: Add load_basic MCP tool.` Only
-  commit when asked. Don't add a `Co-Authored-By` line for Claude.
+  commit when asked. Don't add a `Co-Authored-By` line for Claude. If the work
+  is done for a Github issue, add "For #123" (with the issue number). If it
+  fixes an issue, instead add "Fixes #123". (It doesn't have to 100% fix an issue
+  to be marked as fixed -- deferred features or fixes don't count and will be
+  done in a separate issue.)
 - **GitHub comments:** when commenting on an issue or pull request, start with a
   note saying that Claude wrote it, since it's posted under the user's account.
