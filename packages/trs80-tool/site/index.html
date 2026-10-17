@@ -638,6 +638,23 @@ C CRC error (ID or data).
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
 
+            <h3 id="2026-10-16">October 16, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v4.3.0:
+                    <ul>
+                        <li><a href="#dir"><code>dir</code></a>, <a href="#extract"><code>extract</code></a>,
+                            <a href="#sectors"><code>sectors</code></a>, and <a href="#info"><code>info</code></a>
+                            have a new <code>--json</code> flag that prints a JSON version of their output.
+                            (<a href="https://github.com/lkesteloot/trs80/issues/18">#18</a>)</li>
+                        <li><code>sectors --bad</code> omits disks with no bad sectors.</li>
+                        <li>Can read floppy images with an unreadable boot track.</li>
+                        <li><a href="#convert"><code>convert</code></a> can no longer be used to
+                            disassembles binaries, use
+                            <a href="#disasm"><code>disasm</code></a> instead.</li>
+                    </ul>
+                </li>
+            </ul>
+
             <h3 id="2026-10-15">October 15, 2026</h3>
             <ul>
                 <li><code>trs80-tool</code> v4.2.1: When extracting a set of Xenix disks
