@@ -5,10 +5,10 @@ import {
     decodeFloppyFileSystem,
     decodeTrs80File,
     Density,
-    FloppyDirEntry,
     FloppyDiskGeometry,
     FloppyFileSystem,
     isFloppy,
+    SectorData,
     SectorNumberRange,
     SectorPosition,
     TrackGeometry,
@@ -17,6 +17,7 @@ import {
 } from "trs80-base";
 import {toHexWord} from "z80-base";
 import {hexdumpBinary} from "./hexdump.js";
+import {captureLogs, type InfileJson, printInfilesJson, toBase64} from "./json.js";
 
 const CHALK_FOR_LETTER: { [letter: string]: ChalkInstance } = {
     "-": chalk.dim,
@@ -37,7 +38,89 @@ const LEGEND_FOR_LETTER: { [letter: string]: string } = {
 }
 
 /**
- * Handle the "sectors" command.
+ * A sector that the "sectors" command lists.
+ */
+interface SectorVisit {
+    /** The position we looked for. */
+    position: SectorPosition;
+    /** The sector, or undefined if it's missing. */
+    sector: SectorData | undefined;
+    /** Whether the sector number is outside the usual numbers of its track. */
+    outsideExpected: boolean;
+}
+
+/**
+ * Whether the sector is missing or has a CRC error.
+ */
+function isBadSector(sector: SectorData | undefined): boolean {
+    return sector === undefined || sector.crcError;
+}
+
+/**
+ * Read every sector that the "sectors" command lists, in cylinder, side, and sector order: all of
+ * the sector numbers that each track is expected to have (so that missing ones are reported) and
+ * any stray ones that exist.
+ */
+function visitSectors(file: Trs80Floppy): SectorVisit[] {
+    const visits: SectorVisit[] = [];
+    const geometry = file.getGeometry();
+
+    for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
+        for (let side = 0; side < geometry.sideCount; side++) {
+            const trackPosition = new TrackPosition(cylinder, side);
+            const trackGeometry = geometry.getTrack(trackPosition);
+            if (trackGeometry === undefined) {
+                // No sectors at all on this track.
+                continue;
+            }
+            const expected = geometry.getExpectedSectorRange(trackPosition);
+            for (const sectorNumber of sectorNumbersToVisit(trackGeometry, expected)) {
+                const position = new SectorPosition(trackPosition, sectorNumber);
+                visits.push({
+                    position,
+                    sector: file.readSector(position),
+                    outsideExpected: !isUsualSectorNumber(expected, sectorNumber),
+                });
+            }
+        }
+    }
+
+    return visits;
+}
+
+/**
+ * Find the files that use each sector of the disk. Two files can claim the same sector if the
+ * disk is damaged (they're cross-linked).
+ *
+ * @param fileSystem the disk's file system, or undefined if it has none.
+ * @return a map from the key of the sector's position (see SectorPosition.key()) to the names of
+ * the files that use it, in directory order. Sectors that no file uses aren't in the map.
+ */
+function filesBySector(fileSystem: FloppyFileSystem | undefined): Map<string, string[]> {
+    const map = new Map<string, string[]>();
+    if (fileSystem === undefined) {
+        return map;
+    }
+
+    for (const dirEntry of fileSystem.getDirEntries(true)) {
+        const filename = dirEntry.getFilename(".");
+        for (const position of fileSystem.getFileSectorPositions(dirEntry)) {
+            const key = position.key();
+            const filenames = map.get(key);
+            if (filenames === undefined) {
+                map.set(key, [filename]);
+            } else if (!filenames.includes(filename)) {
+                // A file can list a sector twice if it's cross-linked with itself.
+                filenames.push(filename);
+            }
+        }
+    }
+
+    return map;
+}
+
+/**
+ * Handle the "sectors" command. With onlyShowBad, prints nothing for a floppy without bad sectors.
  */
 export function sectors(filename: string, showContents: boolean, onlyShowBad: boolean): void {
     // Read the file.
@@ -69,92 +152,220 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
         title += ", " + fileSystem.nameAndVersion;
     }
 
+    // The sectors to dump.
+    let visits: SectorVisit[] = [];
+    if (showContents || onlyShowBad) {
+        visits = visitSectors(file);
+        if (onlyShowBad) {
+            visits = visits.filter(visit => isBadSector(visit.sector));
+
+            // Don't mention the floppies that have nothing wrong, so that checking many shows only the problems.
+            if (visits.length === 0) {
+                return;
+            }
+        }
+    }
+
     console.log(title);
 
     if (!onlyShowBad) {
         printMap(file);
     }
 
-    if (showContents || onlyShowBad) {
-        const geometry = file.getGeometry();
+    const filenamesAtSector = onlyShowBad ? filesBySector(fileSystem) : new Map<string, string[]>();
+    for (const {position, sector, outsideExpected} of visits) {
+        let header = `Cylinder ${position.cylinderNumber}, side ${position.side}, sector ${position.sectorNumber}: `;
 
-        // Dump each sector.
-        for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
-            for (let side = 0; side < geometry.sideCount; side++) {
-                const trackPosition = new TrackPosition(cylinder, side);
-                const trackGeometry = geometry.getTrack(trackPosition);
-                if (trackGeometry === undefined) {
-                    // No sectors at all on this track.
-                    continue;
-                }
-                const expected = geometry.getExpectedSectorRange(trackPosition);
-                for (const sectorNumber of sectorNumbersToVisit(trackGeometry, expected)) {
-                    const outsideExpected = !isUsualSectorNumber(expected, sectorNumber);
-                    let header = `Cylinder ${cylinder}, side ${side}, sector ${sectorNumber}: `;
+        if (sector === undefined) {
+            header += "missing";
+        } else {
+            header += (sector.density === Density.SINGLE ? "single" : "double") + " density" +
+                (sector.deleted ? ", marked as deleted" : "") +
+                (outsideExpected ? ", outside the usual sector numbers" : "");
 
-                    const sectorPosition = new SectorPosition(trackPosition, sectorNumber);
-                    const sector = file.readSector(sectorPosition);
-                    if (sector === undefined) {
-                        header += "missing";
-                    } else {
-                        header += (sector.density === Density.SINGLE ? "single" : "double") + " density" +
-                            (sector.deleted ? ", marked as deleted" : "") +
-                            (outsideExpected ? ", outside the usual sector numbers" : "");
+            if (sector.crcError) {
+                header += ", CRC error";
 
-                        if (sector.crcError) {
-                            header += ", CRC error";
-
-                            if (sector.crc !== undefined) {
-                                const parts: string[] = [];
-                                if (!sector.crc.idCrc.valid()) {
-                                    parts.push("ID " + toHexWord(sector.crc.idCrc.written) + " != " +
-                                        toHexWord(sector.crc.idCrc.computed));
-                                }
-                                if (!sector.crc.dataCrc.valid()) {
-                                    parts.push("data " + toHexWord(sector.crc.dataCrc.written) + " != " +
-                                        toHexWord(sector.crc.dataCrc.computed));
-                                }
-                                header += " (" + parts.join(", ") + ")";
-                            }
-                        }
+                if (sector.crc !== undefined) {
+                    const parts: string[] = [];
+                    if (!sector.crc.idCrc.valid()) {
+                        parts.push("ID " + toHexWord(sector.crc.idCrc.written) + " != " +
+                            toHexWord(sector.crc.idCrc.computed));
                     }
-
-                    if (!onlyShowBad || (sector === undefined || sector.crcError)) {
-                        console.log(header);
-
-                        if (showContents && sector !== undefined) {
-                            hexdumpBinary(sector.data, false, []);
-                        }
-
-                        if (onlyShowBad && fileSystem !== undefined) {
-                            const files = fileSystem.getDirEntries(true);
-                            let fileAtSector: FloppyDirEntry | undefined = undefined;
-                            for (const file of files) {
-                                const sectorPositions = fileSystem.getFileSectorPositions(file);
-                                for (const filePosition of sectorPositions) {
-                                    if (filePosition.equals(sectorPosition)) {
-                                        fileAtSector = file;
-                                        break;
-                                    }
-                                }
-                                if (fileAtSector !== undefined) {
-                                    break;
-                                }
-                            }
-
-                            if (fileAtSector === undefined) {
-                                console.log("There is no file at this sector.");
-                            } else {
-                                console.log("File at this sector: " + fileAtSector.getFilename("."));
-                            }
-                        }
-
-                        console.log("");
+                    if (!sector.crc.dataCrc.valid()) {
+                        parts.push("data " + toHexWord(sector.crc.dataCrc.written) + " != " +
+                            toHexWord(sector.crc.dataCrc.computed));
                     }
+                    header += " (" + parts.join(", ") + ")";
                 }
             }
         }
+
+        console.log(header);
+
+        if (showContents && sector !== undefined) {
+            hexdumpBinary(sector.data, false, []);
+        }
+
+        if (onlyShowBad && fileSystem !== undefined) {
+            const filenames = filenamesAtSector.get(position.key());
+            if (filenames === undefined) {
+                console.log("There is no file at this sector.");
+            } else {
+                console.log((filenames.length === 1 ? "File" : "Files") + " at this sector: " + filenames.join(", "));
+            }
+        }
+
+        console.log("");
     }
+}
+
+/**
+ * The JSON for one CRC (the ID field's or the data field's) of a sector.
+ */
+interface SectorCrcJson {
+    /** The CRC as written on the floppy. */
+    stored: number;
+    /** The CRC as computed from the bytes that were read. */
+    computed: number;
+}
+
+/**
+ * The JSON for one sector. Which fields it has depends on whether the sector is missing.
+ */
+interface SectorJson {
+    /** The cylinder of the position we looked for. */
+    cylinder: number;
+    /** The side of the position we looked for. */
+    side: number;
+    /** The sector number of the position we looked for. */
+    sector: number;
+    /** Whether the floppy has no readable sector at this position. The fields below are then missing. */
+    missing: boolean;
+    /** Whether the sector number is outside the usual sector numbers of its track (a copy protection scheme, perhaps). */
+    outsideUsualNumbers: boolean;
+    /** The names of the files that use this sector, in directory order. Usually zero or one; more if the disk is cross-linked. */
+    files: string[];
+    /** Present sectors only: "single" or "double". */
+    density?: "single" | "double";
+    /** Present sectors only: the length in bytes of the sector's data. */
+    size?: number;
+    /** Present sectors only: whether the data address mark says that the data is deleted. */
+    deleted?: boolean;
+    /** Present sectors only: the exact data address mark (0xF8 to 0xFB), if the image format records it. */
+    dataAddressMark?: number;
+    /** Present sectors only: whether there was a CRC error in the ID field or the data. */
+    crcError?: boolean;
+    /** Present sectors only, and only if the image format records the CRCs: the CRC of the ID field. */
+    idCrc?: SectorCrcJson;
+    /** Present sectors only, and only if the image format records the CRCs: the CRC of the data. */
+    dataCrc?: SectorCrcJson;
+    /** With "--contents", the sector's data in base64. Missing for missing sectors. */
+    contents?: string;
+}
+
+/**
+ * The JSON for one input file of "sectors --json".
+ */
+interface SectorsInfileJson extends InfileJson {
+    /** A short description of the floppy image, such as "DMK floppy with 40 cylinders". Missing if the input had an error. */
+    description?: string;
+    /** The name and version of the floppy's operating system, or null if there's none we recognize. Missing if the input had an error. */
+    os?: string | null;
+    /** The sectors, in cylinder, side, and sector order. With "--bad", only those that are missing or have a CRC error. */
+    sectors: SectorJson[];
+}
+
+/**
+ * Convert one sector to JSON.
+ */
+function sectorToJson(visit: SectorVisit, filenames: string[], showContents: boolean): SectorJson {
+    const {position, sector, outsideExpected} = visit;
+    const json: SectorJson = {
+        cylinder: position.cylinderNumber,
+        side: position.side,
+        sector: position.sectorNumber,
+        missing: sector === undefined,
+        outsideUsualNumbers: outsideExpected,
+        files: filenames,
+    };
+
+    if (sector !== undefined) {
+        json.density = sector.density === Density.SINGLE ? "single" : "double";
+        json.size = sector.data.length;
+        json.deleted = sector.deleted;
+        if (sector.dataAddressMark !== undefined) {
+            json.dataAddressMark = sector.dataAddressMark;
+        }
+        json.crcError = sector.crcError;
+        if (sector.crc !== undefined) {
+            json.idCrc = { stored: sector.crc.idCrc.written, computed: sector.crc.idCrc.computed };
+            json.dataCrc = { stored: sector.crc.dataCrc.written, computed: sector.crc.dataCrc.computed };
+        }
+        if (showContents) {
+            json.contents = toBase64(sector.data);
+        }
+    }
+
+    return json;
+}
+
+/**
+ * Read one input file and convert its sectors to JSON.
+ *
+ * @return the JSON, or undefined if onlyShowBad is set and the floppy has no bad sectors.
+ */
+function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: boolean):
+    Omit<SectorsInfileJson, "warnings"> | undefined {
+
+    let buffer;
+    try {
+        buffer = fs.readFileSync(filename);
+    } catch (e: any) {
+        return { infile: filename, sectors: [], error: "Can't open file: " + e.message };
+    }
+
+    const file = decodeTrs80File(buffer, { filename });
+    if (!isFloppy(file)) {
+        return { infile: filename, sectors: [], error: "Not a recognized floppy file" };
+    }
+    if (file.error !== undefined) {
+        return { infile: filename, sectors: [], error: file.error };
+    }
+
+    const fileSystem = decodeFloppyFileSystem(file);
+    let visits = visitSectors(file);
+    if (onlyShowBad) {
+        visits = visits.filter(visit => isBadSector(visit.sector));
+        if (visits.length === 0) {
+            return undefined;
+        }
+    }
+
+    const filenamesAtSector = filesBySector(fileSystem);
+    return {
+        infile: filename,
+        description: file.getDescription(),
+        os: fileSystem === undefined ? null : fileSystem.nameAndVersion,
+        sectors: visits.map(visit =>
+            sectorToJson(visit, filenamesAtSector.get(visit.position.key()) ?? [], showContents)),
+    };
+}
+
+/**
+ * Handle the "sectors" command with "--json": print one JSON object for all the input files.
+ * With onlyShowBad, floppies without bad sectors aren't in it.
+ */
+export function sectorsJson(filenames: string[], showContents: boolean, onlyShowBad: boolean): void {
+    const infiles: SectorsInfileJson[] = [];
+    for (const filename of filenames) {
+        const {result, warnings} = captureLogs(() => sectorsFileJson(filename, showContents, onlyShowBad));
+        if (result !== undefined) {
+            infiles.push({ ...result, warnings });
+        }
+    }
+
+    printInfilesJson(infiles);
 }
 
 /**

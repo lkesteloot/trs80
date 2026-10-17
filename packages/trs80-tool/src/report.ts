@@ -44,7 +44,7 @@ import {
 
 // Bump when the structure of the report changes in a way that consumers must know about.
 // The trs80-floppy-regress repo keeps a copy of the types below; update it too.
-export const REPORT_VERSION = 5;
+export const REPORT_VERSION = 6;
 
 export type DensityName = "single" | "double";
 
@@ -242,7 +242,7 @@ export interface DiskReport {
 }
 
 /**
- * The full output of "info --json".
+ * The full output of "info --report".
  */
 export interface ReportOutput {
     reportVersion: number;
@@ -764,7 +764,7 @@ function reportFile(filename: string): DiskReport {
 }
 
 /**
- * Handle the "info --json" command. Writes a JSON object to stdout.
+ * Handle the "info --report" command. Writes a JSON object to stdout.
  */
 export function infoJson(infiles: string[]): void {
     const output: ReportOutput = {

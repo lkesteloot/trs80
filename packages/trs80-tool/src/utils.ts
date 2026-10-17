@@ -114,6 +114,33 @@ export function formatDate(date: Date, utc: boolean, includeTime: boolean): stri
 }
 
 /**
+ * Format a date for JSON output as "YYYY-MM-DD", or "YYYY-MM-DDTHH:MM" if the time is included, with
+ * a trailing "Z" if the date is in UTC. This is ISO 8601, but we read the fields directly instead of
+ * using toISOString(), because TRS-80 dates have no time zone: unless utc is true, the date's local
+ * fields are the ones that were recorded, and converting to UTC would shift them.
+ *
+ * @param date the date to format.
+ * @param utc whether to read the date's fields in UTC rather than the local time zone. See formatDate().
+ * @param includeTime whether to add the hours and minutes.
+ */
+export function jsonDate(date: Date, utc: boolean, includeTime: boolean): string {
+    const year = utc ? date.getUTCFullYear() : date.getFullYear();
+    const month = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
+    const day = utc ? date.getUTCDate() : date.getDate();
+    let text = year.toString().padStart(4, "0") + "-" + month.toString().padStart(2, "0") + "-" +
+        day.toString().padStart(2, "0");
+    if (includeTime) {
+        const hour = utc ? date.getUTCHours() : date.getHours();
+        const minute = utc ? date.getUTCMinutes() : date.getMinutes();
+        text += "T" + hour.toString().padStart(2, "0") + ":" + minute.toString().padStart(2, "0");
+        if (utc) {
+            text += "Z";
+        }
+    }
+    return text;
+}
+
+/**
  * The flags of a Model II TRSDOS file: "S" if it's a system file and "P" if it's a program,
  * with "-" in place of the ones that aren't set.
  */
@@ -159,4 +186,58 @@ export function xenixTarModeString(file: XenixTarFile): string {
  */
 export function xenixTarTypeLetter(file: XenixTarFile): string {
     return file.typeFlag === "\0" ? "0" : file.typeFlag;
+}
+
+/**
+ * Convert an exception to a string for an error message.
+ */
+export function exceptionToString(e: unknown): string {
+    return e instanceof Error ? e.message : String(e);
+}
+
+// Added to the name of a file that had damage, if the user asked for that.
+export const DAMAGED_SUFFIX = " [DAMAGED]";
+
+/**
+ * Return a file or directory name that's safe to create in its directory. Names can come
+ * from a disk image, which can hold anything, so replace the characters that would let a
+ * name leave its directory (path separators, and the colon, which starts a drive on
+ * Windows) and don't allow a name that's empty or only dots, such as "..". Normal TRS-80
+ * names, like "FOO.CMD", are unchanged.
+ */
+function safeOutputName(name: string): string {
+    return name.replace(/[\/\\:\0]/g, "_").replace(/^\.*$/, "_");
+}
+
+/**
+ * Return the components of the path to create in the output directory for a file. On file
+ * systems with directories, a "/" in the filename separates them (as in "usr/bin/vi" on a
+ * Xenix tar disk), and we recreate them, dropping empty components (as in "a//b").
+ * Elsewhere the whole filename is one name.
+ */
+export function safeOutputPath(filename: string, hasDirectories: boolean): string[] {
+    if (!hasDirectories) {
+        return [safeOutputName(filename)];
+    }
+
+    const components = filename.split("/").filter(component => component !== "").map(safeOutputName);
+    return components.length === 0 ? ["_"] : components;
+}
+
+/**
+ * Return the components of the path that "extract" creates in the output directory for a file, before
+ * it makes the path unique.
+ *
+ * @param filename the name of the file as decoded.
+ * @param hasDirectories whether a "/" in the name separates directories (see InputFile.hasDirectories()).
+ * @param damaged whether the file had damage.
+ * @param lowercase whether to lowercase the name, as in "foo.cmd" for "FOO.CMD".
+ * @param markDamaged whether to add " [DAMAGED]" to the name of a file that had damage.
+ */
+export function outputPathComponents(filename: string, hasDirectories: boolean, damaged: boolean,
+                                     lowercase: boolean, markDamaged: boolean): string[] {
+
+    const components = safeOutputPath(lowercase ? filename.toLowerCase() : filename, hasDirectories);
+    components[components.length - 1] += damaged && markDamaged ? DAMAGED_SUFFIX : "";
+    return components;
 }

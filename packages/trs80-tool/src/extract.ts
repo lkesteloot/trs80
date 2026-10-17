@@ -3,36 +3,10 @@ import * as path from "path";
 import { withCommas } from "teamten-ts-utils";
 import { type XenixTarExtent } from "trs80-base";
 import { expandContainer, type InputFile, XenixTarInputFile } from "./InputFile.js";
-import { pluralizeWithCount, ToolError } from "./utils.js";
-
-// Added to the name of a file that had damage, if the user asked for that.
-const DAMAGED_SUFFIX = " [DAMAGED]";
-
-/**
- * Return a file or directory name that's safe to create in its directory. Names can come
- * from a disk image, which can hold anything, so replace the characters that would let a
- * name leave its directory (path separators, and the colon, which starts a drive on
- * Windows) and don't allow a name that's empty or only dots, such as "..". Normal TRS-80
- * names, like "FOO.CMD", are unchanged.
- */
-function safeOutputName(name: string): string {
-    return name.replace(/[\/\\:\0]/g, "_").replace(/^\.*$/, "_");
-}
-
-/**
- * Return the components of the path to create in the output directory for a file. On file
- * systems with directories, a "/" in the filename separates them (as in "usr/bin/vi" on a
- * Xenix tar disk), and we recreate them, dropping empty components (as in "a//b").
- * Elsewhere the whole filename is one name.
- */
-function safeOutputPath(filename: string, hasDirectories: boolean): string[] {
-    if (!hasDirectories) {
-        return [safeOutputName(filename)];
-    }
-
-    const components = filename.split("/").filter(component => component !== "").map(safeOutputName);
-    return components.length === 0 ? ["_"] : components;
-}
+import { filesInfileJson, printInfilesJson } from "./json.js";
+import {
+    DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, ToolError,
+} from "./utils.js";
 
 /**
  * Give the path a name that no earlier file of this extraction has, so that it doesn't overwrite
@@ -211,8 +185,8 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
             continue;
         }
 
-        const components = safeOutputPath(filename, infile.hasDirectories());
-        components[components.length - 1] += damage !== undefined && markDamaged ? DAMAGED_SUFFIX : "";
+        const components = outputPathComponents(infile.filename, infile.hasDirectories(), damage !== undefined,
+            lowercase, markDamaged);
         makeUniquePath(components, usedPaths);
         const outpath = path.join(outDirname, ... components);
         const binary = infile.getExtractedBinary(!ucsdPascalRawText);
@@ -243,4 +217,23 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
 
     console.log("Extracted " + pluralizeWithCount(writtenCount, "file") +
         (appendedCount > 0 ? ", appended " + pluralizeWithCount(appendedCount, "part") : ""));
+}
+
+/**
+ * Handle the "extract" command with "--json": print the files inside a container (a floppy image,
+ * CAS file, or cassette WAV file) as one JSON object, including their contents in base64, instead
+ * of writing them to a directory. Nothing is written to disk. A part of a file that's split across
+ * disks is reported as it is, with its extent, and isn't appended to the earlier parts.
+ *
+ * @param inFilename the container to extract from.
+ * @param includeSystemFiles whether to include system files from floppies.
+ * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
+ * ending text files at their Ctrl-Z.
+ * @param markDamaged whether the output name of each damaged file has " [DAMAGED]" added.
+ * @param lowercase whether the output names are lowercase.
+ */
+export function extractJson(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean,
+                            markDamaged: boolean, lowercase: boolean): void {
+
+    printInfilesJson([filesInfileJson(inFilename, includeSystemFiles, cpmWholeRecords, { lowercase, markDamaged })]);
 }

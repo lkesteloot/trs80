@@ -6,13 +6,17 @@ import {
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem,
+    TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem,
     decodeTrs80CassetteFile, decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
     trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
-import {ToolError, formatDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString} from "./utils.js";
+import {
+    ToolError, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
+    xenixTarTypeLetter,
+} from "./utils.js";
 import {colorDate} from "./lscolors.js";
+import type {ContainerJson, GranuleExtentJson, TrsdosIIFileJson, XenixTarFileJson} from "./json.js";
 
 /**
  * Information about each input file.
@@ -56,6 +60,14 @@ export class InputFile {
     }
 
     /**
+     * The date for JSON output (see jsonDate()), or undefined if the file has none. A subclass
+     * overrides this to format its date the way getDirExtras() does.
+     */
+    public getJsonDate(): string | undefined {
+        return undefined;
+    }
+
+    /**
      * Any extra columns to include in a directory listing.
      */
     public getDirExtras(): string[] {
@@ -63,13 +75,30 @@ export class InputFile {
     }
 
     /**
-     * The bytes that "extract" writes. Normally the same as the raw binary; a subclass overrides
-     * this to convert the file to host format.
+     * The attributes of the file that depend on the container that it came from, for JSON output.
+     * A subclass overrides this to return an object with one field named after its container.
+     * The base class is for inputs that weren't in a container, which have none.
+     */
+    public getJsonContainer(): ContainerJson {
+        return {};
+    }
+
+    /**
+     * The file's contents converted to host text, or undefined if the file isn't a kind that
+     * needs conversion. A subclass overrides this (see UcsdPascalInputFile).
+     */
+    public getHostText(): Uint8Array | undefined {
+        return undefined;
+    }
+
+    /**
+     * The bytes that "extract" writes. Normally the same as the raw binary, but text files that
+     * have a host text version (see getHostText()) are converted to it.
      *
-     * @param convertText whether to convert text files to host text (see UcsdPascalInputFile).
+     * @param convertText whether to convert text files to host text.
      */
     public getExtractedBinary(convertText: boolean): Uint8Array {
-        return this.binary;
+        return (convertText ? this.getHostText() : undefined) ?? this.binary;
     }
 
     /**
@@ -103,6 +132,19 @@ export class WavInputFile extends InputFile {
     public override getSpeed(): CassetteSpeed | undefined {
         return this.program.speed;
     }
+
+    /**
+     * The baud rate, and where on the tape the program was.
+     */
+    public override getJsonContainer(): ContainerJson {
+        return {
+            cassette: {
+                baud: this.program.speed.nominalBaud,
+                track: this.program.trackNumber,
+                copy: this.program.copyNumber,
+            },
+        };
+    }
 }
 
 /**
@@ -124,6 +166,17 @@ export class CasInputFile extends InputFile {
 
     public override getSpeed(): CassetteSpeed | undefined {
         return this.cassetteFile.speed;
+    }
+
+    /**
+     * The baud rate.
+     */
+    public override getJsonContainer(): ContainerJson {
+        return {
+            cassette: {
+                baud: this.cassetteFile.speed.nominalBaud,
+            },
+        };
     }
 }
 
@@ -156,6 +209,57 @@ export class TrsdosInputFile extends InputFile {
     public override getDate(): Date | undefined {
         return this.dirEntry.getDate();
     }
+
+    /**
+     * The date, with the time only if the entry has one (only some disks have time stamps).
+     * Some entries have just a year, or a year and month, and then that's all we give, rather
+     * than make up the rest.
+     */
+    public override getJsonDate(): string | undefined {
+        const date = this.getDate();
+        if (date === undefined) {
+            return undefined;
+        }
+
+        const {month, day} = this.dirEntry;
+        if (month === 0) {
+            return date.getFullYear().toString().padStart(4, "0");
+        }
+        if (day === 0) {
+            return jsonDate(date, false, false).substring(0, 7);
+        }
+
+        const hasTime = this.dirEntry.hour !== undefined && this.dirEntry.minute !== undefined;
+        return jsonDate(date, false, hasTime);
+    }
+
+    /**
+     * The protection level and where the file is on the disk.
+     */
+    public override getJsonContainer(): ContainerJson {
+        // Follow the chain of directory entries to collect all extents.
+        const extents: GranuleExtentJson[] = [];
+        for (let dirEntry: TrsdosDirEntry | undefined = this.dirEntry; dirEntry !== undefined;
+             dirEntry = dirEntry.nextDirEntry) {
+
+            for (const extent of dirEntry.extents) {
+                extents.push({
+                    cylinder: extent.cylinderNumber,
+                    granule: extent.granuleOffset,
+                    granuleCount: extent.granuleCount,
+                });
+            }
+        }
+
+        return {
+            trsdos: {
+                osFile: this.dirEntry.isSystemFile(),
+                hidden: this.dirEntry.isHidden(),
+                protection: trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.version),
+                extents,
+            },
+        };
+    }
 }
 
 /**
@@ -185,6 +289,32 @@ export class CpmInputFile extends InputFile {
         extras.push(this.cpmFile.getAttributesString());
         return extras;
     }
+
+    /**
+     * The user number, the attributes, and the allocation blocks.
+     */
+    public override getJsonContainer(): ContainerJson {
+        const attributes: string[] = [];
+        if (this.cpmFile.isReadOnly()) {
+            attributes.push("R/O");
+        }
+        if (this.cpmFile.isSystemFile()) {
+            attributes.push("SYS");
+        }
+        if (this.cpmFile.extents[0].archived) {
+            attributes.push("ARC");
+        }
+
+        return {
+            cpm: {
+                osFile: this.cpmFile.isSystemFile(),
+                hidden: this.cpmFile.isHidden(),
+                user: this.cpmFile.user,
+                attributes,
+                blocks: this.cpmFile.getBlocks(),
+            },
+        };
+    }
 }
 
 /**
@@ -208,6 +338,22 @@ export class MicroDosInputFile extends InputFile {
             microDosFileTypeToString(this.microDosFile.type).padEnd(5),
             this.microDosFile.remark,
         ];
+    }
+
+    /**
+     * The file type, the remark, and the range of sectors.
+     */
+    public override getJsonContainer(): ContainerJson {
+        return {
+            microDos: {
+                osFile: this.microDosFile.isSystemFile(),
+                hidden: this.microDosFile.isHidden(),
+                type: microDosFileTypeToString(this.microDosFile.type),
+                remark: this.microDosFile.remark,
+                firstSector: this.microDosFile.firstSector,
+                lastSector: this.microDosFile.lastSector,
+            },
+        };
     }
 }
 
@@ -243,11 +389,33 @@ export class UcsdPascalInputFile extends InputFile {
     }
 
     /**
-     * For a text file, the plain host text (see ucsdPascalTextToHost()) unless convertText is false.
-     * Other files, and the binary itself, are always the raw bytes.
+     * The date, without a time.
      */
-    public override getExtractedBinary(convertText: boolean): Uint8Array {
-        return convertText && this.file.isText() ? ucsdPascalTextToHost(this.binary) : this.binary;
+    public override getJsonDate(): string | undefined {
+        const date = this.getDate();
+        return date === undefined ? undefined : jsonDate(date, false, false);
+    }
+
+    /**
+     * The kind of file and where it is on the disk.
+     */
+    public override getJsonContainer(): ContainerJson {
+        return {
+            ucsdPascal: {
+                osFile: this.file.isSystemFile(),
+                hidden: this.file.isHidden(),
+                kind: ucsdPascalFileKindToString(this.file.kind),
+                firstBlock: this.file.firstBlock,
+                nextBlock: this.file.nextBlock,
+            },
+        };
+    }
+
+    /**
+     * For a text file, the plain host text (see ucsdPascalTextToHost()). Other files have none.
+     */
+    public override getHostText(): Uint8Array | undefined {
+        return this.file.isText() ? ucsdPascalTextToHost(this.binary) : undefined;
     }
 }
 
@@ -283,6 +451,34 @@ export class ModelIITrsdosInputFile extends InputFile {
     public override getDate(): Date | undefined {
         return this.dirEntry.getDate();
     }
+
+    /**
+     * The date, without a time.
+     */
+    public override getJsonDate(): string | undefined {
+        const date = this.getDate();
+        return date === undefined ? undefined : jsonDate(date, false, false);
+    }
+
+    /**
+     * The flags, the protection level, the record length, and where the file is on the disk.
+     */
+    public override getJsonContainer(): ContainerJson {
+        return {
+            modelIITrsdos: {
+                osFile: this.dirEntry.isSystemFile(),
+                hidden: this.dirEntry.isHidden(),
+                program: this.dirEntry.isProgram(),
+                protectionLevel: this.dirEntry.protectionLevel,
+                lrl: this.dirEntry.lrl,
+                extents: this.dirEntry.extents.map(extent => ({
+                    cylinder: extent.cylinder,
+                    granule: extent.granule,
+                    granuleCount: extent.granuleCount,
+                })),
+            },
+        };
+    }
 }
 
 /**
@@ -316,6 +512,54 @@ export class TrsdosIIInputFile extends InputFile {
 
     public override getDate(): Date | undefined {
         return this.file.getDate();
+    }
+
+    /**
+     * The date, with the time.
+     */
+    public override getJsonDate(): string | undefined {
+        const date = this.getDate();
+        return date === undefined ? undefined : jsonDate(date, false, true);
+    }
+
+    /**
+     * The flags, the protection level, the record length, and where the file is on the disk.
+     */
+    public override getJsonContainer(): ContainerJson {
+        const fileTypeValue = this.file.getFileType();
+        let program: boolean;
+        switch (fileTypeValue) {
+            case TrsdosIIFileType.PROGRAM: program = true; break;
+            case TrsdosIIFileType.DATA: program = false; break;
+            default: assertNever(fileTypeValue);
+        }
+
+        const recordTypeValue = this.file.getRecordType();
+        let fixedRecords: boolean;
+        switch (recordTypeValue) {
+            case TrsdosIIRecordType.FIXED: fixedRecords = true; break;
+            case TrsdosIIRecordType.VARIABLE: fixedRecords = false; break;
+            default: assertNever(recordTypeValue);
+        }
+
+        const trsdosII: TrsdosIIFileJson = {
+            osFile: this.file.isSystemFile(),
+            hidden: this.file.isHidden(),
+            protection: trsdosIIProtectionLevelToString(this.file.getProtectionLevel()),
+            program,
+            fixedRecords,
+            lrl: this.file.lrl,
+            subdirectory: this.file.subdirectory,
+            granuleRuns: this.file.extents.map(extent => ({
+                startGranule: extent.startGranule,
+                count: extent.count,
+            })),
+        };
+        if (this.file.blockTableError !== undefined) {
+            trsdosII.blockTableError = this.file.blockTableError;
+        }
+
+        return { trsdosII };
     }
 }
 
@@ -353,6 +597,41 @@ export class XenixTarInputFile extends InputFile {
     }
 
     /**
+     * The date with the time, in UTC.
+     */
+    public override getJsonDate(): string | undefined {
+        const date = this.getDate();
+        return date === undefined ? undefined : jsonDate(date, true, true);
+    }
+
+    /**
+     * The permissions, the owner, the type of the member, and which part of the file it holds.
+     */
+    public override getJsonContainer(): ContainerJson {
+        const xenixTar: XenixTarFileJson = {
+            osFile: this.file.isSystemFile(),
+            hidden: this.file.isHidden(),
+            mode: xenixTarModeString(this.file),
+            uid: this.file.uid,
+            gid: this.file.gid,
+            typeFlag: xenixTarTypeLetter(this.file),
+        };
+        if (this.file.linkName !== "") {
+            xenixTar.linkName = this.file.linkName;
+        }
+        const extent = this.file.extent;
+        if (extent !== undefined) {
+            xenixTar.extent = {
+                part: extent.number,
+                partCount: extent.count,
+                fileSize: extent.fileSize,
+            };
+        }
+
+        return { xenixTar };
+    }
+
+    /**
      * Tar names are paths, such as "usr/bin/vi".
      */
     public override hasDirectories(): boolean {
@@ -363,11 +642,13 @@ export class XenixTarInputFile extends InputFile {
 /**
  * Result of loading an input file.
  */
-interface LoadedInput {
+export interface LoadedInput {
     // The contained files if the input was a container, otherwise just the input itself.
     inFiles: InputFile[];
     // Whether the input was a container (a floppy, CAS file, or WAV file) that we expanded.
     isContainer: boolean;
+    // The name and version of the floppy's operating system, or undefined if the input wasn't a floppy.
+    os: string | undefined;
 }
 
 /**
@@ -378,12 +659,14 @@ interface LoadedInput {
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
- * @return the contained files and whether the input was a container. If it wasn't, the
- * result is the single input file.
+ * @return the contained files, whether the input was a container (if it wasn't, the result is
+ * the single input file), and the operating system of a floppy.
+ * @throws ToolError if the file can't be read or decoded.
  */
-function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): LoadedInput {
+export function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): LoadedInput {
     const inFiles: InputFile[] = [];
     let isContainer = true;
+    let os: string | undefined = undefined;
 
     const { base, ext } = path.parse(inFilename);
 
@@ -414,6 +697,8 @@ function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWhole
             if (fileSystem === undefined) {
                 throw new ToolError("Can't find a DOS directory on \"" + inFilename + "\"");
             }
+
+            os = fileSystem.nameAndVersion;
 
             // Expand floppy.
             if (fileSystem instanceof Trsdos) {
@@ -463,7 +748,7 @@ function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWhole
         }
     }
 
-    return { inFiles, isContainer };
+    return { inFiles, isContainer, os };
 }
 
 /**
@@ -477,6 +762,14 @@ function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWhole
  */
 export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
     return loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords).inFiles;
+}
+
+/**
+ * The error for an input that "extract" can't use because it isn't a container.
+ */
+export function notContainerError(inFilename: string): ToolError {
+    return new ToolError("Can't extract from \"" + inFilename +
+        "\": it's not a floppy image, CAS file, or WAV file that can be read");
 }
 
 /**
@@ -494,8 +787,7 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmW
 export function expandContainer(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
     const { inFiles, isContainer } = loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords);
     if (!isContainer) {
-        throw new ToolError("Can't extract from \"" + inFilename +
-            "\": it's not a floppy image, CAS file, or WAV file that can be read");
+        throw notContainerError(inFilename);
     }
 
     return inFiles;

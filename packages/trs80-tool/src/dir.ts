@@ -3,11 +3,22 @@ import {expandFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
 import {colorError, colorFilename, colorSize} from "./lscolors.js";
 import {ToolError} from "./utils.js";
+import {filesInfileJson, printInfilesJson} from "./json.js";
 
 /**
  * Handle the "dir" command.
+ *
+ * @param json whether to print one JSON object for all the input files instead of text.
  */
-export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWholeRecords: boolean): Promise<void> {
+export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWholeRecords: boolean,
+                          json: boolean): Promise<void> {
+
+    if (json) {
+        printInfilesJson(inFilenames.map(inFilename =>
+            filesInfileJson(inFilename, showSystemFiles, cpmWholeRecords, undefined)));
+        return;
+    }
+
     const multipleInputFiles = inFilenames.length > 1;
     let firstFile = true;
 

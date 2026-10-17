@@ -7,8 +7,8 @@ import {BasicLevel, basicLevelFromString, Config, ModelType, modelTypeFromString
 import {dir} from "./dir.js";
 import {info} from "./info.js";
 import {convert} from "./convert.js";
-import {extract} from "./extract.js";
-import {sectors} from "./sectors.js";
+import {extract, extractJson} from "./extract.js";
+import {sectors, sectorsJson} from "./sectors.js";
 import {hexdump} from "./hexdump.js";
 import {asm} from "./asm.js";
 import {disasm} from "./disasm.js";
@@ -181,8 +181,9 @@ async function main(): Promise<void> {
         })
         .option("--system", "include floppy system files")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
+        .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
-            await dir(infiles, options.system, options.cpmRecords);
+            await dir(infiles, options.system ?? false, options.cpmRecords ?? false, options.json ?? false);
         }));
     program
         .command("info <infiles...>")
@@ -190,9 +191,10 @@ async function main(): Promise<void> {
             infiles: "any TRS-80 files",
         })
         .option("--verbose", "output more information about each file")
-        .option("--json", "output a detailed JSON report, for regression testing")
+        .option("--json", "output one JSON object for all the infiles instead of text")
+        .addOption(new Option("--report", "output a detailed JSON report, for regression testing").hideHelp())
         .action(paged(async (infiles, options) => {
-            await info(infiles, options.verbose, options.json);
+            await info(infiles, options.verbose ?? false, options.json ?? false, options.report ?? false);
         }));
     program
         .command("convert <files...>")
@@ -218,19 +220,34 @@ async function main(): Promise<void> {
             convert(infiles, outfile, speed, start, entryPoints, includeSystemFiles, options.cpmRecords);
         });
     program
-        .command("extract <infile> <outdir>")
+        .command("extract <infile> [outdir]")
         .description("extract the files in a floppy, CAS, or WAV file into an existing directory", {
             infile: "floppy (JV1, JV3, DMK, DSK, HFE, IMD, SCP), CAS, or WAV file",
-            outdir: "existing directory",
+            outdir: "existing directory (leave out with --json)",
         })
         .option("--system", "include system files from the floppy")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .option("--ucsd-pascal-raw", "keep UCSD Pascal text files as they are on the disk instead of converting them to host text")
         .option("--mark-damaged", "add \"[DAMAGED]\" to the name of files with unreadable sectors or other damage")
         .option("--lowercase", "write the files with lowercase names")
+        .option("--json", "write one JSON object, with the files' contents in base64, to standard output instead of writing files")
         .action((infile, outdir, options) => {
-            extract(infile, outdir, options.system ?? false, options.cpmRecords ?? false,
-                options.ucsdPascalRaw ?? false, options.markDamaged ?? false, options.lowercase ?? false);
+            if (options.json) {
+                if (outdir !== undefined) {
+                    throw new ToolError("Leave out the output directory with --json, which prints to standard output");
+                }
+                if (options.ucsdPascalRaw) {
+                    throw new ToolError("--json can't be used with --ucsd-pascal-raw: the JSON has both versions of text files");
+                }
+                extractJson(infile, options.system ?? false, options.cpmRecords ?? false,
+                    options.markDamaged ?? false, options.lowercase ?? false);
+            } else {
+                if (outdir === undefined) {
+                    throw new ToolError("Must specify an output directory");
+                }
+                extract(infile, outdir, options.system ?? false, options.cpmRecords ?? false,
+                    options.ucsdPascalRaw ?? false, options.markDamaged ?? false, options.lowercase ?? false);
+            }
         });
     if (2 > 3) {
         program
@@ -250,10 +267,15 @@ async function main(): Promise<void> {
         })
         .option("--contents", "show the contents of the sectors")
         .option("--bad", "show only the bad sectors and their files")
+        .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
-            for (const infile of infiles) {
-                sectors(infile, options.contents, options.bad);
-                await pagerYield();
+            if (options.json) {
+                sectorsJson(infiles, options.contents ?? false, options.bad ?? false);
+            } else {
+                for (const infile of infiles) {
+                    sectors(infile, options.contents, options.bad);
+                    await pagerYield();
+                }
             }
         }));
     program

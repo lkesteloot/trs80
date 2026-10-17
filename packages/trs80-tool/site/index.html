@@ -226,6 +226,10 @@
                     <td>Show the sizes of CP/M text files in whole records, rather than up to
                         the Ctrl-Z.</td>
                 </tr>
+                <tr>
+                    <td><code>--json</code></td>
+                    <td>Print one JSON object, for all the input files, instead of the listing.</td>
+                </tr>
             </table>
 
             <p>This command respects the <code>LS_COLORS</code> and
@@ -246,9 +250,9 @@
                 </tr>
                 <tr>
                     <td><code>--json</code></td>
-                    <td>Show (almost) everything we know about the file, in JSON format. This
-                        is used by a regression suite for floppies, but may also be useful to
-                        an AI agent.</td>
+                    <td>Print one JSON object, for all the input files, instead of the
+                        descriptions. Combine it with <code>--verbose</code> to include the
+                        extra information in the JSON.</td>
                 </tr>
             </table>
 
@@ -352,6 +356,13 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td>Add <code>[DAMAGED]</code> to the names of damaged files, as in
                         <code>HELLO.BAS [DAMAGED]</code>.</td>
                 </tr>
+                <tr>
+                    <td><code>--json</code></td>
+                    <td>Print one JSON object to standard output instead of writing files, so
+                        leave out the output directory. The JSON includes the contents of each
+                        file in base64, and the name that the file would have been written
+                        with.</td>
+                </tr>
             </table>
 
             <h3 id="hexdump"><code>hexdump</code></h3>
@@ -387,7 +398,15 @@ C CRC error (ID or data).
                 <tr>
                     <td><code>--bad</code></td>
                     <td>Instead of the table, list the sectors that are missing or that have
-                        a CRC error, and which file (if any) is on each one.</td>
+                        a CRC error, and which file (if any) is on each one. Floppies without
+                        bad sectors are left out.</td>
+                </tr>
+                <tr>
+                    <td><code>--json</code></td>
+                    <td>Print one JSON object, for all the input files, with a description of
+                        each sector instead of the table. Combine it with <code>--contents</code>
+                        to include each sector’s data in base64, and with <code>--bad</code>
+                        to include only the bad sectors.</td>
                 </tr>
             </table>
 
