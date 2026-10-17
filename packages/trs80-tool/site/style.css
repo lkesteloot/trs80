@@ -99,8 +99,17 @@ h3 .anchor:hover {
     background-color: var(--blue);
 }
 
+/* Solid bullets at every level, rather than hollow circles for nested lists. */
+ul {
+    list-style-type: disc;
+}
+
 li::marker {
     color: var(--blue);
+}
+
+li li::marker {
+    color: var(--cyan);
 }
 
 dd {
