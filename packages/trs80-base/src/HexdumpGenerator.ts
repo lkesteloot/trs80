@@ -38,7 +38,7 @@ function countConsecutive(binary: Uint8Array, addr: number, beginAddr: number, e
 
     // Find last same byte value.
     let lastAddr = addr;
-    while (lastAddr < endAddr - 1 && binary[addr + 1] === value) {
+    while (lastAddr < endAddr - 1 && binary[lastAddr + 1] === value) {
         lastAddr++;
     }
 
@@ -219,7 +219,8 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
             if (addr < annotation.begin) {
                 yield* this.generateAnnotation(new ProgramAnnotation("", addr, annotation.begin));
             }
-            // Make sure there are no overlapping annotations.
+            // Skip an annotation that overlaps one already shown. Only a shown annotation moves
+            // addr, so a long skipped one doesn't hide the ones after it.
             if (addr <= annotation.begin) {
                 // Include nested annotations if the subclass wants them.
                 const expandNestedAnnotations = this.supportsNestedAnnotations() &&
@@ -236,8 +237,8 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
                     yield* this.generateAnnotations(annotation.begin, annotation.end, annotation.nestedAnnotations);
                     this.endExpanded();
                 }
+                addr = annotation.end;
             }
-            addr = annotation.end;
         }
 
         // Fill to end of program.

@@ -2074,6 +2074,33 @@ later copy, with no data, replaced the good one. They're the only ones in the
 collection. So a copy with no data field no longer replaces one that has one
 (see the rule at the end of the next note).
 
+**A data field can run past the end of its track too.** The reader treats a
+data field whose data and CRC don't fit in the track as missing, just as it
+drops ID fields that don't fit; otherwise its bytes, and its CRC, would come from
+the next track's header. In October 2026 that was 62 data fields in 7 images, all
+belonging to junk IDs (cylinder bytes that don't match the track): most on
+`Make-80` above, the rest on `Macro-Mon`, `VS-100 Driver Disk [Set 3]`,
+`MultiDOS II`, `High Resolution Driver Disk [Disk 1 of 2]`, and two of the stale
+pointers in the next note. No decoded file changed.
+
+**An IDAM pointer can be stale.** On `ira/basic-course/`, normal tracks hold 18
+double-density sectors whose IDs are 342 bytes apart, starting at offset 175. A
+few tracks hold only 17 or 16, spread out evenly (362 or 384 bytes apart), so
+whatever wrote them laid out only the sectors it had: cylinder 37 of
+`Model III Basic Course [Disk 1 of 2]` lacks sector 13, cylinder 39 of
+`[Disk 2 of 2]` lacks 1 and 16, and cylinder 32 of `Monty Plays Monopoly`
+lacks 5. Each of these tracks still has 18 pointers. The extra ones are the
+18-sector layout's last slots (175 + 16 × 342 = 5647 and 175 + 17 × 342 = 5989),
+which the writer didn't clear as the DMK spec requires, and on `Disk 2` they
+come after the real pointers, out of order. At those offsets there's no ID mark
+and no sync, only gap filler (`4E`, read as cylinder, side, and sector 78, with
+a size code meaning 512 bytes) or sector data (`E5`). They have bad ID CRCs, so
+the geometry ignores them, but they're kept as IDs. The sectors around them are
+intact, with good CRCs. Yet Super Utility, run on these images, reports CRC errors
+in exactly the sectors that hold a stale pointer (sector 18 on the first and
+third disks, 15 and 18 on the second), so some software trusts the pointers. A
+pointer whose byte isn't 0xFE is a sign of one.
+
 **An IDAM pointer can point at data.** On `French Teacher #1 ... [Set 2].dmk`,
 every track ends, after sector 9's gap, with about 50 bytes of what looks like
 the formatter's own Z80 code (the same bytes on every track), and the imager

@@ -365,15 +365,26 @@ class DmkSector {
     /**
      * Look for the byte that indicates the start of data (0xF8 to 0xFB). Various
      * floppy disk documentation specify an exact number here, but I've seen a variety
-     * of values, so just search. Returns undefined if it can't be found.
+     * of values, so just search. Returns undefined if it can't be found, or if the data
+     * field (with its CRC) runs past the end of the track, where its bytes would come
+     * from the next track's header.
      */
     private findDataIndex(): number | undefined {
+        const byteStride = this.getByteStride();
+        const trackLength = this.track.floppyDisk.trackLength;
+
         for (let i = 7; i < 55; i++) {
+            const inTrack = this.offset + i*byteStride < trackLength;
+            if (!inTrack) {
+                break;
+            }
             const byte = this.getByte(i);
             if (isDataAddressMark(byte)) {
                 // Maybe also check that the previous three bytes are 0xA1, except they're not on
                 // some single-density sectors I've seen.
-                return i + 1;
+                const dataIndex = i + 1;
+                const dataFieldFits = this.offset + (dataIndex + this.getSectorSize() + 2)*byteStride <= trackLength;
+                return dataFieldFits ? dataIndex : undefined;
             }
         }
 
