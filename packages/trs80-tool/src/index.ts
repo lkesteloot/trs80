@@ -2,7 +2,7 @@ import fs from "fs";
 import {Option, program} from "commander";
 import {version} from "./version.js";
 import {HexFormat} from "z80-disasm";
-import chalk from "chalk";
+import {colors, honorNoColor, setColorLevel} from "./colors.js";
 import {BasicLevel, basicLevelFromString, Config, ModelType, modelTypeFromString,} from "trs80-emulator";
 import {dir} from "./dir.js";
 import {info} from "./info.js";
@@ -27,49 +27,20 @@ See this page for full documentation: https://my-trs-80.com/tool
 `
 
 /**
- * Set the chalk color level based on its name. See the --color option.
- * @param levelName
- */
-function setColorLevel(levelName: string): void {
-    switch (levelName.toLowerCase()) {
-        case "auto":
-        default:
-            // Don't touch the level, let chalk set it.
-            break;
-
-        case "off":
-            chalk.level = 0;
-            break;
-
-        case "16":
-            chalk.level = 1;
-            break;
-
-        case "256":
-            chalk.level = 2;
-            break;
-
-        case "16m":
-            chalk.level = 3;
-            break;
-    }
-}
-
-/**
- * Sink that uses "chalk" to write colored text to the console.
+ * Sink that writes colored text to the console.
  */
 const COLORED_SINK = (level: LogLevel, message: string): void => {
     switch (level) {
         case LogLevel.TRACE:
-            console.log(chalk.dim(message));
+            console.log(colors.muted(message));
             break;
 
         case LogLevel.INFO:
-            console.log(chalk.green(message));
+            console.log(colors.info(message));
             break;
 
         case LogLevel.WARN:
-            console.log(chalk.yellow(message));
+            console.log(colors.warning(message));
             break;
     }
 };
@@ -138,11 +109,7 @@ function parseBaud(baudString: string | undefined): CassetteSpeed | undefined {
 }
 
 async function main(): Promise<void> {
-    // Chalk doesn't honor NO_COLOR (https://no-color.org), so do it here. Like Node,
-    // let FORCE_COLOR take precedence. The --color option, if given, overrides both.
-    if ((process.env.NO_COLOR ?? "") !== "" && !("FORCE_COLOR" in process.env)) {
-        chalk.level = 0;
-    }
+    honorNoColor();
 
     TRS80_MAIN_SINK.delegatedSinks.splice(0);
     // Important that this is first, we might replace it in the run() command. Don't use

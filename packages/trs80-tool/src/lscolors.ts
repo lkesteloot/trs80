@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import {colors, isColorEnabled} from "./colors.js";
 import type {Trs80File} from "trs80-base";
 
 // Colors for the "dir" command. The defaults match eza's built-in theme, so a
@@ -102,7 +102,7 @@ function getDirColors(): DirColors {
  * outside, so that underlines and backgrounds don't extend into padding.
  */
 function colorText(text: string, sgr: string | undefined): string {
-    if (sgr === undefined || chalk.level === 0) {
+    if (sgr === undefined || !isColorEnabled()) {
         return text;
     }
 
@@ -173,5 +173,5 @@ export function colorDate(text: string): string {
  * Color an error message.
  */
 export function colorError(text: string): string {
-    return chalk.red(text);
+    return colors.error(text);
 }

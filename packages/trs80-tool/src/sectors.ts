@@ -1,6 +1,4 @@
 import * as fs from "fs";
-import type {ChalkInstance} from "chalk";
-import chalk from "chalk";
 import {
     decodeFloppyFileSystem,
     decodeTrs80File,
@@ -16,16 +14,17 @@ import {
     Trs80Floppy,
 } from "trs80-base";
 import {toHexWord} from "z80-base";
+import {colors, type Style} from "./colors.js";
 import {hexdumpBinary} from "./hexdump.js";
 import {captureLogs, type InfileJson, printInfilesJson, toBase64} from "./json.js";
 
-const CHALK_FOR_LETTER: { [letter: string]: ChalkInstance } = {
-    "-": chalk.dim,
-    "?": chalk.red,
-    "C": chalk.red,
-    "X": chalk.yellow,
-    "S": chalk.reset,
-    "D": chalk.reset,
+const STYLE_FOR_LETTER: { [letter: string]: Style } = {
+    "-": colors.muted,
+    "?": colors.error,
+    "C": colors.error,
+    "X": colors.warning,
+    "S": colors.plain,
+    "D": colors.plain,
 };
 
 const LEGEND_FOR_LETTER: { [letter: string]: string } = {
@@ -487,7 +486,7 @@ function printMap(file: Trs80Floppy) {
         console.log("Legend:");
         for (const legendLetter of legendLetters) {
             const explanation = LEGEND_FOR_LETTER[legendLetter] ?? "Unknown";
-            const color = CHALK_FOR_LETTER[legendLetter] ?? chalk.reset;
+            const color = STYLE_FOR_LETTER[legendLetter] ?? colors.plain;
             console.log("    " + color(legendLetter) + ": " + explanation);
         }
         console.log("");
@@ -581,7 +580,7 @@ function printTable(file: Trs80Floppy, side: number, columns: number[], trackPos
             }
 
             usedLetters.add(text);
-            const color = CHALK_FOR_LETTER[text] ?? chalk.reset;
+            const color = STYLE_FOR_LETTER[text] ?? colors.plain;
             lineParts.push("".padEnd(columnWidth - text.length, " ") + color(text));
         }
         console.log(lineParts.join(""));

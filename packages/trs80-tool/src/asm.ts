@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import chalk from "chalk";
+import {colors} from "./colors.js";
 import {pluralizeWithCount, ToolError} from "./utils.js";
 import {Z80_KNOWN_LABELS, toHex, toHexWord } from "z80-base";
 import { asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary } from "trs80-asm";
@@ -106,8 +106,8 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
     let errorCount = 0;
     for (const line of asm.assembledLines) {
         if (line.error !== undefined) {
-            console.log(chalk.dim(line.line));
-            console.log(chalk.red("error: " + line.error));
+            console.log(colors.muted(line.line));
+            console.log(colors.error("error: " + line.error));
             console.log();
             errorCount += 1;
         }

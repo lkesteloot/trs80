@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import chalk from "chalk";
+import {colors, isColorEnabled} from "./colors.js";
 import {HexdumpGenerator, ProgramAnnotation, decodeTrs80File } from "trs80-base";
 
 /**
@@ -50,15 +50,15 @@ export function hexdumpBinary(binary: Uint8Array, collapse: boolean, annotations
     for (const line of hexdump.generate()) {
         console.log(line.map(span => {
             if (span.classes.indexOf("outside-annotation") >= 0) {
-                if (chalk.level === 0) {
+                if (!isColorEnabled()) {
                     // Hide altogether.
                     return "".padEnd(span.text.length, " ");
                 } else {
-                    return chalk.dim(span.text);
+                    return colors.muted(span.text);
                 }
             } else {
                 if (span.classes.indexOf("ascii-unprintable") >= 0) {
-                    return chalk.dim(span.text);
+                    return colors.muted(span.text);
                 }
                 return span.text;
             }
