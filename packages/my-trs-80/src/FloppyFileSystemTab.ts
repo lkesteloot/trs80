@@ -1,8 +1,9 @@
-import {FloppyFileSystem, Trs80File} from "trs80-base";
+import {FloppyDisk, FloppyFileSystem} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {withCommas} from "teamten-ts-utils";
 import {IFilePanel} from "./IFilePanel";
 import {makeExportZipButton} from "./FloppyZip";
+import {makeFloppyInfo} from "./FloppyInfo";
 
 /**
  * Format the date for the directory listing as "DD/MM/YYYY" in the local time zone, as the TRSDOS tab
@@ -33,7 +34,7 @@ export class FloppyFileSystemTab extends PageTab {
      * @param fileSystem the floppy's file system.
      * @param fallbackZipName the name of the ZIP file (without extension) if the floppy has no usable filename.
      */
-    constructor(name: string, filePanel: IFilePanel, trs80File: Trs80File, fileSystem: FloppyFileSystem,
+    constructor(name: string, filePanel: IFilePanel, trs80File: FloppyDisk, fileSystem: FloppyFileSystem,
                 fallbackZipName: string) {
 
         super(name);
@@ -44,26 +45,7 @@ export class FloppyFileSystemTab extends PageTab {
         mainContents.classList.add("dos", "floppy-file-system");
         this.element.append(mainContents);
 
-        const infoDiv = document.createElement("div");
-        infoDiv.classList.add("info");
-        const addField = (label: string, value: string, cssClass: string): void => {
-            const labelSpan = document.createElement("div");
-            labelSpan.classList.add(cssClass + "-label", "label");
-            labelSpan.innerText = label + ":";
-            infoDiv.append(labelSpan);
-            const valueSpan = document.createElement("div");
-            valueSpan.classList.add(cssClass, "value");
-            if (value === "") {
-                valueSpan.classList.add("empty-field");
-                valueSpan.innerText = "None";
-            } else {
-                valueSpan.innerText = value;
-            }
-            infoDiv.append(valueSpan);
-        };
-        addField("File type", trs80File.getDescription(), "file-type");
-        addField("Operating System", fileSystem.nameAndVersion, "version");
-        mainContents.append(infoDiv);
+        mainContents.append(makeFloppyInfo(trs80File, fileSystem));
 
         // Add directory.
 

@@ -1,17 +1,18 @@
 
-import {decodeTrs80File, Trs80File, Trsdos, trsdosProtectionLevelToString} from "trs80-base";
+import {decodeTrs80File, FloppyDisk, Trsdos, trsdosProtectionLevelToString} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {withCommas} from "teamten-ts-utils";
 import {makeIcon, reportError} from "./Utils";
 import {IFilePanel} from "./IFilePanel";
 import {FileBuilder} from "./File";
 import {makeExportZipButton} from "./FloppyZip";
+import {makeFloppyInfo} from "./FloppyInfo";
 
 /**
  * Handles the TRSDOS tab in the file panel.
  */
 export class TrsdosTab extends PageTab {
-    constructor(filePanel: IFilePanel, trs80File: Trs80File, trsdos: Trsdos) {
+    constructor(filePanel: IFilePanel, trs80File: FloppyDisk, trsdos: Trsdos) {
         super("DOS");
 
         this.element.classList.add("dos-tab");
@@ -20,34 +21,7 @@ export class TrsdosTab extends PageTab {
         mainContents.classList.add("dos", "trsdos");
         this.element.append(mainContents);
 
-        const infoDiv = document.createElement("div");
-        infoDiv.classList.add("info");
-        const addField = (label: string, value: string, cssClass: string): void => {
-            const labelSpan = document.createElement("div");
-            labelSpan.classList.add(cssClass + "-label", "label");
-            labelSpan.innerText = label + ":";
-            infoDiv.append(labelSpan);
-            const valueSpan = document.createElement("div");
-            valueSpan.classList.add(cssClass, "value");
-            if (value === "") {
-                valueSpan.classList.add("empty-field");
-                valueSpan.innerText = "None";
-            } else {
-                valueSpan.innerText = value;
-            }
-            infoDiv.append(valueSpan);
-        };
-        addField("File type", trs80File.getDescription(), "file-type");
-        addField("Operating System", trsdos.nameAndVersion, "version");
-        const gatInfo = trsdos.getGatInfo();
-        if (typeof gatInfo === "string") {
-            addField("Error", gatInfo, "error");
-        } else {
-            addField("Disk name", gatInfo.name, "name");
-            addField("Date", gatInfo.date, "date");
-            addField("Auto command", gatInfo.autoCommand, "auto-command");
-        }
-        mainContents.append(infoDiv);
+        mainContents.append(makeFloppyInfo(trs80File, trsdos));
 
         // Add directory.
 

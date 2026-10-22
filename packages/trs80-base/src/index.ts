@@ -18,6 +18,7 @@ export * from "./UcsdPascal.js";
 export * from "./XenixTar.js";
 export * from "./FileDamage.js";
 export * from "./FloppyFileSystem.js";
+export * from "./FloppyDetails.js";
 export * from "./Constants.js";
 export * from "./ProgramAnnotation.js";
 export * from "./HexdumpGenerator.js";

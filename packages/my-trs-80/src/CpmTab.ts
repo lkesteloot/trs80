@@ -1,9 +1,10 @@
 
-import {Cpm, Trs80File} from "trs80-base";
+import {Cpm, FloppyDisk} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {withCommas} from "teamten-ts-utils";
 import {IFilePanel} from "./IFilePanel";
 import {makeExportZipButton} from "./FloppyZip";
+import {makeFloppyInfo} from "./FloppyInfo";
 
 /**
  * Handles the CP/M tab in the file panel. Unlike the TRSDOS tab, there's no way to run or
@@ -11,7 +12,7 @@ import {makeExportZipButton} from "./FloppyZip";
  * file wouldn't be useful.
  */
 export class CpmTab extends PageTab {
-    constructor(filePanel: IFilePanel, trs80File: Trs80File, cpm: Cpm) {
+    constructor(filePanel: IFilePanel, trs80File: FloppyDisk, cpm: Cpm) {
         super("CP/M");
 
         this.element.classList.add("dos-tab");
@@ -20,26 +21,7 @@ export class CpmTab extends PageTab {
         mainContents.classList.add("dos", "cpm");
         this.element.append(mainContents);
 
-        const infoDiv = document.createElement("div");
-        infoDiv.classList.add("info");
-        const addField = (label: string, value: string, cssClass: string): void => {
-            const labelSpan = document.createElement("div");
-            labelSpan.classList.add(cssClass + "-label", "label");
-            labelSpan.innerText = label + ":";
-            infoDiv.append(labelSpan);
-            const valueSpan = document.createElement("div");
-            valueSpan.classList.add(cssClass, "value");
-            if (value === "") {
-                valueSpan.classList.add("empty-field");
-                valueSpan.innerText = "None";
-            } else {
-                valueSpan.innerText = value;
-            }
-            infoDiv.append(valueSpan);
-        };
-        addField("File type", trs80File.getDescription(), "file-type");
-        addField("Operating System", cpm.nameAndVersion, "version");
-        mainContents.append(infoDiv);
+        mainContents.append(makeFloppyInfo(trs80File, cpm));
 
         // Add directory.
 

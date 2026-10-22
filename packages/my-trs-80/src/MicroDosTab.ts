@@ -1,4 +1,4 @@
-import {decodeTrs80File, MicroDos, MicroDosFile, MicroDosFileType, microDosFileTypeToString, Trs80File} from "trs80-base";
+import {decodeTrs80File, FloppyDisk, MicroDos, MicroDosFile, MicroDosFileType, microDosFileTypeToString} from "trs80-base";
 import {assertNever} from "z80-base";
 import {PageTab} from "./PageTab";
 import {withCommas} from "teamten-ts-utils";
@@ -6,6 +6,7 @@ import {makeIcon, reportError} from "./Utils";
 import {IFilePanel} from "./IFilePanel";
 import {FileBuilder} from "./File";
 import {makeExportZipButton} from "./FloppyZip";
+import {makeFloppyInfo} from "./FloppyInfo";
 
 /**
  * Whether the file is a BASIC program, which can be run and imported. Data files can't.
@@ -27,7 +28,7 @@ function isBasicProgram(file: MicroDosFile): boolean {
  * import them into the library.
  */
 export class MicroDosTab extends PageTab {
-    constructor(filePanel: IFilePanel, trs80File: Trs80File, microDos: MicroDos) {
+    constructor(filePanel: IFilePanel, trs80File: FloppyDisk, microDos: MicroDos) {
         super("MicroDOS");
 
         this.element.classList.add("dos-tab");
@@ -36,26 +37,7 @@ export class MicroDosTab extends PageTab {
         mainContents.classList.add("dos", "microdos");
         this.element.append(mainContents);
 
-        const infoDiv = document.createElement("div");
-        infoDiv.classList.add("info");
-        const addField = (label: string, value: string, cssClass: string): void => {
-            const labelSpan = document.createElement("div");
-            labelSpan.classList.add(cssClass + "-label", "label");
-            labelSpan.innerText = label + ":";
-            infoDiv.append(labelSpan);
-            const valueSpan = document.createElement("div");
-            valueSpan.classList.add(cssClass, "value");
-            if (value === "") {
-                valueSpan.classList.add("empty-field");
-                valueSpan.innerText = "None";
-            } else {
-                valueSpan.innerText = value;
-            }
-            infoDiv.append(valueSpan);
-        };
-        addField("File type", trs80File.getDescription(), "file-type");
-        addField("Operating System", microDos.nameAndVersion, "version");
-        mainContents.append(infoDiv);
+        mainContents.append(makeFloppyInfo(trs80File, microDos));
 
         // Add directory.
 

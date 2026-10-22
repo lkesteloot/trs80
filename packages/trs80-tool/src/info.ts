@@ -5,9 +5,9 @@ import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
-    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, MicroDos, modelIITrsdosLayoutToString,
-    ModelIITrsdos, type PdriveSettings, pdriveSettingsToString, TrackGeometry, Trs80Floppy, Trsdos, TrsdosII, UcsdPascal,
-    XenixTar} from "trs80-base";
+    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, getFloppyDetails, isFloppy, MicroDos,
+    modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, TrackGeometry, Trs80Floppy, Trsdos, TrsdosII,
+    UcsdPascal, XenixTar} from "trs80-base";
 import {assertNever} from "z80-base";
 import {
     captureLogs, type ContentType, contentTypeOf, floppyFormatOf, type FloppyFormat, type InfileJson,
@@ -90,105 +90,8 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                     }
 
                     if (verbose) {
-                        function getTrackGeometryInfo(trackGeometry: TrackGeometry): string {
-                            return [`sectors ${trackGeometry.firstSectorNumber} to ${trackGeometry.lastSectorNumber}`,
-                                `${densityToString(trackGeometry.modalDensity)} density`,
-                                `${trackGeometry.modalSectorSize} bytes per sector`].join(", ");
-                        }
-
-                        const geometry = trs80File.getGeometry();
-                        const bootTrack = geometry.bootTrack;
-                        const otherTracksInfo = `On most other tracks, ` + [`${geometry.modalDataSectorSpan} sectors`,
-                            `${densityToString(geometry.modalDataDensity)} density`,
-                            `${geometry.modalDataSectorSize} bytes per sector`].join(", ");
-                        verboseLines.push(
-                            `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
-                            `${pluralizeWithCount(geometry.sideCount, "side")}`);
-                        if (bootTrack === undefined) {
-                            verboseLines.push(`No readable boot track`, otherTracksInfo);
-                        } else if (geometry.homogeneous) {
-                            verboseLines.push(`On every track, ` + getTrackGeometryInfo(bootTrack));
-                        } else {
-                            verboseLines.push(`On the boot track, ` + getTrackGeometryInfo(bootTrack), otherTracksInfo);
-                        }
-
-                        if (fileSystem instanceof Trsdos) {
-                            const trsdos = fileSystem;
-                            const gatInfo = trsdos.getGatInfo();
-                            if (typeof gatInfo === "string") {
-                                verboseLines.push("Error: " + gatInfo);
-                            } else {
-                                if (gatInfo.name !== "") {
-                                    verboseLines.push("Floppy name: " + gatInfo.name);
-                                }
-                                if (gatInfo.date !== "") {
-                                    verboseLines.push("Floppy date: " + gatInfo.date);
-                                }
-                                if (gatInfo.autoCommand !== "") {
-                                    verboseLines.push("Auto command: " + gatInfo.autoCommand);
-                                }
-                                if (trsdos.allocationSides < geometry.sideCount) {
-                                    verboseLines.push("Only uses side 0");
-                                }
-                                verboseLines.push(`Directory ${trsdos.lumpTerm}: ${trsdos.dirLumpNumber}`);
-                                verboseLines.push(`Sectors per granule: ${trsdos.sectorsPerGranule}`);
-                                verboseLines.push(`Granules per ${trsdos.lumpTerm}: ${trsdos.granulesPerLump}`);
-                            }
-                            const pdriveSettings = trsdos.getPdriveSettings();
-                            if (pdriveSettings !== undefined) {
-                                verboseLines.push("PDRIVE: " + pdriveSettingsToString(pdriveSettings));
-                            }
-                        } else if (fileSystem instanceof Cpm) {
-                            const cpm = fileSystem;
-                            if (cpm.allocationSides < geometry.sideCount) {
-                                verboseLines.push("Only uses side 0");
-                            }
-                            if (cpm.cylinderCount !== geometry.cylinderCount) {
-                                verboseLines.push(`Cylinders: ${cpm.cylinderCount} (the image has ${geometry.cylinderCount})`);
-                            }
-                            verboseLines.push(`Reserved tracks: ${cpm.reservedTrackCount}`);
-                            verboseLines.push(`Sector skew: ${cpm.format.skew}`);
-                            verboseLines.push(`Block size: ${cpm.format.blockSize} bytes`);
-                            verboseLines.push(`Blocks: ${cpm.blockCount}`);
-                            verboseLines.push(`Directory entries: ${cpm.format.dirEntryCount}`);
-                        } else if (fileSystem instanceof MicroDos) {
-                            verboseLines.push("Directory: sectors 20-29");
-                        } else if (fileSystem instanceof UcsdPascal) {
-                            const ucsdPascal = fileSystem;
-                            verboseLines.push("Volume name: " + ucsdPascal.volumeName);
-                            verboseLines.push(`First track: ${ucsdPascal.format.firstTrack}`);
-                            verboseLines.push(`Interleave: ${ucsdPascal.format.interleave}`);
-                            verboseLines.push(`Track skew: ${ucsdPascal.format.trackSkew}`);
-                            verboseLines.push(`Blocks: ${ucsdPascal.blockCount}`);
-                        } else if (fileSystem instanceof ModelIITrsdos) {
-                            const modelIITrsdos = fileSystem;
-                            if (modelIITrsdos.diskName !== undefined && modelIITrsdos.diskName !== "") {
-                                verboseLines.push("Floppy name: " + modelIITrsdos.diskName);
-                            }
-                            verboseLines.push("Layout: " + modelIITrsdosLayoutToString(modelIITrsdos.layout));
-                            verboseLines.push(`Directory cylinder: ${modelIITrsdos.dirCylinder}`);
-                            if (modelIITrsdos.rejectedEntryCount > 0) {
-                                verboseLines.push("Unusable directory entries: " + modelIITrsdos.rejectedEntryCount);
-                            }
-                        } else if (fileSystem instanceof TrsdosII) {
-                            const trsdosII = fileSystem;
-                            if (trsdosII.diskName !== "") {
-                                verboseLines.push("Floppy name: " + trsdosII.diskName);
-                            }
-                            const version = trsdosII.nameAndVersion.replace(/^TRSDOS-II ?/, "");
-                            if (version !== "") {
-                                verboseLines.push("Version: " + version);
-                            }
-                            verboseLines.push(`Sides used: ${trsdosII.sideCount}`);
-                            verboseLines.push(`Granules: ${trsdosII.granuleCount}`);
-                            if (trsdosII.subdirectories.length > 0) {
-                                verboseLines.push("Subdirectories: " + trsdosII.subdirectories.join(", "));
-                            }
-                        } else if (fileSystem instanceof XenixTar) {
-                            const xenixTar = fileSystem;
-                            verboseLines.push(`Archive members listed as files: ${xenixTar.files.length}`);
-                            verboseLines.push(`Archive members skipped (directories, links, devices): ` +
-                                xenixTar.skippedMemberCount);
+                        for (const detail of getFloppyDetails(trs80File, fileSystem)) {
+                            verboseLines.push(detail.label + ": " + detail.value);
                         }
                     }
                 }
