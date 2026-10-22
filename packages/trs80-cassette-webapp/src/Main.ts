@@ -327,7 +327,7 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                         } else {
                             explanation.remove();
                         }
-                        pass = pulse.resultType === PulseResultType.PULSE === (test.type === TestType.LOW_SPEED_PULSE);
+                        pass = (pulse.resultType === PulseResultType.PULSE) === (test.type === TestType.LOW_SPEED_PULSE);
                         break;
                     }
 
