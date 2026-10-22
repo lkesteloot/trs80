@@ -644,6 +644,20 @@ export class Asm {
     }
 
     /**
+     * Define a global constant from outside the source (as if by "equ"), such as a predefined
+     * value describing the target machine. Unlike addKnownLabel(), the value is not an address,
+     * so the symbol is typed as a constant and is not inferred to be code or data based on
+     * what lives at that address.
+     */
+    public addConstant(name: string, value: number): void {
+        const symbolInfo = new SymbolInfo(name.toLowerCase(), name, value);
+        symbolInfo.type = SymbolType.CONSTANT;
+        symbolInfo.definitions.push(new SymbolAppearance(
+            symbolInfo, undefined, 0, symbolInfo.definitions.length));
+        this.scopes[0].set(symbolInfo);
+    }
+
+    /**
      * Add a global symbols outside the code, perhaps in the ROM or OS.
      */
     public addKnownLabels(knownLabels: KnownLabel[]): void {
@@ -2276,6 +2290,13 @@ class LineParser {
                 symbolInfo.definitions[0].assembledLine.listingLineNumber >= this.assembledLine.listingLineNumber) {
 
                 throw new Error("label \"" + identifier + "\" not yet defined here");
+            }
+            if (this.pass.passNumber === 1 && symbolInfo.definitions.length === 0) {
+                // Not (yet) defined in this scope. For the value, fall back to an enclosing
+                // scope's definition, if any, so that pass 1 sees predefined and earlier global
+                // symbols. Otherwise an "if" in a #local can pick a different branch here than
+                // in pass 2, and every label after it moves.
+                return this.pass.locals().parent?.get(identifier, true)?.value ?? 0;
             }
             return symbolInfo.value;
         }

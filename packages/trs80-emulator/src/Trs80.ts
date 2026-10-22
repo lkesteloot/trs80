@@ -449,7 +449,16 @@ export class Trs80 implements Hal, Machine, Configurable {
 
         // Sanity check.
         if (rom.length > this.config.romSize && this.config.basicLevel !== BasicLevel.COMPILED) {
-            throw new Error("ROM is too large (" + rom.length + " > " + this.config.romSize + ")");
+            if (this.config.customRom === undefined) {
+                throw new Error("ROM is too large (" + rom.length + " > " + this.config.romSize + ")");
+            }
+            // A custom ROM carries over when the model changes, so it can be sized for the old
+            // model (like the IDE's 14K Model III ROM when switching to the Model I's 12K).
+            // Throwing would leave setConfig() half done, with the new config but no event, so
+            // load what fits. Whoever made the ROM can rebuild it for the new model.
+            this.warnOnce("Custom ROM is too large (" + rom.length + " > " + this.config.romSize +
+                "), truncating");
+            rom = rom.substring(0, this.config.romSize);
         }
 
         // Load into memory.

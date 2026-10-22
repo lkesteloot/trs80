@@ -1,3 +1,4 @@
+import {assertNever} from "z80-base";
 
 /**
  * The TRS-80 models we support.
@@ -29,6 +30,40 @@ export function modelTypeFromString(modelName: string): ModelType | undefined {
         default:
             return undefined;
     }
+}
+
+/**
+ * Convert a model type to its number (1, 3, or 4).
+ */
+export function modelTypeToNumber(modelType: ModelType): number {
+    switch (modelType) {
+        case ModelType.MODEL1:
+            return 1;
+
+        case ModelType.MODEL3:
+            return 3;
+
+        case ModelType.MODEL4:
+            return 4;
+
+        default:
+            assertNever(modelType);
+    }
+}
+
+/**
+ * The constants the assembler predefines so that source can test the target model, e.g.,
+ * "if __MODEL__ == __MODEL_1__". There is one constant per model (__MODEL_1__, __MODEL_3__,
+ * __MODEL_4__), each set to that model's number, plus __MODEL__ set to the number of the given
+ * model.
+ */
+export function modelTypeAsmConstants(modelType: ModelType): {name: string, value: number}[] {
+    return [
+        {name: "__MODEL_1__", value: modelTypeToNumber(ModelType.MODEL1)},
+        {name: "__MODEL_3__", value: modelTypeToNumber(ModelType.MODEL3)},
+        {name: "__MODEL_4__", value: modelTypeToNumber(ModelType.MODEL4)},
+        {name: "__MODEL__", value: modelTypeToNumber(modelType)},
+    ];
 }
 
 /**

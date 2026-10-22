@@ -78,6 +78,23 @@ describe("reset", () => {
     });
 });
 
+describe("custom ROM", () => {
+    it("survives a switch to a model with a smaller ROM", () => {
+        // A Model III custom ROM is 14K, the Model I has room for 12K.
+        const model3 = Config.makeDefault().edit().withModelType(ModelType.MODEL3).build();
+        const rom = "\x3E\x01" + "\x00".repeat(model3.romSize - 3) + "\x42";
+        const trs80 = makeMachine(model3.edit().withCustomRom(rom).build());
+        let configEvents = 0;
+        trs80.onConfig.subscribe(() => configEvents++);
+
+        trs80.setConfig(trs80.getConfig().edit().withModelType(ModelType.MODEL1).build());
+        expect(trs80.getConfig().modelType).to.equal(ModelType.MODEL1);
+        expect(configEvents).to.equal(1);
+        expect(trs80.readMemory(0x0000)).to.equal(0x3E);
+        expect(trs80.readMemory(0x0001)).to.equal(0x01);
+    });
+});
+
 describe("timer", () => {
     const TIMER_IRQ_MASK = 0x04;
     const TIMER_PERIOD = 2_027_520/30;

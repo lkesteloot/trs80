@@ -1,6 +1,6 @@
 ;--- Compiled BASIC.
 	;
-	; Replacement ROM for the TRS-80 Model III.
+	; Replacement ROM for the TRS-80 Model I and III.
 	; (c) Lawrence Kesteloot 2026
 	;
 	; This ROM provides a normal Basic environment, but compiles
@@ -35,7 +35,11 @@ SCREEN_HEIGHT equ 16
 SCREEN_BEGIN equ 0x3C00
 SCREEN_SIZE equ SCREEN_WIDTH*SCREEN_HEIGHT
 SCREEN_END equ SCREEN_BEGIN+SCREEN_SIZE
+	if __MODEL__ == __MODEL_1__
+CURSOR_CHAR equ 95
+	else
 CURSOR_CHAR equ 128+16+32
+	endif
 CLEAR_CHAR equ 32
 BS equ 8
 TAB equ 9
@@ -354,8 +358,12 @@ soft_boot:
 
 	; Configure and enable interrupts.
 	im 1 				; rst 38 on maskable interrupt.
+	; The Model I has no interrupt mask register. Its 40 Hz timer
+	; interrupts whenever interrupts are enabled.
+	if __MODEL__ != __MODEL_1__
 	ld a,0x04
 	out (0xE0),a 			; Enable timer interrupt.
+	endif
 	ei
 
 	; Set up program area.
@@ -3027,7 +3035,11 @@ handle_maskable_interrupt:
 #local
 	push af
 	call blink_cursor
+	if __MODEL__ == __MODEL_1__
+	ld a,(0x37E0)			; Reset timer latch.
+	else
 	in a,(0xEC)			; Reset timer latch.
+	endif
 	ld a,(running)			; See if we're running a binary.
 	or a,a
 	jr z,skip_break_check
@@ -3239,7 +3251,7 @@ skip:
 #endlocal
 
 boot_message:
-	db "Model III Basic Compiler", NL
+	db "TRS-80 Basic Compiler", NL
 	db "(c) '26 Lawrence Kesteloot", NL, 0
 ready_prompt:
 	db "Ready", NL, 0
