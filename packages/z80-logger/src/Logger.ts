@@ -205,7 +205,10 @@ export const MAIN_SINK = new SplittingSink(makeBatchingSink(CONSOLE_SINK));
 export const TRS80_BASE_LOGGER = new Logger(LogLevel.INFO, MAIN_SINK.sink);
 // Access to floppy files (JV1, JV3, DMK, etc.).
 export const TRS80_FLOPPY_LOGGER = new Logger(LogLevel.INFO, MAIN_SINK.sink);
+// The TRS-80 hardware emulator in the "trs80-emulator" library.
 export const TRS80_EMULATOR_LOGGER = new Logger(LogLevel.INFO, MAIN_SINK.sink);
+// The Z80 CPU emulator in the "z80-emulator" library.
+export const Z80_EMULATOR_LOGGER = new Logger(LogLevel.INFO, MAIN_SINK.sink);
 
 /**
  * Map from the name of a module to its logger.
@@ -214,4 +217,5 @@ export const MODULE_NAME_TO_LOGGER: {[moduleName: string]: Logger} = {
     "base": TRS80_BASE_LOGGER,
     "floppy": TRS80_FLOPPY_LOGGER,
     "emulator": TRS80_EMULATOR_LOGGER,
+    "z80": Z80_EMULATOR_LOGGER,
 };

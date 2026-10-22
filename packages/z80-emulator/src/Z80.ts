@@ -1,4 +1,5 @@
-import {Flag, hi, inc16, lo, RegisterSet, word} from "z80-base";
+import {Flag, hi, inc16, lo, RegisterSet, toHexWord, word} from "z80-base";
+import {Z80_EMULATOR_LOGGER} from "z80-logger";
 import {decode} from "./Decode.js";
 import {Hal} from "./Hal.js";
 import {Z80State} from "./Z80State.js";
@@ -31,6 +32,11 @@ export class Z80 {
     public readonly sz53Table: number[] = []; /* The S, Z, 5 and 3 bits of the index */
     public readonly parityTable: number[] = []; /* The parity of the lookup value */
     public readonly sz53pTable: number[] = []; /* OR the above two tables together */
+    /**
+     * Undefined opcodes we've already warned about, so that a program that runs one in a loop
+     * doesn't flood the log.
+     */
+    private readonly warnedUndefinedOpcodes = new Set<string>();
 
     constructor(hal: Hal) {
         this.hal = hal;
@@ -65,6 +71,20 @@ export class Z80 {
     public step(): void {
         this.instructionAddress = this.regs.pc;
         decode(this);
+    }
+
+    /**
+     * Warn, once per opcode, that the instruction at {@link instructionAddress} is undefined
+     * and was executed as a NOP.
+     *
+     * @param opcode the instruction's bytes in hex, such as "ED 20".
+     */
+    public warnUndefinedOpcode(opcode: string): void {
+        if (!this.warnedUndefinedOpcodes.has(opcode)) {
+            this.warnedUndefinedOpcodes.add(opcode);
+            Z80_EMULATOR_LOGGER.warn("Undefined instruction " + opcode + " at 0x" +
+                toHexWord(this.instructionAddress) + " executed as a NOP");
+        }
     }
 
     /**

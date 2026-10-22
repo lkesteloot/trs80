@@ -8879,7 +8879,7 @@ function decodeCB(z80: Z80): void {
     const inst = fetchInstruction(z80);
     const func = decodeMapCB.get(inst);
     if (func === undefined) {
-        console.log("Unhandled opcode in CB: " + toHex(inst, 2));
+        z80.warnUndefinedOpcode("CB " + toHex(inst, 2));
     } else {
         func(z80);
     }
@@ -8893,7 +8893,7 @@ function decodeDD(z80: Z80): void {
     // TODO this could cause stack overflow with repeated DD or FD prefixes.
     const func = decodeMapDD.get(inst) ?? decodeMapBASE.get(inst);
     if (func === undefined) {
-        console.log("Unhandled opcode in DD: " + toHex(inst, 2));
+        z80.warnUndefinedOpcode("DD " + toHex(inst, 2));
     } else {
         func(z80);
     }
@@ -8914,7 +8914,7 @@ function decodeDDCB(z80: Z80): void {
 
     const func = decodeMapDDCB.get(inst);
     if (func === undefined) {
-        console.log("Unhandled opcode in DDCB: " + toHex(inst, 2));
+        z80.warnUndefinedOpcode("DD CB " + toHex(inst, 2));
     } else {
         func(z80);
     }
@@ -8927,7 +8927,9 @@ function decodeED(z80: Z80): void {
     const inst = fetchInstruction(z80);
     const func = decodeMapED.get(inst);
     if (func === undefined) {
-        console.log("Unhandled opcode in ED: " + toHex(inst, 2));
+        // A real Z80 runs the undefined ED opcodes as two-byte NOPs. Some programs rely on
+        // that, such as utilities that use them to trap to an emulator.
+        z80.warnUndefinedOpcode("ED " + toHex(inst, 2));
     } else {
         func(z80);
     }
@@ -8941,7 +8943,7 @@ function decodeFD(z80: Z80): void {
     // TODO this could cause stack overflow with repeated DD or FD prefixes.
     const func = decodeMapFD.get(inst) ?? decodeMapBASE.get(inst);
     if (func === undefined) {
-        console.log("Unhandled opcode in FD: " + toHex(inst, 2));
+        z80.warnUndefinedOpcode("FD " + toHex(inst, 2));
     } else {
         func(z80);
     }
@@ -8962,7 +8964,7 @@ function decodeFDCB(z80: Z80): void {
 
     const func = decodeMapFDCB.get(inst);
     if (func === undefined) {
-        console.log("Unhandled opcode in FDCB: " + toHex(inst, 2));
+        z80.warnUndefinedOpcode("FD CB " + toHex(inst, 2));
     } else {
         func(z80);
     }
@@ -8975,7 +8977,7 @@ export function decode(z80: Z80): void {
     const inst = fetchInstruction(z80);
     const func = decodeMapBASE.get(inst);
     if (func === undefined) {
-        console.log("Unhandled opcode " + toHex(inst, 2));
+        z80.warnUndefinedOpcode(toHex(inst, 2));
     } else {
         func(z80);
     }

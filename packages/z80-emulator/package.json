@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "z80-base": "*",
-    "z80-inst": "*"
+    "z80-inst": "*",
+    "z80-logger": "*"
   }
 }

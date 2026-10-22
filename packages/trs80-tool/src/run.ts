@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import util from "util";
 import {colors} from "./colors.js";
 import {BasicLevel, Config, ConsolePrinter, FLOPPY_DRIVE_COUNT, Keyboard,
     LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen,
@@ -139,6 +140,14 @@ class TtyScreen extends Trs80Screen {
     private readonly drawnScreen = new Uint8Array(WIDTH*HEIGHT);
     private readonly vt100Control = new Vt100Control();
     private readonly logMessages: { level: LogLevel, message: string }[] = [];
+    // The console's methods before captureConsole() replaced them, for exit() to restore.
+    private readonly savedConsole = {
+        log: console.log,
+        info: console.info,
+        debug: console.debug,
+        warn: console.warn,
+        error: console.error,
+    };
     public readonly printer = new class extends LinePrinter {
         constructor(private ttyScreen: TtyScreen) {
             super();
@@ -158,6 +167,7 @@ class TtyScreen extends Trs80Screen {
         this.config = config;
         this.drawFrame();
         this.vt100Control.saveCursorPositionAs(HEIGHT + 3, 1);
+        this.captureConsole();
 
         // Update cursor periodically. Have to do this on a timer since the memory location
         // can be updated anytime.
@@ -167,8 +177,24 @@ class TtyScreen extends Trs80Screen {
         process.stdout.on("resize", () => this.redraw());
     }
 
+    /**
+     * Move the cursor below the screen and give the console back, so that whatever's printed
+     * after this goes below the screen.
+     */
     public exit(): void {
         this.vt100Control.moveTo(HEIGHT + 3, 1);
+        Object.assign(console, this.savedConsole);
+    }
+
+    /**
+     * Send console output to the log beside the screen. Written to the terminal, it would
+     * draw over the screen and throw off our idea of where the cursor is. Undone by {@link exit}.
+     */
+    private captureConsole(): void {
+        const sink = makeBatchingSink(this.logSink.bind(this));
+        const makeMethod = (level: LogLevel) => (...args: unknown[]) => sink(level, util.format(...args));
+        console.log = console.info = console.debug = makeMethod(LogLevel.INFO);
+        console.warn = console.error = makeMethod(LogLevel.WARN);
     }
 
     /**
@@ -198,8 +224,15 @@ class TtyScreen extends Trs80Screen {
         }
     }
 
+    /**
+     * Add a message to the log beside the screen. A message with several lines becomes several
+     * messages, and other control characters become spaces, since writing them would move the
+     * cursor.
+     */
     public logSink(level: LogLevel, message: string): void {
-        this.logMessages.push({level, message});
+        for (const line of message.split(/\r?\n/)) {
+            this.logMessages.push({level, message: line.replace(/[\x00-\x1F\x7F]/g, " ")});
+        }
         while (this.logMessages.length > HEIGHT + 2) {
             this.logMessages.shift();
         }
