@@ -1,5 +1,5 @@
 import fs from "fs";
-import chalk from "chalk";
+import {colors} from "./colors.js";
 import {BasicLevel, Config, ConsolePrinter, FLOPPY_DRIVE_COUNT, Keyboard,
     LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen,
     model1ScreenCodeToModel3 } from "trs80-emulator";
@@ -136,7 +136,7 @@ class TtyScreen extends Trs80Screen {
      */
     private drawFrame(): void {
         // Draw frame.
-        const color = chalk.green;
+        const color = colors.frame;
         process.stdout.write(color("+" + "-".repeat(WIDTH) + "+\n"));
         for (let row = 0; row < HEIGHT; row++) {
             process.stdout.write(color("|" + " ".repeat(WIDTH) + "|\n"));
@@ -201,7 +201,7 @@ class TtyScreen extends Trs80Screen {
                 const ch = value >= 128 && value <= 191
                     ? TtyScreen.trs80ToBraille(value)
                     : value < 32 || value >= 127
-                        ? chalk.dim("?")
+                        ? colors.muted("?")
                         : String.fromCodePoint(value);
 
                 // Draw at location.
@@ -223,7 +223,7 @@ class TtyScreen extends Trs80Screen {
     private redrawDrive(): void {
         for (let drive = 0; drive < FLOPPY_DRIVE_COUNT; drive++) {
             const ch = drive === this.drive ? "\u2022" : "|";
-            const color = drive === this.drive ? chalk.red : chalk.green;
+            const color = drive === this.drive ? colors.frameActive : colors.frame;
             this.vt100Control.moveTo(HEIGHT - drive + 1, WIDTH + 2);
             process.stdout.write(color(ch));
             this.vt100Control.advancedCol();

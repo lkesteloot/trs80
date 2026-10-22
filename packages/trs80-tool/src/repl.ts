@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import {colors} from "./colors.js";
 import readline from "readline";
 import {hexdumpBinary} from "./hexdump.js";
 import { Hal, Z80 } from "z80-emulator";
@@ -15,7 +15,7 @@ const VAR_RE = /<var>([^<]*)<\/var>/g;
  * with the "nn" highlighted and tags removed.
  */
 function highlightVar(description: string): string {
-    return description.replace(VAR_RE, (match, p1) => chalk.underline(p1));
+    return description.replace(VAR_RE, (match, p1) => colors.placeholder(p1));
 }
 
 /**
@@ -65,7 +65,7 @@ export function repl() {
     });
 
     function updatePrompt() {
-        rl.setPrompt(chalk.yellowBright("0x" + toHexWord(org) + "> "));
+        rl.setPrompt(colors.prompt("0x" + toHexWord(org) + "> "));
     }
 
     function dumpRegisters(before: RegisterSet) {
@@ -81,7 +81,7 @@ export function repl() {
             const isSet = (z80.regs.f & bit) !== 0;
             const wasSet = (before.f & bit) !== 0;
             const changed = isSet !== wasSet;
-            let color = changed ? chalk.bold : chalk.dim;
+            let color = changed ? colors.emphasis : colors.muted;
             if (isSet) {
                 color = color.underline;
             }
@@ -103,7 +103,7 @@ export function repl() {
                 }
 
                 const changed = z80.regs.getValue(reg) !== before.getValue(reg);
-                const color = changed ? chalk.bold : chalk.dim;
+                const color = changed ? colors.emphasis : colors.muted;
 
                 process.stdout.write(color(regLabel + "=" + toHexWord(z80.regs.getValue(reg))) + "  ");
                 if (i % 4 === 3) {
@@ -191,13 +191,16 @@ export function repl() {
                         console.log("Listing:");
                         let displayAddress = line.address;
                         for (let i = 0; i < line.binary.length; i += 4) {
-                            let result = "    " + toHexWord(displayAddress) + ":";
+                            let result = "    " + colors.address(toHexWord(displayAddress)) + ":";
+                            // Unstyled width, for padding, since colors add invisible characters.
+                            let width = 9;
                             for (let j = 0; j < 4 && i + j < line.binary.length; j++) {
-                                result += " " + toHexByte(line.binary[i + j]);
+                                result += " " + colors.data(toHexByte(line.binary[i + j]));
+                                width += 3;
                                 displayAddress++;
                             }
                             if (i === 0) {
-                                result = result.padEnd(24, " ") + line.line;
+                                result += " ".repeat(Math.max(24 - width, 0)) + line.line;
                             }
                             console.log(result);
                         }
