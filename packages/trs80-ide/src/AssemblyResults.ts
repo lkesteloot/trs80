@@ -14,6 +14,8 @@ export interface AssemblyStats {
     codeSize: number;
     dataSize: number;
     totalSize: number;
+    // Bytes that land in ROM (below the model's ROM size).
+    romBytes: number;
 }
 
 /**
@@ -23,6 +25,8 @@ export class AssemblyResults {
     public readonly asm: Asm;
     public readonly sourceFile: SourceFile;
     public readonly screenshotSections: ScreenshotSection[];
+    // Size of the ROM of the machine we assembled for, in bytes.
+    public readonly romSize: number;
     // Map from 1-based line number to assembled line.
     public readonly lineMap = new Map<number, AssembledLine>();
     public readonly errorLines: ErrorAssembledLine[];
@@ -38,10 +42,11 @@ export class AssemblyResults {
     // All variable symbol definitions (not jump/code references).
     public readonly variableDefinitions: SymbolAppearance[] = [];
 
-    constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[]) {
+    constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[], romSize: number) {
         this.asm = asm;
         this.sourceFile = sourceFile;
         this.screenshotSections = screenshotSections;
+        this.romSize = romSize;
 
         // Gather all errors.
         const errorLines: ErrorAssembledLine[] = [];
@@ -162,6 +167,7 @@ export class AssemblyResults {
             codeSize: 0,
             dataSize: 0,
             totalSize: 0,
+            romBytes: 0,
         };
 
         for (const line of this.asm.assembledLines) {
@@ -173,6 +179,7 @@ export class AssemblyResults {
                     stats.codeSize += size;
                 }
                 stats.totalSize += size;
+                stats.romBytes += Math.max(0, Math.min(size, this.romSize - line.address));
             }
         }
 

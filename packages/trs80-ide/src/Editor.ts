@@ -74,7 +74,7 @@ import {solarizedDark} from 'cm6-theme-solarized-dark'
 import {asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary} from "trs80-asm"
 import {variablePillPlugin} from "./VariablePillPlugin";
 import {saveSettings, Settings} from "./Settings";
-import { ModelType, modelTypeAsmConstants, Trs80 } from "trs80-emulator"
+import { Config, modelTypeAsmConstants, Trs80 } from "trs80-emulator"
 import {foldingExtensions} from "./Folding";
 
 // Keys for local storage.
@@ -182,9 +182,10 @@ const gPresentationTheme = [
 const gBaseThemeConfig = new Compartment();
 
 /**
- * Assemble the code for the given model, predefining the constants that let the source test the model.
+ * Assemble the code for the machine in the given emulator config, predefining the constants that
+ * let the source test the model.
  */
-function assemble(code: string[], modelType: ModelType): AssemblyResults {
+function assemble(code: string[], config: Config): AssemblyResults {
     const asm = new Asm({
         readBinaryFile(pathname: string): Uint8Array | undefined {
             return undefined;
@@ -195,7 +196,7 @@ function assemble(code: string[], modelType: ModelType): AssemblyResults {
         }
     });
     asm.addKnownLabels(Z80_KNOWN_LABELS);
-    for (const {name, value} of modelTypeAsmConstants(modelType)) {
+    for (const {name, value} of modelTypeAsmConstants(config.modelType)) {
         asm.addConstant(name, value);
     }
     if (false) {
@@ -211,7 +212,7 @@ function assemble(code: string[], modelType: ModelType): AssemblyResults {
     }
 
     const screenshotSections = pickOutScreenshotSections(sourceFile);
-    const assemblyResults = new AssemblyResults(asm, sourceFile, screenshotSections);
+    const assemblyResults = new AssemblyResults(asm, sourceFile, screenshotSections, config.romSize);
 
     gtag("event", "assemble", {
         value: assemblyResults.errorLines.length,
@@ -433,7 +434,7 @@ export class Editor {
         this.assemblyResultsStateEffect = StateEffect.define<AssemblyResults>();
         this.assemblyResultsStateField = StateField.define<AssemblyResults>({
             create: () => {
-                return assemble([""], this.emulator.trs80.getConfig().modelType);
+                return assemble([""], this.emulator.trs80.getConfig());
             },
             update: (value: AssemblyResults, tr: Transaction) => {
                 // See if we're explicitly setting it from the outside.
@@ -444,7 +445,7 @@ export class Editor {
                 }
                 // See if we should reassemble based on changes to the doc.
                 if (tr.docChanged) {
-                    return assemble(tr.state.doc.toJSON(), this.emulator.trs80.getConfig().modelType);
+                    return assemble(tr.state.doc.toJSON(), this.emulator.trs80.getConfig());
                 } else {
                     // No, return old value.
                     return value;
@@ -1203,7 +1204,7 @@ export class Editor {
     }
 
     public reassemble() {
-        const results = assemble(this.view.state.doc.toJSON(), this.emulator.trs80.getConfig().modelType);
+        const results = assemble(this.view.state.doc.toJSON(), this.emulator.trs80.getConfig());
         this.view.dispatch({
             effects: this.assemblyResultsStateEffect.of(results),
         });
@@ -1709,8 +1710,8 @@ export class Editor {
             const dom = document.createElement("div");
             dom.classList.add("cm-stats-panel");
 
-            // Get the nodes for the size and label for a stat.
-            function getSizeAndLabel(number: number, label: string): Node[] {
+            // Get the nodes for the size (or percentage) and label for a stat.
+            function getSizeAndLabel(number: number | string, label: string): Node[] {
                 const sizeNode = document.createElement("span");
                 sizeNode.classList.add("cm-stats-panel-number");
                 sizeNode.textContent = number.toString();
@@ -1740,8 +1741,8 @@ export class Editor {
                 return nodes;
             }
 
-            // Get HTML nodes for statistics.
-            function getStats(stats: AssemblyStats): (Node | string)[] {
+            // Get HTML nodes for statistics. Show how full the ROM is if romSize is given.
+            function getStats(stats: AssemblyStats, romSize?: number): (Node | string)[] {
                 const nodesLists: Node[][] = [];
 
                 if (stats.codeSize > 0) {
@@ -1754,6 +1755,12 @@ export class Editor {
                 if (stats.codeSize > 0 && stats.dataSize > 0) {
                     nodesLists.push(getSizeAndLabel(stats.totalSize, " total " + pluralize(stats.totalSize, "byte")));
                 }
+                if (romSize !== undefined && stats.romBytes > 0) {
+                    // Round down, so that a ROM only shows as full when it is.
+                    const percent = 100*stats.romBytes/romSize;
+                    const percentText = percent < 1 ? "<1%" : Math.floor(percent) + "%";
+                    nodesLists.push(getSizeAndLabel(percentText, " of " + romSize/1024 + "K ROM"));
+                }
 
                 return joinNodes(nodesLists, ", ");
             }
@@ -1762,7 +1769,7 @@ export class Editor {
                 const assemblyResults = this.getAssemblyResults(state);
                 const nodesLists: (Node | string)[][] = [];
 
-                nodesLists.push(getStats(assemblyResults.getStats()));
+                nodesLists.push(getStats(assemblyResults.getStats(), assemblyResults.romSize));
 
                 let posA = state.selection.main.head;
                 let posB = state.selection.main.anchor;
