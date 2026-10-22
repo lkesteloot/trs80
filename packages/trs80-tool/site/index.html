@@ -651,6 +651,28 @@ C CRC error (ID or data).
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
 
+            <h3 id="2026-10-21">October 21, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v4.4.0:
+                    <ul>
+                        <li><a href="#run"><code>run</code></a> write-protects every floppy,
+                            including mounted ones, unless given the new <code>--writable</code> flag,
+                            which also saves changes back to their files. The
+                            <code>--write-protected</code> flag is gone.</li>
+                        <li><a href="#asm"><code>asm</code></a> has a new <code>--model</code> flag,
+                            and defines constants like <code>__MODEL__</code> so that source can
+                            differ between models.</li>
+                        <li>Hex dumps and disassembly listings color addresses, bytes, and annotations.</li>
+                        <li><code>info --verbose</code> shows the PDRIVE settings of NEWDOS/80 disks.</li>
+                    </ul>
+                </li>
+                <li>My TRS-80: The DOS tabs show the floppy’s details, like those of
+                    <code>info --verbose</code>.</li>
+                <li>IDE: The statistics panel shows how full the ROM is. Source can test the
+                    emulated model with constants like <code>__MODEL__</code>.</li>
+                <li>Emulator: The compiled Basic ROM works on the Model I, and requires 48K of RAM.</li>
+            </ul>
+
             <h3 id="2026-10-19">October 19, 2026</h3>
             <ul>
                 <li><code>trs80-tool</code> v4.3.0:
