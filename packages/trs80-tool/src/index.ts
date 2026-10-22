@@ -312,7 +312,7 @@ async function main(): Promise<void> {
         .option("--model <model>", "which model (1, 3, 4), defaults to 3")
         .option("--level <level>", "which level (1 or 2), defaults to 2")
         .option("--mount <files...>", "cassettes or floppies to mount")
-        .option("--write-protected", "write-protect mounted floppies")
+        .option("--writable", "let the emulator write to floppies, saving changes to their files")
         .option("--printer <file>", "send printer output to the specified file")
         .action((program, options) => {
             const modelName = options.model ?? "3";
@@ -342,7 +342,7 @@ async function main(): Promise<void> {
                 throw new ToolError("Invalid model and Basic level configuration");
             }
 
-            run(program, options.mount ?? [], options.xray, options.writeProtected, config, printerPathname);
+            run(program, options.mount ?? [], options.xray, options.writable ?? false, config, printerPathname);
         });
     program
         .command("repl")

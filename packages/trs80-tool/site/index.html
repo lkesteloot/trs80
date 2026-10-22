@@ -511,8 +511,8 @@ C CRC error (ID or data).
             </div>
 
 
-            <p>If, from within the emulator, you modify a floppy, its file
-            is modified as well.</p>
+            <p>Floppies, including one given as the program to run, are
+            write-protected unless you specify <code>--writable</code>.</p>
 
             <table class="flags">
                 <tr>
@@ -529,8 +529,10 @@ C CRC error (ID or data).
                         several floppies can be mounted.</td>
                 </tr>
                 <tr>
-                    <td><code>--write-protected</code></td>
-                    <td>Mount all floppies as write-protected.</td>
+                    <td><code>--writable</code></td>
+                    <td>Let the emulator write to floppies, and save the changes to their
+                        files. A floppy stays write-protected, with a warning, if its file is
+                        read-only or its image (DMK or JV3) is marked write-protected.</td>
                 </tr>
                 <tr>
                     <td><code>--printer FILE</code></td>

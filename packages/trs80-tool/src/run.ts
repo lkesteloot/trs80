@@ -1,15 +1,16 @@
 import fs from "fs";
+import path from "path";
 import {colors} from "./colors.js";
 import {BasicLevel, Config, ConsolePrinter, FLOPPY_DRIVE_COUNT, Keyboard,
     LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen,
     model1ScreenCodeToModel3 } from "trs80-emulator";
 import {connectXray} from "./xray.js";
-import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
+import {FloppyDisk, TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
 import { readTrs80File } from "./utils.js";
 import { word } from "z80-base";
-import {LogLevel, TRS80_MAIN_SINK, makeBatchingSink } from "trs80-logger";
+import {LogLevel, TRS80_FLOPPY_LOGGER, TRS80_MAIN_SINK, makeBatchingSink } from "trs80-logger";
 
 // Size of screen.
 const WIDTH = TRS80_CHAR_WIDTH;
@@ -468,19 +469,58 @@ function fileIsWritable(pathname: string): boolean {
 }
 
 /**
+ * Prepare a floppy for mounting. Unless it's writable, it's write-protected, so the DOS
+ * refuses to write to it. If it's writable, its changes are saved back to its file.
+ * A floppy whose file is read-only, or whose image is write-protected, stays write-protected
+ * even if the user asked for writable floppies, and we warn them.
+ *
+ * @param floppy the floppy read from the file.
+ * @param pathname the file the floppy was read from.
+ * @param writable whether the user asked for floppies to be writable.
+ */
+function setUpFloppy(floppy: FloppyDisk, pathname: string, writable: boolean): void {
+    if (!writable) {
+        floppy.setMountedWriteProtected(true);
+        return;
+    }
+
+    // Keep the warnings short, since they're shown beside the emulated screen.
+    const name = path.basename(pathname);
+    if (!fileIsWritable(pathname)) {
+        floppy.setMountedWriteProtected(true);
+        TRS80_FLOPPY_LOGGER.warn(name + ": file is read-only");
+        return;
+    }
+
+    // Now it's write-protected only by the image's own flag, or by a format we can't write.
+    floppy.setMountedWriteProtected(false);
+    if (floppy.isWriteProtected()) {
+        TRS80_FLOPPY_LOGGER.warn(name + ": image is write-protected");
+        return;
+    }
+
+    floppy.onWrite.subscribe(floppyWrite => {
+        const fd = fs.openSync(pathname, "r+");
+        fs.writeSync(fd, floppyWrite.data, 0, floppyWrite.data.length, floppyWrite.offset);
+        fs.closeSync(fd);
+    });
+}
+
+/**
  * Handle the "run" command.
  *
  * @param programFilename optional file to run
  * @param mountedFilenames optional cassette or floppy files to mount
  * @param xray whether to run the xray server
- * @param writeProtected mark mounted floppies as write-protected.
+ * @param writable make floppies writable and save their changes to their files,
+ * rather than write-protecting them.
  * @param config machine configuration
  * @param printerPathname file to write printer output to, or undefined to write to the console.
  */
 export function run(programFilename: string | undefined,
                     mountedFilenames: string[],
                     xray: boolean,
-                    writeProtected: boolean,
+                    writable: boolean,
                     config: Config,
                     printerPathname: string | undefined) {
 
@@ -542,6 +582,9 @@ export function run(programFilename: string | undefined,
             console.log("Can't run WAV files directly");
             return;
         }
+        if (isFloppy(program)) {
+            setUpFloppy(program, programFilename, writable);
+        }
         trs80.runTrs80File(program);
     }
 
@@ -565,13 +608,7 @@ export function run(programFilename: string | undefined,
             cassette.setAudioFile(program, 0);
             mountedCassette = true;
         } else if (isFloppy(program)) {
-            const fileIsReadOnly = !fileIsWritable(mountedFilename);
-            program.setMountedWriteProtected(writeProtected || fileIsReadOnly);
-            program.onWrite.subscribe(floppyWrite => {
-                const fd = fs.openSync(mountedFilename, "r+");
-                fs.writeSync(fd, floppyWrite.data, 0, floppyWrite.data.length, floppyWrite.offset);
-                fs.closeSync(fd);
-            });
+            setUpFloppy(program, mountedFilename, writable);
             trs80.loadFloppyDisk(program, driveNumber++);
         } else if (program.className === "Cassette") {
             // Cassette.
