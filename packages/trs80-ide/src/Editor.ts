@@ -1714,7 +1714,7 @@ export class Editor {
             function getSizeAndLabel(number: number | string, label: string): Node[] {
                 const sizeNode = document.createElement("span");
                 sizeNode.classList.add("cm-stats-panel-number");
-                sizeNode.textContent = number.toString();
+                sizeNode.textContent = number.toLocaleString();
 
                 const labelNode = document.createElement("span");
                 labelNode.textContent = label;
