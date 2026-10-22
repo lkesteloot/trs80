@@ -1088,6 +1088,46 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
 }
 
 /**
+ * The NEWDOS/80 PDRIVE settings that read a disk the way we decoded it, worked out from its layout
+ * rather than read from the disk. See "PDRIVE" in FLOPPY_FORMATS.md. The interface letter of TI and
+ * the step rate (TSR) leave no trace on the disk, so they're not here.
+ */
+export interface PdriveSettings {
+    /** Whether the data area skips cylinder 0, which is in the other density from the rest: the K flag of TI. */
+    track0OtherDensity: boolean;
+    /** Type of drive (TD): A, C, E, or G for 5", B, D, F, or H for 8". */
+    driveType: string;
+    /** Cylinders in the image (TC), not counting a skipped cylinder 0. */
+    trackCount: number;
+    /** Sectors per track, counting both sides (SPT). */
+    sectorsPerTrack: number;
+    /** Granules per lump (GPL). */
+    granulesPerLump: number;
+    /** The lump where the directory starts (DDSL). */
+    dirStartLump: number;
+    /** Granules in the directory (DDGA). */
+    dirGranules: number;
+}
+
+/**
+ * Show PDRIVE settings as PDRIVE takes them, such as "TI=?K,TD=E,TC=43,SPT=18,GPL=2,DDSL=17,DDGA=2".
+ * TI only appears with its K flag, after a "?" for the unknown interface letter.
+ */
+export function pdriveSettingsToString(settings: PdriveSettings): string {
+    const fields: string[] = [];
+    if (settings.track0OtherDensity) {
+        fields.push("TI=?K");
+    }
+    fields.push(`TD=${settings.driveType}`,
+        `TC=${settings.trackCount}`,
+        `SPT=${settings.sectorsPerTrack}`,
+        `GPL=${settings.granulesPerLump}`,
+        `DDSL=${settings.dirStartLump}`,
+        `DDGA=${settings.dirGranules}`);
+    return fields.join(",");
+}
+
+/**
  * A TRSDOS diskette.
  *
  * We access physical disks with (cylinder,side,sector number) tuples. This would work for TRSDOS too,
@@ -1136,6 +1176,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     public readonly sectorsPerLump: number;
     public readonly sectorsPerCylinder: number;
     public readonly lumpCount: number;
+    /**
+     * Whether a lump is exactly a physical cylinder (both allocated sides), as in every DOS but
+     * NEWDOS/80, and in NEWDOS/80 when its settings happen to line up with the cylinders.
+     */
+    public readonly lumpsAreCylinders: boolean;
     public readonly lumpTerm: string;
     /**
      * An integer score estimating whether we think this is a valid TRSDOS disk and configuration.
@@ -1188,8 +1233,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.sectorsPerLump = this.sectorsPerGranule * this.granulesPerLump;
         this.sectorsPerCylinder = geometry.modalDataSectorSpan*this.allocationSides;
         this.lumpCount = computeLumpCount(geometry, firstDataCylinder, this.sectorsPerCylinder, this.sectorsPerLump);
-        this.lumpTerm = this.sectorsPerLump === geometry.modalDataSectorSpan * this.allocationSides && this.firstDataCylinder === 0
-            ? "cylinder" : "lump";
+        this.lumpsAreCylinders = this.sectorsPerLump === this.sectorsPerCylinder && this.firstDataCylinder === 0;
+        this.lumpTerm = this.lumpsAreCylinders ? "cylinder" : "lump";
 
         // Before evaluate(), which decodes the directory.
         const gatInfo = this.getGatInfo();
@@ -1485,6 +1530,52 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
     public summary(): string {
         return `${trsdosVersionToString(this.version)}, dir on ${this.lumpTerm} ${this.dirLumpNumber}, ${this.granulesPerLump} granules per ${this.lumpTerm}, ${this.allocationSides} sides`;
+    }
+
+    /**
+     * The NEWDOS/80 PDRIVE settings that read this disk as we decoded it, or undefined if its lumps
+     * are cylinders. Those disks may well be NEWDOS/80's, but any DOS's settings will read them, so
+     * PDRIVE isn't what decides it. Going by the layout rather than the DOS's name means this works
+     * on data disks too, which don't say what wrote them.
+     */
+    public getPdriveSettings(): PdriveSettings | undefined {
+        if (this.lumpsAreCylinders) {
+            return undefined;
+        }
+
+        // The drive types for 5" disks, and the most sectors per side that one holds; more
+        // means 8". See the sector table in FLOPPY_FORMATS.md.
+        const sectorsPerSide = this.geometry.modalDataSectorSpan;
+        const doubleSided = this.allocationSides === 2;
+        let driveType: string;
+        let maxFiveInchSectors: number;
+        const density = this.geometry.modalDataDensity;
+        switch (density) {
+            case Density.SINGLE:
+                driveType = doubleSided ? "C" : "A";
+                maxFiveInchSectors = 10;
+                break;
+            case Density.DOUBLE:
+                driveType = doubleSided ? "G" : "E";
+                maxFiveInchSectors = 18;
+                break;
+            default:
+                assertNever(density);
+        }
+        if (sectorsPerSide > maxFiveInchSectors) {
+            // The 8" letters follow each 5" one.
+            driveType = String.fromCharCode(driveType.charCodeAt(0) + 1);
+        }
+
+        return {
+            track0OtherDensity: this.firstDataCylinder === 1,
+            driveType,
+            trackCount: this.geometry.cylinderCount - this.firstDataCylinder,
+            sectorsPerTrack: this.sectorsPerCylinder,
+            granulesPerLump: this.granulesPerLump,
+            dirStartLump: this.dirLumpNumber,
+            dirGranules: this.granulesPerDir,
+        };
     }
 
     /**
