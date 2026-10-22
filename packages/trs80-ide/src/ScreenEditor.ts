@@ -569,15 +569,16 @@ export class ScreenEditor {
         const canvas = this.screen.makeSelectionCanvas(sel);
         canvas.toBlob((blob: Blob | null) => {
             if (blob !== null) {
+                const reportError = (e: unknown) => console.log("Can't copy selection to system clipboard", e);
                 try {
                     navigator.clipboard.write([
                         new ClipboardItem({
                             "image/png": blob
                         })
-                    ]);
-                } catch (e: any) {
+                    ]).catch(reportError); // For example, permission denied.
+                } catch (e: unknown) {
                     // Firefox doesn't support ClipboardItem.
-                    console.log("Can't copy selection to system clipboard", e);
+                    reportError(e);
                 }
             }
         });

@@ -54,7 +54,7 @@ async function sleep(ms: number): Promise<void> {
 
 // Register pair that was pushed by the instruction at this address, or undefined
 // if the instruction is not a push. (Calls don't count here, only explicit pushes.)
-function pushedRegisterPair(trs80: Trs80, address: number): String | undefined {
+function pushedRegisterPair(trs80: Trs80, address: number): string | undefined {
     switch (trs80.readMemory(address)) {
         case 0xC5: return "bc";
         case 0xD5: return "de";
