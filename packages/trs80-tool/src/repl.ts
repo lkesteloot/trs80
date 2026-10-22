@@ -191,13 +191,16 @@ export function repl() {
                         console.log("Listing:");
                         let displayAddress = line.address;
                         for (let i = 0; i < line.binary.length; i += 4) {
-                            let result = "    " + toHexWord(displayAddress) + ":";
+                            let result = "    " + colors.address(toHexWord(displayAddress)) + ":";
+                            // Unstyled width, for padding, since colors add invisible characters.
+                            let width = 9;
                             for (let j = 0; j < 4 && i + j < line.binary.length; j++) {
-                                result += " " + toHexByte(line.binary[i + j]);
+                                result += " " + colors.data(toHexByte(line.binary[i + j]));
+                                width += 3;
                                 displayAddress++;
                             }
                             if (i === 0) {
-                                result = result.padEnd(24, " ") + line.line;
+                                result += " ".repeat(Math.max(24 - width, 0)) + line.line;
                             }
                             console.log(result);
                         }

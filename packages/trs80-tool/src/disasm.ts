@@ -6,6 +6,7 @@ import {
     CmdLoadBlockChunk, CmdProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
 import {toHex, toHexByte } from "z80-base";
 import {Disasm, HexFormat, instructionsToText, InstructionsToTextConfig } from "z80-disasm";
+import {colorAsciiByte, colors} from "./colors.js";
 import {expandFile} from "./InputFile.js";
 
 /**
@@ -97,6 +98,12 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
         upperCase,
         dataComment,
         hexByteCount: 4,
+        styles: {
+            address: colors.address,
+            // Pass only the text, since chalk would join the byte's value to it.
+            hexByte: text => colors.data(text),
+            asciiByte: colorAsciiByte,
+        },
     };
 
     // Create and configure the disassembler.

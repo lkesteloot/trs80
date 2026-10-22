@@ -8,6 +8,28 @@ const WORD_WIDTH = 2*BYTE_WIDTH;
 const LABEL_SPACES = " ".repeat(8*SPACE_WIDTH);
 const ADDRESS_SPACES = " ".repeat(WORD_WIDTH + SPACE_WIDTH);
 
+/**
+ * Functions that style parts of the text, such as with terminal colors. Each
+ * takes the plain text and returns it styled.
+ */
+export interface InstructionsToTextStyles {
+    // The address at the start of a listing line.
+    address: (text: string) => string;
+    // A byte of the binary in hex, in a listing.
+    hexByte: (text: string, value: number) => string;
+    // A byte of the binary as a character, in the data comment.
+    asciiByte: (text: string, value: number) => string;
+}
+
+/**
+ * Styles that leave the text unchanged.
+ */
+const PLAIN_STYLES: InstructionsToTextStyles = {
+    address: text => text,
+    hexByte: text => text,
+    asciiByte: text => text,
+};
+
 export interface InstructionsToTextConfig {
     // Make a listing (vs. disassembly), default false.
     makeListing?: boolean;
@@ -23,23 +45,23 @@ export interface InstructionsToTextConfig {
     dataComment?: boolean;
     // Number of hex bytes to display per line.
     hexByteCount?: number;
+    // How to style parts of the text, default unstyled.
+    styles?: InstructionsToTextStyles;
 }
 
 /**
  * Converts an array of bytes to an ASCII string, replacing non-printable characters with a period ('.').
  *
  * @param {number[]} bytes - An array of numbers representing byte values.
+ * @param styles - How to style each character.
  * @return {string} The resulting ASCII string where non-printable characters are replaced with '.'.
  */
-function toAscii(bytes: number[]): string {
+function toAscii(bytes: number[], styles: InstructionsToTextStyles): string {
     const chars: string[] = [];
 
     for (const b of bytes) {
-        if (b >= 32 && b < 127) {
-            chars.push(String.fromCharCode(b));
-        } else {
-            chars.push(".");
-        }
+        const ch = b >= 32 && b < 127 ? String.fromCharCode(b) : ".";
+        chars.push(styles.asciiByte(ch, b));
     }
 
     return chars.join("");
@@ -67,6 +89,7 @@ export function instructionsToText(disasm: Disasm,
         mainEntryPoint,
         dataComment = false,
         hexByteCount = 3,
+        styles = PLAIN_STYLES,
     } = config;
 
     // Convenience function to transform text.
@@ -108,21 +131,24 @@ export function instructionsToText(disasm: Disasm,
 
         let instructionText = instruction.toText(upperCase);
         if (dataComment) {
-           instructionText = instructionText.padEnd(32) + "; " + toAscii(bytes);
+           instructionText = instructionText.padEnd(32) + "; " + toAscii(bytes, styles);
         }
         if (makeListing) {
             if (showBinary) {
                 let i = 0;
                 while (i < bytes.length) {
                     const subbytes = bytes.slice(i, Math.min(i + hexByteCount, bytes.length));
-                    lines.push(toHexWord(address) + " " +
-                        subbytes.map(toHexByte).join(" ").padEnd(binaryWidth) +
+                    const hexText = subbytes.map(b => styles.hexByte(toHexByte(b), b)).join(" ");
+                    // Pad by the unstyled width, since styling can add invisible characters.
+                    const hexWidth = subbytes.length*(BYTE_WIDTH + SPACE_WIDTH) - SPACE_WIDTH;
+                    lines.push(styles.address(toHexWord(address)) + " " +
+                        hexText + " ".repeat(Math.max(binaryWidth - hexWidth, 0)) +
                         (address === instruction.address ? LABEL_SPACES + instructionText : ""));
                     address += subbytes.length;
                     i += subbytes.length;
                 }
             } else {
-                lines.push(toHexWord(address) + " " + LABEL_SPACES + instructionText);
+                lines.push(styles.address(toHexWord(address)) + " " + LABEL_SPACES + instructionText);
             }
         } else {
             lines.push(LABEL_SPACES + instructionText);

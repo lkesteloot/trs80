@@ -34,6 +34,12 @@ export const colors = {
     emphasis: chalk.bold,
     /** A placeholder for a value, like "nn" in an opcode's description. */
     placeholder: chalk.underline,
+    /** A memory address or file offset, like the first column of a hex dump. */
+    address: chalk.cyan,
+    /** The bytes of a binary, in hex or as characters, like in a hex dump or a listing. */
+    data: chalk.green,
+    /** A note that explains nearby data, like a hex dump's annotations. */
+    annotation: chalk.magenta,
     /** The REPL's prompt. */
     prompt: chalk.yellowBright,
     /** The frame drawn around the emulated screen by the "run" command. */
@@ -43,6 +49,21 @@ export const colors = {
     /** Normal text, for a table of styles that needs an entry for it. */
     plain: chalk.reset,
 } satisfies { [role: string]: Style };
+
+/**
+ * Whether the byte is a printable ASCII character, including space.
+ */
+function isPrintableAscii(byte: number): boolean {
+    return byte >= 0x20 && byte < 0x7F;
+}
+
+/**
+ * Color a byte shown as a character, like "A", or "." for one that isn't
+ * printable. The dot is muted, so that it doesn't look like a real period.
+ */
+export function colorAsciiByte(text: string, byte: number): string {
+    return isPrintableAscii(byte) ? colors.data(text) : colors.muted(text);
+}
 
 /**
  * Whether output is colored at all. Use it to choose a different layout when
