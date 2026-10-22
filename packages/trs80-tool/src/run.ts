@@ -16,6 +16,45 @@ import {LogLevel, TRS80_FLOPPY_LOGGER, TRS80_MAIN_SINK, makeBatchingSink } from 
 const WIDTH = TRS80_CHAR_WIDTH;
 const HEIGHT = TRS80_CHAR_HEIGHT;
 
+// Indent of the continuation lines of a wrapped log message.
+const LOG_WRAP_INDENT = 4;
+
+/**
+ * Wrap text into lines of at most the given width, breaking at spaces or after hyphens where
+ * possible, and indenting all but the first line. Words too long for a line are broken anywhere.
+ *
+ * @param text the text to wrap.
+ * @param width the maximum length of each line, including its indent.
+ * @param indent the number of spaces before each line after the first.
+ * @return the lines, at least one.
+ */
+function wrapText(text: string, width: number, indent: number): string[] {
+    const lines: string[] = [];
+    const indentText = " ".repeat(indent);
+    let rest = text;
+    let prefix = "";
+
+    // Too narrow to indent and still make progress.
+    if (width <= indent) {
+        return [text];
+    }
+
+    while (prefix.length + rest.length > width) {
+        const room = width - prefix.length;
+        // Break at the last space or after the last hyphen that fits, or anywhere if there's neither.
+        let breakIndex = Math.max(rest.lastIndexOf(" ", room), rest.lastIndexOf("-", room - 1) + 1);
+        if (breakIndex <= 0) {
+            breakIndex = room;
+        }
+        lines.push(prefix + rest.slice(0, breakIndex).trimEnd());
+        rest = rest.slice(breakIndex).trimStart();
+        prefix = indentText;
+    }
+    lines.push(prefix + rest);
+
+    return lines;
+}
+
 /**
  * Class to update a VT-100 screen.
  */
@@ -277,19 +316,32 @@ class TtyScreen extends Trs80Screen {
         this.vt100Control.moveTo(row + 1, col + 1);
     }
 
+    /**
+     * Redraw the log messages to the right of the screen, wrapping long ones, and
+     * showing as many of the newest lines as fit.
+     */
     public redrawLogMessages(): void {
         const terminalColumns = process.stdout.columns ?? 80;
         const messageColumn = WIDTH + 2;
         const maxMessageLength = Math.max(terminalColumns - messageColumn - 1, 0);
 
+        // Wrap each message, leaving room for the space that separates it from the frame.
+        const lines: { level: LogLevel, text: string }[] = [];
+        for (const logEvent of this.logMessages) {
+            for (const text of wrapText(logEvent.message, maxMessageLength - 1, LOG_WRAP_INDENT)) {
+                lines.push({level: logEvent.level, text});
+            }
+        }
+        const visibleLines = lines.slice(-(HEIGHT + 2));
+
         for (let i = 0; i < HEIGHT + 2; i++) {
             let message = "";
 
-            if (i < this.logMessages.length) {
-                const logEvent = this.logMessages[i];
-                message = (" " + logEvent.message).slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
+            if (i < visibleLines.length) {
+                const line = visibleLines[i];
+                message = (" " + line.text).slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
 
-                switch (logEvent.level) {
+                switch (line.level) {
                     case LogLevel.TRACE:
                         process.stdout.write("\x1B[90m"); // Gray.
                         break;
@@ -484,7 +536,6 @@ function setUpFloppy(floppy: FloppyDisk, pathname: string, writable: boolean): v
         return;
     }
 
-    // Keep the warnings short, since they're shown beside the emulated screen.
     const name = path.basename(pathname);
     if (!fileIsWritable(pathname)) {
         floppy.setMountedWriteProtected(true);
