@@ -5,7 +5,7 @@ import {Keyboard} from "./Keyboard.js";
 import {model1Level1Rom} from "./Model1Level1Rom.js";
 import {model1Level2Rom} from "./Model1Level2Rom.js";
 import {model3Rom} from "./Model3Rom.js";
-import {model3CompiledRom} from "./Model3CompiledRom.js";
+import {model1CompiledRom, model3CompiledRom, model4CompiledRom} from "./CompiledRoms.js";
 import {model4Rom} from "./Model4Rom.js";
 import {model1ScreenCodeToModel3, Trs80Screen, Trs80ScreenState} from "./Trs80Screen.js";
 import {BasicLevel, CGChip, Config, Configurable, ModelType} from "./Config.js";
@@ -412,7 +412,7 @@ export class Trs80 implements Hal, Machine, Configurable {
                             break;
 
                         case BasicLevel.COMPILED:
-                            rom = model3CompiledRom;
+                            rom = model1CompiledRom;
                             break;
                     }
                     break;
@@ -440,7 +440,7 @@ export class Trs80 implements Hal, Machine, Configurable {
                             break;
 
                         case BasicLevel.COMPILED:
-                            rom = model3CompiledRom;
+                            rom = model4CompiledRom;
                             break;
                     }
                     break;

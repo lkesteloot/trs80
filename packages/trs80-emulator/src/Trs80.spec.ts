@@ -2,7 +2,7 @@ import {describe, expect, it} from "vitest";
 import {decodeBasicProgram, parseBasicText} from "trs80-base";
 import {LogSink, TRS80_MAIN_SINK} from "trs80-logger";
 import {CassettePlayer} from "./CassettePlayer.js";
-import {CGChip, Config, ModelType, RamSize} from "./Config.js";
+import {BasicLevel, CGChip, Config, ModelType, RamSize} from "./Config.js";
 import {Keyboard} from "./Keyboard.js";
 import {SilentSoundPlayer} from "./SoundPlayer.js";
 import {Trs80} from "./Trs80.js";
@@ -379,6 +379,51 @@ describe("Model I expansion interface memory", () => {
         }
         expect(warnings.length).to.equal(1);
         expect(warnings[0]).to.contain("0x3000");
+    });
+});
+
+describe("compiled Basic", () => {
+    /**
+     * Boot the compiled Basic ROM for the given model, run about one emulated second, and return
+     * the text on the screen as one string, row after row.
+     */
+    function bootAndReadScreen(modelType: ModelType): string {
+        // The Model I needs the lower case character generator, otherwise video RAM drops bit 6
+        // and lower case characters read back wrong.
+        const config = Config.makeDefault().edit()
+            .withModelType(modelType)
+            .withBasicLevel(BasicLevel.COMPILED)
+            .withCGChip(CGChip.LOWER_CASE)
+            .build();
+        const trs80 = makeMachine(config);
+        trs80.reset();
+        const end = trs80.tStateCount + trs80.clockHz;
+        while (trs80.tStateCount < end) {
+            trs80.step();
+        }
+
+        let screen = "";
+        for (let address = 0x3C00; address < 0x4000; address++) {
+            screen += String.fromCharCode(trs80.readMemory(address));
+        }
+        return screen;
+    }
+
+    it("reaches Ready on the Model I", () => {
+        expect(bootAndReadScreen(ModelType.MODEL1)).to.contain("Ready");
+    });
+    it("reaches Ready on the Model III", () => {
+        expect(bootAndReadScreen(ModelType.MODEL3)).to.contain("Ready");
+    });
+    it("reaches Ready on the Model 4", () => {
+        expect(bootAndReadScreen(ModelType.MODEL4)).to.contain("Ready");
+    });
+    it("needs 48K of RAM", () => {
+        // With less, its stack and sample programs are in missing RAM, and it hangs.
+        const compiled = Config.makeDefault().edit().withBasicLevel(BasicLevel.COMPILED);
+        expect(compiled.withRamSize(RamSize.RAM_48_KB).build().isValid()).to.equal(true);
+        expect(compiled.withRamSize(RamSize.RAM_32_KB).build().isValid()).to.equal(false);
+        expect(compiled.withRamSize(RamSize.RAM_16_KB).build().isValid()).to.equal(false);
     });
 });
 

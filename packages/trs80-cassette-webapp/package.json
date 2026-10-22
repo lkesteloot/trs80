@@ -4,9 +4,10 @@
   "description": "Web app to process TRS-80 cassettes and clean them up.",
   "type": "module",
   "scripts": {
+    "prestart": "npm run generateRoms -w trs80-emulator",
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && vite build --base=/cassette/",
+    "build": "npm run generateRoms -w trs80-emulator && npm run updateBuildInfo && vite build --base=/cassette/",
     "clean": "rm -rf dist"
   },
   "repository": "https://github.com/lkesteloot/trs80.git",

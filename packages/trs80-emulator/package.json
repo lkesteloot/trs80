@@ -1,10 +1,12 @@
 {
   "name": "trs80-emulator",
-  "description": "TRS-80 Model III emulator",
+  "description": "TRS-80 emulator",
   "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
+    "generateRoms": "tsx tools/GenerateCompiledRoms.ts",
+    "pretest": "npm run generateRoms",
     "test": "vitest run"
   },
   "keywords": [
@@ -15,6 +17,10 @@
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
+  "devDependencies": {
+    "trs80-asm": "*",
+    "z80-asm": "*"
+  },
   "dependencies": {
     "strongly-typed-events": "^3.0.0",
     "trs80-base": "*",

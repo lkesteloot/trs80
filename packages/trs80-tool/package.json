@@ -7,7 +7,7 @@
     "private": true,
     "scripts": {
         "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-        "build": "npm run updateVersion && npm run updateBuildInfo && esbuild src/index.ts --bundle --platform=node --format=cjs --target=node24 --log-level=warning --outfile=dist/trs80-tool.cjs",
+        "build": "npm run generateRoms -w trs80-emulator && npm run updateVersion && npm run updateBuildInfo && esbuild src/index.ts --bundle --platform=node --format=cjs --target=node24 --log-level=warning --outfile=dist/trs80-tool.cjs",
         "clean": "rm -rf dist",
         "updateVersion": "node -p '\"export const version = \" + JSON.stringify(require(\"./package.json\").version) + \";\"' > src/version.ts",
         "buildBinaries": "npm run build && node build-binaries.mjs"

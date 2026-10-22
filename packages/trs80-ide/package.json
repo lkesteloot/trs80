@@ -7,9 +7,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "prestart": "npm run generateRoms -w trs80-emulator",
     "start": "vite --open",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && vite build --base=./",
+    "build": "npm run generateRoms -w trs80-emulator && npm run updateBuildInfo && vite build --base=./",
     "clean": "rm -rf dist"
   },
   "dependencies": {

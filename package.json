@@ -6,7 +6,8 @@
     "build": "npm run typecheck && npm run build --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present",
     "test": "vitest run",
-    "pretypecheck": "npm run updateBuildInfo --workspaces --if-present --silent",
+    "pretest": "npm run generateRoms -w packages/trs80-emulator --silent",
+    "pretypecheck": "npm run updateBuildInfo --workspaces --if-present --silent && npm run generateRoms -w packages/trs80-emulator --silent",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {

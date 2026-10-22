@@ -30,6 +30,7 @@
     "packages/*/src",
     "packages/*/tests",
     "packages/*/opcodes",
+    "packages/trs80-emulator/tools",
     "packages/*/vite.config.ts"
   ],
   "exclude": [

@@ -1,8 +1,9 @@
 # Notes for Claude
 
 The README lists the packages. `apps/` is standalone Z80 assembly (Forth, a
-BASIC, demos) and isn't part of the npm build. `docs/` is the GitHub Pages site,
-linked from the IDE's Help menu.
+BASIC, demos) and isn't part of the npm build, except for `apps/basic/basic.asm`,
+which trs80-emulator assembles into its compiled-Basic ROMs. `docs/` is the
+GitHub Pages site, linked from the IDE's Help menu.
 
 ## How the build works
 
@@ -73,6 +74,11 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - `src/build.ts` in trs80-tool and the three apps is written by `printBuildInfo`
   on every build and is gitignored. The root `pretypecheck` script writes them
   too, since `tsc` needs them and a fresh checkout or worktree has none.
+- trs80-emulator's `src/CompiledRoms.ts` holds a compiled-Basic ROM per model,
+  assembled from `apps/basic/basic.asm` by `tools/GenerateCompiledRoms.ts`
+  (`npm run generateRoms -w packages/trs80-emulator`). It's gitignored and
+  regenerated before type checks, tests, and every app and trs80-tool build or
+  dev start.
 - `trs80-tool/src/version.ts` comes from the tool's `package.json` version and
   is committed.
 - z80-inst's generator (`npm run generate`) writes `src/Opcodes.ts`, which is committed.

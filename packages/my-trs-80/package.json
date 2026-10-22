@@ -4,9 +4,10 @@
   "description": "TRS-80 emulator website",
   "type": "module",
   "scripts": {
+    "prestart": "npm run generateRoms -w trs80-emulator",
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && vite build",
+    "build": "npm run generateRoms -w trs80-emulator && npm run updateBuildInfo && vite build",
     "clean": "rm -rf dist"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",

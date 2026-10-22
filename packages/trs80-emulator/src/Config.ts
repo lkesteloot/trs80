@@ -333,9 +333,10 @@ export class Config {
             return false;
         }
 
-        // Only Model III has compiled ROM.
-        if (this.modelType !== ModelType.MODEL3 && this.basicLevel === BasicLevel.COMPILED) {
-            // return false;
+        // The compiled Basic ROM puts its stack at the top of 48K, and its sample programs
+        // above 32K.
+        if (this.basicLevel === BasicLevel.COMPILED && this.ramSize !== RamSize.RAM_48_KB) {
+            return false;
         }
 
         // Model III/4 only had lower case.
