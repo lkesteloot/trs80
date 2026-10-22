@@ -37,8 +37,12 @@ quoted documentation; guesses are labeled as such.
     directory structures (pages 24-27) and its boot sector, disassembled (210-213).
   - *TRS-80 Disk & Other Mysteries* (1979, `disk/`): directory dumps of TRSDOS
     2.2, NEWDOS 2.1 and VTOS 3.0, but the OCR is nearly unreadable.
-  - Nothing in the library documents TRSDOS 1.3's directory; the *TRSDOS 1.3
-    Reference Guide* is commands only. What we know about 1.3 is measured.
+  - *Model III TRSDOS Commented* (Soft Sector Marketing, 1982, `TRSDOS/`), Rick
+    Papo's commented disassembly of TRSDOS 1.3B, is the only source on 1.3's
+    structures: the boot sector's backup count, the directory entry, the HIT
+    and its system overlay table, and the GAT (pages 8-10), then the whole DOS,
+    bookmarked by overlay. What it says agrees with what we'd measured, except
+    as noted below. (The *TRSDOS 1.3 Reference Guide* is commands only.)
   - *Mod III ROM Commented* (`TRS-80/`) has the Model III boot code, at 3455H.
   - *Machine Language Disk I-O & Other Mysteries* (1982, `disk/`) is about driving
     the floppy controller. For decoding it adds the 16-bit password hash, as
@@ -73,6 +77,28 @@ Expect small undocumented differences between them.
 sector (measured: filenames at offsets 5, 53, 101, 149, 197), 16 directory
 sectors, 3-sector granules, 6 granules per track, and "(c) 1980 Tandy" as filler
 in the spare 16 bytes of each directory sector. Its sectors are numbered from 1.
+On the directory cylinder (17), sector 1 is the GAT, sector 2 the HIT, and
+sectors 3-18 the entries. An entry, from *Model III TRSDOS Commented* (page 8):
+
+    0x00  bit 6 system, bit 5 limited backup, bit 4 in use, bit 3 invisible,
+          bits 2-0 access level; an entry whose byte 0 is zero is free
+    0x01  month
+    0x02  year
+    0x03  EOF byte offset in the last sector
+    0x04  logical record length (0 = 256)
+    0x05  name (8), then extension (3)
+    0x10  update password hash, then access password hash
+    0x14  EOF sector, 16 bits
+    0x16  thirteen extents: cylinder, then granule (bits 7-5) and count (bits 4-0)
+
+**Limited backup.** A file with bit 5 set can be backed up only as many times
+as boot sector byte 0x22 says. BACKUP decrements the count, and when it reaches
+zero deletes every such file; 0xFF means unlimited. In 1.3's boot sector the
+byte follows the loader's `JP (HL)`, and it's 0xFF on 52 of the 97 1.3-layout
+disks. TRSDOS 1.1's loader is one byte longer, so its 0x22 is that `JP (HL)`
+(0xE9, on nine disks) and it has no count there; 1.2's holds 0x00; and other
+publishers' disks have their own boot code. Only one entry in the collection
+has the bit (`SPELLING` on Spelling Demons, whose count is 0xFF).
 
 **NEWDOS/80** keeps the 2.3-family structures but allocates in *lumps*; see below.
 MultiDOS uses either allocation depending on the disk, and several other sources
@@ -303,9 +329,10 @@ their extents instead: after the 80 hash bytes and 144 bytes that are normally
 zero, sixteen two-byte
 slots at 0xE0, granule byte first (bits 7-5 the granule within the cylinder, bits
 4-0 the count) and then the cylinder. Slot *n* is SYS*n*, 0 through 14, and slot
-15 is 0xFF 0xFF, a terminator; a missing file is 0xFF 0xFF too. The *TRSDOS 1.3
-Reference Guide* doesn't describe the table or name the files, so the names are
-ours. Measured on the 80 disks that decode in the 1.3 layout:
+15 is 0xFF 0xFF, a terminator; a missing file is 0xFF 0xFF too. *Model III
+TRSDOS Commented* (page 9) describes the table the same way, calls the files
+system overlays 0-14, and says number 15 is unused; SYS*n* is our name for
+overlay *n*. Measured on the 80 disks that decode in the 1.3 layout:
 
 - **The count is the number of granules,** not less one, as in 1.3's directory
   entries: on a system disk SYS0's five granules (0:0-0:4) end where SYS5 begins
@@ -357,7 +384,8 @@ the number of backups, not a bad read. Measured on 17 disks in
   decoded they name it "TRS-80 Protection Utility Ver 1.1" and ask which file to
   protect and how many backups to allow.
 - **Marks.** On protected disks every sector has the 0xF8 deleted mark, which
-  TRSDOS 1.1 also uses for its system cylinders 0 and 1. Two disks (a Radio
+  TRSDOS 1.x writes on every sector outside the directory (see "Deleted
+  address marks" under "Evidence that turned out to be reliable"). Two disks (a Radio
   Shack data disk, and a DOSPLUS disk probably formatted over a Tandy blank)
   have the track with 0xFB marks and no code: formatted but never protected.
 - **The DOS loads it.** On nine of the disks, TRSDOS 1.1 and 1.2-era system
@@ -577,6 +605,16 @@ On a double-sided disk:
 - A GAT byte covers a whole cylinder. Double-sided LDOS at 18 sectors per track
   has 6 granules per cylinder, 3 per side, so a free byte reads 0xC0.
   Single-sided 1.3 reads 0x3F.
+- **1.3's GAT** (*Model III TRSDOS Commented*, pages 9-10): 0x00-0x5F
+  allocation, one byte per cylinder; 0x60-0xBF a "track existence table", one
+  byte per cylinder, not the 2.3 family's lockout bit map; 0xCE-0xCF the master
+  password hash; 0xD0-0xDF the disk name and date; 0xE0-0xFF the AUTO command.
+  The book says an existence byte is 0xFF when the cylinder doesn't exist or
+  was locked out as flawed, otherwise zero, and BACKUP does treat 0xFF as a bad
+  cylinder. But FORMAT doesn't mark missing cylinders: the table is all zero on
+  88 of the 97 1.3-layout disks, including the bytes for cylinders 40-95. (The
+  rest are dual-boot disks and one other, with 2.3-style values there.) No
+  1.3 disk in the collection has a locked-out cylinder.
 - Granule offsets run across the cylinder: offsets 0-2 are side 0 and 3-5 side 1.
   Sector order is side 0, then side 1, then the next cylinder — verified by
   17 files whose extents cross the side boundary and still decode cleanly.
@@ -689,8 +727,8 @@ technical reference (pages 18-19) describe the same GAT, with these additions:
   (bit set on a system disk). **Under LDOS 5.x the bit means
   nothing**: LDOS 5.3 system disks write 0xCA (bits 7 and 3 set), and 5.1 says
   bit 7 is reserved.
-- The granule table allows **96 cylinders** on 5" media (LDOS 5.1 said 80), the
-  size of the allocation table.
+- The granule table (figure 5-2, page 47) allows **96 cylinders** on 5" media
+  (LDOS 5.1 said 80), the size of the allocation table.
 - **The media block, 0xF5-0xFF** (TRSDOS 6.2 and LS-DOS 6.3). The guide says
   0xF4-0xFF holds 0x03, "LSI", then a copy of the last seven bytes of the Drive
   Control Table the disk was formatted with. On the disks, 0xF4 is 0x00 and the
@@ -1055,9 +1093,21 @@ master password**, which is what the GAT's E0 42 is. In the snapshots the
 master password is "PASSWORD" on 70 of the 77 2.3-family disks, blank on three
 (`dosplus3.dmk` and the two Cornsoft SynthDev disks), zero on `NEWDOS90.dmk`,
 and something else on `dospl31a.dmk`, `ldos-5.0.3-sssd.dmk` and `ldos513.dmk`.
-The 1.3 disks hold 0x8FD3 (nine disks) and 0x5CEF (the blank `m3-trsdos-blank.dmk`), which don't correspond to
-"PASSWORD" or blank under this algorithm, so TRSDOS 1.3 probably hashes
-differently. Being 16 bits, a hash has thousands of short passwords that match,
+The 1.3 disks hold 0x8FD3 (nine disks) and 0x5CEF (the blank
+`m3-trsdos-blank.dmk`), because **TRSDOS 1.3 hashes differently**: its encoder
+(*Model III TRSDOS Commented*, PDF pages 71-72, at 5107H) subtracts where 2.3's
+XORs. Restated, and checked against a transcription of the listing on 20,000
+random passwords:
+
+    hi = lo = 0xFF
+    for each byte c, last to first:
+        t  = lo ^ ((lo & 7) << 5)
+        x  = ((t - ((c << 8) | hi)) * 4) & 0xFFFF
+        hi, lo = t ^ (x >> 8) ^ c, (x & 0xFF) ^ (((x * 2) & 0xFFFF) >> 8) ^ hi
+    hash = (hi << 8) | lo
+
+"PASSWORD" hashes to 0x8FD3 and blank to 0x5CEF, so the 1.3 disks' master
+passwords are the same defaults as the 2.3 family's. Being 16 bits, a hash has thousands of short passwords that match,
 so it can't be reversed to *the* password, only to *a* password.
 
 ## File sizes
@@ -1354,15 +1404,29 @@ For guessing a layout and directory location, strongest first:
 4. **Other GAT self-consistency:** it marks its own cylinder fully allocated (0xFF in
    the 2.3 family, 0x3F in 1.3) and the boot granule on cylinder 0; the name and
    date are printable; the master password is usually the default, "PASSWORD"
-   (stored E0 42) in the 2.3 family; 1.3 disks hold D3 8F or EF 5C (see "Password
+   (stored E0 42) in the 2.3 family and D3 8F under 1.3's hash (see "Password
    hashes").
 5. **DIR/SYS's extent** gives the directory's size, 3 granules for a side-0-only
    directory and 6 for a whole double-sided cylinder.
 6. **Deleted address marks.** 2.3-family directory sectors are all marked
-   (10 of 10 single density, 18 of 18 double). TRSDOS 1.3 does **not** mark
-   them. JV1's mark is synthesized by our reader for track 17, so it is never
-   evidence. The Model I controller could write 0xFA, which Model III hardware
-   can't distinguish from 0xFB, so a missing mark means "no information".
+   (10 of 10 single density, 18 of 18 double). JV1's mark is synthesized by
+   our reader for track 17, so it is never evidence. The Model I controller
+   could write 0xFA, which Model III hardware can't distinguish from 0xFB, so
+   on a 2.3-family disk a missing mark means "no information".
+   **TRSDOS 1.x marks the other way round:** everything the DOS writes gets
+   0xF8 except the directory, which gets 0xFB. SYS0's write routine issues
+   write command 0xA5 (bit 0 set, so 0xF8), and clears bit 0 only when the
+   track is 17 (code at 4582H, and at 461DH `CP 11H`, commented "directory
+   track?" in *Model III TRSDOS Commented*, page 27); FORMAT writes 0xFB
+   everywhere. Measured on the 97 decodable 1.3-layout disks that record
+   marks: the directory is all 0xFB on 86 (most of the rest are single-density
+   dual-boot disks), and file sectors are all 0xF8 on 79 of the 94 with files,
+   including TRSDOS 1.1's and 1.2's system files. Free sectors are mixed, being
+   formatted blanks or freed files. Most exceptions are dual-boot disks, whose
+   Model I side writes 0xFB; three (`trsdos-1.3-ssdd-2.dmk`, `-3`, and
+   `difficult/trsdisk1.dmk`) have only 0xFB files, probably written by
+   something other than TRSDOS. So on a 1.3 disk an 0xF8 means file data, not
+   directory.
    NEWDOS/80 has a SYSTEM option (BN) choosing whether single-density directory
    sectors are written for Model I TRSDOS or for Model III NEWDOS/80, but not both
    (manual, page 189). TRSDOS 6 marks the whole directory cylinder with 0xF8
