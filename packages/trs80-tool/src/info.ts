@@ -6,7 +6,8 @@ import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
     Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, isFloppy, MicroDos, modelIITrsdosLayoutToString,
-    ModelIITrsdos, TrackGeometry, Trs80Floppy, Trsdos, TrsdosII, UcsdPascal, XenixTar} from "trs80-base";
+    ModelIITrsdos, type PdriveSettings, pdriveSettingsToString, TrackGeometry, Trs80Floppy, Trsdos, TrsdosII, UcsdPascal,
+    XenixTar} from "trs80-base";
 import {assertNever} from "z80-base";
 import {
     captureLogs, type ContentType, contentTypeOf, floppyFormatOf, type FloppyFormat, type InfileJson,
@@ -132,6 +133,10 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                                 verboseLines.push(`Directory ${trsdos.lumpTerm}: ${trsdos.dirLumpNumber}`);
                                 verboseLines.push(`Sectors per granule: ${trsdos.sectorsPerGranule}`);
                                 verboseLines.push(`Granules per ${trsdos.lumpTerm}: ${trsdos.granulesPerLump}`);
+                            }
+                            const pdriveSettings = trsdos.getPdriveSettings();
+                            if (pdriveSettings !== undefined) {
+                                verboseLines.push("PDRIVE: " + pdriveSettingsToString(pdriveSettings));
                             }
                         } else if (fileSystem instanceof Cpm) {
                             const cpm = fileSystem;
@@ -264,6 +269,8 @@ interface TrsdosInfoJson {
     sectorsPerGranule: number;
     /** Granules per lump. */
     granulesPerLump: number;
+    /** The NEWDOS/80 PDRIVE settings that read the disk, if its lumps aren't cylinders. */
+    pdrive?: PdriveSettings;
 }
 
 /**
@@ -459,6 +466,10 @@ function fileSystemDetailsToJson(fileSystem: NonNullable<ReturnType<typeof decod
             trsdos.diskDate = gatInfo.date;
             trsdos.autoCommand = gatInfo.autoCommand;
             trsdos.gatPassword = gatInfo.password;
+        }
+        const pdriveSettings = fileSystem.getPdriveSettings();
+        if (pdriveSettings !== undefined) {
+            trsdos.pdrive = pdriveSettings;
         }
         return { trsdos };
     } else if (fileSystem instanceof Cpm) {
