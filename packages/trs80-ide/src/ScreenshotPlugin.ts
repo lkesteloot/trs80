@@ -139,7 +139,7 @@ function makeScreenshotViewPlugin(config: Config) {
                         view.dispatch({
                             effects: gEditingScreenshotStateEffect.of(false),
                         });
-                        config.onClose;
+                        config.onClose();
                     });
                     return true;
                 } else {
