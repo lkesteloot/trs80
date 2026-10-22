@@ -35,7 +35,11 @@ SCREEN_HEIGHT equ 16
 SCREEN_BEGIN equ 0x3C00
 SCREEN_SIZE equ SCREEN_WIDTH*SCREEN_HEIGHT
 SCREEN_END equ SCREEN_BEGIN+SCREEN_SIZE
+	if __MODEL__ == __MODEL_1__
+CURSOR_CHAR equ 95
+	else
 CURSOR_CHAR equ 128+16+32
+	endif
 CLEAR_CHAR equ 32
 BS equ 8
 TAB equ 9
@@ -3247,7 +3251,7 @@ skip:
 #endlocal
 
 boot_message:
-	db "Model III Basic Compiler", NL
+	db "TRS-80 Basic Compiler", NL
 	db "(c) '26 Lawrence Kesteloot", NL, 0
 ready_prompt:
 	db "Ready", NL, 0
