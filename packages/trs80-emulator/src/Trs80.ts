@@ -23,7 +23,7 @@ import {
     TRS80_SCREEN_END,
     Trs80File
 } from "trs80-base";
-import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
+import {TRS80_EMULATOR_LOGGER} from "z80-logger";
 import {FdcChip, FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
 import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";

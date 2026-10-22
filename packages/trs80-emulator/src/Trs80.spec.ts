@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {decodeBasicProgram, parseBasicText} from "trs80-base";
-import {LogSink, TRS80_MAIN_SINK} from "trs80-logger";
+import {LogSink, MAIN_SINK} from "z80-logger";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {BasicLevel, CGChip, Config, ModelType, RamSize} from "./Config.js";
 import {Keyboard} from "./Keyboard.js";
@@ -369,13 +369,13 @@ describe("Model I expansion interface memory", () => {
         const trs80 = makeModel1();
         const warnings: string[] = [];
         const sink: LogSink = (level, message) => warnings.push(message);
-        TRS80_MAIN_SINK.delegatedSinks.push(sink);
+        MAIN_SINK.delegatedSinks.push(sink);
         try {
             trs80.writeMemory(0x37E4, 0x01);
             // Make sure that the sink would have seen a warning.
             trs80.writeMemory(0x3000, 0x01);
         } finally {
-            TRS80_MAIN_SINK.delegatedSinks.splice(TRS80_MAIN_SINK.delegatedSinks.indexOf(sink), 1);
+            MAIN_SINK.delegatedSinks.splice(MAIN_SINK.delegatedSinks.indexOf(sink), 1);
         }
         expect(warnings.length).to.equal(1);
         expect(warnings[0]).to.contain("0x3000");

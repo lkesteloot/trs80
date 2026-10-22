@@ -16,7 +16,7 @@
   "dependencies": {
     "strongly-typed-events": "^3.0.11",
     "teamten-ts-utils": "^1.0.3",
-    "trs80-logger": "*",
+    "z80-logger": "*",
     "z80-base": "*",
     "z80-disasm": "*"
   }

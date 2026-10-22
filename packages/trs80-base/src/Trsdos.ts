@@ -9,7 +9,7 @@
 import {concatByteArrays} from "teamten-ts-utils";
 import {BYTES_PER_SECTOR, Density, FloppyDisk, FloppyDiskGeometry, SectorPosition,} from "./FloppyDisk.js";
 import {assertNever, toHexByte, word} from "z80-base";
-import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {TRS80_BASE_LOGGER} from "z80-logger";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";

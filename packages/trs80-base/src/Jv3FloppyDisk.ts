@@ -17,7 +17,7 @@ import {
     USER_DATA_ADDRESS_MARK_F9,
     USER_DATA_ADDRESS_MARK_FA,
 } from "./TrackBytes.js";
-import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {TRS80_BASE_LOGGER} from "z80-logger";
 
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
 // comes a directory of these sectors, with three bytes per directory entry (cylinder,

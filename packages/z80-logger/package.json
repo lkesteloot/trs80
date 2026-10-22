@@ -1,6 +1,6 @@
 {
-  "name": "trs80-logger",
-  "description": "Logging system for the TRS-80 libraries and tools",
+  "name": "z80-logger",
+  "description": "Logging system for the Z80 and TRS-80 libraries and tools",
   "exports": "./src/index.ts",
   "type": "module",
   "private": true,

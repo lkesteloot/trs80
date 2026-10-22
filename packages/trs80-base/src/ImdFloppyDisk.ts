@@ -27,7 +27,7 @@ import {
     TrackPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
-import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {TRS80_BASE_LOGGER} from "z80-logger";
 
 // Print extra debug stuff.
 const DEBUG = false;

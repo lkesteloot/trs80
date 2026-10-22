@@ -16,7 +16,7 @@ import {
     USER_DATA_ADDRESS_MARK_F9,
     USER_DATA_ADDRESS_MARK_FA,
 } from "trs80-base";
-import {LogLevel, TRS80_MAIN_SINK} from "trs80-logger";
+import {LogLevel, MAIN_SINK} from "z80-logger";
 import {hi, lo} from "z80-base";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Config, ModelType} from "./Config.js";
@@ -361,8 +361,8 @@ function range(begin: number, end: number): number[] {
  */
 function captureWarnings(f: () => void): string[] {
     const warnings: string[] = [];
-    const savedSinks = TRS80_MAIN_SINK.delegatedSinks.splice(0);
-    TRS80_MAIN_SINK.delegatedSinks.push((level, message) => {
+    const savedSinks = MAIN_SINK.delegatedSinks.splice(0);
+    MAIN_SINK.delegatedSinks.push((level, message) => {
         if (level === LogLevel.WARN) {
             warnings.push(message);
         }
@@ -370,7 +370,7 @@ function captureWarnings(f: () => void): string[] {
     try {
         f();
     } finally {
-        TRS80_MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
+        MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
     }
     return warnings;
 }

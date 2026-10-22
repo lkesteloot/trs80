@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 import {
     FileDamage, SectorPosition, Trs80File, Trs80Floppy,
 } from "trs80-base";
-import {LogLevel, TRS80_MAIN_SINK} from "trs80-logger";
+import {LogLevel, MAIN_SINK} from "z80-logger";
 import {assertNever} from "z80-base";
 import {type InputFile, loadInputFile, notContainerError} from "./InputFile.js";
 import {outputPathComponents, ToolError} from "./utils.js";
@@ -45,8 +45,8 @@ export function toBase64(binary: Uint8Array): string {
  */
 export function captureLogs<T>(f: () => T): { result: T, warnings: string[] } {
     const warnings: string[] = [];
-    const savedSinks = TRS80_MAIN_SINK.delegatedSinks.splice(0);
-    TRS80_MAIN_SINK.delegatedSinks.push((level, message) => {
+    const savedSinks = MAIN_SINK.delegatedSinks.splice(0);
+    MAIN_SINK.delegatedSinks.push((level, message) => {
         if (level === LogLevel.WARN) {
             warnings.push(message);
         } else {
@@ -58,7 +58,7 @@ export function captureLogs<T>(f: () => T): { result: T, warnings: string[] } {
         const result = f();
         return { result, warnings };
     } finally {
-        TRS80_MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
+        MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
     }
 }
 

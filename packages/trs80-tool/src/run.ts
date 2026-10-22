@@ -10,7 +10,7 @@ import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
 import { readTrs80File } from "./utils.js";
 import { word } from "z80-base";
-import {LogLevel, TRS80_FLOPPY_LOGGER, TRS80_MAIN_SINK, makeBatchingSink } from "trs80-logger";
+import {LogLevel, TRS80_FLOPPY_LOGGER, MAIN_SINK, makeBatchingSink } from "z80-logger";
 
 // Size of screen.
 const WIDTH = TRS80_CHAR_WIDTH;
@@ -593,8 +593,8 @@ export function run(programFilename: string | undefined,
         printer = ttyScreen.printer;
         keyboard = new TtyKeyboard(ttyScreen);
         screen = ttyScreen;
-        TRS80_MAIN_SINK.delegatedSinks.shift();
-        TRS80_MAIN_SINK.delegatedSinks.unshift(makeBatchingSink(ttyScreen.logSink.bind(ttyScreen)));
+        MAIN_SINK.delegatedSinks.shift();
+        MAIN_SINK.delegatedSinks.unshift(makeBatchingSink(ttyScreen.logSink.bind(ttyScreen)));
     }
 
     const cassette = new AudioFileCassettePlayer();

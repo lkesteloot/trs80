@@ -1,4 +1,4 @@
-import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
+import {TRS80_FLOPPY_LOGGER} from "z80-logger";
 import {
     BYTES_PER_SECTOR,
     Density,

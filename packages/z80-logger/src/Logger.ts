@@ -113,7 +113,7 @@ export class Logger {
 /**
  * A sink that logs to the console.
  */
-export const TRS80_CONSOLE_SINK: LogSink = (level: LogLevel, message: string): void => {
+export const CONSOLE_SINK: LogSink = (level: LogLevel, message: string): void => {
     switch (level) {
         case LogLevel.TRACE:
         case LogLevel.INFO:
@@ -196,21 +196,21 @@ export class SplittingSink {
 /**
  * The top-level sink. All loggers point to this. Replace its delegated sinks to sink elsewhere.
  */
-export const TRS80_MAIN_SINK = new SplittingSink(makeBatchingSink(TRS80_CONSOLE_SINK));
+export const MAIN_SINK = new SplittingSink(makeBatchingSink(CONSOLE_SINK));
 
 /**
  * Loggers for specific sub-systems. These can be individually configured.
  */
 // Misc code in the "trs80-base" library.
-export const TRS80_BASE_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
+export const TRS80_BASE_LOGGER = new Logger(LogLevel.INFO, MAIN_SINK.sink);
 // Access to floppy files (JV1, JV3, DMK, etc.).
-export const TRS80_FLOPPY_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
-export const TRS80_EMULATOR_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
+export const TRS80_FLOPPY_LOGGER = new Logger(LogLevel.INFO, MAIN_SINK.sink);
+export const TRS80_EMULATOR_LOGGER = new Logger(LogLevel.INFO, MAIN_SINK.sink);
 
 /**
  * Map from the name of a module to its logger.
  */
-export const TRS80_MODULE_NAME_TO_LOGGER: {[moduleName: string]: Logger} = {
+export const MODULE_NAME_TO_LOGGER: {[moduleName: string]: Logger} = {
     "base": TRS80_BASE_LOGGER,
     "floppy": TRS80_FLOPPY_LOGGER,
     "emulator": TRS80_EMULATOR_LOGGER,

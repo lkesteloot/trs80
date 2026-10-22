@@ -17,7 +17,7 @@ import {repl} from "./repl.js";
 import {mcp} from "./mcp.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
-import {LogLevel, LogSink, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
+import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
 import {ToolError} from "./utils.js";
 import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
@@ -111,10 +111,10 @@ function parseBaud(baudString: string | undefined): CassetteSpeed | undefined {
 async function main(): Promise<void> {
     honorNoColor();
 
-    TRS80_MAIN_SINK.delegatedSinks.splice(0);
+    MAIN_SINK.delegatedSinks.splice(0);
     // Important that this is first, we might replace it in the run() command. Don't use
     // a batching sink for the terminal, since it won't have a chance to flush its last line.
-    TRS80_MAIN_SINK.delegatedSinks.push(COLORED_SINK);
+    MAIN_SINK.delegatedSinks.push(COLORED_SINK);
 
     const fullVersion = version + " (git " + BUILD_GIT_HASH.substring(0, 7) +
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
@@ -128,9 +128,9 @@ async function main(): Promise<void> {
             .default("auto")
             .argParser(setColorLevel))
         .addOption(new Option("--trace <module>", "show trace logs for module")
-            .choices(Object.keys(TRS80_MODULE_NAME_TO_LOGGER).sort())
+            .choices(Object.keys(MODULE_NAME_TO_LOGGER).sort())
             .argParser(moduleName => {
-                const moduleLogger = TRS80_MODULE_NAME_TO_LOGGER[moduleName];
+                const moduleLogger = MODULE_NAME_TO_LOGGER[moduleName];
                 if (moduleLogger === undefined) {
                     throw new ToolError("Unknown logger module: " + moduleName);
                 }
@@ -138,7 +138,7 @@ async function main(): Promise<void> {
             }))
         .addOption(new Option("--log-file <pathname>", "write logs to the specified file")
             .argParser(pathname => {
-                TRS80_MAIN_SINK.delegatedSinks.push(makeFileLogSink(pathname));
+                MAIN_SINK.delegatedSinks.push(makeFileLogSink(pathname));
             }))
         .option("--no-pager", "don't send output to a pager");
     program

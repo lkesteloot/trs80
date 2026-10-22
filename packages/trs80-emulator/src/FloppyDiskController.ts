@@ -32,7 +32,7 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
 import {assertNever, hi, lo, toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler.js";
-import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
+import {TRS80_EMULATOR_LOGGER} from "z80-logger";
 
 // Number of physical drives.
 export const FLOPPY_DRIVE_COUNT = 4;

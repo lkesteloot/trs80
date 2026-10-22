@@ -33,7 +33,7 @@ import {
     MFM_SYNC,
     MFM_SYNC_COUNT,
 } from "./TrackBytes.js";
-import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
+import {TRS80_FLOPPY_LOGGER} from "z80-logger";
 
 const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;

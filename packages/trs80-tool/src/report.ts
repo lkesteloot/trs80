@@ -35,7 +35,7 @@ import {
     XenixTar,
     XenixTarFile,
 } from "trs80-base";
-import {LogLevel, TRS80_MAIN_SINK} from "trs80-logger";
+import {LogLevel, MAIN_SINK} from "z80-logger";
 import {version} from "./version.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {
@@ -730,8 +730,8 @@ function reportFile(filename: string): DiskReport {
     // Capture warnings into the report, and send everything else to stderr so
     // that stdout stays valid JSON.
     const warnings: string[] = [];
-    const savedSinks = TRS80_MAIN_SINK.delegatedSinks.splice(0);
-    TRS80_MAIN_SINK.delegatedSinks.push((level, message) => {
+    const savedSinks = MAIN_SINK.delegatedSinks.splice(0);
+    MAIN_SINK.delegatedSinks.push((level, message) => {
         if (level === LogLevel.WARN) {
             warnings.push(message);
         } else {
@@ -757,7 +757,7 @@ function reportFile(filename: string): DiskReport {
     } catch (e) {
         report.exception = exceptionToString(e);
     } finally {
-        TRS80_MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
+        MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
     }
 
     return { ...report, warnings };
