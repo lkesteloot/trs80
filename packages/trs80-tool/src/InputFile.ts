@@ -7,7 +7,7 @@ import {
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
     TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem,
-    decodeTrs80CassetteFile, decodeTrs80File, getTrs80FileExtension, isFloppy, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, getTrs80FileExtension, isFloppy, isHardDisk, microDosFileTypeToString, trsdosIIProtectionLevelToString,
     trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
@@ -181,19 +181,35 @@ export class CasInputFile extends InputFile {
 }
 
 /**
- * Input file that came from a TRSDOS floppy.
+ * Input file that came from a TRSDOS floppy, or from a partition of a hard disk.
  */
 export class TrsdosInputFile extends InputFile {
     public readonly trsdos: Trsdos;
     public readonly dirEntry: TrsdosDirEntry;
+    // The directory that holds the file, ending in "/", or an empty string if it's not in one.
+    // Hard disk partitions are directories.
+    private readonly directory: string;
 
-    constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry) {
-        const filename = dirEntry.getFilename(".");
+    /**
+     * @param trsdos the file system that holds the file.
+     * @param dirEntry the file's directory entry.
+     * @param directory the directory to put the file in, ending in "/", or an empty string for none.
+     */
+    constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry, directory = "") {
+        const name = dirEntry.getFilename(".");
         const {binary, damage} = trsdos.readFileWithDamage(dirEntry);
-        const trs80File = decodeTrs80File(binary, { filename });
-        super(filename, binary, trs80File, damage);
+        const trs80File = decodeTrs80File(binary, { filename: name });
+        super(directory + name, binary, trs80File, damage);
         this.trsdos = trsdos;
         this.dirEntry = dirEntry;
+        this.directory = directory;
+    }
+
+    /**
+     * Only if the file is in a directory (a hard disk partition's).
+     */
+    public override hasDirectories(): boolean {
+        return this.directory !== "";
     }
 
     public override getDirExtras(): string[] {
@@ -645,22 +661,37 @@ export class XenixTarInputFile extends InputFile {
 export interface LoadedInput {
     // The contained files if the input was a container, otherwise just the input itself.
     inFiles: InputFile[];
-    // Whether the input was a container (a floppy, CAS file, or WAV file) that we expanded.
+    // Whether the input was a container (a floppy, hard disk, CAS file, or WAV file) that we expanded.
     isContainer: boolean;
-    // The name and version of the floppy's operating system, or undefined if the input wasn't a floppy.
+    // The name and version of the floppy's operating system (the first partition's, for a hard
+    // disk), or undefined if the input wasn't a floppy or hard disk.
     os: string | undefined;
 }
 
 /**
- * Load the file and, if it can contain other files (floppies, cassettes, and wav files),
- * expand it.
+ * The name of the directory that holds the files of a hard disk partition: its number (from 1) and
+ * its disk name, such as "1-HARDA/". Anything in the name other than letters and digits becomes "_",
+ * and the name is left out if it's empty.
+ *
+ * @param partitionNumber the partition's number, from 1.
+ * @param diskName the name in the partition's GAT.
+ */
+export function partitionDirectoryName(partitionNumber: number, diskName: string): string {
+    const safeName = diskName.replace(/[^A-Za-z0-9]/g, "_");
+    return safeName === "" ? `${partitionNumber}/` : `${partitionNumber}-${safeName}/`;
+}
+
+/**
+ * Load the file and, if it can contain other files (floppies, hard disks, cassettes, and wav files),
+ * expand it. The files of each partition of a hard disk are in a directory named for the partition
+ * (see partitionDirectoryName()).
  *
  * @param inFilename the file to load.
- * @param includeSystemFiles whether to include system files from floppies.
+ * @param includeSystemFiles whether to include system files from floppies and hard disks.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
  * @return the contained files, whether the input was a container (if it wasn't, the result is
- * the single input file), and the operating system of a floppy.
+ * the single input file), and the operating system of a floppy or hard disk.
  * @throws ToolError if the file can't be read or decoded.
  */
 export function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): LoadedInput {
@@ -734,6 +765,23 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
             } else {
                 assertNever(fileSystem);
             }
+        } else if (isHardDisk(trs80File)) {
+            const ldosPartitions = findLdosPartitions(trs80File);
+            if (ldosPartitions.length === 0) {
+                throw new ToolError("Can't find a DOS directory on \"" + inFilename + "\"");
+            }
+
+            os = ldosPartitions[0].trsdos.nameAndVersion;
+
+            // Expand each partition into a directory.
+            ldosPartitions.forEach(({trsdos}, index) => {
+                const gatInfo = trsdos.getGatInfo();
+                const diskName = typeof gatInfo === "string" ? "" : gatInfo.name;
+                const directory = partitionDirectoryName(index + 1, diskName);
+                for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
+                    inFiles.push(new TrsdosInputFile(trsdos, dirEntry, directory));
+                }
+            });
         } else if (trs80File.className === "Cassette") {
             // Expand .CAS file.
             let counter = 1;
@@ -769,11 +817,11 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmW
  */
 export function notContainerError(inFilename: string): ToolError {
     return new ToolError("Can't extract from \"" + inFilename +
-        "\": it's not a floppy image, CAS file, or WAV file that can be read");
+        "\": it's not a floppy image, hard disk image, CAS file, or WAV file that can be read");
 }
 
 /**
- * Load the file, which must be a container (a floppy, CAS file, or WAV file), and return
+ * Load the file, which must be a container (a floppy, hard disk, CAS file, or WAV file), and return
  * the files it contains. Unlike expandFile(), this never returns the input itself: if
  * the decoder doesn't recognize the input as a container (for example a truncated floppy
  * image that decodes as a raw binary), it throws.

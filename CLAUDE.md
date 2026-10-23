@@ -150,6 +150,11 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   decoder produced when they were taken, not what's right, and that's where the
   exceptions turned up. Judge changes by internal consistency, as described at
   the end of `FLOPPY_TODO.md`.
+- **Hard disks** are `HardDisk`s (`HdvHardDisk` reads the HDV format), not
+  `FloppyDisk`s. Each LDOS or LS-DOS partition is a `HardDiskPartition`, a
+  `DiskVolume` that `Trsdos` reads like a floppy; `findLdosPartitions()` finds
+  them. `FLOPPY_FORMATS.md` ("Hard disk images") has the facts, and
+  `FLOPPY_TODO.md` ("Hard disks") the gaps.
 - **CP/M** has its own decoder, `trs80-base/src/Cpm.ts`, with a table of known
   formats, because CP/M disks don't record their layout. `decodeFloppyFileSystem()`
   tries TRSDOS, then CP/M; call it rather than `decodeTrsdos()` wherever any

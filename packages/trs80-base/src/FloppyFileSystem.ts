@@ -1,4 +1,5 @@
 import {FloppyDisk, SectorPosition} from "./FloppyDisk.js";
+import type {DiskVolume} from "./DiskVolume.js";
 import type {FloppyFileContents} from "./FileDamage.js";
 import {decodeTrsdos, Trsdos} from "./Trsdos.js";
 import {Cpm, decodeCpm} from "./Cpm.js";
@@ -46,7 +47,7 @@ export interface FloppyDirEntry {
  * passed in must come from this file system's getDirEntries().
  */
 export interface FloppyFileSystem<T extends FloppyDirEntry = FloppyDirEntry> {
-    readonly disk: FloppyDisk;
+    readonly disk: DiskVolume;
 
     /**
      * Name and version of the operating system, such as "LDOS 5.3.1".

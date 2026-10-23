@@ -2308,6 +2308,135 @@ them with their ID-field position.
     because an error stops the disk from being opened at all.
 - **Not IMD:** one `.IMD` is really an HxC `HXCMFM` file.
 
+## Hard disk images
+
+Hard disks are `HardDisk` objects, not `FloppyDisk`s: a flat array of 256-byte
+sectors addressed by (cylinder, head, sector), with none of a floppy's recording
+details. Each partition is a `HardDiskPartition`, which implements `DiskVolume`
+(the part of a floppy that the TRSDOS decoder uses), so the same `Trsdos` class
+reads floppies and partitions. Only LDOS 5 and LS-DOS 6 partitions are read.
+Everything below was measured on the images in `disks/hard/`, and agrees with *The
+Programmer's Guide to TRSDOS Version 6* (`TRSDOS/`), the drive control table (DCT)
+in section 4.2, PDF pages 32-35.
+
+### The HDV file
+
+The format of xtrs, FreHD and sdltrs. Matthew Reed designed it for his emulator;
+his spec is at <https://www.trs-80.com/sub-tips-file-formats.htm#HDV1>. George
+Phillips' xfile (<https://48k.ca/xfile.html>) is a public reader for HDV1, HDV2,
+DREM and `.emu` images.
+
+- **Layout:** a 256-byte header, then 256-byte sectors in cylinder order, head by
+  head within a cylinder: byte offset = 256 + ((cylinder × heads + head) × 32 +
+  sector) × 256. Every disk has 32 sectors per track, numbered from 0.
+- **Header:** bytes 0-1 are `56 CB`. Byte 2 is the version, `0x10` (xtrs, FreHD) or
+  `0x11` (David Keil's emulator, which Reed's spec doesn't mention); we accept
+  those two. Byte 4 is 1 (header blocks) and byte 6 is the media type, 0 for a
+  hard disk. Bit 7 of byte 7 is write protect. Bit 0 of byte 8 means auto-boot,
+  and then byte 11 says which DOS. Reed's spec defines 0-3, and FreHD's boot ROM
+  (`frehd.inc` in the FreHD source, <http://www.vecoven.com/trs80/trs80.html>)
+  defines all six: 0 = LS-DOS 6.3.1, 1 = Model III LDOS 5.3.1, 2 = CP/M,
+  3 = Model III NEWDOS/80 2.5, 4 = Model I LDOS 5.3.1, 5 = Model I NEWDOS/80 2.5.
+  Byte 11 matches that table on every sample (`m1-ldos531-keil.hdv` has 4, Model
+  I LDOS, and `m1-newdos80v25.hdv` has 5) except `m1-dosplus35-keil.hdv`, a Model
+  I DOSPLUS 3.5 image, which has 6, a value FreHD 2.14 doesn't define. Byte 29 is the sectors
+  per cylinder, 0 meaning 256. Byte 26, if not zero, is the heads; otherwise the
+  heads are the sectors per cylinder ÷ 32. Byte 26 is 0 in every sample.
+- **Where the images deviate from the spec:**
+  - Byte 5 must be 4 according to the spec, but FreHD's firmware writes 1 when it
+    creates an image, so we don't check it.
+  - The cylinder count (bytes 27-28) is wrong in most images: one says 203
+    cylinders and holds 840. Only the file length is trustworthy, so cylinders =
+    ceil((length - 256) / (heads × 32 × 256)).
+  - A file can end partway through a cylinder (`m4-lsdos631.hdv` stops after head
+    3 of its last cylinder, and its four partitions use only heads 0-3), so
+    sectors past the end of the file don't exist.
+  - The checksum (byte 3) matches the spec's formula in no sample. We ignore it.
+  - Unused sectors hold filler (`E5`, `FF`, `6DB6` or `00`), so a sector's mere
+    existence is no evidence of anything.
+- **F48:** bit 1 of byte 8 marks the 8-inch FreHD's extension for the Model II
+  (xfile documents it): bits 3-2 give the sector size and byte 29 becomes sectors
+  per head. No sample uses it, and we reject such images.
+
+### Partitions
+
+A partition is a block of whole cylinders and whole heads: a cylinder offset, a
+head offset, a cylinder count and a head count. The samples split either by head
+(each partition one head across every cylinder: `m1-ldos531-keil.hdv`,
+`m3-ldos531.hdv`, `m4-lsdos631.hdv`) or by cylinder (every head, over a run of
+cylinders: `hxchard-lsdos6-6part.hdv`, `m4-lsdos631-st251.hdv`,
+`hxchard-ldos5-6part.hdv`).
+
+LDOS sees a partition as a floppy with one side and long tracks: logical cylinder
+*c* has `heads × 32` sectors, and logical sector *s* of it is physical sector
+*s* % 32 of head (head offset + ⌊*s* / 32⌋) of cylinder (cylinder offset + *c*).
+The lump model (see "The lump model") then applies unchanged: one allocation
+side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
+`sectorsPerGranule` is `heads × 32` ÷ that, and `firstDataCylinder` is 0.
+
+- **Boot sector:** logical (0, 0), the partition's first sector. It starts
+  `00 FE`, and byte 2 is the directory cylinder, relative to the partition, as on
+  floppies. Every partition of every LDOS and LS-DOS sample has this.
+- **Directory:** the GAT is sector 0 of the directory cylinder and the HIT is
+  sector 1, then up to 32 entry sectors; a cylinder with fewer sectors has fewer.
+  They run across heads, so with 6 heads, entry sectors 30 and 31 are on head 1.
+- **Trap:** sector 3 of each partition's cylinder 0 holds a copy of its GAT (a
+  stale one on some disks), followed by filler where the HIT should be. Only
+  accept a GAT at sector 0 of the cylinder that the boot sector points to.
+- **GAT fields:** the allocation table is one byte per cylinder from byte 0x00,
+  for up to 203 cylinders, and there is no lockout table at 0x60. The cylinder
+  count is `GAT[0xCC] + 35`, the granules per cylinder `(GAT[0xCD] & 7) + 1`, and
+  bit 7 of 0xCD marks a data (non-system) partition. The version at 0xCB is 0x53
+  (LDOS 5.3) or 0x63 (LS-DOS 6.3) in the samples; `hxchard-ldos5-6part.hdv` says
+  0x63 too.
+- **Media data block:** `GAT[0xF5]` is 3, followed by three letters naming the
+  driver, then `GAT[0xF9..0xFF]`, which are bytes 3-9 of the DCT:
+  - 0xF9 FLAG1. Its low 2 bits are bits 8-9 of the partition's starting cylinder.
+    Bits 3-2 were set on every sample, meaning unknown.
+  - 0xFA FLAG2. Bits 3-0 are the starting head, for partitions split by head
+    (guide, page 33). Bit 5 is DBLBIT (below). Bit 4 was set on every sample, and
+    the guide's meaning (an "alien" controller) doesn't obviously fit.
+  - 0xFB CURCYL, which the guide leaves to the hard disk driver. With the `RSH`
+    driver it is the low 8 bits of the starting cylinder.
+  - 0xFC MAXCYL, the cylinder count minus 1 (page 33).
+  - 0xFD: bits 7-5 are heads minus 1, bits 4-0 sectors per track minus 1 (always
+    31) (page 34).
+  - 0xFE: bits 7-5 are granules per cylinder minus 1, bits 4-0 sectors per granule
+    minus 1.
+  - 0xFF DIRCYL, equal to the boot sector's byte 2 on every sample.
+
+  Every sample but one has the letters `RSH`. `hxchard-ldos5-6part.hdv` has `DCT`,
+  and its CURCYL is 0 even for the partition at cylinder 170, so the block doesn't
+  say where that partition starts. We trust the block only with `RSH`, and
+  otherwise take the cylinder count and granules from 0xCC and 0xCD and the heads
+  as the disk's heads minus the candidate's head. That assumes the partitions are
+  split by cylinder, which is all that the sample without the block needs.
+- **Other DOSes look similar:** the DOSPLUS 3.5 partitions of
+  `m1-dosplus35-keil.hdv` have a `00 FE` boot sector and an LDOS-like GAT at their
+  directory cylinder, with a version of 0x35 and no media data block. Their
+  directories even pass the hash check when read as a one-granule-per-cylinder
+  LDOS partition, with 13 impossible extents, which is wrong. So without the
+  block, a GAT has to carry one of the LDOS and TRSDOS 6 versions (0x50-0x53 and
+  0x60-0x63, as in "GAT bytes 0xCB-0xCD") to count.
+- **DBLBIT:** bit 5 of FLAG2, and of GAT byte 0xCD, means each logical cylinder is
+  two physical cylinders, for drives of 204 to 406 cylinders (guide, pages 33-34).
+  No sample sets it. We skip such partitions.
+
+### Partitions found
+
+| Image | Cylinders × heads | Partitions |
+|---|---|---|
+| `m4-lsdos631-st251.hdv`, `hxchard-lsdos6-6part.hdv` | 840 × 6 | Six by cylinder at 0, 140, ..., 700: 140 cylinders, 6 granules of 32 sectors, directory on cylinder 70, HARDA-HARDF, LS-DOS 6.3 |
+| `hxchard-ldos5-6part.hdv` | 1028 × 8 | Six by cylinder at 0, 170, ..., 850: 170 cylinders, 8 granules of 32 sectors, directory on cylinder 85, HARDA-HARDF, `DCT` media block |
+| `m1-ldos531-keil.hdv` | 1024 × 8 | Eight by head, 203 cylinders each, 8 granules of 4 sectors, directory on cylinder 101, M1LDVOL1-8, LDOS 5.3 (version 0x11 header) |
+| `m3-ldos531.hdv` | 203 × 4 | Four by head, otherwise the same: LDM3HDA-D |
+| `m4-lsdos631.hdv` | 203 × 8 | Four by head (heads 0-3; the file ends after head 3 of cylinder 202): M4LSDOSA-D, LS-DOS 6.3 |
+| `m1-dosplus35-keil.hdv`, `m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`, `m3-newdos80v25-st251.hdv`, `m4-mmcpm22.hdv` | | None are read: DOSPLUS, NEWDOS/80 and Montezuma CP/M |
+
+On these 4-sector granules, BOOT/SYS's directory entry says 5 sectors but its one
+extent holds one granule (4 sectors), so its file is a sector short (the usual
+"fewer sectors than the size says" anomaly).
+
 ## Disks worth remembering
 
 As of October 14, 2026 the collection is 665 images: 598 DMK, 32 HFE, 13 DSK,

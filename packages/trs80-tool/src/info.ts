@@ -5,8 +5,9 @@ import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
-    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, getFloppyDetails, isFloppy, MicroDos,
-    modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, TrackGeometry, Trs80Floppy, Trsdos, TrsdosII,
+    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, findLdosPartitions, getFloppyDetails, isFloppy,
+    isHardDisk, MicroDos,
+    modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
     UcsdPascal, XenixTar} from "trs80-base";
 import {assertNever} from "z80-base";
 import {
@@ -44,6 +45,8 @@ function printInfoForFile(filename: string, verbose: boolean): void {
 
     let description: string;
     const verboseLines: string[] = [];
+    // One line for each partition of a hard disk, shown whether verbose or not.
+    const partitionLines: string[] = [];
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
@@ -94,6 +97,16 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                             verboseLines.push(detail.label + ": " + detail.value);
                         }
                     }
+                } else if (isHardDisk(trs80File)) {
+                    // Users don't care about system files, but do care about each partition.
+                    const ldosPartitions = findLdosPartitions(trs80File);
+                    ldosPartitions.forEach(({partition, trsdos}, index) => {
+                        const gatInfo = trsdos.getGatInfo();
+                        const diskName = typeof gatInfo === "string" ? "" : gatInfo.name;
+                        const fileCount = pluralizeWithCount(trsdos.getDirEntries(false).length, "file");
+                        partitionLines.push(`partition ${index + 1} (${partition.describeLocation()}): ` +
+                            [diskName, trsdos.nameAndVersion, fileCount].filter(part => part !== "").join(", "));
+                    });
                 }
             }
         } catch (e: any) {
@@ -106,6 +119,9 @@ function printInfoForFile(filename: string, verbose: boolean): void {
     }
 
     console.log(filename + ": " + description);
+    for (const line of partitionLines) {
+        console.log("    " + line);
+    }
     for (const line of verboseLines) {
         console.log("    " + line);
     }
@@ -305,6 +321,36 @@ interface FloppyInfoJson {
 }
 
 /**
+ * One partition of a hard disk, for "info --json".
+ */
+interface PartitionInfoJson {
+    /** The partition's number, from 1, in disk order. */
+    number: number;
+    /** The first physical cylinder of the partition. */
+    cylinderOffset: number;
+    /** The first physical head of the partition. */
+    headOffset: number;
+    /** The number of cylinders in the partition. */
+    cylinderCount: number;
+    /** The number of heads in the partition. */
+    headCount: number;
+    /** The partition's operating system. */
+    os: OsInfoJson;
+}
+
+/**
+ * What "info --json" says about a hard disk.
+ */
+interface HardDiskInfoJson {
+    /** Number of cylinders. */
+    cylinderCount: number;
+    /** Number of heads. */
+    headCount: number;
+    /** The LDOS and LS-DOS partitions that we found, in disk order. Other kinds of partitions aren't listed. */
+    partitions: PartitionInfoJson[];
+}
+
+/**
  * What "info --json" says about a CAS or WAV file.
  */
 interface CassetteInfoJson {
@@ -328,6 +374,8 @@ interface InfoJson extends InfileJson {
     description?: string;
     /** Floppy images only. */
     floppy?: FloppyInfoJson;
+    /** Hard disk images only. */
+    hardDisk?: HardDiskInfoJson;
     /** CAS and WAV files only. */
     cassette?: CassetteInfoJson;
 }
@@ -474,6 +522,38 @@ function floppyToInfoJson(floppy: Trs80Floppy, verbose: boolean): FloppyInfoJson
 }
 
 /**
+ * Convert what we know about a hard disk to JSON.
+ *
+ * @param hardDisk the decoded hard disk image.
+ * @param verbose whether to include the details of each partition's file system.
+ */
+function hardDiskToInfoJson(hardDisk: Trs80HardDisk, verbose: boolean): HardDiskInfoJson {
+    const geometry = hardDisk.getGeometry();
+    return {
+        cylinderCount: geometry.cylinderCount,
+        headCount: geometry.headCount,
+        partitions: findLdosPartitions(hardDisk).map(({partition, trsdos}, index) => {
+            const os: OsInfoJson = {
+                name: trsdos.nameAndVersion,
+                // Users don't care about system files.
+                fileCount: trsdos.getDirEntries(false).length,
+            };
+            if (verbose) {
+                Object.assign(os, fileSystemDetailsToJson(trsdos));
+            }
+            return {
+                number: index + 1,
+                cylinderOffset: partition.cylinderOffset,
+                headOffset: partition.headOffset,
+                cylinderCount: partition.cylinderCount,
+                headCount: partition.headCount,
+                os,
+            };
+        }),
+    };
+}
+
+/**
  * Decode one input file and convert what we know about it to JSON. Never throws because of the contents
  * of the file; problems are in the "error" field.
  */
@@ -516,6 +596,8 @@ function infoFileToJson(filename: string, verbose: boolean): Omit<InfoJson, "war
                 json.cassette = { fileCount: trs80File.files.length };
             } else if (isFloppy(trs80File)) {
                 json.floppy = floppyToInfoJson(trs80File, verbose);
+            } else if (isHardDisk(trs80File)) {
+                json.hardDisk = hardDiskToInfoJson(trs80File, verbose);
             }
         }
     } catch (e: unknown) {

@@ -13,6 +13,7 @@ import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
 import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
 import {decodeBootSector, BootSector} from "./BootSector.js";
 import {type FloppyDecodeOptions} from "./FloppyDisk.js";
+import {decodeHdvHardDisk, HdvHardDisk} from "./HdvHardDisk.js";
 
 /**
  * The various floppy formats we support.
@@ -25,10 +26,16 @@ export type Trs80Floppy = Jv1FloppyDisk |
     ImdFloppyDisk;
 
 /**
+ * The hard disk formats we support.
+ */
+export type Trs80HardDisk = HdvHardDisk;
+
+/**
  * All the possible programs we can decode.
  */
 export type Trs80File = BasicProgram |
     Trs80Floppy |
+    Trs80HardDisk |
     Cassette |
     SystemProgram |
     CmdProgram |
@@ -47,6 +54,7 @@ const CLASS_NAME_TO_EXTENSION = {
     ImdFloppyDisk: ".IMD",
     Jv1FloppyDisk: ".JV1",
     Jv3FloppyDisk: ".JV3",
+    HdvHardDisk: ".HDV",
     RawBinaryFile: ".BIN",
     SystemProgram: ".3BN",
     Level1Program: ".L1",
@@ -134,6 +142,13 @@ export function isFloppy(trs80File: Trs80File): trs80File is Trs80Floppy {
 }
 
 /**
+ * Whether the Trs80File object is one of the hard disk types.
+ */
+export function isHardDisk(trs80File: Trs80File): trs80File is Trs80HardDisk {
+    return trs80File.className === "HdvHardDisk";
+}
+
+/**
  * Options for the {@link decodeTrs80File} function.
  */
 export interface DecodeTrs80FileOptions {
@@ -199,6 +214,10 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
         return decodeImdFloppyDisk(binary, NAMED_FORMAT_OPTIONS) ?? new RawBinaryFile(binary);
     }
 
+    if (extension === ".HDV") {
+        return decodeHdvHardDisk(binary) ?? new RawBinaryFile(binary);
+    }
+
     // "Model III BiNary" format, invented by George Phillips for trs80gp.
     // Rarely used as a stand-alone file, usually just embedded in .CAS files.
     if (extension === ".3BN") {
@@ -215,6 +234,13 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
             return bootSector;
         }
         // Not a boot sector, we'll later check if it's a CMD file.
+    }
+
+    // Hard disk images come with other names, or none, as FreHD's "hard4-0". Their magic number
+    // is distinctive, so there's little risk in trying this early.
+    trs80File = decodeHdvHardDisk(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
     }
 
     // Cassette decoding can be a bit too eager, so be more strict if we don't have the right extension.

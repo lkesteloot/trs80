@@ -364,6 +364,34 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         interleave or skew, or double density) won't decode until a format is
         added to `UCSD_PASCAL_FORMATS`.
 
+## Hard disks
+
+`HdvHardDisk` partitions that hold LDOS 5 or LS-DOS 6 file systems are read (see
+"Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
+
+- [ ] **DBLBIT.** A partition with bit 5 of FLAG2 or of GAT byte 0xCD set (each
+      logical cylinder is two physical cylinders) is skipped with a warning.
+      No sample has one.
+- [ ] **Partitions split by head without a media data block.** Without a block
+      we assume the partition takes the rest of the disk's heads, so a disk with
+      head partitions and no `RSH` block would find the first partition too tall.
+      No sample has this.
+- [ ] **Other DOSes on hard disks:** NEWDOS/80, DOSPLUS and Montezuma CP/M
+      (`m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`, `m3-newdos80v25-st251.hdv`,
+      `m1-dosplus35-keil.hdv`, `m4-mmcpm22.hdv`) decode as hard disks with no
+      partitions.
+- [ ] **Media data block bits we don't understand:** FLAG1 bits 3-2 (set on
+      every sample) and FLAG2 bit 4 (set on every sample). What the `DCT` driver's
+      block (`hxchard-ldos5-6part.hdv`) means by its fields, since it doesn't
+      record the starting cylinder.
+- [ ] **F48 images** (the 8-inch FreHD's variant, with other sector sizes and
+      sectors per head in byte 29) are rejected. No sample has one.
+- [ ] **Other hard disk formats:** Reed's HDV version 2 (starts `HDV` + `0x1A`,
+      per-track sector tables), DREM, and the Gesswein MFM emulator's `.emu`.
+- [ ] **Writing** to hard disks.
+- [ ] **The emulator:** no WD1010 controller, and none of FreHD's extras, so
+      `Trs80.runTrs80File()` doesn't know what to do with a hard disk.
+
 ## Regression suite housekeeping
 
 - [ ] The five `newdos80/` disks with PDRIVE sidecars decode to exactly their
