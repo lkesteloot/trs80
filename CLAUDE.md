@@ -151,7 +151,7 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   exceptions turned up. Judge changes by internal consistency, as described at
   the end of `FLOPPY_TODO.md`.
 - **Hard disks** are `HardDisk`s (`HdvHardDisk` reads the HDV format), not
-  `FloppyDisk`s. Each LDOS or LS-DOS partition is a `HardDiskPartition`, a
+  `FloppyDisk`s. Each LDOS, LS-DOS or DOSPLUS 3 partition is a `HardDiskPartition`, a
   `DiskVolume` that `Trsdos` reads like a floppy; `findLdosPartitions()` finds
   them. `FLOPPY_FORMATS.md` ("Hard disk images") has the facts, and
   `FLOPPY_TODO.md` ("Hard disks") the gaps.

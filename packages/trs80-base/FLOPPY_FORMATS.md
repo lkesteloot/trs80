@@ -2376,7 +2376,9 @@ side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
 
 - **Boot sector:** logical (0, 0), the partition's first sector. It starts
   `00 FE`, and byte 2 is the directory cylinder, relative to the partition, as on
-  floppies. Every partition of every LDOS and LS-DOS sample has this.
+  floppies. Every partition of every LDOS and LS-DOS sample has this. DOSPLUS's
+  system partition starts `F3 FE`, as DOSPLUS floppies do (see "Boot sector
+  prefixes"), so we accept any first byte and mask byte 2 with 0x7F.
 - **Directory:** the GAT is sector 0 of the directory cylinder and the HIT is
   sector 1, then up to 32 entry sectors; a cylinder with fewer sectors has fewer.
   They run across heads, so with 6 heads, entry sectors 30 and 31 are on head 1.
@@ -2411,13 +2413,26 @@ side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
   otherwise take the cylinder count and granules from 0xCC and 0xCD and the heads
   as the disk's heads minus the candidate's head. That assumes the partitions are
   split by cylinder, which is all that the sample without the block needs.
-- **Other DOSes look similar:** the DOSPLUS 3.5 partitions of
-  `m1-dosplus35-keil.hdv` have a `00 FE` boot sector and an LDOS-like GAT at their
-  directory cylinder, with a version of 0x35 and no media data block. Their
-  directories even pass the hash check when read as a one-granule-per-cylinder
-  LDOS partition, with 13 impossible extents, which is wrong. So without the
-  block, a GAT has to carry one of the LDOS and TRSDOS 6 versions (0x50-0x53 and
-  0x60-0x63, as in "GAT bytes 0xCB-0xCD") to count.
+- **Without the block, the GAT's version decides.** It must be one of the LDOS
+  and TRSDOS 6 versions (0x50-0x53 and 0x60-0x63, as in "GAT bytes 0xCB-0xCD"),
+  whose 0xCD gives the granules, or DOSPLUS 3's (0x31-0x35, below). A GAT with any
+  other version doesn't count.
+- **DOSPLUS 3.5** (`m1-dosplus35-keil.hdv`, a Model I disk) uses the LDOS
+  layout: six partitions by cylinder, at 0, 170, ..., 850, each with all 8 heads,
+  170 cylinders (`GAT[0xCC] + 35`) and its directory on cylinder 85. Its GAT has
+  version 0x35 and no media data block, and **leaves 0xCD at 0**, so the
+  granules per cylinder aren't recorded. Its files show them: granule offsets
+  run 0-7, and files of up to 32 sectors (BOOT/SYS, BASIC/CMD) take one
+  granule, so a granule is a track of 32 sectors and a cylinder has one per
+  head. Read that way, 53 of the system partition's 66 files decode as CMD
+  programs, and every file on the disk reads cleanly except STARTREK/CMD in the
+  second partition, whose CMD records run past its 15 sectors into filler, so
+  the file itself is cut short. Read as one
+  granule per cylinder, which is what 0xCD = 0 would mean on LDOS, the
+  directories still pass the hash check but have impossible extents. Only one
+  DOSPLUS hard disk is known, so "a granule is a track" is measured on 3.5
+  alone; we apply it to DOSPLUS 3.1-3.5 (0x31-0x35). The first two partitions
+  are both named VOL-1.
 - **DBLBIT:** bit 5 of FLAG2, and of GAT byte 0xCD, means each logical cylinder is
   two physical cylinders, for drives of 204 to 406 cylinders (guide, pages 33-34).
   No sample sets it. We skip such partitions.
@@ -2431,11 +2446,74 @@ side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
 | `m1-ldos531-keil.hdv` | 1024 × 8 | Eight by head, 203 cylinders each, 8 granules of 4 sectors, directory on cylinder 101, M1LDVOL1-8, LDOS 5.3 (version 0x11 header) |
 | `m3-ldos531.hdv` | 203 × 4 | Four by head, otherwise the same: LDM3HDA-D |
 | `m4-lsdos631.hdv` | 203 × 8 | Four by head (heads 0-3; the file ends after head 3 of cylinder 202): M4LSDOSA-D, LS-DOS 6.3 |
-| `m1-dosplus35-keil.hdv`, `m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`, `m3-newdos80v25-st251.hdv`, `m4-mmcpm22.hdv` | | None are read: DOSPLUS, NEWDOS/80 and Montezuma CP/M |
+| `m1-dosplus35-keil.hdv` | 1024 × 8 | Six by cylinder at 0, 170, ..., 850: 170 cylinders, 8 granules of 32 sectors, directory on cylinder 85, VOL-1, VOL-1, VOL-2 to VOL-5, DOSPLUS 3.5 |
+| `m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`, `m3-newdos80v25-st251.hdv` | | Not read yet; see "NEWDOS/80 on hard disks" |
+| `m4-mmcpm22.hdv` | | Not read yet; see "Montezuma CP/M on hard disks" |
 
 On these 4-sector granules, BOOT/SYS's directory entry says 5 sectors but its one
 extent holds one granule (4 sectors), so its file is a sector short (the usual
 "fewer sectors than the size says" anomaly).
+
+### NEWDOS/80 on hard disks (not read yet)
+
+Measured on the three NEWDOS/80 2.5 disks in the suite and four more from the
+same FreHD CD (`FreHDCD.zip`: `M1 Floppy Boot images/Newdos80-25/hard4-0`,
+`M1 Quinnterface images/newdos25`, `M3 Diskless Auto Boot images/newdos3D` and
+`FreHD_Self_Boot_Start_Files.zip`'s `newdos3D`). The rule below put a GAT
+(version 0x82, a date, and a HIT starting `A2 C4`) exactly where predicted for
+all 39 partitions on the seven. The NEWDOS/80 manual doesn't cover hard disks.
+
+- **Partitions are by head:** each is one head, from cylinder 0 to the end of
+  the disk, and every head's cylinder 0 sector 0 is a boot sector (`00 FE`, then
+  the directory lump). Sectors run along the head: logical sector *n* is sector
+  *n* % 32 of cylinder ⌊*n* / 32⌋ on that head.
+- **The PDRIVE table** (cylinder 0, head 0, sector 2, as on floppies; see
+  "PDRIVE") has a slot for each partition, recognizable by `SPT` = 32. In those
+  slots:
+  - byte 6 ÷ 8 is the head (0x00, 0x08, ... 0x28; 0x38 for head 7);
+  - byte 5 is `GPL`, 8 on every disk;
+  - **byte 3 is the sectors per granule**, not the track count it is on
+    floppies: 18 on the ST251 disks, 5 for head 0 and 22 for the other heads on
+    the 8-head disks;
+  - byte 0 is `DDSL`, and byte 1 a lump count (187, or 103 for the 8-head disks'
+    head 0), which overstates what the head holds.
+- **The directory lump comes from each partition's own boot sector,** not from
+  the table: on `M1 Floppy Boot images/Newdos80-25/hard4-0`, the table says 80
+  for every head but heads 1-5 were formatted with 35. A lump is `GPL` × byte 3
+  sectors, so lumps don't line up with tracks (lump 35 of 144-sector lumps
+  starts at sector 16 of a track), which the lump model already handles.
+- A slot can name a head that was never formatted: on the two Model I disks,
+  slot 8 names head 7, whose first sector is 0xFF filler and which has no GAT.
+  Such slots must be skipped.
+- Unknown: whether the GAT holds 187 lumps (more than a floppy's), and what the
+  table's other bytes (2, 7, 11, 13-15) mean on a hard disk.
+
+### Montezuma CP/M on hard disks (not read yet)
+
+Measured on `m4-mmcpm22.hdv` and three more images from the FreHD CD
+(`M4 Floppy Boot images/MM CPM 2.2/hard4-0` and `hard4-1`, and
+`M4 Diskless Auto Boot images/cpm`), all 306 cylinders × 6 heads (ST225-like):
+
+- **The BIOS in the system cylinders holds the Disk Parameter Blocks.** The hard
+  disk's is SPT=64 (128-byte records, so a track of 32 256-byte sectors),
+  BSH=6 (8 KB blocks), EXM=3, DSM=915, DRM=511 (512 entries, two blocks,
+  AL0 = 0xC0), CKS=0 and OFF=2; the BIOS also has a floppy DPB (SPT=36). Block
+  numbers in the directory are 16-bit.
+- **Two logical drives of 3 heads each,** which together fill the disk: 2 + 916
+  × 8 KB / 8 KB per track = 918 tracks = 306 × 3. Drive A is heads 0-2 and drive
+  B heads 3-5.
+- **A drive's CP/M track *t* is cylinder *t* % 306 of head (first head + ⌊*t* /
+  306⌋):** tracks run down a head, one cylinder at a time, then move to the next
+  head. That puts drive A's directory (track 2) at cylinder 2, head 0, where it
+  is on all three system images, and drive B's at cylinder 2, head 3, where
+  there's a nearly empty directory. `hard4-1`, a data drive without a BIOS, has
+  directories at both places, each holding only `BADTRACKTBL` (user 15), which
+  Montezuma's formatter writes.
+- Sector 7 of cylinder 1, head 0 has a copy of some directory entries
+  (`HDRS5M/COM` and so on) that don't fit this layout. It isn't the directory.
+- Unknown: whether other Montezuma configurations (`HDRS5M` versus `HDRS15M`,
+  other drives) split heads differently. Reading the DPBs from the BIOS, rather
+  than assuming 3 heads, would cover that.
 
 ## Disks worth remembering
 

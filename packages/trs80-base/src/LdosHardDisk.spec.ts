@@ -251,9 +251,28 @@ describe("findLdosPartitions", () => {
 
     it("requires a known DOS when there's no media data block", () => {
         const binary = makeBlankHdv(80, 2);
-        // A DOSPLUS version byte.
-        writePartition(binary, 2, {...DEFAULT_SPEC, mediaData: false, version: 0x35});
+        // A NEWDOS/80 version byte.
+        writePartition(binary, 2, {...DEFAULT_SPEC, mediaData: false, version: 0x82});
         expect(findLdosPartitions(decodeHdv(binary))).to.eql([]);
+    });
+
+    it("reads DOSPLUS 3 partitions, with a granule per track", () => {
+        const binary = makeBlankHdv(80, 2);
+        const spec: PartitionSpec = {...DEFAULT_SPEC, mediaData: false, version: 0x35, granulesPerCylinder: 2};
+        writePartition(binary, 2, spec);
+        // DOSPLUS leaves the granules per cylinder at 0, and its system partition's boot sector
+        // starts F3 FE. Its directory cylinder can have the high bit set.
+        logicalSector(binary, 2, spec, spec.dirCylinder, 0)[0xCD] = 0x00;
+        logicalSector(binary, 2, spec, 0, 0).set([0xF3, 0xFE, spec.dirCylinder | 0x80]);
+
+        const partitions = findLdosPartitions(decodeHdv(binary));
+        expect(partitions.length).to.equal(1);
+        const {trsdos} = partitions[0];
+        expect(trsdos.nameAndVersion).to.equal("DOSPLUS 3.5");
+        expect(trsdos.granulesPerLump).to.equal(2);
+        expect(trsdos.sectorsPerGranule).to.equal(32);
+        const entries = trsdos.getDirEntries(false);
+        expect(new TextDecoder().decode(trsdos.readFile(entries[0]))).to.equal("HELLO WORLD");
     });
 
     it("skips a partition whose cylinders are doubled", () => {

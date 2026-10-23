@@ -61,9 +61,10 @@ export function makeDirectoryNames(diskNames: string[]): string[] {
 }
 
 /**
- * The first two bytes of a partition's boot sector. The third is the directory's cylinder.
+ * The second byte of a partition's boot sector, as on 2.3-family floppies. The first is usually 0
+ * but is 0xF3 on DOSPLUS's system partition, and the third is the directory's cylinder, whose high
+ * bit DOSPLUS can set. See "Boot sector prefixes" in FLOPPY_FORMATS.md.
  */
-const BOOT_SECTOR_MAGIC_0 = 0x00;
 const BOOT_SECTOR_MAGIC_1 = 0xFE;
 
 /**
@@ -91,6 +92,14 @@ const DOUBLE_CYLINDER_BIT = 0x20;
 const HARD_DISK_DOS_VERSIONS = [0x50, 0x51, 0x52, 0x53, 0x60, 0x61, 0x62, 0x63];
 
 /**
+ * The version bytes of DOSPLUS 3.x (0x31-0x35). Its hard disk partitions have the LDOS layout, but
+ * its GAT leaves the granules per cylinder (byte 0xCD) at 0. Its granules are a track (32 sectors),
+ * so a cylinder has one per head. That was measured on DOSPLUS 3.5; see "Hard disk images" in
+ * FLOPPY_FORMATS.md.
+ */
+const DOSPLUS_3_VERSIONS = [0x31, 0x32, 0x33, 0x34, 0x35];
+
+/**
  * The size and shape of a partition, as recorded in its GAT.
  */
 interface PartitionLayout {
@@ -103,8 +112,8 @@ interface PartitionLayout {
  * Work out a partition's layout from its GAT, or return undefined if the GAT doesn't describe a
  * partition that starts at the candidate position. If the GAT has a media data block, its fields
  * must agree with the candidate position and the boot sector. If it doesn't, the GAT must be from
- * a DOS that we know (see HARD_DISK_DOS_VERSIONS), and the partition is assumed to span the rest
- * of the disk's heads, so partitions split by head must have the block.
+ * a DOS that we know (see HARD_DISK_DOS_VERSIONS and DOSPLUS_3_VERSIONS), and the partition is
+ * assumed to span the rest of the disk's heads, so partitions split by head must have the block.
  *
  * @param gat the sector that the boot sector points to.
  * @param disk the disk.
@@ -153,15 +162,21 @@ function getPartitionLayout(gat: Uint8Array, disk: HardDisk, cylinder: number, h
     } else {
         // Silently skip a GAT that has the bit or that isn't from one of these DOSes, because it's
         // probably not a GAT at all, or it's another DOS's.
-        if ((gat[0xCD] & DOUBLE_CYLINDER_BIT) !== 0 || !HARD_DISK_DOS_VERSIONS.includes(gat[0xCB])) {
+        const version = gat[0xCB];
+        const headCount = diskGeometry.headCount - head;
+        let granulesPerCylinder: number;
+        if (HARD_DISK_DOS_VERSIONS.includes(version)) {
+            if ((gat[0xCD] & DOUBLE_CYLINDER_BIT) !== 0) {
+                return undefined;
+            }
+            granulesPerCylinder = (gat[0xCD] & 0x07) + 1;
+        } else if (DOSPLUS_3_VERSIONS.includes(version)) {
+            granulesPerCylinder = headCount;
+        } else {
             return undefined;
         }
 
-        layout = {
-            cylinderCount: gat[0xCC] + 35,
-            headCount: diskGeometry.headCount - head,
-            granulesPerCylinder: (gat[0xCD] & 0x07) + 1,
-        };
+        layout = {cylinderCount: gat[0xCC] + 35, headCount, granulesPerCylinder};
     }
 
     const fits = cylinder + layout.cylinderCount <= diskGeometry.cylinderCount &&
@@ -171,9 +186,10 @@ function getPartitionLayout(gat: Uint8Array, disk: HardDisk, cylinder: number, h
 }
 
 /**
- * Find the LDOS and LS-DOS partitions on a hard disk, in disk order (by cylinder, then head).
+ * Find the partitions with LDOS's layout on a hard disk (LDOS, LS-DOS and DOSPLUS 3), in disk order
+ * (by cylinder, then head).
  *
- * Every partition starts with a boot sector, whose first two bytes are 00 FE and whose third is the
+ * Every partition starts with a boot sector, whose second byte is FE and whose third is the
  * directory cylinder (relative to the partition), so look for those at every head of every cylinder.
  * The GAT is sector 0 of the directory cylinder; cylinder 0 also holds a stale copy of it, so only
  * a GAT that a boot sector points to counts. A candidate is a partition only if its file system
@@ -188,13 +204,11 @@ export function findLdosPartitions(disk: HardDisk): LdosPartition[] {
     for (let cylinder = 0; cylinder < diskGeometry.cylinderCount; cylinder++) {
         for (let head = 0; head < diskGeometry.headCount; head++) {
             const bootSector = disk.readSector(cylinder, head, 0);
-            if (bootSector === undefined ||
-                bootSector[0] !== BOOT_SECTOR_MAGIC_0 || bootSector[1] !== BOOT_SECTOR_MAGIC_1) {
-
+            if (bootSector === undefined || bootSector[1] !== BOOT_SECTOR_MAGIC_1) {
                 continue;
             }
 
-            const dirCylinder = bootSector[2];
+            const dirCylinder = bootSector[2] & 0x7F;
             const gat = disk.readSector(cylinder + dirCylinder, head, 0);
             if (gat === undefined) {
                 continue;
