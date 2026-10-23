@@ -16,6 +16,48 @@ export interface LdosPartition {
      * The decoded file system.
      */
     readonly trsdos: Trsdos;
+
+    /**
+     * The disk name that FORMAT wrote in the partition's GAT, or an empty string if it has none.
+     */
+    readonly diskName: string;
+
+    /**
+     * A name for the partition that's unique on the disk, ignoring case, and safe to use as a
+     * directory name on the host. It's usually the disk name (see makeDirectoryNames()).
+     */
+    readonly directoryName: string;
+}
+
+/**
+ * The directory name for a partition whose disk name has nothing usable in it.
+ */
+const FALLBACK_DIRECTORY_NAME = "PART";
+
+/**
+ * Make a directory name for each partition from its disk name, in disk order. A name keeps its
+ * letters, digits, "-" and "_"; anything else becomes "_". A name with no letter or digit becomes
+ * "PART". If the result is already taken (ignoring case, since host file systems often do), it
+ * gets the first free suffix of "-2", "-3" and so on, so the first partition with a name keeps it.
+ *
+ * @param diskNames the disk names of the partitions, in disk order.
+ * @return the directory names, in the same order.
+ */
+export function makeDirectoryNames(diskNames: string[]): string[] {
+    const used = new Set<string>();
+
+    return diskNames.map(diskName => {
+        const safeName = diskName.replace(/[^A-Za-z0-9_-]/g, "_");
+        const baseName = /[A-Za-z0-9]/.test(safeName) ? safeName : FALLBACK_DIRECTORY_NAME;
+
+        let name = baseName;
+        for (let suffix = 2; used.has(name.toUpperCase()); suffix++) {
+            name = `${baseName}-${suffix}`;
+        }
+        used.add(name.toUpperCase());
+
+        return name;
+    });
 }
 
 /**
@@ -141,7 +183,7 @@ function getPartitionLayout(gat: Uint8Array, disk: HardDisk, cylinder: number, h
  */
 export function findLdosPartitions(disk: HardDisk): LdosPartition[] {
     const diskGeometry = disk.getGeometry();
-    const ldosPartitions: LdosPartition[] = [];
+    const ldosPartitions: {partition: HardDiskPartition, trsdos: Trsdos}[] = [];
 
     for (let cylinder = 0; cylinder < diskGeometry.cylinderCount; cylinder++) {
         for (let head = 0; head < diskGeometry.headCount; head++) {
@@ -179,5 +221,16 @@ export function findLdosPartitions(disk: HardDisk): LdosPartition[] {
         }
     }
 
-    return ldosPartitions;
+    const diskNames = ldosPartitions.map(({trsdos}) => {
+        const gatInfo = trsdos.getGatInfo();
+        return typeof gatInfo === "string" ? "" : gatInfo.name;
+    });
+    const directoryNames = makeDirectoryNames(diskNames);
+
+    return ldosPartitions.map(({partition, trsdos}, index) => ({
+        partition,
+        trsdos,
+        diskName: diskNames[index],
+        directoryName: directoryNames[index],
+    }));
 }

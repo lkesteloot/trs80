@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {decodeHdvHardDisk, HdvHardDisk} from "./HdvHardDisk.js";
-import {findLdosPartitions} from "./LdosHardDisk.js";
+import {findLdosPartitions, makeDirectoryNames} from "./LdosHardDisk.js";
 import {hashForFilename} from "./Trsdos.js";
 
 const HEADER_SIZE = 256;
@@ -158,6 +158,30 @@ function decodeHdv(binary: Uint8Array): HdvHardDisk {
     return decodeHdvHardDisk(binary)!;
 }
 
+describe("makeDirectoryNames", () => {
+    it("keeps unique names as they are", () => {
+        expect(makeDirectoryNames(["HARDA", "HARDB", "LDOS-513", "VOL_1"]))
+            .to.eql(["HARDA", "HARDB", "LDOS-513", "VOL_1"]);
+    });
+
+    it("adds a suffix to a name that's already taken, ignoring case", () => {
+        expect(makeDirectoryNames(["HARDA", "HARDA", "hardA", "HARDB"]))
+            .to.eql(["HARDA", "HARDA-2", "hardA-3", "HARDB"]);
+    });
+
+    it("skips a suffix that another partition's name already has", () => {
+        expect(makeDirectoryNames(["HARDA", "HARDA-2", "HARDA"])).to.eql(["HARDA", "HARDA-2", "HARDA-3"]);
+    });
+
+    it("replaces characters that aren't safe in a directory name", () => {
+        expect(makeDirectoryNames(["MY DISK", "A/B", "V.1"])).to.eql(["MY_DISK", "A_B", "V_1"]);
+    });
+
+    it("names a partition PART when its name has no letter or digit", () => {
+        expect(makeDirectoryNames(["", "...", "PART", ""])).to.eql(["PART", "PART-2", "PART-3", "PART-4"]);
+    });
+});
+
 describe("findLdosPartitions", () => {
     it("finds partitions split by cylinder, with and without a media data block", () => {
         const binary = makeBlankHdv(80, 2);
@@ -182,6 +206,8 @@ describe("findLdosPartitions", () => {
 
         const gatInfo = p2.trsdos.getGatInfo();
         expect(typeof gatInfo === "string" ? gatInfo : gatInfo.name).to.equal("SECOND");
+        expect(p2.diskName).to.equal("SECOND");
+        expect(p2.directoryName).to.equal("SECOND");
 
         for (const [partition, text] of [[p1, "HELLO WORLD"], [p2, "SECOND FILE"]] as const) {
             const entries = partition.trsdos.getDirEntries(false);

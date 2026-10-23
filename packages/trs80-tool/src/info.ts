@@ -100,9 +100,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                 } else if (isHardDisk(trs80File)) {
                     // Users don't care about system files, but do care about each partition.
                     const ldosPartitions = findLdosPartitions(trs80File);
-                    ldosPartitions.forEach(({partition, trsdos}, index) => {
-                        const gatInfo = trsdos.getGatInfo();
-                        const diskName = typeof gatInfo === "string" ? "" : gatInfo.name;
+                    ldosPartitions.forEach(({partition, trsdos, diskName}, index) => {
                         const fileCount = pluralizeWithCount(trsdos.getDirEntries(false).length, "file");
                         partitionLines.push(`partition ${index + 1} (${partition.describeLocation()}): ` +
                             [diskName, trsdos.nameAndVersion, fileCount].filter(part => part !== "").join(", "));

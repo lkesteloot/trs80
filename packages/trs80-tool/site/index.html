@@ -215,7 +215,9 @@
             files are those that can contain other files. These are cassette files
             (in WAV or CAS format), floppy disks (in JV1, JV3, DMK, SCP, HFE, or IMD format),
             and hard disks (in HDV format). Each hard disk partition's files are shown in a
-            directory such as <code>1-HARDA/</code>.</p>
+            directory named for the partition, such as <code>HARDA/</code>. A partition with
+            no name, or the same name as an earlier one, gets a name like <code>PART</code> or
+            <code>HARDA-2</code>.</p>
 
             <div><pre><code>% trs80-tool dir FILE</code></pre>
             </div>

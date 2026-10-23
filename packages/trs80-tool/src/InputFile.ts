@@ -669,22 +669,9 @@ export interface LoadedInput {
 }
 
 /**
- * The name of the directory that holds the files of a hard disk partition: its number (from 1) and
- * its disk name, such as "1-HARDA/". Anything in the name other than letters and digits becomes "_",
- * and the name is left out if it's empty.
- *
- * @param partitionNumber the partition's number, from 1.
- * @param diskName the name in the partition's GAT.
- */
-export function partitionDirectoryName(partitionNumber: number, diskName: string): string {
-    const safeName = diskName.replace(/[^A-Za-z0-9]/g, "_");
-    return safeName === "" ? `${partitionNumber}/` : `${partitionNumber}-${safeName}/`;
-}
-
-/**
  * Load the file and, if it can contain other files (floppies, hard disks, cassettes, and wav files),
- * expand it. The files of each partition of a hard disk are in a directory named for the partition
- * (see partitionDirectoryName()).
+ * expand it. The files of each partition of a hard disk are in a directory named for the partition,
+ * usually its disk name, such as "HARDA/" (see makeDirectoryNames() in trs80-base).
  *
  * @param inFilename the file to load.
  * @param includeSystemFiles whether to include system files from floppies and hard disks.
@@ -774,14 +761,11 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
             os = ldosPartitions[0].trsdos.nameAndVersion;
 
             // Expand each partition into a directory.
-            ldosPartitions.forEach(({trsdos}, index) => {
-                const gatInfo = trsdos.getGatInfo();
-                const diskName = typeof gatInfo === "string" ? "" : gatInfo.name;
-                const directory = partitionDirectoryName(index + 1, diskName);
+            for (const {trsdos, directoryName} of ldosPartitions) {
                 for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new TrsdosInputFile(trsdos, dirEntry, directory));
+                    inFiles.push(new TrsdosInputFile(trsdos, dirEntry, directoryName + "/"));
                 }
-            });
+            }
         } else if (trs80File.className === "Cassette") {
             // Expand .CAS file.
             let counter = 1;

@@ -525,7 +525,7 @@ export function printInfilesJson<T extends InfileJson>(infiles: T[]): void {
 export interface FilesInfileJson extends InfileJson {
     /**
      * The name and version of the floppy's operating system, or of the first partition's on a hard disk,
-     * whose files are in a directory for each partition ("1-HARDA/"). Missing if the input isn't a floppy
+     * whose files are in a directory for each partition, usually named for the partition's disk ("HARDA/"). Missing if the input isn't a floppy
      * or hard disk.
      */
     os?: string;
