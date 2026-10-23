@@ -166,8 +166,7 @@ async function main(): Promise<void> {
     program
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
-            infile: "WAV, CAS, CMD, 3BN, or BAS file", // TODO these aren't used.
-            outfile: "WAV, CAS, CMD, 3BN, BAS, or ASC file",
+            files: "one or more infiles (any TRS-80 file), then the outfile (WAV, CAS, CMD, 3BN, BAS, or ASC file)",
         })
         .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
