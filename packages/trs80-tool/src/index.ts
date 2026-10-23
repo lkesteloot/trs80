@@ -144,9 +144,9 @@ async function main(): Promise<void> {
     program
         .command("dir <infiles...>")
         .description("list files in the infiles", {
-            infiles: "WAV, CAS, JV1, JV3, DMK, HFE, IMD, or HDV file (TRSDOS floppies and hard disks only)",
+            infiles: "floppy (JV1, JV3, DMK, DSK, HFE, IMD, SCP), hard disk (HDV), CAS, or WAV file",
         })
-        .option("--system", "include floppy system files")
+        .option("--system", "include system files from floppies and hard disks")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
@@ -171,7 +171,7 @@ async function main(): Promise<void> {
         })
         .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
-        .option("--system", "include system files from source floppies")
+        .option("--system", "include system files from source floppies and hard disks")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .action((files, options) => {
             const speed = parseBaud(options.baud);
@@ -190,7 +190,7 @@ async function main(): Promise<void> {
             infile: "floppy (JV1, JV3, DMK, DSK, HFE, IMD, SCP), hard disk (HDV), CAS, or WAV file",
             outdir: "existing directory (leave out with --json)",
         })
-        .option("--system", "include system files from the floppy")
+        .option("--system", "include system files from the floppy or hard disk")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .option("--ucsd-pascal-raw", "keep UCSD Pascal text files as they are on the disk instead of converting them to host text")
         .option("--mark-damaged", "add \"[DAMAGED]\" to the name of files with unreadable sectors or other damage")
@@ -246,7 +246,7 @@ async function main(): Promise<void> {
     program
         .command("hexdump <infile>")
         .description("display an annotated hexdump of infile", {
-            infile: "WAV, CAS, CMD, 3BN, BAS, JV1, JV3, DMK, HFE, or IMD",
+            infile: "any TRS-80 file",
         })
         .option("--no-collapse", "collapse consecutive identical lines")
         .action(paged((infile, options) => {
