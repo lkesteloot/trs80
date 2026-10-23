@@ -14,14 +14,17 @@ import {
     Density,
     FloppyDirEntry,
     FloppyDisk,
+    findLdosPartitions,
     FloppyFileSystem,
     isFloppy,
+    isHardDisk,
     MicroDos,
     MicroDosFile,
     microDosFileTypeToLetter,
     ModelIITrsdos,
     ModelIITrsdosDirEntry,
     modelIITrsdosLayoutToString,
+    type Trs80HardDisk,
     TrackGeometry,
     Trsdos,
     TrsdosDirEntry,
@@ -44,7 +47,7 @@ import {
 
 // Bump when the structure of the report changes in a way that consumers must know about.
 // The trs80-floppy-regress repo keeps a copy of the types below; update it too.
-export const REPORT_VERSION = 6;
+export const REPORT_VERSION = 7;
 
 export type DensityName = "single" | "double";
 
@@ -219,9 +222,42 @@ export interface FileReport {
 }
 
 /**
+ * The physical layout of a hard disk.
+ */
+export interface HardDiskReport {
+    cylinderCount: number;
+    headCount: number;
+    // The version byte of the HDV header.
+    headerVersion: number;
+}
+
+/**
+ * The fields that describe a file system and its files: those of a floppy's report, and of each
+ * partition of a hard disk's.
+ */
+export interface FileSystemReport {
+    // Null if no operating system was recognized.
+    os?: OsReport | null;
+    files?: FileReport[];
+}
+
+/**
+ * One partition of a hard disk, which holds a file system of its own. The cylinders and heads
+ * are physical ones on the disk, counted from 0.
+ */
+export interface PartitionReport extends FileSystemReport {
+    cylinderOffset: number;
+    headOffset: number;
+    cylinderCount: number;
+    headCount: number;
+    // Null if no operating system was recognized.
+    os: OsReport | null;
+}
+
+/**
  * Everything we could decode from one input file.
  */
-export interface DiskReport {
+export interface DiskReport extends FileSystemReport {
     filename: string;
     size?: number;
     sha256?: string;
@@ -229,13 +265,13 @@ export interface DiskReport {
     type?: string;
     description?: string;
     decodeError?: string;
-    // The rest are for floppies only.
+    // For floppies only.
     geometry?: GeometryReport;
     // First three bytes of the boot sector, or null if it can't be read.
     bootSectorPrefix?: number[] | null;
-    // Null if no operating system was recognized.
-    os?: OsReport | null;
-    files?: FileReport[];
+    // For hard disks only. The top-level "os" and "files" are missing for them; each partition has its own.
+    hardDisk?: HardDiskReport;
+    partitions?: PartitionReport[];
     exception?: string;
     // Warnings logged while decoding.
     warnings: string[];
@@ -581,9 +617,9 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
 }
 
 /**
- * Report on a TRSDOS-family file system.
+ * Report on a TRSDOS-family file system, on a floppy or in a partition of a hard disk.
  */
-function reportTrsdos(trsdos: Trsdos, report: Omit<DiskReport, "warnings">): void {
+function reportTrsdos(trsdos: Trsdos, report: FileSystemReport): void {
     const os: OsReport = {
         name: trsdos.nameAndVersion,
         dirTrack: trsdos.dirLumpNumber,
@@ -721,6 +757,30 @@ function reportXenixTar(xenixTar: XenixTar, report: Omit<DiskReport, "warnings">
 }
 
 /**
+ * Report on a hard disk: its geometry, and the file system of each LDOS or LS-DOS partition.
+ */
+function reportHardDisk(disk: Trs80HardDisk, report: Omit<DiskReport, "warnings">): void {
+    const geometry = disk.getGeometry();
+    report.hardDisk = {
+        cylinderCount: geometry.cylinderCount,
+        headCount: geometry.headCount,
+        headerVersion: disk.headerVersion,
+    };
+
+    report.partitions = findLdosPartitions(disk).map(({partition, trsdos}) => {
+        const partitionReport: PartitionReport = {
+            cylinderOffset: partition.cylinderOffset,
+            headOffset: partition.headOffset,
+            cylinderCount: partition.cylinderCount,
+            headCount: partition.headCount,
+            os: null,
+        };
+        reportTrsdos(trsdos, partitionReport);
+        return partitionReport;
+    });
+}
+
+/**
  * Generate a JSON-friendly report of everything we can decode from the file.
  * Never throws; exceptions are recorded in the report.
  */
@@ -753,6 +813,8 @@ function reportFile(filename: string): DiskReport {
 
         if (isFloppy(trs80File)) {
             reportFloppy(trs80File, report);
+        } else if (isHardDisk(trs80File)) {
+            reportHardDisk(trs80File, report);
         }
     } catch (e) {
         report.exception = exceptionToString(e);

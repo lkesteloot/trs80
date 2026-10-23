@@ -85,7 +85,9 @@ export type ContentType =
     /** A cassette image (CAS file) with one or more files. */
     "cassette" |
     /** A floppy disk image. */
-    "floppy";
+    "floppy" |
+    /** A hard disk image. */
+    "hardDisk";
 
 /**
  * Which kind of content a decoded file is.
@@ -107,6 +109,7 @@ export function contentTypeOf(trs80File: Trs80File): ContentType {
         case "ImdFloppyDisk":
         case "ScpFloppyDisk":
             return "floppy";
+        case "HdvHardDisk": return "hardDisk";
         default: assertNever(trs80File);
     }
 }
@@ -520,7 +523,11 @@ export function printInfilesJson<T extends InfileJson>(infiles: T[]): void {
  * The JSON for one input file of "dir --json" and "extract --json".
  */
 export interface FilesInfileJson extends InfileJson {
-    /** The name and version of the floppy's operating system. Missing if the input isn't a floppy. */
+    /**
+     * The name and version of the floppy's operating system, or of the first partition's on a hard disk,
+     * whose files are in a directory for each partition, usually named for the partition's disk ("HARDA/"). Missing if the input isn't a floppy
+     * or hard disk.
+     */
     os?: string;
     /**
      * The files in the input, in directory order. If the input isn't a container (a floppy, CAS file, or

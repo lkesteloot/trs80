@@ -364,6 +364,49 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         interleave or skew, or double density) won't decode until a format is
         added to `UCSD_PASCAL_FORMATS`.
 
+## Hard disks
+
+`HdvHardDisk` partitions that hold LDOS 5, LS-DOS 6 or DOSPLUS 3 file systems
+are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
+
+- [ ] **DBLBIT.** A partition with bit 5 of FLAG2 or of GAT byte 0xCD set (each
+      logical cylinder is two physical cylinders) is skipped with a warning.
+      No sample has one.
+- [ ] **Partitions split by head without a media data block.** Without a block
+      we assume the partition takes the rest of the disk's heads, so a disk with
+      head partitions and no `RSH` block would find the first partition too tall.
+      No sample has this.
+- [ ] **NEWDOS/80 on hard disks** (`m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`,
+      `m3-newdos80v25-st251.hdv`) decode as hard disks with no partitions. The
+      layout is worked out in "NEWDOS/80 on hard disks" in `FLOPPY_FORMATS.md`:
+      a partition per head, with its granule size in byte 3 of its PDRIVE slot.
+      To do: a `HardDiskPartition` for one head, and a NEWDOS/80 candidate whose
+      sectors per granule come from the table instead of being 5. Check how
+      many lumps the GAT holds. Add the four other NEWDOS/80 images from
+      `FreHDCD.zip` (named in that section) to the suite first, to check
+      against.
+- [ ] **Montezuma CP/M on hard disks** (`m4-mmcpm22.hdv`) decodes as a hard disk
+      with no partitions. Its layout is in "Montezuma CP/M on hard disks" in
+      `FLOPPY_FORMATS.md`: two drives of 3 heads, whose tracks run down one head
+      before moving to the next. To do: `Cpm.ts` takes a `DiskVolume`, a
+      partition view with that track order, and reading the DPBs from the BIOS
+      in the system cylinders instead of a fixed format. Add the other three
+      Montezuma images from `FreHDCD.zip` to the suite first.
+- [ ] **"A DOSPLUS granule is a track"** is measured on one DOSPLUS 3.5 disk.
+      Another DOSPLUS hard disk, or the DOSPLUS manual's hard disk chapter,
+      would confirm it.
+- [ ] **Media data block bits we don't understand:** FLAG1 bits 3-2 (set on
+      every sample) and FLAG2 bit 4 (set on every sample). What the `DCT` driver's
+      block (`hxchard-ldos5-6part.hdv`) means by its fields, since it doesn't
+      record the starting cylinder.
+- [ ] **F48 images** (the 8-inch FreHD's variant, with other sector sizes and
+      sectors per head in byte 29) are rejected. No sample has one.
+- [ ] **Other hard disk formats:** Reed's HDV version 2 (starts `HDV` + `0x1A`,
+      per-track sector tables), DREM, and the Gesswein MFM emulator's `.emu`.
+- [ ] **Writing** to hard disks.
+- [ ] **The emulator:** no WD1010 controller, and none of FreHD's extras, so
+      `Trs80.runTrs80File()` doesn't know what to do with a hard disk.
+
 ## Regression suite housekeeping
 
 - [ ] The five `newdos80/` disks with PDRIVE sidecars decode to exactly their

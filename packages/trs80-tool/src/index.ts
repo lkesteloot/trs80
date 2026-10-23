@@ -144,7 +144,7 @@ async function main(): Promise<void> {
     program
         .command("dir <infiles...>")
         .description("list files in the infiles", {
-            infiles: "WAV, CAS, JV1, JV3, DMK, HFE, or IMD file (TRSDOS floppies only)",
+            infiles: "WAV, CAS, JV1, JV3, DMK, HFE, IMD, or HDV file (TRSDOS floppies and hard disks only)",
         })
         .option("--system", "include floppy system files")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
@@ -186,8 +186,8 @@ async function main(): Promise<void> {
         });
     program
         .command("extract <infile> [outdir]")
-        .description("extract the files in a floppy, CAS, or WAV file into an existing directory", {
-            infile: "floppy (JV1, JV3, DMK, DSK, HFE, IMD, SCP), CAS, or WAV file",
+        .description("extract the files in a floppy, hard disk, CAS, or WAV file into an existing directory", {
+            infile: "floppy (JV1, JV3, DMK, DSK, HFE, IMD, SCP), hard disk (HDV), CAS, or WAV file",
             outdir: "existing directory (leave out with --json)",
         })
         .option("--system", "include system files from the floppy")

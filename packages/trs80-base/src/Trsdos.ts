@@ -7,7 +7,8 @@
  */
 
 import {concatByteArrays} from "teamten-ts-utils";
-import {BYTES_PER_SECTOR, Density, FloppyDisk, FloppyDiskGeometry, SectorPosition,} from "./FloppyDisk.js";
+import {BYTES_PER_SECTOR, Density, SectorPosition} from "./FloppyDisk.js";
+import type {DiskVolume, VolumeGeometry} from "./DiskVolume.js";
 import {assertNever, toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "z80-logger";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
@@ -84,7 +85,7 @@ function rotateByteLeft(x: number): number {
 /**
  * Compute the number of lumps on a floppy, given the geometry and lump parameters.
  */
-function computeLumpCount(geometry: FloppyDiskGeometry, firstDataCylinder: number,
+function computeLumpCount(geometry: VolumeGeometry, firstDataCylinder: number,
                           sectorsPerCylinder: number, sectorsPerLump: number) {
 
     const dataCylindersCount = geometry.cylinderCount - firstDataCylinder;
@@ -456,7 +457,7 @@ export class TrsdosExtent {
  * @return the decoded extents, or an error message if any cylinder was out of bounds.
  */
 function decodeExtents(binary: Uint8Array, begin: number, end: number,
-                       geometry: FloppyDiskGeometry,
+                       geometry: VolumeGeometry,
                        version: TrsdosVersion): TrsdosExtent[] | string {
 
     const extents: TrsdosExtent[] = [];
@@ -590,7 +591,7 @@ export class TrsdosGatInfo {
  * Converts a sector to a GAT object, or a string with an error if we don't think this is a GAT sector.
  */
 function decodeGatInfo(binary: Uint8Array, lumpCount: number,
-                       geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
+                       geometry: VolumeGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
 
     // Its fields run to the end of a 256-byte sector. Disks with smaller sectors (CP/M's 128,
     // for example) aren't any of these DOSes, and reading past the end would give undefined bytes.
@@ -949,7 +950,7 @@ export class TrsdosDirEntry implements FloppyDirEntry {
  * @param hasTimeStamps whether the disk is an LDOS 5.3 or LS-DOS 6.3 disk, whose entries can
  * hold a time stamp in place of the access password.
  */
-function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion,
+function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, version: TrsdosVersion,
                         hitHash: number | undefined, hasTimeStamps: boolean): TrsdosDirEntry | undefined | string {
 
     let flags = binary[0];
@@ -1155,8 +1156,8 @@ export function pdriveSettingsToString(settings: PdriveSettings): string {
  * See the {@link Trsdos.logicalToPhysical} method for the mapping from logical to physical sectors.
  */
 export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
-    public readonly disk: FloppyDisk;
-    public readonly geometry: FloppyDiskGeometry;
+    public readonly disk: DiskVolume;
+    public readonly geometry: VolumeGeometry;
     public readonly version: TrsdosVersion;
     public readonly allocationSides: number;
     public readonly granulesPerLump: number;
@@ -1206,8 +1207,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     public readonly nameAndVersion: string;
 
     constructor(
-        disk: FloppyDisk,
-        geometry: FloppyDiskGeometry,
+        disk: DiskVolume,
+        geometry: VolumeGeometry,
         version: TrsdosVersion,
         allocationSides: number,
         granulesPerLump: number,
@@ -2259,7 +2260,7 @@ const DOSPLUS_II_GRANULES_PER_TRACK = 6;
  * Generate the candidates for the TRSDOS 2.3 family, where a lump is a cylinder. See decodeTrsdos()
  * for hitIgnored.
  */
-function generateTrsdos23Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsdos[] {
+function generateTrsdos23Candidates(disk: DiskVolume, hitIgnored: boolean): Trsdos[] {
     const candidates: Trsdos[] = [];
 
     const geometry = disk.getGeometry();
@@ -2287,7 +2288,7 @@ function generateTrsdos23Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsd
  * Generate the candidates for the TRSDOS 2.3 family with a given number of granules per track.
  * See decodeTrsdos() for hitIgnored.
  */
-function generateTrsdos23CandidatesWithGranules(disk: FloppyDisk, granulesPerTrack: number,
+function generateTrsdos23CandidatesWithGranules(disk: DiskVolume, granulesPerTrack: number,
                                                 hitIgnored: boolean): Trsdos[] {
 
     const candidates: Trsdos[] = [];
@@ -2325,7 +2326,7 @@ function generateTrsdos23CandidatesWithGranules(disk: FloppyDisk, granulesPerTra
     return candidates;
 }
 
-function generateTrsdos13Candidates(disk: FloppyDisk): Trsdos[] {
+function generateTrsdos13Candidates(disk: DiskVolume): Trsdos[] {
     const candidates: Trsdos[] = [];
 
     const version = TrsdosVersion.V1_3;
@@ -2348,7 +2349,7 @@ function generateTrsdos13Candidates(disk: FloppyDisk): Trsdos[] {
  * numbered from 1, granules of 2 sectors in single density and 3 in double, one side, a lump
  * is a cylinder) with 2.3-style 32-byte entries. Every cylinder is a possible directory.
  */
-function generateTrsdos27Candidates(disk: FloppyDisk): Trsdos[] {
+function generateTrsdos27Candidates(disk: DiskVolume): Trsdos[] {
     const candidates: Trsdos[] = [];
 
     const version = TrsdosVersion.V2_7;
@@ -2402,7 +2403,7 @@ function getNewdos80GranulesPerDir(candidate: Trsdos): number | undefined {
  * Generate the candidates for NEWDOS/80-style lumps of 5-sector granules. See decodeTrsdos()
  * for hitIgnored.
  */
-function generateNewdos80Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsdos[] {
+function generateNewdos80Candidates(disk: DiskVolume, hitIgnored: boolean): Trsdos[] {
     const candidates: Trsdos[] = [];
 
     const version = TrsdosVersion.V2_3;
@@ -2454,7 +2455,7 @@ function generateNewdos80Candidates(disk: FloppyDisk, hitIgnored: boolean): Trsd
  * matches. Such a reading needs DIR/SYS to name its directory lump, and a GAT that passes the
  * strict check, since entries that merely decode are weak evidence.
  */
-export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
+export function decodeTrsdos(disk: DiskVolume): Trsdos | undefined {
     // Every DOS of these families uses 256-byte sectors. Other sizes are other systems (TRSDOS-II,
     // Xenix and CP/M use 512), where a candidate can still find something that reads as a directory.
     if (disk.getGeometry().modalDataSectorSize !== BYTES_PER_SECTOR) {
@@ -2476,6 +2477,52 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
         ... generateNewdos80Candidates(disk, true),
     ].filter(candidate => candidate.gatPassesStrictCheck);
     const bestIgnoringHit = findBestCandidate(hitIgnoredCandidates);
+    if (bestIgnoringHit !== undefined) {
+        TRS80_BASE_LOGGER.warn("The HIT doesn't match the directory, so it was read without it");
+    }
+    return bestIgnoringHit;
+}
+
+/**
+ * Decode the file system in a partition of a hard disk, whose directory cylinder the caller found
+ * from the partition's boot sector. A partition is a disk with one side, whose tracks are as long
+ * as all its heads together, so this reads it as the 2.3 family with a lump per cylinder, and the
+ * granules per cylinder the partition's GAT gives. The floppy layouts (2 or 3 granules per track,
+ * Tandy's older DOSes, NEWDOS/80's lumps) don't apply, so they aren't tried. See "Hard disk images"
+ * in FLOPPY_FORMATS.md.
+ *
+ * As with a floppy, if the HIT doesn't match the directory, it tries again without the HIT.
+ *
+ * @param volume the partition.
+ * @param dirCylinder the directory's cylinder, relative to the partition.
+ * @param granulesPerCylinder the number of granules in each cylinder.
+ * @return the decoded file system, or undefined if this doesn't look like one.
+ */
+export function decodeTrsdosHardDiskPartition(volume: DiskVolume, dirCylinder: number,
+                                              granulesPerCylinder: number): Trsdos | undefined {
+
+    const geometry = volume.getGeometry();
+    const sectorsPerCylinder = geometry.modalDataSectorSpan;
+    if (geometry.modalDataSectorSize !== BYTES_PER_SECTOR ||
+        granulesPerCylinder < 1 || granulesPerCylinder > 8 ||
+        sectorsPerCylinder % granulesPerCylinder !== 0 ||
+        dirCylinder < 0 || dirCylinder >= geometry.cylinderCount) {
+
+        return undefined;
+    }
+
+    const sectorsPerGranule = sectorsPerCylinder / granulesPerCylinder;
+    const makeCandidate = (hitIgnored: boolean) => new Trsdos(volume, geometry, TrsdosVersion.V2_3, 1,
+        granulesPerCylinder, sectorsPerGranule, dirCylinder, granulesPerCylinder, 0, hitIgnored);
+
+    const best = findBestCandidate([makeCandidate(false)]);
+    if (best !== undefined) {
+        return best;
+    }
+
+    const hitIgnoredCandidate = makeCandidate(true);
+    const bestIgnoringHit = hitIgnoredCandidate.gatPassesStrictCheck ?
+        findBestCandidate([hitIgnoredCandidate]) : undefined;
     if (bestIgnoringHit !== undefined) {
         TRS80_BASE_LOGGER.warn("The HIT doesn't match the directory, so it was read without it");
     }
