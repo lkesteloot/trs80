@@ -2314,10 +2314,45 @@ Hard disks are `HardDisk` objects, not `FloppyDisk`s: a flat array of 256-byte
 sectors addressed by (cylinder, head, sector), with none of a floppy's recording
 details. Each partition is a `HardDiskPartition`, which implements `DiskVolume`
 (the part of a floppy that the TRSDOS decoder uses), so the same `Trsdos` class
-reads floppies and partitions. Only LDOS 5 and LS-DOS 6 partitions are read.
+reads floppies and partitions. LDOS 5, LS-DOS 6 and DOSPLUS 3 partitions are read.
 Everything below was measured on the images in `disks/hard/`, and agrees with *The
 Programmer's Guide to TRSDOS Version 6* (`TRSDOS/`), the drive control table (DCT)
 in section 4.2, PDF pages 32-35.
+
+**Why not a subclass of `FloppyDisk`:**
+- A `FloppyDisk` models a floppy's recording: density, CRCs, data marks, sector
+  sizes, mixed geometry and `formatTrack()`, with a `SectorInfo` for every
+  sector, which would be 262,144 meaningless objects for a 64 MB disk.
+- The emulator's floppy controller accepts any `FloppyDisk`, and a hard disk
+  belongs on a different controller (the WD1010, below).
+- A hard disk isn't one file system but several partitions, whose layout lives
+  in the driver's configuration, so the unit a decoder reads is a partition.
+
+The decoders only use a small part of a floppy, so that part is the `DiskVolume`
+interface, and only `Trsdos` uses it so far. Every reference we looked at made
+the same split: Matthew Reed's tools (`~/others/matthew-reed-tools`) have
+`THardImage` beside `TFloppyImage`, and trsfs and trs80gp have `hd_image*.cpp`
+beside `fd_image*.cpp`.
+
+**References for hard disks:**
+- Matthew Reed's HDV1 spec, <https://www.trs-80.com/sub-tips-file-formats.htm#HDV1>.
+- George Phillips' xfile (<https://48k.ca/xfile.html>, public, with source): its
+  `hd_image_*.cpp` read HDV1, HDV2, DREM and `.emu` images. They're the same files
+  as trsfs's (`~/others/trsfs`, Peter Phillips' private reader) and close to
+  trs80gp's `lib/` (`~/others/trs80gp`).
+- Matthew Reed's tools (`~/others/matthew-reed-tools`): `DiskImage/hdv1.cpp`,
+  `hdv2.cpp`, and `FileSystem/LDOS.cpp`, whose partition walk and hard disk GAT
+  handling were the model for ours; also `NEWDOS80.cpp`, which reads NEWDOS/80
+  hard disks.
+- FreHD's source (GPL, <http://www.vecoven.com/trs80/trs80.html>, release 2.14 and
+  github.com/fvecoven/FreHDv1): the PIC firmware's `trs_hard.c` (opening an image,
+  the header, sector addressing), `trs_extra.c` (its extra commands) and the Z80
+  boot ROM's `frehd.inc` (ports, and the auto-boot DOS codes).
+- Tandy and LSI's LS-DOS 6.3 hard disk drivers and formatter, in Pete's Model II
+  archive (github.com/pski/model2archive, `Other/I_III_4/MAD Soft/LS-DOS 6.3.x
+  Source Code/LS-DOS-6.3.0-tree/trshard/`): `trshd6.asm`, `hdwd6a.asm`,
+  `hdform6.asm` and others. They show the WD1010 ports and how the DCT's head
+  offset and DBLBIT are used.
 
 ### The HDV file
 

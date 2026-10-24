@@ -400,12 +400,85 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       block (`hxchard-ldos5-6part.hdv`) means by its fields, since it doesn't
       record the starting cylinder.
 - [ ] **F48 images** (the 8-inch FreHD's variant, with other sector sizes and
-      sectors per head in byte 29) are rejected. No sample has one.
+      sectors per head in byte 29) are rejected. None is in the suite, but Pete's
+      Model II archive (github.com/pski/model2archive, also in
+      `~/others/model2archive`) has four, in `HD_Images/F48/hard4-0` or
+      `HD_Images/FreHD48/hard4-0`: TRSDOS-II 4.2.5 and 4.4, and Xenix 1.3.5 and
+      3.3. The TRSDOS-II 4.4 one fits the spec: byte 8 = 0x0A (F48, 512-byte
+      sectors), byte 26 = 8 heads, bytes 27-28 = 800 cylinders and byte 29 = 17
+      sectors per head, which is the geometry its README gives and exactly the
+      file's size. Reading these needs the Model II file systems (TRSDOS-II,
+      Xenix) on a hard disk, and 512-byte sectors in `HardDisk`.
 - [ ] **Other hard disk formats:** Reed's HDV version 2 (starts `HDV` + `0x1A`,
-      per-track sector tables), DREM, and the Gesswein MFM emulator's `.emu`.
+      per-track sector tables), DREM (a `.cfg` text file of geometry plus a `.dsk`
+      of data), and the Gesswein MFM emulator's `.emu`. Pete's archive has
+      samples of the last two for the same TRSDOS-II and Xenix releases
+      (`HD_Images/DREM/` and `HD_Images/DG/`, 45-85 MB each), and the readers in
+      xfile and trsfs (`hd_image_hdv2.cpp`, `hd_image_drem.cpp`,
+      `hd_image_emu.cpp`) are references. No HDV2 sample is known.
 - [ ] **Writing** to hard disks.
-- [ ] **The emulator:** no WD1010 controller, and none of FreHD's extras, so
-      `Trs80.runTrs80File()` doesn't know what to do with a hard disk.
+- [ ] **The emulator:** no hard disk controller, and none of FreHD's extras, so
+      `Trs80.runTrs80File()` doesn't know what to do with a hard disk. See
+      "Emulating a hard disk" below.
+
+### Emulating a hard disk
+
+What it would take, from FreHD's source, Tandy's LS-DOS drivers and trs80gp's
+`mx_hdc.cpp`, `wd1010.cpp` and `frehd.cpp` (see "Hard disk images" in
+`FLOPPY_FORMATS.md` for where they are). Nothing here is implemented.
+
+- **Ports.** The Tandy-compatible controller is a WD1010 behind these ports, the
+  same on the Model I, III and 4 (FreHD's `frehd.inc` and LS-DOS's drivers agree):
+  - 0xC0: write protect (read); 0xC1: control (bit 4 resets, bit 3 enables the
+    device, bit 2 enables wait states);
+  - 0xC8: data, through a 256-byte sector buffer (the WD1100-21's, in trs80gp);
+  - 0xC9: error (read) or write precompensation (write); 0xCA: sector count;
+    0xCB: sector number; 0xCC and 0xCD: cylinder low and high; 0xCE: SDH (size,
+    drive in bits 3-4, head in bits 0-2); 0xCF: status (read) or command (write).
+  - Commands: restore (`0001rrrr`), seek (`0111rrrr`), read sector
+    (`0010d000`), write sector (`00110000`), format track (`01010000`).
+  - On the Model III and 4 these ports are on the external I/O bus, which trs80gp
+    only connects when the EXTIO bit of port 0xEC is set. Our `Trs80.ts` stores
+    port 0xEC's value but doesn't act on that bit yet.
+  - Model II, 12, 16 and 6000 controllers also have a CTC at 0xC4-0xC7, which
+    collides with FreHD's ports. trs80gp also has a Corvus interface (0xDE-0xDF
+    on the Model II), which we can ignore.
+- **Sector addressing** is (cylinder, head, sector) straight into the image, as
+  in `HdvHardDisk.readSector()`. FreHD computes heads as sectors per cylinder ÷ 32
+  when the header's byte 26 is 0, exactly as we do (`trs_hard.c`,
+  `open_drive()`).
+- **A timing trap trs80gp found:** the controller must drop DRQ when a READ's
+  buffer has been emptied, or NEWDOS/80 2.5 can't use the drive (trs80gp release
+  notes).
+- **Booting.** A stock ROM can't boot a hard disk:
+  - The "Floppy Boot" images boot from a floppy with the hard disk driver (FreHD's
+    `RSHARD`/`TRSHD`-style DCTs), which then uses the hard disk. Boot floppies for
+    the Model I, III and 4 are in github.com/TJBChris/FreHDDisk
+    (`disk_images/*.dmk`).
+  - The "Auto Boot" images need FreHD's own boot path: a patched ROM (Ian
+    Mavric's auto-boot EPROMs, documented on the FreHD CD) loads a boot block
+    from FreHD through its extra ports, which reads byte 11 of the image's header
+    to pick the DOS. trs80gp emulates this, and can load a custom boot block.
+- **FreHD's extra interface,** at 0xC2-0xC5, sharing the status at 0xCF:
+  - 0xC2 data, 0xC3 size, 0xC4 command (write) or ROM read (read), 0xC5
+    error (read) or ROM write (write);
+  - commands (`trs_extra.h`): version, get and set time, open, read, write,
+    close and seek a file on the SD card, open and read a directory, mount a
+    drive, drive info, the boot loader, image, and read an image's header.
+  - FreHD's `IMPORT2`, `EXPORT2` and `VHDUTL` use these to move files between the
+    SD card and the TRS-80. On power-up FreHD mounts `hard4-0` to `hard4-3`.
+  - About 1,300 lines of C++ in trs80gp. Not needed to use a hard disk from a
+    boot floppy.
+- **Size of the job,** judging by trs80gp: about 750 lines for the WD1010 and 540
+  for the board and its ports, plus the image readers, which we have.
+- **In our emulator:**
+  - a `HardDiskController` beside `FloppyDiskController`, wired into
+    `Trs80.readPort()` and `writePort()`;
+  - writes to the image, with an event like `FloppyDisk.onWrite`, so the apps
+    can save changes;
+  - the controller's state in `Trs80State`, for `save()` and `restore()`;
+  - a way to mount a hard disk in trs80-tool's `run` and `mcp`, and in the web
+    apps.
 
 ## Regression suite housekeeping
 
