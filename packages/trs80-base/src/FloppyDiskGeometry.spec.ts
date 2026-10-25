@@ -300,3 +300,19 @@ describe("FloppyDiskGeometry without a boot track", () => {
         expect(FloppyDiskGeometry.make(0, 1, [])).to.equal(undefined);
     });
 });
+
+describe("FloppyDiskGeometry mixed-density tracks", () => {
+    it("tells a dual-boot boot track's densities apart", () => {
+        const geometry = makeGeometry([
+            {cylinder: 0, side: 0, sectorNumbers: [0], density: Density.SINGLE},
+            {cylinder: 0, side: 0, sectorNumbers: [... range(1, 5), ... range(7, 17)], density: Density.DOUBLE},
+            ... makeOtherTracks(range(0, 9)).map(track => ({... track, density: Density.SINGLE})),
+        ]);
+        const bootTrack = geometry.bootTrack!;
+        expect(bootTrack.mixedDensity).to.equal(true);
+        expect(bootTrack.sectorDensity(0)).to.equal(Density.SINGLE);
+        expect(bootTrack.sectorDensity(1)).to.equal(Density.DOUBLE);
+        expect(bootTrack.sectorDensity(6)).to.equal(undefined);
+        expect(geometry.getTrack(new TrackPosition(1, 0))!.mixedDensity).to.equal(false);
+    });
+});

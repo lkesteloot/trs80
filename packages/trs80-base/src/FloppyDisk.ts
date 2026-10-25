@@ -427,10 +427,15 @@ export class TrackGeometry {
     public readonly coreLastSectorNumber: number;
     public readonly modalDensity: Density;
     public readonly modalSectorSize: number;
+    // Whether the sectors with valid ID CRCs aren't all the same density, as on a dual-boot
+    // boot track (see FLOPPY_FORMATS.md).
+    public readonly mixedDensity: boolean;
+    // Map from sector number to the density of the sector with that number and a valid ID CRC.
+    private readonly sectorDensities: Map<number,Density>;
 
     constructor(trackPosition: TrackPosition, firstSectorNumber: number, lastSectorNumber: number,
                 sectorNumbers: number[], coreFirstSectorNumber: number, coreLastSectorNumber: number,
-                modalDensity: Density, modalSectorSize: number) {
+                modalDensity: Density, modalSectorSize: number, sectorDensities: Map<number,Density>) {
 
         this.trackPosition = trackPosition;
         this.firstSectorNumber = firstSectorNumber;
@@ -440,6 +445,8 @@ export class TrackGeometry {
         this.coreLastSectorNumber = coreLastSectorNumber;
         this.modalDensity = modalDensity;
         this.modalSectorSize = modalSectorSize;
+        this.sectorDensities = sectorDensities;
+        this.mixedDensity = new Set(sectorDensities.values()).size > 1;
     }
 
     /**
@@ -468,13 +475,23 @@ export class TrackGeometry {
         const core = coreSectorRange(sectorNumbers);
         const modalDensity = modeOf(layoutInfos.map(info => info.density)).value;
         const modalSectorSize = modeOf(layoutInfos.map(info => info.sectorSize)).value;
+        // If a number appears twice in different densities, keep the later one's.
+        const sectorDensities = new Map(layoutInfos.map(info => [info.sectorPosition.sectorNumber, info.density]));
 
         return new TrackGeometry(trackPosition, firstSectorNumber, lastSectorNumber, sectorNumbers,
-            core.firstSectorNumber, core.lastSectorNumber, modalDensity, modalSectorSize);
+            core.firstSectorNumber, core.lastSectorNumber, modalDensity, modalSectorSize, sectorDensities);
     }
 
     public sectorSpan(): number {
         return this.lastSectorNumber - this.firstSectorNumber + 1;
+    }
+
+    /**
+     * The density of the sector with this number, or undefined if the track has no sector with
+     * that number and a valid ID CRC.
+     */
+    public sectorDensity(sectorNumber: number): Density | undefined {
+        return this.sectorDensities.get(sectorNumber);
     }
 
     /**

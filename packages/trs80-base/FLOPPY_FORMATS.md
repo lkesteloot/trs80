@@ -192,7 +192,32 @@ Mask the cylinder byte with 0x7F; DOSPLUS sets the high bit. The Model I ROM
 boots cylinder 0 sector 0 in single density; the Model III ROM boots sector 1 in
 double density, loading it at 4300H (*Mod III ROM Commented*, 34E3H; all ten 1.3
 disks are double density from cylinder 0 on). That asymmetry is why dual-boot
-disks put two boot sectors on cylinder 0, one of each density, and nothing else.
+disks put two boot sectors on cylinder 0, one of each density.
+
+Dual-boot cylinders 0 come in two shapes. Some hold just those two sectors
+(`ldosutil.dmk`, `sledge13.dmk`, see "Disks worth remembering"). Others hold the
+single-density sector 0 and then sixteen double-density sectors numbered 1-17,
+with sector 6 missing: `MultiDOS II … [Incomplete]`, `ira/zeus` (both MultiDOS II
+from Cosmopolitan Electronics), and `Moon Rover` (an LDOS 5.1 data disk). On all
+three, only sector 1 (the Model III boot) holds data. The other fifteen hold the
+`6D B6` format fill, and the rest of the disk is single density. The interleave
+differs on each disk (Zeus's runs 1, 13, 8, … 16, 11 and would put 6 last), but 6
+is always the missing one. A seventeenth double-density sector doesn't fit:
+the single-density sector takes about two double-density sectors' worth of
+track. On Zeus, the last sector's data ends 6,108 bytes after the start of the
+DMK track and the recording stops at 6,204, while each double-density sector
+takes 338 bytes. A revolution is about 6,250. So the gap is no damage. Repairing it in an image would make the track
+longer than one revolution, and writing that image to a real disk would run
+past the index and overwrite the start of the track, which holds the Model I
+boot sector.
+
+Neither boot reads the double-density sectors past 1. Zeus's Model I boot
+loads from cylinder 1 sector 1 on, and its Model III boot loads from cylinders
+2 and 3 in single density. The DOS's boot file still claims all of cylinder 0
+(MultiDOS II's `Resident/sys` has extent 0:0:8, cylinders 0-3), so a decoder
+must take only the sectors in the DOS's own density from a mixed-density boot
+track, plus the boot sector. The rest of the claimed granules were never
+formatted in that density.
 
 The manuals add:
 
@@ -2688,7 +2713,8 @@ SYS0 banner, the boot track and the GAT.
 - The dual-boot disks (`Cosmic_Fighter…`, `sledge13.dmk`) and `ldosutil.dmk`:
   cylinder 0 holds exactly two sectors, single-density sector 0 and
   double-density sector 1, and nothing else. `ldosutil` and `sledge13` are
-  otherwise ordinary single-density Model I disks.
+  otherwise ordinary single-density Model I disks. Others put sixteen
+  double-density sectors there; see "Boot sector prefixes".
 - Mixed-density disks (8 of them, all single-sided) have a single-density
   cylinder 0 and double-density elsewhere: the Model I doubler convention.
 - Five DMK files set flag bit 6; none set bit 7.
