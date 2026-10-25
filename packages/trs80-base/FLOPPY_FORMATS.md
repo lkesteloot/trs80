@@ -391,6 +391,28 @@ overlay *n*. Measured on the 80 disks that decode in the 1.3 layout:
   Bowl` slots 8-14 hold cylinders up to 240, or no granules, and are skipped, as
   are slots that start in the directory.
 
+## The TRSDOS 1.3 layout's DOSes
+
+Several DOSes keep Model III TRSDOS's layout (boot sector, GAT 0xCB, and all), so
+only their system files tell them apart. Each names itself in its resident (the
+load module after the boot sector on cylinder 0, which the system file table may
+not list) or in another system file (October 2026, checked against the boot
+banners of `ira/all-dos`):
+
+| Banner | Name |
+|---|---|
+| `TRS-80 Model III TRSDOS version 1.3`, `1.3.2`, `1.3I` | TRSDOS 1.3, 1.3.2, 1.3I |
+| `TRS-80 Model III TRSDOS Fast Boot 40Track Version 1.3` | TRSDOS 1.3 |
+| `TRS-80 Model III/4 TRSDOS version 01.04.00` (Frank Durda's) | TRSDOS 1.4 |
+| `Super Charged TRS80 Model III operating System 1.5v` (GRL Software) | TRSDOS 1.5 |
+| `SUPERDOS Ver 1.3`, beside a graphics logo and "by Sandy R. Bair" | SuperDOS 1.3 |
+| `PROLOGICA  *  CP-500  *  DOS500 V1.3 Rev.2-D` (Brazil) | DOS500 1.3 |
+| `Model III  Version 1.3 … 1984 Rapidynamic Software` | RAPIDOS 1.3 |
+
+Banners can straddle a load record's header, which reading the resident as a
+load module removes ("TRSDOS versi" header "on 1.3I"). Data disks have only the
+boot track's "version 1.3" (see "Identifying the DOS").
+
 ## Tandy's protection track
 
 Many Tandy originals for the Model III have a 41st track, cylinder 40, that

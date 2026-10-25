@@ -89,6 +89,21 @@ const SYSTEM_BANNERS: {
 ];
 
 /**
+ * Banners in the system files of the DOSes that use Model III TRSDOS's layout, as in
+ * SYSTEM_BANNERS. See "The TRSDOS 1.3 layout's DOSes" in FLOPPY_FORMATS.md.
+ */
+const TRSDOS13_BANNERS: typeof SYSTEM_BANNERS = [
+    {pattern: /SUPERDOS Ver(?:sion)? (\d\.\d+)/, name: m => `SuperDOS ${m[1]}`},
+    {pattern: /PROLOGICA +\* +CP-500 +\* +DOS500 V(\d\.\d+)/, name: m => `DOS500 ${m[1]}`},
+    {pattern: /Version (\d\.\d+)[^\n]{0,10}\d{4} Rapidynamic Software/, name: m => `RAPIDOS ${m[1]}`},
+    // "TRSDOS version 1.3.2", "1.3I", "Fast Boot 40Track Version 1.3", and Model 4's "01.04.00".
+    {pattern: /TRSDOS (?:Fast Boot \w+ )?version (\d+\.\d+(?:\.\d+)?[A-Z]?)/i,
+        name: m => `TRSDOS ${m[1].replace(/^0(\d)\.0(\d)\.00$/, "$1.$2")}`},
+    // GRL Software's 1.5.
+    {pattern: /Super Charged TRS80 Model III operating System (\d\.\d)/, name: m => `TRSDOS ${m[1]}`},
+];
+
+/**
  * Negate each character (256 minus its code), the way TRSDOS 2.x and VTOS store their banners.
  */
 function negateText(text: string): string {
@@ -1959,7 +1974,13 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 break;
 
             case TrsdosVersion.V1_3: {
-                // Model III TRSDOS names its version on the boot track.
+                // System disks name their DOS in their system files, or in the resident, which
+                // isn't always among them. Model III TRSDOS also names its version on the boot
+                // track, data disks included.
+                const banner = this.findSystemBanner(TRSDOS13_BANNERS, [this.getResidentText()]);
+                if (banner !== undefined) {
+                    return banner;
+                }
                 const match = bootTrack.match(/version (1\.\d)/);
                 return match === null ? "TRSDOS 1.x" : `TRSDOS ${match[1]}`;
             }
@@ -2051,12 +2072,16 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Search the text of the system files for a banner in SYSTEM_BANNERS, returning the name and
+     * Search the text of the system files for one of the banners, returning the name and
      * version it gives, or undefined if there isn't one.
      */
-    private findSystemBanner(): string | undefined {
-        // Each system file's text as loaded and as stored, each also negated.
-        const texts: {filename: string, text: string, raw: boolean}[] = [];
+    private findSystemBanner(banners: typeof SYSTEM_BANNERS = SYSTEM_BANNERS, otherTexts: string[] = []):
+        string | undefined {
+
+        // Each system file's text as loaded and as stored, each also negated, after any other
+        // loaded text to search.
+        const texts: {filename: string, text: string, raw: boolean}[] =
+            otherTexts.map(text => ({filename: "", text, raw: false}));
         for (const dirEntry of this.getDirEntries(true)) {
             if (dirEntry.getExtension().toUpperCase() === "SYS") {
                 const filename = dirEntry.getFilename("/");
@@ -2068,7 +2093,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             }
         }
 
-        for (const banner of SYSTEM_BANNERS) {
+        for (const banner of banners) {
             for (const {filename, text, raw} of texts) {
                 if (raw !== (banner.raw ?? false) ||
                     (banner.file !== undefined && !banner.file.test(filename))) {
@@ -2096,6 +2121,23 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         return loadBlocks.length > 0
             ? loadBlocks.map(chunk => bytesToText(chunk.loadData)).join("")
             : bytesToText(binary);
+    }
+
+    /**
+     * The text of the resident DOS of the TRSDOS 1.3 layout, which is a load module on cylinder
+     * 0 after the boot sector, and which the system file table can leave out. See "TRSDOS 1.3
+     * system files" in FLOPPY_FORMATS.md. Empty if there's no boot track.
+     */
+    private getResidentText(): string {
+        const sectorPositions = this.geometry.bootTrack?.sectorPositions() ?? [];
+        const parts: Uint8Array[] = [];
+        for (const sectorPosition of sectorPositions.slice(1)) {
+            const data = this.disk.readSector(sectorPosition)?.data;
+            if (data !== undefined) {
+                parts.push(data);
+            }
+        }
+        return this.getProgramText(concatByteArrays(parts));
     }
 
     /**
