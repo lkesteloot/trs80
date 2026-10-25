@@ -690,6 +690,22 @@ C CRC error (ID or data).
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+            <h3 id="2026-10-24">October 24, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v4.6.0:
+                    <ul>
+                        <li><a href="#extract"><code>extract</code></a> writes to the current
+                            directory, or to the directory given by the new <code>--out-dir</code>
+                            flag, instead of taking the output directory as an argument. Names after
+                            the input file pick which files to extract, and may have wildcards.</li>
+                        <li>Every command expands wildcards in input file names itself, so they work
+                            in Windows’ <code>cmd.exe</code> and PowerShell.</li>
+                        <li>More robust reading of disk images.</li>
+                    </ul>
+                </li>
+            </ul>
+
+
             <h3 id="2026-10-22">October 22, 2026</h3>
             <ul>
                 <li><code>trs80-tool</code> v4.5.0: Can read HDV hard disk images, with their
