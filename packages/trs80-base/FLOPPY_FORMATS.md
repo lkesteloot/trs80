@@ -903,7 +903,13 @@ Strongest first. Measured on all 274 images.
   `trsdos3a.dmk`'s banner ("TRSDOS - DISK OPERATING SYSTEM - VER 3.0") is in
   SYS8.
 - **Banners seen:** NEWDOS 2.1 and 3.0 ("NEWDOS - DISK OPERATING SYSTEM - VER
-  3.0"; 3.0's also mentions TRSDOS 2.1, so try it first); NEWDOS/80 v2 draws its
+  3.0"; 3.0's also mentions TRSDOS 2.1, so try it first; the preliminary 3.0 says
+  "NEWDOS 40 TRK OPERATING SYSTEM - VER 3.0", NEWDOS+ "NEWDOS+- DISK OPERATING
+  SYSTEM - VER 2.1+", and a relocated 2.1 calls itself "TRS-80 - DISK OPERATING
+  SYSTEM - VER 2.1" but keeps NEWDOS's second line, "THIS DOS (BOOT, SYS0-SYS6,
+  FORMAT) ORIGINALLY COPYRIGHTED BY RANDOLPH COOK"); TRSDOS 2.x with Percom's
+  Patch Paks says "TRSDOS + PERCOM PATCH PAK #4/40 VER 2.3", and the Japanese 2.3
+  has three spaces before "VER" (both negated, like Tandy's); NEWDOS/80 v2 draws its
   name in graphics characters, leaving only "APPARAT, INC." and "VERSION 2.0"
   (also 2.5, "2.X" and "2/4") as text, which some zap levels shorten to "VER 2.1
   Z38" or "Vr2.0 Zap 82"; DOSPLUS IV says "DOSPLUS IV - Model 4 Disk Operating

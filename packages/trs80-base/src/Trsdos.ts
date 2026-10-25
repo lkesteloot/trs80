@@ -72,6 +72,12 @@ const SYSTEM_BANNERS: {
     // NEWDOS 2.2 (NEWDOS+) says it this way.
     {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
     {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
+    {pattern: /NEWDOS 40 TRK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
+    {pattern: /NEWDOS\+- DISK OPERATING SYSTEM - VER (\d\.\d)\+/, name: m => `NEWDOS+ ${m[1]}`},
+    // NEWDOS 2.1's second line, which a copy that calls itself "TRS-80 - DISK OPERATING SYSTEM"
+    // keeps. Must come before TRSDOS's banners.
+    {pattern: /DISK OPERATING SYSTEM - VER (\d\.\d)[\s\S]{1,4}THIS DOS \(BOOT, SYS0-SYS6, FORMAT\) ORIGINALLY/,
+        name: m => `NEWDOS ${m[1]}`},
     {pattern: /DBLDOS - DISK OPERATING SYSTEM - VER (\d\.\d+)/, name: m => `DoubleDOS ${m[1]}`},
     {pattern: /VTOS - VIRTUAL TECHNOLOGY'S OPERATING SYSTEM - VER (\d\.\d(?:\.\d)?)/, name: m => `VTOS ${m[1]}`},
     {pattern: /DOSPLUS IV - Model 4 Disk Operating System - Version (\d\.\d+)/,
@@ -85,7 +91,10 @@ const SYSTEM_BANNERS: {
     {pattern: /L ?D ?O ?S - [^\n]{0,60}?VER\.? ?(\d)\.?(\d)\.?(\d)/i, name: m => `LDOS ${m[1]}.${m[2]}.${m[3]}`},
     {pattern: /LS-DOS 0?(\d)\.0?(\d)\.0?(\d)/, name: m => `LS-DOS ${m[1]}.${m[2]}.${m[3]}`},
     {pattern: /TRSDOS 0?(6)\.0?(\d)\.0?(\d)/, name: m => `TRSDOS ${m[1]}.${m[2]}.${m[3]}`},
-    {pattern: /TRSDOS - DISK OPERATING SYSTEM -? ?VER (\d\.\d[A-Z]?)/, name: m => `TRSDOS ${m[1]}`},
+    // "TRSDOS - DISK OPERATING SYSTEM - VER 2.3", "... VER 2.3B", "...   VER 2.3" (the Japanese
+    // edition), and Percom's patched editions.
+    {pattern: /TRSDOS - DISK OPERATING SYSTEM *-? *VER (\d\.\d[A-Z]?)/, name: m => `TRSDOS ${m[1]}`},
+    {pattern: /TRSDOS \+ PERCOM PATCH PAK #\d\/\d+ +VER (\d\.\d)/, name: m => `TRSDOS ${m[1]}`},
 ];
 
 /**
