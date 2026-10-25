@@ -883,7 +883,9 @@ Strongest first. Measured on all 274 images.
 - **Banners seen:** NEWDOS 2.1 and 3.0 ("NEWDOS - DISK OPERATING SYSTEM - VER
   3.0"; 3.0's also mentions TRSDOS 2.1, so try it first); NEWDOS/80 v2 draws its
   name in graphics characters, leaving only "APPARAT, INC." and "VERSION 2.0"
-  (also 2.5, "2.X" and "2/4") as text; Percom DoubleDOS says "DBLDOS - DISK
+  (also 2.5, "2.X" and "2/4") as text, which some zap levels shorten to "VER 2.1
+  Z38" or "Vr2.0 Zap 82"; DOSPLUS IV says "DOSPLUS IV - Model 4 Disk Operating
+  System - Version 1.00" in SYS0; Percom DoubleDOS says "DBLDOS - DISK
   OPERATING SYSTEM - VER 4.23"; VTOS 3.0.1, 4.0 and 4.0.1 are negated like
   TRSDOS 2.x; Cornsoft's DOSPLUS says "DOS PLUS 3.4a" (and writes 0x40 at
   0xCB); DOSPLUS 3.5 says "3.50". NEWDOS/86 and NEWDOS/90 (W. S. and D. S.

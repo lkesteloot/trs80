@@ -66,13 +66,16 @@ const SYSTEM_BANNERS: {
     // their system disks can be told apart. Must come before NEWDOS/80's banners, which they keep.
     {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => `NEWDOS/${m[1]}`},
     {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => `NEWDOS/80 v${m[1]}`},
-    // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text.
-    {pattern: /APPARAT, INC\.[\s\S]{0,60}?VERSION (\d\.[\dX])/, name: m => `NEWDOS/80 v${m[1]}`},
+    // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text. Some zap
+    // levels shorten "VERSION 2.0" to "VER 2.1 Z38" or "Vr2.0 Zap 82".
+    {pattern: /APPARAT, INC\.[\s\S]{0,60}?(?:VERSION |VER |Vr)(\d\.[\dX])/, name: m => `NEWDOS/80 v${m[1]}`},
     // NEWDOS 2.2 (NEWDOS+) says it this way.
     {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
     {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
     {pattern: /DBLDOS - DISK OPERATING SYSTEM - VER (\d\.\d+)/, name: m => `DoubleDOS ${m[1]}`},
     {pattern: /VTOS - VIRTUAL TECHNOLOGY'S OPERATING SYSTEM - VER (\d\.\d(?:\.\d)?)/, name: m => `VTOS ${m[1]}`},
+    {pattern: /DOSPLUS IV - Model 4 Disk Operating System - Version (\d\.\d+)/,
+        name: m => `DOSPLUS IV ${m[1].replace(/^(\d\.\d)0$/, "$1")}`},
     {pattern: /DOS ?PLUS IV/, name: () => "DOSPLUS IV"},
     // The Model II's, by MicroPower: "DosPLUS II - Series A.00".
     {pattern: /DosPLUS II - Series ([A-Z]\.\d+)/, name: m => `DOSPLUS II ${m[1]}`},
