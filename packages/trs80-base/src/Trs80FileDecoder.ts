@@ -114,12 +114,16 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
         return trs80File;
     }
 
-    trs80File = decodeJv1FloppyDisk(binary);
+    // JV3 before JV1: JV1 has no header and accepts any multiple of a track's length, which a
+    // JV3 file can be by coincidence. A JV1 disk is very unlikely to pass as JV3, which needs
+    // 2,901 plausible, distinct header entries; a boot sector's 00 FE fails the first one.
+    // See "Image formats" in FLOPPY_FORMATS.md.
+    trs80File = decodeJv3FloppyDisk(binary, GUESSED_FORMAT_OPTIONS);
     if (trs80File !== undefined) {
         return trs80File;
     }
 
-    trs80File = decodeJv3FloppyDisk(binary, GUESSED_FORMAT_OPTIONS);
+    trs80File = decodeJv1FloppyDisk(binary);
     if (trs80File !== undefined) {
         return trs80File;
     }
