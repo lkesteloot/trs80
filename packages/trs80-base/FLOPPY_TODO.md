@@ -224,10 +224,10 @@ The boot check of `ira/all-dos` (see "Booting as ground truth" in
 so the suite's fact failures are this list's evidence: `node regress.ts run`
 ends with them, grouped by message.
 
-- [ ] **MultiDOS banners we can't find** (about 20 disks: Model I 1.0-1.2, and the
-      1.4S, 1.5P, 1.5S, 1.5SK, 1.6aP, 1.6C, 1.6P and 1.7P editions), and Z'DOS
-      1.00S. See "MultiDOS, Z'DOS and Esoteric" in `FLOPPY_FORMATS.md`. Maybe the
-      banner is built by code, or compressed; disassembling the resident would tell.
+- [ ] **Percom disks with no directory** (OS-80 III, MicroDOS 2.10 for the Model
+      III, and the hacked MicroDOS 1.12; see "Unresolved disks" below) fail their `os`
+      facts because nothing decodes them. Naming them would need a file system
+      with no files, or a way to report a DOS without one.
 
 ## Unresolved disks
 
@@ -558,5 +558,6 @@ to read each system disk's banner (see "Booting as ground truth" in
 more banners (MultiDOS, Z'DOS and Esoteric versions; CP/M sign-ons on the reserved
 tracks; DOSPLUS IV; the Model III layout's SuperDOS, DOS500 and RAPIDOS; NEWDOS 3.0,
 NEWDOS+ and Percom's TRSDOS 2.x; MicroDOS's resident; NEWDOS/80's whole version)
-and LNW80 CP/M left 30. Of the suite's 1,599 disks, 1,566 decode, 44,861 of 45,189
+and LNW80 CP/M left 30, and finding MultiDOS's residents outside its files (and
+its backwards banners) left 5. Of the suite's 1,599 disks, 1,566 decode, 44,861 of 45,189
 files clean; nothing changed but names, except the four LNW disks, which now decode.

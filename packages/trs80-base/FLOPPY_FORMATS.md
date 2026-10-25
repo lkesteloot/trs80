@@ -980,12 +980,17 @@ of the banner as text beside it. All three keep it in the resident system file:
 - **Hard disk editions** (`XSYSRES/SYS`, `XESORES/SYS`) say "5.11HD" or "3.20HD",
   and can be older than the floppy's resident: Esoteric 3.00's system disk has a
   3.00 `ESORES/SYS` and a 2.12HD `XESORES/SYS`. A floppy boots the one without HD.
-- **Some banners aren't on the disk as text.** MultiDOS 1.0-1.2 for the Model I,
-  and the 1.4S, 1.5P, 1.5S, 1.5SK, 1.6aP, 1.6C, 1.6P and 1.7P editions, boot to a
-  banner (`Multidos, Super Disk Operating System, Version 1.0`, `Multidos#1.6C`)
-  that no sector holds, as stored, negated, with bit 7 cleared, or under any
-  single-byte XOR or added constant. So those are still named just "MultiDOS".
-  Z'DOS 1.00S is the same.
+- **Some residents aren't in any file.** The single-density Model I editions
+  (1.4S, 1.5S, 1.5SK) and Z'DOS 1.00S keep theirs on the cylinder below the
+  directory (the banner is on cylinder 16, sector 9), and the pseudo-density
+  editions (1.2P-1.7P) and 1.6c on the boot track, where the banner is
+  `Multidos` graphics `1.6C` graphics. Neither is covered by a directory entry.
+- **MultiDOS 1.0-1.2 for the Model I keep their banner backwards** in the boot
+  sector (`0.1 noisreV ,metsyS gnitarepO ksiD repuS ,soditluM`), which copies it
+  to the screen from its end, writing each character and flipping its case if it
+  reads back differently (a Model I without the lowercase modification). The
+  banners: `Multidos, Super Disk Operating System, Version 1.0` (also on the disk
+  labeled 1.1), `Multidos, Double-Density Disk Operating System, Version 1.2D`.
 
 ## The lump model
 

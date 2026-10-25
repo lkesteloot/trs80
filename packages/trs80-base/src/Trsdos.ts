@@ -7,7 +7,7 @@
  */
 
 import {concatByteArrays} from "teamten-ts-utils";
-import {BYTES_PER_SECTOR, Density, SectorPosition} from "./FloppyDisk.js";
+import {BYTES_PER_SECTOR, Density, SectorPosition, TrackPosition} from "./FloppyDisk.js";
 import type {DiskVolume, VolumeGeometry} from "./DiskVolume.js";
 import {assertNever, toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "z80-logger";
@@ -43,7 +43,8 @@ const SYSTEM_BANNERS: {
     name: (m: RegExpMatchArray) => string,
     // Only search system files with names that match this.
     file?: RegExp,
-    // Search the whole file, not just the bytes its load records load.
+    // Search the whole file, not just the bytes its load records load, and the sectors where
+    // MultiDOS keeps its resident outside its files.
     raw?: boolean,
 }[] = [
     // V. B. Hester's MultiDOS and Esoteric, and Cosmopolitan Electronics's Z'DOS, draw their names
@@ -60,7 +61,12 @@ const SYSTEM_BANNERS: {
     // MultiDOS 1.0 and 1.1 for the Model III, and the 1.6K edition.
     {pattern: /Model III, Version (\d\.\d+)/, name: m => `MultiDOS ${m[1]}`, raw: true},
     {pattern: /Multidos (\d\.\d+[A-Z]?) \(C\)\d{4} Cosmopolitan/, name: m => `MultiDOS ${m[1]}`, raw: true},
-    // Other MultiDOS system disks show their version only in banners we can't find on the disk.
+    {pattern: /Multidos[\x80-\xBF](\d\.\d+[A-Za-z]?)[\x80-\xBF]/, name: m => `MultiDOS ${m[1]}`, raw: true},
+    // MultiDOS 1.0-1.2 for the Model I keep their banner backwards in the boot sector, which
+    // copies it to the screen from the end, so this matches the boot track reversed.
+    {pattern: /Multidos(?:, [\w-]+)? Disk Operating System, (?:Model III, )?Version (\d\.\d+[A-Z]?)/,
+        name: m => `MultiDOS ${m[1]}`},
+    // A MultiDOS disk whose resident we can't read.
     {pattern: /MULTIDOS|Cosmopolitan Electronics/, name: () => "MultiDOS"},
     // W. S. and D. S. Sands's extensions of NEWDOS/80 v2.0, which keep its disk format, so only
     // their system disks can be told apart. Must come before NEWDOS/80's banners, which they keep.
@@ -112,6 +118,13 @@ const TRSDOS13_BANNERS: typeof SYSTEM_BANNERS = [
     // GRL Software's 1.5.
     {pattern: /Super Charged TRS80 Model III operating System (\d\.\d)/, name: m => `TRSDOS ${m[1]}`},
 ];
+
+/**
+ * Reverse the order of the characters.
+ */
+function reverseText(text: string): string {
+    return Array.from(text).reverse().join("");
+}
 
 /**
  * Negate each character (256 minus its code), the way TRSDOS 2.x and VTOS store their banners.
@@ -1987,7 +2000,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 // System disks name their DOS in their system files, or in the resident, which
                 // isn't always among them. Model III TRSDOS also names its version on the boot
                 // track, data disks included.
-                const banner = this.findSystemBanner(TRSDOS13_BANNERS, [this.getResidentText()]);
+                const banner = this.findSystemBanner(TRSDOS13_BANNERS, [{text: this.getResidentText(), raw: false}]);
                 if (banner !== undefined) {
                     return banner;
                 }
@@ -2010,7 +2023,14 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // cylinders are NEWDOS/80's (and so NEWDOS/86's and /90's), MultiDOS's (and so Z'DOS's and
         // Esoteric's) and DoubleDOS's. (A NEWDOS/80 disk can carry another DOS's system files, which
         // then can't boot it.)
-        const banner = this.findSystemBanner();
+        // MultiDOS keeps its resident outside its files, on the boot track or on the cylinder
+        // below the directory, and some editions keep their banner backwards.
+        const dirCylinder = this.logicalToPhysical(this.dirLumpNumber, 0, 0).trackPosition.cylinderNumber;
+        const banner = this.findSystemBanner(SYSTEM_BANNERS, [
+            {text: reverseText(bootTrack), raw: false},
+            {text: bootTrack, raw: true},
+            {text: this.getCylinderText(dirCylinder - 1), raw: true},
+        ]);
         if (banner !== undefined && (this.lumpTerm === "cylinder" ||
             /^(NEWDOS\/(80|86|90)|MultiDOS|Z'DOS|Esoteric|DoubleDOS)/.test(banner))) {
 
@@ -2085,13 +2105,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * Search the text of the system files for one of the banners, returning the name and
      * version it gives, or undefined if there isn't one.
      */
-    private findSystemBanner(banners: typeof SYSTEM_BANNERS = SYSTEM_BANNERS, otherTexts: string[] = []):
-        string | undefined {
+    private findSystemBanner(banners: typeof SYSTEM_BANNERS = SYSTEM_BANNERS,
+                             otherTexts: {text: string, raw: boolean}[] = []): string | undefined {
 
-        // Each system file's text as loaded and as stored, each also negated, after any other
-        // loaded text to search.
-        const texts: {filename: string, text: string, raw: boolean}[] =
-            otherTexts.map(text => ({filename: "", text, raw: false}));
+        // Each system file's text as loaded and as stored, each also negated, then the other
+        // texts to search, each searched by the banners with the same "raw".
+        const texts: {filename: string, text: string, raw: boolean}[] = [];
         for (const dirEntry of this.getDirEntries(true)) {
             if (dirEntry.getExtension().toUpperCase() === "SYS") {
                 const filename = dirEntry.getFilename("/");
@@ -2102,6 +2121,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     {filename, text: rawText, raw: true}, {filename, text: negateText(rawText), raw: true});
             }
         }
+        texts.push(...otherTexts.map(({text, raw}) => ({filename: "", text, raw})));
 
         for (const banner of banners) {
             for (const {filename, text, raw} of texts) {
@@ -2131,6 +2151,26 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         return loadBlocks.length > 0
             ? loadBlocks.map(chunk => bytesToText(chunk.loadData)).join("")
             : bytesToText(binary);
+    }
+
+    /**
+     * The contents of side 0 of a cylinder, in sector number order, as text with one character
+     * per byte. Sectors that can't be read are skipped.
+     */
+    private getCylinderText(cylinder: number): string {
+        // Sectors are numbered from 0 or from 1, so try both ends.
+        const trackPosition = new TrackPosition(cylinder, 0);
+        let text = "";
+        for (let sectorNumber = 0; sectorNumber <= this.geometry.modalDataSectorSpan; sectorNumber++) {
+            const sectorPosition = new SectorPosition(trackPosition, sectorNumber);
+            if (this.disk.hasSectorData(sectorPosition)) {
+                const data = this.disk.readSector(sectorPosition)?.data;
+                if (data !== undefined) {
+                    text += bytesToText(data);
+                }
+            }
+        }
+        return text;
     }
 
     /**
