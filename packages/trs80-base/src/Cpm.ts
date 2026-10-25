@@ -10,7 +10,7 @@
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {FloppyDisk, FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {makeSkewTable} from "./DiskUtils.js";
+import {bytesToText, makeSkewTable} from "./DiskUtils.js";
 
 // Size of a directory entry.
 const DIR_ENTRY_SIZE = 32;
@@ -51,6 +51,21 @@ const BINARY_EXTENSIONS = new Set([
 
 // Fraction of the bytes before the Ctrl-Z that must be text characters for us to clip there.
 const MIN_TEXT_FRACTION = 0.95;
+
+/**
+ * Banners that system disks carry on their reserved tracks, each turned into a name and
+ * version. They win over the format's vendor, since vendors share formats. See "Naming CP/M
+ * disks" in FLOPPY_FORMATS.md.
+ */
+const CPM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[] = [
+    // Montezuma Micro's BIOS 1.x and 2.x for the Model 4, whose CP/M is always 2.2. Version 2.x
+    // shows its banner in inverse video, but stores it as plain text.
+    {pattern: /Model 4 \d+K System CP\/M 2\.2 v(\d\.\d+)/, name: m => `Montezuma Micro CP/M BIOS ${m[1]}`},
+    {pattern: /BIOS (?:vers|rel\.) (\d\.\d+) \(c\) \(p\) \d{4} Montezuma/, name: m => `Montezuma Micro CP/M BIOS ${m[1]}`},
+    {pattern: /CP\/M +V (\d\.\d+) +COPYRIGHT \(C\) 1979[\s\S]LIFEBOAT ASSOCIATES/, name: m => `Lifeboat CP/M ${m[1]}`},
+    {pattern: /FMG TRS-80 \d+K CP\/M VERS (\d\.\d+)/, name: m => `FMG CP/M ${m[1]}`},
+    {pattern: /TPM SYSTEM FOR TRS-80 - \d+K V(\d\.\d+)/, name: m => `TPM ${m[1]}`},
+];
 
 /**
  * How one BIOS lays out its disks. This is the part of the disk parameter block (DPB) that
@@ -550,11 +565,40 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         this.wideBlockPointers = this.blockCount > 256;
         this.extentMask = format.blockSize/(this.wideBlockPointers ? 2048 : 1024) - 1;
         this.dirBlockCount = Math.ceil(format.dirEntryCount*DIR_ENTRY_SIZE/format.blockSize);
-        this.nameAndVersion = format.name + " CP/M";
+        this.nameAndVersion = this.findBanner() ?? format.name + " CP/M";
 
         const {files, evaluation} = this.readDirectory();
         this.files = files;
         this.evaluation = evaluation;
+    }
+
+    /**
+     * Search the reserved tracks for a banner in CPM_BANNERS, returning the name and version it
+     * gives, or undefined if there isn't one.
+     */
+    private findBanner(): string | undefined {
+        const reservedCylinderCount = Math.ceil(this.reservedTrackCount/this.allocationSides);
+        const reservedSectors = this.geometry.sectorInfos
+            .map(sectorInfo => sectorInfo.sectorPosition)
+            .filter(position => position.trackPosition.cylinderNumber < reservedCylinderCount)
+            .sort((a, b) => a.trackPosition.cylinderNumber - b.trackPosition.cylinderNumber ||
+                a.trackPosition.side - b.trackPosition.side || a.sectorNumber - b.sectorNumber);
+        let text = "";
+        for (const position of reservedSectors) {
+            const data = this.disk.readSector(position)?.data;
+            if (data !== undefined) {
+                text += bytesToText(data);
+            }
+        }
+
+        for (const banner of CPM_BANNERS) {
+            const match = text.match(banner.pattern);
+            if (match !== null) {
+                return banner.name(match);
+            }
+        }
+
+        return undefined;
     }
 
     /**

@@ -1825,6 +1825,28 @@ entries are found either way, so the tie would go to Montezuma, the earlier
 entry, and every file would come out scrambled. The track lengths keep each
 format to its own disks.
 
+### Naming CP/M disks
+
+The format (the DPB) names a vendor, but vendors share formats: FMG's and TPM's
+Model I CP/M use Lifeboat's. System disks name themselves in the CP/M or BIOS
+sign-on on the reserved tracks, as plain text even where it's shown in inverse
+video (October 2026, checked against the boot banners of `ira/all-dos`):
+
+| Banner | Name |
+|---|---|
+| `TRS-80 Model 4 60K System CP/M 2.2 v1.32` | Montezuma Micro CP/M BIOS 1.32 (BIOS 1.x) |
+| `BIOS vers 2.22 (c) (p) 1984 Montezuma Micro/JBO`, or `BIOS rel. 2.32` | Montezuma Micro CP/M BIOS 2.22 (BIOS 2.x) |
+| `48K TRS-80 CP/M  V 1.41  COPYRIGHT (C) 1979` CR `LIFEBOAT ASSOCIATES` | Lifeboat CP/M 1.41 |
+| `FMG TRS-80 48K CP/M VERS 1.5` | FMG CP/M 1.5 |
+| `TPM SYSTEM FOR TRS-80 - 00K V2.1 - 12/23/79` | TPM 2.1 |
+
+Montezuma's CP/M is always 2.2, so its version is the BIOS's. Each system track
+can hold several memory sizes' copies of the sign-on (16K, 32K, 48K, and "00K"
+for MOVCPM's template); they agree on the version. Radio Shack's CP/M Plus only
+gives its own release ("Radio Shack Version 01.00.00"), so it stays "Digital
+Research CP/M". One Lifeboat 1.4 disk boots to a bare `48K CP/M VERS 1.4`, which
+names no vendor.
+
 ## Percom MicroDOS
 
 Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
