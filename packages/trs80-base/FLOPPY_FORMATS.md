@@ -2080,6 +2080,14 @@ that are JV3 despite a `.dmk` name, such as `Pro-MC Library` and `TRSDOS v6.02
 ... [Patched]`. So `decodeTrs80File()` tries JV3 when a `.dmk` file doesn't
 decode as DMK, as `.dsk` already did.
 
+**A `.dsk` tries JV3 before JV1**, because JV1 has no header and accepts any
+multiple of 2,560 bytes, which a JV3 file can be by coincidence: 8,704 + 22 × 18
+× 256 = 110,080 = 43 × 2,560 (`ira/tamer`, a one-sided 22-cylinder double-density
+JV3, which JV1-first read as 43 single-density cylinders). The reverse doesn't
+happen: of the 19 suite files JV1 accepts by length, only that one also parses as
+JV3. A JV1 boot sector's `00 FE` reads as an entry for sector 254, which fails
+the plausibility test at the first header.
+
 **DMK** stores raw track bytes. The 16-byte header is write-protect, track
 count, little-endian track length, flags. Flag bit 4 is single-sided, bit 6 is
 single-density size, bit 7 is ignore-density. **Bits 6 or 7 mean single-density
@@ -2588,7 +2596,11 @@ evidence: there are, for example, about 100 double-sided LS-DOS data disks.
 1980-1982). `willus/dsp1321a.dmk` is 3.2.1 for the Model I, with 0xCB = 0x32
 and DOSPLUS's `F3 FE` boot sector. The six 0x32 disks in `peter/` are not
 DOSPLUS: they share another boot sector, which says "Not A System Disk:", from
-a formatter that also writes 0x34.
+a formatter that also writes 0x34. It also writes 0x31 (`ira/tamer`, 1983,
+with LDOS-style 32-byte entries and a HIT), and its 0xCC is the cylinders minus
+35 even below 35, wrapping to a byte: 0xEA there for 13 cylinders, which the
+lockout table confirms. The image has 22 cylinders; 13-21 hold only the
+double-density format fill, 6D B6 repeated.
 
 **Filenames came from wherever the images were found, and some were wrong.**
 These were renamed in October 2026, from evidence on the disks; each sidecar's
