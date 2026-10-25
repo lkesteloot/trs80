@@ -31,6 +31,9 @@ const PASSWORD = 0xD38F;
 // Name of a disk whose DOS we can't tell.
 const UNKNOWN_DOS = "Unknown DOS";
 
+// Names (in upper case) of the files that hold the boot track, in the DOSes that have one.
+const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);
+
 /**
  * Banners that system disks' system files carry, each turned into a name and version. See
  * "Identifying the DOS" in FLOPPY_FORMATS.md.
@@ -2147,14 +2150,25 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // BOOT/SYS claims whole granules of the boot track, but on disks whose boot track is formatted
         // with fewer sectors than the others (single density on a double-density disk), the sectors
         // past the end of the track were never formatted. They aren't missing, they don't exist.
-        // MultiDOS calls its boot file DOS/SYS. If the disk has no boot track at all, those sectors
-        // are missing from the image, so we don't filter them.
-        const filename = firstDirEntry.getFilename("/");
+        // A boot track that mixes densities holds a boot sector for each ROM, and the sectors in the
+        // other density belong to the other machine (on a dual-boot disk, the Model III's boot and
+        // unwritten fill; see FLOPPY_FORMATS.md). The file has the boot sector and the sectors in the
+        // DOS's own density, and the rest of its granules don't exist. MultiDOS calls its boot file
+        // DOS/SYS, and MultiDOS II calls it Resident/sys. If the disk has no boot track at all,
+        // those sectors are missing from the image, so we don't filter them.
+        const filename = firstDirEntry.getFilename("/").toUpperCase();
         const bootTrack = this.geometry.bootTrack;
-        if (bootTrack !== undefined && (filename === "BOOT/SYS" || filename === "DOS/SYS")) {
-            return sectorPositions.filter(sectorPosition =>
-                !sectorPosition.trackPosition.equals(bootTrack.trackPosition) ||
-                sectorPosition.sectorNumber <= bootTrack.lastSectorNumber);
+        if (bootTrack !== undefined && BOOT_FILENAMES.has(filename)) {
+            return sectorPositions.filter(sectorPosition => {
+                if (!sectorPosition.trackPosition.equals(bootTrack.trackPosition)) {
+                    return true;
+                }
+                if (bootTrack.mixedDensity) {
+                    return sectorPosition.sectorNumber === bootTrack.firstSectorNumber ||
+                        bootTrack.sectorDensity(sectorPosition.sectorNumber) === this.geometry.modalDataDensity;
+                }
+                return sectorPosition.sectorNumber <= bootTrack.lastSectorNumber;
+            });
         }
 
         return sectorPositions;
