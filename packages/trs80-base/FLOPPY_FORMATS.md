@@ -391,6 +391,28 @@ overlay *n*. Measured on the 80 disks that decode in the 1.3 layout:
   Bowl` slots 8-14 hold cylinders up to 240, or no granules, and are skipped, as
   are slots that start in the directory.
 
+## The TRSDOS 1.3 layout's DOSes
+
+Several DOSes keep Model III TRSDOS's layout (boot sector, GAT 0xCB, and all), so
+only their system files tell them apart. Each names itself in its resident (the
+load module after the boot sector on cylinder 0, which the system file table may
+not list) or in another system file (October 2026, checked against the boot
+banners of `ira/all-dos`):
+
+| Banner | Name |
+|---|---|
+| `TRS-80 Model III TRSDOS version 1.3`, `1.3.2`, `1.3I` | TRSDOS 1.3, 1.3.2, 1.3I |
+| `TRS-80 Model III TRSDOS Fast Boot 40Track Version 1.3` | TRSDOS 1.3 |
+| `TRS-80 Model III/4 TRSDOS version 01.04.00` (Frank Durda's) | TRSDOS 1.4 |
+| `Super Charged TRS80 Model III operating System 1.5v` (GRL Software) | TRSDOS 1.5 |
+| `SUPERDOS Ver 1.3`, beside a graphics logo and "by Sandy R. Bair" | SuperDOS 1.3 |
+| `PROLOGICA  *  CP-500  *  DOS500 V1.3 Rev.2-D` (Brazil) | DOS500 1.3 |
+| `Model III  Version 1.3 … 1984 Rapidynamic Software` | RAPIDOS 1.3 |
+
+Banners can straddle a load record's header, which reading the resident as a
+load module removes ("TRSDOS versi" header "on 1.3I"). Data disks have only the
+boot track's "version 1.3" (see "Identifying the DOS").
+
 ## Tandy's protection track
 
 Many Tandy originals for the Model III have a 41st track, cylinder 40, that
@@ -881,9 +903,18 @@ Strongest first. Measured on all 274 images.
   `trsdos3a.dmk`'s banner ("TRSDOS - DISK OPERATING SYSTEM - VER 3.0") is in
   SYS8.
 - **Banners seen:** NEWDOS 2.1 and 3.0 ("NEWDOS - DISK OPERATING SYSTEM - VER
-  3.0"; 3.0's also mentions TRSDOS 2.1, so try it first); NEWDOS/80 v2 draws its
+  3.0"; 3.0's also mentions TRSDOS 2.1, so try it first; the preliminary 3.0 says
+  "NEWDOS 40 TRK OPERATING SYSTEM - VER 3.0", NEWDOS+ "NEWDOS+- DISK OPERATING
+  SYSTEM - VER 2.1+", and a relocated 2.1 calls itself "TRS-80 - DISK OPERATING
+  SYSTEM - VER 2.1" but keeps NEWDOS's second line, "THIS DOS (BOOT, SYS0-SYS6,
+  FORMAT) ORIGINALLY COPYRIGHTED BY RANDOLPH COOK"); TRSDOS 2.x with Percom's
+  Patch Paks says "TRSDOS + PERCOM PATCH PAK #4/40 VER 2.3", and the Japanese 2.3
+  has three spaces before "VER" (both negated, like Tandy's); NEWDOS/80 v2 draws its
   name in graphics characters, leaving only "APPARAT, INC." and "VERSION 2.0"
-  (also 2.5, "2.X" and "2/4") as text; Percom DoubleDOS says "DBLDOS - DISK
+  (also 2.5, 2.06, 2.74, "2.X" and "2/4") as text, which some zap levels shorten
+  to "VER 2.1 Z38" or "Vr2.0 Zap 82", and the German edition writes "Apparat
+  Inc." and "Vers. 2.052"; DOSPLUS IV says "DOSPLUS IV - Model 4 Disk Operating
+  System - Version 1.00" in SYS0; Percom DoubleDOS says "DBLDOS - DISK
   OPERATING SYSTEM - VER 4.23"; VTOS 3.0.1, 4.0 and 4.0.1 are negated like
   TRSDOS 2.x; Cornsoft's DOSPLUS says "DOS PLUS 3.4a" (and writes 0x40 at
   0xCB); DOSPLUS 3.5 says "3.50". NEWDOS/86 and NEWDOS/90 (W. S. and D. S.
@@ -909,6 +940,57 @@ Strongest first. Measured on all 274 images.
   UltraDOS's "U"; the "Not A System Disk:" formatter writes 0x31-0x34 without
   being DOSPLUS; 0x40 is DOSPLUS 4.0, DOSPLUS 3.4a or VTOS 4.0. These name a
   data disk "Unknown DOS" rather than a wrong one.
+
+### Booting as ground truth
+
+The banner a system disk shows when it boots is the most direct evidence of its
+DOS and version. In October 2026, every disk in `ira/all-dos` (1,000 images, Ira's
+collection of DOS disks) was booted, Model I and III disks in trs80-tool's
+emulator and Model 4 disks in trs80gp, and the screens are in the regression
+suite's `boot-screens/`; `disks/ira/all-dos/README.md` there compares them with
+the filenames and with our detection. The banners corrected 19 filenames, and the
+`os` facts in the sidecars record what each disk should be named.
+
+### MultiDOS, Z'DOS and Esoteric
+
+V. B. Hester's MultiDOS (published by Cosmopolitan Electronics through 2.10 in
+1987, and by Hester himself from 4.01 in 2005 through 6.20 in 2022), Cosmopolitan
+Electronics's Z'DOS, and Hester's Esoteric for the Model 4 draw their names in graphics characters, with the rest
+of the banner as text beside it. All three keep it in the resident system file:
+
+| DOS | Resident file | Banner text | Version |
+|---|---|---|---|
+| MultiDOS 1.0, 1.1 (Model III) | `DOS/SYS` | `Model III, Version 1.1` | as shown |
+| MultiDOS 1.2-1.6 | `DOS/SYS` | `TM` graphics `MODEL I,` graphics `VERSION` graphics `1.3D` | 1.3D, 1.6aS, 1.6c |
+| MultiDOS 1.7-6.20 | `SYSRES/SYS` (1.7: also `RESIDENT/SYS`) | `tm  Model 4, Version 2.10` | 1.71S, 4.01, 6.20 |
+| MultiDOS 1.6K | `DOSRES/SYS` | `Multidos 1.6K (C)1983 Cosmopolitan Electronics Corporation` | 1.6K |
+| Z'DOS 1.0 | `DOS/SYS` | `Model III,` 0x80 `Version` 0x80 `1.00` (no "tm") | 1.00, 1.00D, 1.00S |
+| Esoteric 2.11-3.20 | `ESORES/SYS` | `Version 3.20` (no model, no "tm") | as shown |
+
+- **The version's letters are part of it.** D, S and P are the double, single and
+  "pseudo" density editions (which the filenames also give), K appears on
+  editions customized for other companies (Computer Shack's 1.5SK, Merlin's 1.6K,
+  and the 1.3K and 1.5K on Computer Shack's and Sunburst's software disks), and a lower-case letter is a revision (1.3a, 1.6c, 1.6d). The banner is
+  the only reliable version: GAT byte 0xCB says 0x10, 0x17 or 0xFF for whole
+  ranges of versions.
+- **`DOS/SYS` isn't all loaded.** Before 1.7 it's a 75-byte CMD loader, then a
+  transfer address, then the resident itself (about 7K), which the boot sector
+  reads directly. So the banner is past the transfer address, where for other
+  DOSes we ignore bytes as leftovers.
+- **Hard disk editions** (`XSYSRES/SYS`, `XESORES/SYS`) say "5.11HD" or "3.20HD",
+  and can be older than the floppy's resident: Esoteric 3.00's system disk has a
+  3.00 `ESORES/SYS` and a 2.12HD `XESORES/SYS`. A floppy boots the one without HD.
+- **Some residents aren't in any file.** The single-density Model I editions
+  (1.4S, 1.5S, 1.5SK) and Z'DOS 1.00S keep theirs on the cylinder below the
+  directory (the banner is on cylinder 16, sector 9), and the pseudo-density
+  editions (1.2P-1.7P) and 1.6c on the boot track, where the banner is
+  `Multidos` graphics `1.6C` graphics. Neither is covered by a directory entry.
+- **MultiDOS 1.0-1.2 for the Model I keep their banner backwards** in the boot
+  sector (`0.1 noisreV ,metsyS gnitarepO ksiD repuS ,soditluM`), which copies it
+  to the screen from its end, writing each character and flipping its case if it
+  reads back differently (a Model I without the lowercase modification). The
+  banners: `Multidos, Super Disk Operating System, Version 1.0` (also on the disk
+  labeled 1.1), `Multidos, Double-Density Disk Operating System, Version 1.2D`.
 
 ## The lump model
 
@@ -1691,6 +1773,18 @@ Two Lifeboat-layout disks are truncated images (see "Truncated images" below):
   of a 35-track disk. A 35-track BIOS never allocates them, so the disk was
   written on 40 tracks, and the image stops at 35.
 
+**LNW Research CP/M 2.2** (LNW80, R. M. Stiles's BIOS, "LNW-II ver 2.80" and
+3.00; October 2026, from Ira's four disks, measured since there's no DPB):
+
+- Cylinder 0 is single density, 10 sectors of 256 bytes numbered 0-9. The rest
+  is double density, 18 sectors of 256 bytes numbered 1-18, single-sided.
+- 3 reserved tracks: the directory is cylinder 3, sectors 1, 6, 11, ... (skew 5).
+- 2K blocks, 8-bit block pointers, and 64 directory entries (block 0). MOVCPM's
+  76 records fill blocks 1-5, and `DUMP.ASM` reads as clean text across blocks.
+- The sign-on is "CP/M ver 2.2", "Copyright (c), 1979 Digital Research",
+  "LNW-II ver 2.80", "by R.M. Stiles"; the 3.0 disks say "ver 3.00". The 3.0
+  disks boot to garbage in our emulator, which doesn't emulate the LNW80.
+
 **Holmes Engineering CP/M 2.2** (Model I with Holmes's VID-80 80-column board).
 mloewen's `Holmes-Engineering-VID80/holmes-cpm.dmk` is single-sided, 40 tracks,
 double density throughout, with 10 sectors of 512 bytes numbered 0-9. The
@@ -1779,6 +1873,28 @@ entries are found either way, so the tie would go to Montezuma, the earlier
 entry, and every file would come out scrambled. The track lengths keep each
 format to its own disks.
 
+### Naming CP/M disks
+
+The format (the DPB) names a vendor, but vendors share formats: FMG's and TPM's
+Model I CP/M use Lifeboat's. System disks name themselves in the CP/M or BIOS
+sign-on on the reserved tracks, as plain text even where it's shown in inverse
+video (October 2026, checked against the boot banners of `ira/all-dos`):
+
+| Banner | Name |
+|---|---|
+| `TRS-80 Model 4 60K System CP/M 2.2 v1.32` | Montezuma Micro CP/M BIOS 1.32 (BIOS 1.x) |
+| `BIOS vers 2.22 (c) (p) 1984 Montezuma Micro/JBO`, or `BIOS rel. 2.32` | Montezuma Micro CP/M BIOS 2.22 (BIOS 2.x) |
+| `48K TRS-80 CP/M  V 1.41  COPYRIGHT (C) 1979` CR `LIFEBOAT ASSOCIATES` | Lifeboat CP/M 1.41 |
+| `FMG TRS-80 48K CP/M VERS 1.5` | FMG CP/M 1.5 |
+| `TPM SYSTEM FOR TRS-80 - 00K V2.1 - 12/23/79` | TPM 2.1 |
+
+Montezuma's CP/M is always 2.2, so its version is the BIOS's. Each system track
+can hold several memory sizes' copies of the sign-on (16K, 32K, 48K, and "00K"
+for MOVCPM's template); they agree on the version. Radio Shack's CP/M Plus only
+gives its own release ("Radio Shack Version 01.00.00"), so it stays "Digital
+Research CP/M". One Lifeboat 1.4 disk boots to a bare `48K CP/M VERS 1.4`, which
+names no vendor.
+
 ## Percom MicroDOS
 
 Percom's Model I MicroDOS (James Stutsman, 1979) shares nothing with the TRSDOS
@@ -1851,6 +1967,12 @@ OS-80 1.5, and the manual disk. The rest don't have one:
   a count of 13 and the text `HELLO SAILOR!`. They have no directory: their
   BASIC addresses files by absolute sector (`LOAD 10055`, `GET A$,10020`), and
   their menu program lists the files in DATA lines.
+- **Two versions.** The resident on cylinder 0 (sector 2) names the DOS:
+  `PERCOM MICRODOS VERSION 1.12` CR `COPYRIGHT (C) 1979 PERCOM DATA COMPANY`.
+  System disks then run a menu, which is what they boot to, and it names the
+  system disk: `PERCOM MICRODOS SYSTEM DISK VERSION 1.21`. The two differ: the
+  1.21 and 1.22 system disks run MicroDOS 1.12, and the "1.15" disks with menu
+  2.15 run 2.15 (October 2026). We name the DOS's.
 
 ## Model II TRSDOS
 

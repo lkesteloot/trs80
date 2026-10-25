@@ -7,14 +7,14 @@
  */
 
 import {concatByteArrays} from "teamten-ts-utils";
-import {BYTES_PER_SECTOR, Density, SectorPosition} from "./FloppyDisk.js";
+import {BYTES_PER_SECTOR, Density, SectorPosition, TrackPosition} from "./FloppyDisk.js";
 import type {DiskVolume, VolumeGeometry} from "./DiskVolume.js";
 import {assertNever, toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "z80-logger";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {bytesToText} from "./DiskUtils.js";
+import {bytesToText, type DosBanner, findDosBanner} from "./DiskUtils.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -35,23 +35,63 @@ const UNKNOWN_DOS = "Unknown DOS";
 const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);
 
 /**
+ * A banner in a system disk's system files, and which of their texts to search for it.
+ */
+interface SystemFileBanner extends DosBanner {
+    // Only search system files with names that match this.
+    readonly file?: RegExp;
+    // Search the whole file, not just the bytes its load records load, and the sectors where
+    // MultiDOS keeps its resident outside its files.
+    readonly raw?: boolean;
+}
+
+/**
  * Banners that system disks' system files carry, each turned into a name and version. See
  * "Identifying the DOS" in FLOPPY_FORMATS.md.
  */
-const SYSTEM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[] = [
-    // MultiDOS's version byte and banners are unreliable, so leave its version off.
+const SYSTEM_BANNERS: readonly SystemFileBanner[] = [
+    // V. B. Hester's MultiDOS and Esoteric, and Cosmopolitan Electronics's Z'DOS, draw their names
+    // in graphics characters next to "Model III, Version 1.6" and the like; see "MultiDOS, Z'DOS
+    // and Esoteric" in FLOPPY_FORMATS.md. Esoteric's says no model, and its resident file is
+    // ESORES/SYS. Hard disk editions add "HD" (in XSYSRES/SYS and XESORES/SYS); a floppy boots
+    // the other one. Before MultiDOS 1.7, the resident file (DOS/SYS) is a short CMD loader
+    // followed by the resident itself, past the transfer address, so search all of it.
+    {pattern: /Version (?!\d\.\d+\w*HD)(\d\.\d+[A-Za-z]*)/, name: m => `Esoteric ${m[1]}`, file: /^ESORES\/SYS$/i},
+    {pattern: /\btm\W{1,4}MODEL\W+(?:I{1,3}|4),\W+VERSION\W+(?!\d\.\d+\w*HD)(\d\.\d+[A-Za-z]*)/i,
+        name: m => `MultiDOS ${m[1]}`, raw: true},
+    // Z'DOS's has graphics where MultiDOS's has "tm", so it must come after MultiDOS's.
+    {pattern: /MODEL[ \x80-\xBF]I{1,3},[\x80-\xBF]{1,3}VERSION[\x80-\xBF](\d\.\d+[A-Z]?)/i, name: m => `Z'DOS ${m[1]}`, raw: true},
+    // MultiDOS 1.0 and 1.1 for the Model III, and the 1.6K edition.
+    {pattern: /Model III, Version (\d\.\d+)/, name: m => `MultiDOS ${m[1]}`, raw: true},
+    {pattern: /Multidos (\d\.\d+[A-Z]?) \(C\)\d{4} Cosmopolitan/, name: m => `MultiDOS ${m[1]}`, raw: true},
+    {pattern: /Multidos[\x80-\xBF](\d\.\d+[A-Za-z]?)[\x80-\xBF]/, name: m => `MultiDOS ${m[1]}`, raw: true},
+    // MultiDOS 1.0-1.2 for the Model I keep their banner backwards in the boot sector, which
+    // copies it to the screen from the end, so this matches the boot track reversed.
+    {pattern: /Multidos(?:, [\w-]+)? Disk Operating System, (?:Model III, )?Version (\d\.\d+[A-Z]?)/,
+        name: m => `MultiDOS ${m[1]}`},
+    // A MultiDOS disk whose resident we can't read.
     {pattern: /MULTIDOS|Cosmopolitan Electronics/, name: () => "MultiDOS"},
     // W. S. and D. S. Sands's extensions of NEWDOS/80 v2.0, which keep its disk format, so only
     // their system disks can be told apart. Must come before NEWDOS/80's banners, which they keep.
     {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => `NEWDOS/${m[1]}`},
     {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => `NEWDOS/80 v${m[1]}`},
-    // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text.
-    {pattern: /APPARAT, INC\.[\s\S]{0,60}?VERSION (\d\.[\dX])/, name: m => `NEWDOS/80 v${m[1]}`},
+    // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text. Some zap
+    // levels shorten "VERSION 2.0" to "VER 2.1 Z38" or "Vr2.0 Zap 82", and the German edition
+    // says "Apparat Inc." and "Vers. 2.052".
+    {pattern: /APPARAT,? INC\.[\s\S]{0,60}?(?:VERSION |VER |VERS\. |Vr)(\d\.[\dX]\d*)/i, name: m => `NEWDOS/80 v${m[1]}`},
     // NEWDOS 2.2 (NEWDOS+) says it this way.
     {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
     {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
+    {pattern: /NEWDOS 40 TRK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
+    {pattern: /NEWDOS\+- DISK OPERATING SYSTEM - VER (\d\.\d)\+/, name: m => `NEWDOS+ ${m[1]}`},
+    // NEWDOS 2.1's second line, which a copy that calls itself "TRS-80 - DISK OPERATING SYSTEM"
+    // keeps. Must come before TRSDOS's banners.
+    {pattern: /DISK OPERATING SYSTEM - VER (\d\.\d)[\s\S]{1,4}THIS DOS \(BOOT, SYS0-SYS6, FORMAT\) ORIGINALLY/,
+        name: m => `NEWDOS ${m[1]}`},
     {pattern: /DBLDOS - DISK OPERATING SYSTEM - VER (\d\.\d+)/, name: m => `DoubleDOS ${m[1]}`},
     {pattern: /VTOS - VIRTUAL TECHNOLOGY'S OPERATING SYSTEM - VER (\d\.\d(?:\.\d)?)/, name: m => `VTOS ${m[1]}`},
+    {pattern: /DOSPLUS IV - Model 4 Disk Operating System - Version (\d\.\d+)/,
+        name: m => `DOSPLUS IV ${m[1].replace(/^(\d\.\d)0$/, "$1")}`},
     {pattern: /DOS ?PLUS IV/, name: () => "DOSPLUS IV"},
     // The Model II's, by MicroPower: "DosPLUS II - Series A.00".
     {pattern: /DosPLUS II - Series ([A-Z]\.\d+)/, name: m => `DOSPLUS II ${m[1]}`},
@@ -61,8 +101,33 @@ const SYSTEM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[]
     {pattern: /L ?D ?O ?S - [^\n]{0,60}?VER\.? ?(\d)\.?(\d)\.?(\d)/i, name: m => `LDOS ${m[1]}.${m[2]}.${m[3]}`},
     {pattern: /LS-DOS 0?(\d)\.0?(\d)\.0?(\d)/, name: m => `LS-DOS ${m[1]}.${m[2]}.${m[3]}`},
     {pattern: /TRSDOS 0?(6)\.0?(\d)\.0?(\d)/, name: m => `TRSDOS ${m[1]}.${m[2]}.${m[3]}`},
-    {pattern: /TRSDOS - DISK OPERATING SYSTEM -? ?VER (\d\.\d[A-Z]?)/, name: m => `TRSDOS ${m[1]}`},
+    // "TRSDOS - DISK OPERATING SYSTEM - VER 2.3", "... VER 2.3B", "...   VER 2.3" (the Japanese
+    // edition), and Percom's patched editions.
+    {pattern: /TRSDOS - DISK OPERATING SYSTEM *-? *VER (\d\.\d[A-Z]?)/, name: m => `TRSDOS ${m[1]}`},
+    {pattern: /TRSDOS \+ PERCOM PATCH PAK #\d\/\d+ +VER (\d\.\d)/, name: m => `TRSDOS ${m[1]}`},
 ];
+
+/**
+ * Banners in the system files of the DOSes that use Model III TRSDOS's layout, as in
+ * SYSTEM_BANNERS. See "The TRSDOS 1.3 layout's DOSes" in FLOPPY_FORMATS.md.
+ */
+const TRSDOS13_BANNERS: readonly SystemFileBanner[] = [
+    {pattern: /SUPERDOS Ver(?:sion)? (\d\.\d+)/, name: m => `SuperDOS ${m[1]}`},
+    {pattern: /PROLOGICA +\* +CP-500 +\* +DOS500 V(\d\.\d+)/, name: m => `DOS500 ${m[1]}`},
+    {pattern: /Version (\d\.\d+)[^\n]{0,10}\d{4} Rapidynamic Software/, name: m => `RAPIDOS ${m[1]}`},
+    // "TRSDOS version 1.3.2", "1.3I", "Fast Boot 40Track Version 1.3", and Model 4's "01.04.00".
+    {pattern: /TRSDOS (?:Fast Boot \w+ )?version (\d+\.\d+(?:\.\d+)?[A-Z]?)/i,
+        name: m => `TRSDOS ${m[1].replace(/^0(\d)\.0(\d)\.00$/, "$1.$2")}`},
+    // GRL Software's 1.5.
+    {pattern: /Super Charged TRS80 Model III operating System (\d\.\d)/, name: m => `TRSDOS ${m[1]}`},
+];
+
+/**
+ * Reverse the order of the characters.
+ */
+function reverseText(text: string): string {
+    return Array.from(text).reverse().join("");
+}
 
 /**
  * Negate each character (256 minus its code), the way TRSDOS 2.x and VTOS store their banners.
@@ -1935,7 +2000,13 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 break;
 
             case TrsdosVersion.V1_3: {
-                // Model III TRSDOS names its version on the boot track.
+                // System disks name their DOS in their system files, or in the resident, which
+                // isn't always among them. Model III TRSDOS also names its version on the boot
+                // track, data disks included.
+                const banner = this.findSystemBanner(TRSDOS13_BANNERS, [{text: this.getResidentText(), raw: false}]);
+                if (banner !== undefined) {
+                    return banner;
+                }
                 const match = bootTrack.match(/version (1\.\d)/);
                 return match === null ? "TRSDOS 1.x" : `TRSDOS ${match[1]}`;
             }
@@ -1952,10 +2023,20 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
 
         // A banner only counts if its DOS could have written this layout: lumps that aren't whole
-        // cylinders are NEWDOS/80's (and so NEWDOS/86's and /90's), MultiDOS's and DoubleDOS's. (A
-        // NEWDOS/80 disk can carry another DOS's system files, which then can't boot it.)
-        const banner = this.findSystemBanner();
-        if (banner !== undefined && (this.lumpTerm === "cylinder" || /^(NEWDOS\/(80|86|90)|MultiDOS|DoubleDOS)/.test(banner))) {
+        // cylinders are NEWDOS/80's (and so NEWDOS/86's and /90's), MultiDOS's (and so Z'DOS's and
+        // Esoteric's) and DoubleDOS's. (A NEWDOS/80 disk can carry another DOS's system files, which
+        // then can't boot it.)
+        // MultiDOS keeps its resident outside its files, on the boot track or on the cylinder
+        // below the directory, and some editions keep their banner backwards.
+        const dirCylinder = this.logicalToPhysical(this.dirLumpNumber, 0, 0).trackPosition.cylinderNumber;
+        const banner = this.findSystemBanner(SYSTEM_BANNERS, [
+            {text: reverseText(bootTrack), raw: false},
+            {text: bootTrack, raw: true},
+            {text: this.getCylinderText(dirCylinder - 1), raw: true},
+        ]);
+        if (banner !== undefined && (this.lumpTerm === "cylinder" ||
+            /^(NEWDOS\/(80|86|90)|MultiDOS|Z'DOS|Esoteric|DoubleDOS)/.test(banner))) {
+
             return banner;
         }
 
@@ -2024,24 +2105,35 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Search the text of the system files for a banner in SYSTEM_BANNERS, returning the name and
+     * Search the text of the system files for one of the banners, returning the name and
      * version it gives, or undefined if there isn't one.
      */
-    private findSystemBanner(): string | undefined {
-        const texts: string[] = [];
+    private findSystemBanner(banners: readonly SystemFileBanner[] = SYSTEM_BANNERS,
+                             otherTexts: {text: string, raw: boolean}[] = []): string | undefined {
+
+        // Each system file's text as loaded and as stored, each also negated, then the other
+        // texts to search, each searched by the banners with the same "raw".
+        const texts: {filename: string, text: string, raw: boolean}[] = [];
         for (const dirEntry of this.getDirEntries(true)) {
             if (dirEntry.getExtension().toUpperCase() === "SYS") {
-                const text = this.getProgramText(this.readFileData(dirEntry, undefined));
-                texts.push(text, negateText(text));
+                const filename = dirEntry.getFilename("/");
+                const binary = this.readFileData(dirEntry, undefined);
+                const text = this.getProgramText(binary);
+                const rawText = bytesToText(binary);
+                texts.push({filename, text, raw: false}, {filename, text: negateText(text), raw: false},
+                    {filename, text: rawText, raw: true}, {filename, text: negateText(rawText), raw: true});
             }
         }
+        texts.push(...otherTexts.map(({text, raw}) => ({filename: "", text, raw})));
 
-        for (const banner of SYSTEM_BANNERS) {
-            for (const text of texts) {
-                const match = text.match(banner.pattern);
-                if (match !== null) {
-                    return banner.name(match);
-                }
+        for (const banner of banners) {
+            const bannerTexts = texts
+                .filter(({filename, raw}) => raw === (banner.raw ?? false) &&
+                    (banner.file === undefined || banner.file.test(filename)))
+                .map(({text}) => text);
+            const name = findDosBanner([banner], bannerTexts);
+            if (name !== undefined) {
+                return name;
             }
         }
 
@@ -2059,6 +2151,43 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         return loadBlocks.length > 0
             ? loadBlocks.map(chunk => bytesToText(chunk.loadData)).join("")
             : bytesToText(binary);
+    }
+
+    /**
+     * The contents of side 0 of a cylinder, in sector number order, as text with one character
+     * per byte. Sectors that can't be read are skipped.
+     */
+    private getCylinderText(cylinder: number): string {
+        // Sectors are numbered from 0 or from 1, so try both ends.
+        const trackPosition = new TrackPosition(cylinder, 0);
+        let text = "";
+        for (let sectorNumber = 0; sectorNumber <= this.geometry.modalDataSectorSpan; sectorNumber++) {
+            const sectorPosition = new SectorPosition(trackPosition, sectorNumber);
+            if (this.disk.hasSectorData(sectorPosition)) {
+                const data = this.disk.readSector(sectorPosition)?.data;
+                if (data !== undefined) {
+                    text += bytesToText(data);
+                }
+            }
+        }
+        return text;
+    }
+
+    /**
+     * The text of the resident DOS of the TRSDOS 1.3 layout, which is a load module on cylinder
+     * 0 after the boot sector, and which the system file table can leave out. See "TRSDOS 1.3
+     * system files" in FLOPPY_FORMATS.md. Empty if there's no boot track.
+     */
+    private getResidentText(): string {
+        const sectorPositions = this.geometry.bootTrack?.sectorPositions() ?? [];
+        const parts: Uint8Array[] = [];
+        for (const sectorPosition of sectorPositions.slice(1)) {
+            const data = this.disk.readSector(sectorPosition)?.data;
+            if (data !== undefined) {
+                parts.push(data);
+            }
+        }
+        return this.getProgramText(concatByteArrays(parts));
     }
 
     /**

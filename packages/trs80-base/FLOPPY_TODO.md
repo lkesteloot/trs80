@@ -5,7 +5,7 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 15, 2026. "Where things stand" at the end has the regression results.
+Last updated October 25, 2026. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -216,6 +216,18 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
     marked for removal; `getDirEntries()` silently drops entries that don't
     decode (see "Garbage directory slots" above); `findFile()` decodes the
     whole directory for each lookup.
+
+## Naming the DOS
+
+The boot check of `ira/all-dos` (see "Booting as ground truth" in
+`FLOPPY_FORMATS.md`) recorded each system disk's DOS and version as an `os` fact,
+so the suite's fact failures are this list's evidence: `node regress.ts run`
+ends with them, grouped by message.
+
+- [ ] **Percom disks with no directory** (OS-80 III, MicroDOS 2.10 for the Model
+      III, and the hacked MicroDOS 1.12; see "Unresolved disks" below) fail their `os`
+      facts because nothing decodes them. Naming them would need a file system
+      with no files, or a way to report a DOS without one.
 
 ## Unresolved disks
 
@@ -539,3 +551,13 @@ disks from Pete's archive were added to `model2/`. Of the suite's 676 disks, 648
 decode; nothing that decoded before changed except to get better, and a Xenix file
 system disk that the TRSDOS decoder took for NEWDOS/80 is now rejected (512-byte
 sectors). Over Pete's whole archive (368 images), about 285 decode.
+
+October 25, 2026: Ira's `ira/all-dos` (1,000 DOS disks, 801 of them new) was booted
+to read each system disk's banner (see "Booting as ground truth" in
+`FLOPPY_FORMATS.md`), and the banners became `os` facts, 262 of which failed. Reading
+more banners (MultiDOS, Z'DOS and Esoteric versions; CP/M sign-ons on the reserved
+tracks; DOSPLUS IV; the Model III layout's SuperDOS, DOS500 and RAPIDOS; NEWDOS 3.0,
+NEWDOS+ and Percom's TRSDOS 2.x; MicroDOS's resident; NEWDOS/80's whole version)
+and LNW80 CP/M left 30, and finding MultiDOS's residents outside its files (and
+its backwards banners) left 5. Of the suite's 1,599 disks, 1,566 decode, 44,861 of 45,189
+files clean; nothing changed but names, except the four LNW disks, which now decode.

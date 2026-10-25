@@ -13,7 +13,7 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {Density, FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {BASIC_HEADER_BYTE} from "./Basic.js";
-import {bytesToText, isPrintable} from "./DiskUtils.js";
+import {bytesToText, type DosBanner, findDosBanner, isPrintable} from "./DiskUtils.js";
 
 // Sectors on each track, numbered from 0.
 const SECTORS_PER_TRACK = 10;
@@ -50,6 +50,13 @@ const MAX_SECTOR_DATA = 255;
 
 // Absolute sector of the boot sector, where the DOS's own file starts.
 const BOOT_SECTOR = 0;
+
+// The DOS on the boot track gives its version ("PERCOM MICRODOS VERSION 1.12"), unlike the
+// system disk's menu ("PERCOM MICRODOS SYSTEM DISK VERSION 2.15"). See "Percom MicroDOS" in
+// FLOPPY_FORMATS.md.
+const MICRODOS_BANNERS: readonly DosBanner[] = [
+    {pattern: /PERCOM MICRODOS VERSION (\d\.\d+)\rCOPYRIGHT/, name: m => `Percom MicroDOS ${m[1]}`},
+];
 
 /**
  * The type letter of a MicroDOS file.
@@ -181,7 +188,7 @@ export class MicroDosFile implements FloppyDirEntry {
  */
 export class MicroDos implements FloppyFileSystem<MicroDosFile> {
     public readonly disk: FloppyDisk;
-    public readonly nameAndVersion = "Percom MicroDOS";
+    public readonly nameAndVersion: string;
     // In directory order.
     public readonly files: MicroDosFile[];
 
@@ -192,6 +199,8 @@ export class MicroDos implements FloppyFileSystem<MicroDosFile> {
     constructor(disk: FloppyDisk, files: MicroDosFile[]) {
         this.disk = disk;
         this.files = files;
+
+        this.nameAndVersion = findDosBanner(MICRODOS_BANNERS, [disk.getBootTrackText()]) ?? "Percom MicroDOS";
     }
 
     /**
