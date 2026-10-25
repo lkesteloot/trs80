@@ -10,7 +10,7 @@
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {FloppyDisk, FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {bytesToText, makeSkewTable} from "./DiskUtils.js";
+import {bytesToText, type DosBanner, findDosBanner, makeSkewTable} from "./DiskUtils.js";
 
 // Size of a directory entry.
 const DIR_ENTRY_SIZE = 32;
@@ -57,7 +57,7 @@ const MIN_TEXT_FRACTION = 0.95;
  * version. They win over the format's vendor, since vendors share formats. See "Naming CP/M
  * disks" in FLOPPY_FORMATS.md.
  */
-const CPM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[] = [
+const CPM_BANNERS: readonly DosBanner[] = [
     // Montezuma Micro's BIOS 1.x and 2.x for the Model 4, whose CP/M is always 2.2. Version 2.x
     // shows its banner in inverse video, but stores it as plain text.
     {pattern: /Model 4 \d+K System CP\/M 2\.2 v(\d\.\d+)/, name: m => `Montezuma Micro CP/M BIOS ${m[1]}`},
@@ -606,14 +606,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
             }
         }
 
-        for (const banner of CPM_BANNERS) {
-            const match = text.match(banner.pattern);
-            if (match !== null) {
-                return banner.name(match);
-            }
-        }
-
-        return undefined;
+        return findDosBanner(CPM_BANNERS, [text]);
     }
 
     /**

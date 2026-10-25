@@ -14,7 +14,7 @@ import {TRS80_BASE_LOGGER} from "z80-logger";
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
-import {bytesToText} from "./DiskUtils.js";
+import {bytesToText, type DosBanner, findDosBanner} from "./DiskUtils.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -35,18 +35,21 @@ const UNKNOWN_DOS = "Unknown DOS";
 const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);
 
 /**
+ * A banner in a system disk's system files, and which of their texts to search for it.
+ */
+interface SystemFileBanner extends DosBanner {
+    // Only search system files with names that match this.
+    readonly file?: RegExp;
+    // Search the whole file, not just the bytes its load records load, and the sectors where
+    // MultiDOS keeps its resident outside its files.
+    readonly raw?: boolean;
+}
+
+/**
  * Banners that system disks' system files carry, each turned into a name and version. See
  * "Identifying the DOS" in FLOPPY_FORMATS.md.
  */
-const SYSTEM_BANNERS: {
-    pattern: RegExp,
-    name: (m: RegExpMatchArray) => string,
-    // Only search system files with names that match this.
-    file?: RegExp,
-    // Search the whole file, not just the bytes its load records load, and the sectors where
-    // MultiDOS keeps its resident outside its files.
-    raw?: boolean,
-}[] = [
+const SYSTEM_BANNERS: readonly SystemFileBanner[] = [
     // V. B. Hester's MultiDOS and Esoteric, and Cosmopolitan Electronics's Z'DOS, draw their names
     // in graphics characters next to "Model III, Version 1.6" and the like; see "MultiDOS, Z'DOS
     // and Esoteric" in FLOPPY_FORMATS.md. Esoteric's says no model, and its resident file is
@@ -108,7 +111,7 @@ const SYSTEM_BANNERS: {
  * Banners in the system files of the DOSes that use Model III TRSDOS's layout, as in
  * SYSTEM_BANNERS. See "The TRSDOS 1.3 layout's DOSes" in FLOPPY_FORMATS.md.
  */
-const TRSDOS13_BANNERS: typeof SYSTEM_BANNERS = [
+const TRSDOS13_BANNERS: readonly SystemFileBanner[] = [
     {pattern: /SUPERDOS Ver(?:sion)? (\d\.\d+)/, name: m => `SuperDOS ${m[1]}`},
     {pattern: /PROLOGICA +\* +CP-500 +\* +DOS500 V(\d\.\d+)/, name: m => `DOS500 ${m[1]}`},
     {pattern: /Version (\d\.\d+)[^\n]{0,10}\d{4} Rapidynamic Software/, name: m => `RAPIDOS ${m[1]}`},
@@ -2105,7 +2108,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * Search the text of the system files for one of the banners, returning the name and
      * version it gives, or undefined if there isn't one.
      */
-    private findSystemBanner(banners: typeof SYSTEM_BANNERS = SYSTEM_BANNERS,
+    private findSystemBanner(banners: readonly SystemFileBanner[] = SYSTEM_BANNERS,
                              otherTexts: {text: string, raw: boolean}[] = []): string | undefined {
 
         // Each system file's text as loaded and as stored, each also negated, then the other
@@ -2124,16 +2127,13 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         texts.push(...otherTexts.map(({text, raw}) => ({filename: "", text, raw})));
 
         for (const banner of banners) {
-            for (const {filename, text, raw} of texts) {
-                if (raw !== (banner.raw ?? false) ||
-                    (banner.file !== undefined && !banner.file.test(filename))) {
-
-                    continue;
-                }
-                const match = text.match(banner.pattern);
-                if (match !== null) {
-                    return banner.name(match);
-                }
+            const bannerTexts = texts
+                .filter(({filename, raw}) => raw === (banner.raw ?? false) &&
+                    (banner.file === undefined || banner.file.test(filename)))
+                .map(({text}) => text);
+            const name = findDosBanner([banner], bannerTexts);
+            if (name !== undefined) {
+                return name;
             }
         }
 
