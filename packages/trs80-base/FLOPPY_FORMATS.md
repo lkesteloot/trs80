@@ -2088,6 +2088,23 @@ happen: of the 19 suite files JV1 accepts by length, only that one also parses a
 JV3. A JV1 boot sector's `00 FE` reads as an entry for sector 254, which fails
 the plausibility test at the first header.
 
+**One bad header is enough to reject a real JV3, and that's deliberate.**
+`ira/alcor/Alcor C v2.00 ... [Disk 4 of 4].dsk` (also in `alcorcv2.zip`,
+byte-identical) has 400 good single-density entries and one phantom, #347:
+cylinder 174, sector 200, flags `09` (bad CRC, size code 1 = 128 bytes). It's
+imager noise from the gap before cylinder 34's sector 6, and its block holds
+cylinder 34 sector 6's real ID (`FE 22 00 06 01 81 53`) followed by text left
+from the disk's earlier use. The converter stored 256 bytes for it despite the
+128-byte size code, so the file is 128 bytes longer than its headers account
+for. Taking the block as 256 bytes puts every later sector on its data (the
+real sector 6 follows as its own entry, all `E5`); taking it as 128, as
+trs80gp does, shifts cylinders 34-39 by half a sector, and our reader would
+then also see the leftover 128 bytes as a truncated second block. Accepting it
+would take two rules fitted to one image, and the first would weaken the
+all-headers test above, so the reader rejects it. The suite keeps it, plus a
+`[Repaired]` copy with #347 and its block removed: a NEWDOS/80 data disk with
+7 files, whose cylinders 29-39 are free in the GAT and all `E5`.
+
 **DMK** stores raw track bytes. The 16-byte header is write-protect, track
 count, little-endian track length, flags. Flag bit 4 is single-sided, bit 6 is
 single-density size, bit 7 is ignore-density. **Bits 6 or 7 mean single-density
