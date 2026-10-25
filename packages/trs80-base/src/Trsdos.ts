@@ -38,8 +38,29 @@ const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);
  * Banners that system disks' system files carry, each turned into a name and version. See
  * "Identifying the DOS" in FLOPPY_FORMATS.md.
  */
-const SYSTEM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[] = [
-    // MultiDOS's version byte and banners are unreliable, so leave its version off.
+const SYSTEM_BANNERS: {
+    pattern: RegExp,
+    name: (m: RegExpMatchArray) => string,
+    // Only search system files with names that match this.
+    file?: RegExp,
+    // Search the whole file, not just the bytes its load records load.
+    raw?: boolean,
+}[] = [
+    // V. B. Hester's MultiDOS and Esoteric, and Cosmopolitan Electronics's Z'DOS, draw their names
+    // in graphics characters next to "Model III, Version 1.6" and the like; see "MultiDOS, Z'DOS
+    // and Esoteric" in FLOPPY_FORMATS.md. Esoteric's says no model, and its resident file is
+    // ESORES/SYS. Hard disk editions add "HD" (in XSYSRES/SYS and XESORES/SYS); a floppy boots
+    // the other one. Before MultiDOS 1.7, the resident file (DOS/SYS) is a short CMD loader
+    // followed by the resident itself, past the transfer address, so search all of it.
+    {pattern: /Version (?!\d\.\d+\w*HD)(\d\.\d+[A-Za-z]*)/, name: m => `Esoteric ${m[1]}`, file: /^ESORES\/SYS$/i},
+    {pattern: /\btm\W{1,4}MODEL\W+(?:I{1,3}|4),\W+VERSION\W+(?!\d\.\d+\w*HD)(\d\.\d+[A-Za-z]*)/i,
+        name: m => `MultiDOS ${m[1]}`, raw: true},
+    // Z'DOS's has graphics where MultiDOS's has "tm", so it must come after MultiDOS's.
+    {pattern: /MODEL[ \x80-\xBF]I{1,3},[\x80-\xBF]{1,3}VERSION[\x80-\xBF](\d\.\d+[A-Z]?)/i, name: m => `Z'DOS ${m[1]}`, raw: true},
+    // MultiDOS 1.0 and 1.1 for the Model III, and the 1.6K edition.
+    {pattern: /Model III, Version (\d\.\d+)/, name: m => `MultiDOS ${m[1]}`, raw: true},
+    {pattern: /Multidos (\d\.\d+[A-Z]?) \(C\)\d{4} Cosmopolitan/, name: m => `MultiDOS ${m[1]}`, raw: true},
+    // Other MultiDOS system disks show their version only in banners we can't find on the disk.
     {pattern: /MULTIDOS|Cosmopolitan Electronics/, name: () => "MultiDOS"},
     // W. S. and D. S. Sands's extensions of NEWDOS/80 v2.0, which keep its disk format, so only
     // their system disks can be told apart. Must come before NEWDOS/80's banners, which they keep.
@@ -1952,10 +1973,13 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
 
         // A banner only counts if its DOS could have written this layout: lumps that aren't whole
-        // cylinders are NEWDOS/80's (and so NEWDOS/86's and /90's), MultiDOS's and DoubleDOS's. (A
-        // NEWDOS/80 disk can carry another DOS's system files, which then can't boot it.)
+        // cylinders are NEWDOS/80's (and so NEWDOS/86's and /90's), MultiDOS's (and so Z'DOS's and
+        // Esoteric's) and DoubleDOS's. (A NEWDOS/80 disk can carry another DOS's system files, which
+        // then can't boot it.)
         const banner = this.findSystemBanner();
-        if (banner !== undefined && (this.lumpTerm === "cylinder" || /^(NEWDOS\/(80|86|90)|MultiDOS|DoubleDOS)/.test(banner))) {
+        if (banner !== undefined && (this.lumpTerm === "cylinder" ||
+            /^(NEWDOS\/(80|86|90)|MultiDOS|Z'DOS|Esoteric|DoubleDOS)/.test(banner))) {
+
             return banner;
         }
 
@@ -2028,16 +2052,26 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * version it gives, or undefined if there isn't one.
      */
     private findSystemBanner(): string | undefined {
-        const texts: string[] = [];
+        // Each system file's text as loaded and as stored, each also negated.
+        const texts: {filename: string, text: string, raw: boolean}[] = [];
         for (const dirEntry of this.getDirEntries(true)) {
             if (dirEntry.getExtension().toUpperCase() === "SYS") {
-                const text = this.getProgramText(this.readFileData(dirEntry, undefined));
-                texts.push(text, negateText(text));
+                const filename = dirEntry.getFilename("/");
+                const binary = this.readFileData(dirEntry, undefined);
+                const text = this.getProgramText(binary);
+                const rawText = bytesToText(binary);
+                texts.push({filename, text, raw: false}, {filename, text: negateText(text), raw: false},
+                    {filename, text: rawText, raw: true}, {filename, text: negateText(rawText), raw: true});
             }
         }
 
         for (const banner of SYSTEM_BANNERS) {
-            for (const text of texts) {
+            for (const {filename, text, raw} of texts) {
+                if (raw !== (banner.raw ?? false) ||
+                    (banner.file !== undefined && !banner.file.test(filename))) {
+
+                    continue;
+                }
                 const match = text.match(banner.pattern);
                 if (match !== null) {
                     return banner.name(match);

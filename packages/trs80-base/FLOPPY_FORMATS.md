@@ -910,6 +910,52 @@ Strongest first. Measured on all 274 images.
   being DOSPLUS; 0x40 is DOSPLUS 4.0, DOSPLUS 3.4a or VTOS 4.0. These name a
   data disk "Unknown DOS" rather than a wrong one.
 
+### Booting as ground truth
+
+The banner a system disk shows when it boots is the most direct evidence of its
+DOS and version. In October 2026, every disk in `ira/all-dos` (1,000 images, Ira's
+collection of DOS disks) was booted, Model I and III disks in trs80-tool's
+emulator and Model 4 disks in trs80gp, and the screens are in the regression
+suite's `boot-screens/`; `disks/ira/all-dos/README.md` there compares them with
+the filenames and with our detection. The banners corrected 19 filenames, and the
+`os` facts in the sidecars record what each disk should be named.
+
+### MultiDOS, Z'DOS and Esoteric
+
+V. B. Hester's MultiDOS (published by Cosmopolitan Electronics through 2.10 in
+1987, and by Hester himself from 4.01 in 2005 through 6.20 in 2022), Cosmopolitan
+Electronics's Z'DOS, and Hester's Esoteric for the Model 4 draw their names in graphics characters, with the rest
+of the banner as text beside it. All three keep it in the resident system file:
+
+| DOS | Resident file | Banner text | Version |
+|---|---|---|---|
+| MultiDOS 1.0, 1.1 (Model III) | `DOS/SYS` | `Model III, Version 1.1` | as shown |
+| MultiDOS 1.2-1.6 | `DOS/SYS` | `TM` graphics `MODEL I,` graphics `VERSION` graphics `1.3D` | 1.3D, 1.6aS, 1.6c |
+| MultiDOS 1.7-6.20 | `SYSRES/SYS` (1.7: also `RESIDENT/SYS`) | `tm  Model 4, Version 2.10` | 1.71S, 4.01, 6.20 |
+| MultiDOS 1.6K | `DOSRES/SYS` | `Multidos 1.6K (C)1983 Cosmopolitan Electronics Corporation` | 1.6K |
+| Z'DOS 1.0 | `DOS/SYS` | `Model III,` 0x80 `Version` 0x80 `1.00` (no "tm") | 1.00, 1.00D, 1.00S |
+| Esoteric 2.11-3.20 | `ESORES/SYS` | `Version 3.20` (no model, no "tm") | as shown |
+
+- **The version's letters are part of it.** D, S and P are the double, single and
+  "pseudo" density editions (which the filenames also give), K appears on
+  editions customized for other companies (Computer Shack's 1.5SK, Merlin's 1.6K,
+  and the 1.3K and 1.5K on Computer Shack's and Sunburst's software disks), and a lower-case letter is a revision (1.3a, 1.6c, 1.6d). The banner is
+  the only reliable version: GAT byte 0xCB says 0x10, 0x17 or 0xFF for whole
+  ranges of versions.
+- **`DOS/SYS` isn't all loaded.** Before 1.7 it's a 75-byte CMD loader, then a
+  transfer address, then the resident itself (about 7K), which the boot sector
+  reads directly. So the banner is past the transfer address, where for other
+  DOSes we ignore bytes as leftovers.
+- **Hard disk editions** (`XSYSRES/SYS`, `XESORES/SYS`) say "5.11HD" or "3.20HD",
+  and can be older than the floppy's resident: Esoteric 3.00's system disk has a
+  3.00 `ESORES/SYS` and a 2.12HD `XESORES/SYS`. A floppy boots the one without HD.
+- **Some banners aren't on the disk as text.** MultiDOS 1.0-1.2 for the Model I,
+  and the 1.4S, 1.5P, 1.5S, 1.5SK, 1.6aP, 1.6C, 1.6P and 1.7P editions, boot to a
+  banner (`Multidos, Super Disk Operating System, Version 1.0`, `Multidos#1.6C`)
+  that no sector holds, as stored, negated, with bit 7 cleared, or under any
+  single-byte XOR or added constant. So those are still named just "MultiDOS".
+  Z'DOS 1.00S is the same.
+
 ## The lump model
 
 One model covers the TRSDOS family, NEWDOS/80 and MultiDOS. The DOS sees the

@@ -217,6 +217,18 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
     decode (see "Garbage directory slots" above); `findFile()` decodes the
     whole directory for each lookup.
 
+## Naming the DOS
+
+The boot check of `ira/all-dos` (see "Booting as ground truth" in
+`FLOPPY_FORMATS.md`) recorded each system disk's DOS and version as an `os` fact,
+so the suite's fact failures are this list's evidence: `node regress.ts run`
+ends with them, grouped by message.
+
+- [ ] **MultiDOS banners we can't find** (about 20 disks: Model I 1.0-1.2, and the
+      1.4S, 1.5P, 1.5S, 1.5SK, 1.6aP, 1.6C, 1.6P and 1.7P editions), and Z'DOS
+      1.00S. See "MultiDOS, Z'DOS and Esoteric" in `FLOPPY_FORMATS.md`. Maybe the
+      banner is built by code, or compressed; disassembling the resident would tell.
+
 ## Unresolved disks
 
 None of these blocks anything. Each disk's sidecar in the regression suite says
