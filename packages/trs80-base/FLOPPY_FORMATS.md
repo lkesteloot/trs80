@@ -911,8 +911,9 @@ Strongest first. Measured on all 274 images.
   Patch Paks says "TRSDOS + PERCOM PATCH PAK #4/40 VER 2.3", and the Japanese 2.3
   has three spaces before "VER" (both negated, like Tandy's); NEWDOS/80 v2 draws its
   name in graphics characters, leaving only "APPARAT, INC." and "VERSION 2.0"
-  (also 2.5, "2.X" and "2/4") as text, which some zap levels shorten to "VER 2.1
-  Z38" or "Vr2.0 Zap 82"; DOSPLUS IV says "DOSPLUS IV - Model 4 Disk Operating
+  (also 2.5, 2.06, 2.74, "2.X" and "2/4") as text, which some zap levels shorten
+  to "VER 2.1 Z38" or "Vr2.0 Zap 82", and the German edition writes "Apparat
+  Inc." and "Vers. 2.052"; DOSPLUS IV says "DOSPLUS IV - Model 4 Disk Operating
   System - Version 1.00" in SYS0; Percom DoubleDOS says "DBLDOS - DISK
   OPERATING SYSTEM - VER 4.23"; VTOS 3.0.1, 4.0 and 4.0.1 are negated like
   TRSDOS 2.x; Cornsoft's DOSPLUS says "DOS PLUS 3.4a" (and writes 0x40 at

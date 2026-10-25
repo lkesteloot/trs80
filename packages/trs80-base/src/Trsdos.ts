@@ -67,8 +67,9 @@ const SYSTEM_BANNERS: {
     {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => `NEWDOS/${m[1]}`},
     {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => `NEWDOS/80 v${m[1]}`},
     // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text. Some zap
-    // levels shorten "VERSION 2.0" to "VER 2.1 Z38" or "Vr2.0 Zap 82".
-    {pattern: /APPARAT, INC\.[\s\S]{0,60}?(?:VERSION |VER |Vr)(\d\.[\dX])/, name: m => `NEWDOS/80 v${m[1]}`},
+    // levels shorten "VERSION 2.0" to "VER 2.1 Z38" or "Vr2.0 Zap 82", and the German edition
+    // says "Apparat Inc." and "Vers. 2.052".
+    {pattern: /APPARAT,? INC\.[\s\S]{0,60}?(?:VERSION |VER |VERS\. |Vr)(\d\.[\dX]\d*)/i, name: m => `NEWDOS/80 v${m[1]}`},
     // NEWDOS 2.2 (NEWDOS+) says it this way.
     {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
     {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
