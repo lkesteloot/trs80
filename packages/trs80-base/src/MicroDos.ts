@@ -181,7 +181,7 @@ export class MicroDosFile implements FloppyDirEntry {
  */
 export class MicroDos implements FloppyFileSystem<MicroDosFile> {
     public readonly disk: FloppyDisk;
-    public readonly nameAndVersion = "Percom MicroDOS";
+    public readonly nameAndVersion: string;
     // In directory order.
     public readonly files: MicroDosFile[];
 
@@ -192,6 +192,12 @@ export class MicroDos implements FloppyFileSystem<MicroDosFile> {
     constructor(disk: FloppyDisk, files: MicroDosFile[]) {
         this.disk = disk;
         this.files = files;
+
+        // The DOS on the boot track gives its version ("PERCOM MICRODOS VERSION 1.12"), unlike
+        // the system disk's menu ("PERCOM MICRODOS SYSTEM DISK VERSION 2.15"). See "Percom
+        // MicroDOS" in FLOPPY_FORMATS.md.
+        const match = disk.getBootTrackText().match(/PERCOM MICRODOS VERSION (\d\.\d+)\rCOPYRIGHT/);
+        this.nameAndVersion = match === null ? "Percom MicroDOS" : `Percom MicroDOS ${match[1]}`;
     }
 
     /**

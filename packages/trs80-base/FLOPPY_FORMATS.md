@@ -1949,6 +1949,12 @@ OS-80 1.5, and the manual disk. The rest don't have one:
   a count of 13 and the text `HELLO SAILOR!`. They have no directory: their
   BASIC addresses files by absolute sector (`LOAD 10055`, `GET A$,10020`), and
   their menu program lists the files in DATA lines.
+- **Two versions.** The resident on cylinder 0 (sector 2) names the DOS:
+  `PERCOM MICRODOS VERSION 1.12` CR `COPYRIGHT (C) 1979 PERCOM DATA COMPANY`.
+  System disks then run a menu, which is what they boot to, and it names the
+  system disk: `PERCOM MICRODOS SYSTEM DISK VERSION 1.21`. The two differ: the
+  1.21 and 1.22 system disks run MicroDOS 1.12, and the "1.15" disks with menu
+  2.15 run 2.15 (October 2026). We name the DOS's.
 
 ## Model II TRSDOS
 
