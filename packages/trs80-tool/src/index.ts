@@ -19,7 +19,7 @@ import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
-import {ToolError} from "./utils.js";
+import {expandInputPattern, expandInputPatterns, ToolError} from "./utils.js";
 import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
 
 const HELP_TEXT = `
@@ -150,7 +150,7 @@ async function main(): Promise<void> {
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
-            await dir(infiles, options.system ?? false, options.cpmRecords ?? false, options.json ?? false);
+            await dir(expandInputPatterns(infiles), options.system ?? false, options.cpmRecords ?? false, options.json ?? false);
         }));
     program
         .command("info <infiles...>")
@@ -161,7 +161,7 @@ async function main(): Promise<void> {
         .option("--json", "output one JSON object for all the infiles instead of text")
         .addOption(new Option("--report", "output a detailed JSON report, for regression testing").hideHelp())
         .action(paged(async (infiles, options) => {
-            await info(infiles, options.verbose ?? false, options.json ?? false, options.report ?? false);
+            await info(expandInputPatterns(infiles), options.verbose ?? false, options.json ?? false, options.report ?? false);
         }));
     program
         .command("convert <files...>")
@@ -179,38 +179,38 @@ async function main(): Promise<void> {
             if (files.length < 2) {
                 throw new ToolError("Must specify at least one infile and exactly one outfile");
             }
-            const infiles = files.slice(0, files.length - 1);
+            const infiles = expandInputPatterns(files.slice(0, files.length - 1));
             const outfile = files[files.length - 1];
             convert(infiles, outfile, speed, start, includeSystemFiles, options.cpmRecords);
         });
     program
-        .command("extract <infile> [outdir]")
-        .description("extract the files in a floppy, hard disk, CAS, or WAV file into an existing directory", {
+        .command("extract <infile> [names...]")
+        .description("extract the files in a floppy, hard disk, CAS, or WAV file into a directory", {
             infile: "floppy (JV1, JV3, DMK, DSK, HFE, IMD, SCP), hard disk (HDV), CAS, or WAV file",
-            outdir: "existing directory (leave out with --json)",
+            names: "files to extract, which may have wildcards (quote them, as in \"*.bas\"); all files if left out",
         })
+        .option("--out-dir <dir>", "directory to write the files to, created if needed (default: the current directory)")
         .option("--system", "include system files from the floppy or hard disk")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
         .option("--ucsd-pascal-raw", "keep UCSD Pascal text files as they are on the disk instead of converting them to host text")
         .option("--mark-damaged", "add \"[DAMAGED]\" to the name of files with unreadable sectors or other damage")
         .option("--lowercase", "write the files with lowercase names")
         .option("--json", "write one JSON object, with the files' contents in base64, to standard output instead of writing files")
-        .action((infile, outdir, options) => {
+        .action((infile, names, options) => {
+            const expandedInfile = expandInputPattern(infile);
             if (options.json) {
-                if (outdir !== undefined) {
-                    throw new ToolError("Leave out the output directory with --json, which prints to standard output");
+                if (options.outDir !== undefined) {
+                    throw new ToolError("Leave out --out-dir with --json, which prints to standard output");
                 }
                 if (options.ucsdPascalRaw) {
                     throw new ToolError("--json can't be used with --ucsd-pascal-raw: the JSON has both versions of text files");
                 }
-                extractJson(infile, options.system ?? false, options.cpmRecords ?? false,
+                extractJson(expandedInfile, names, options.system ?? false, options.cpmRecords ?? false,
                     options.markDamaged ?? false, options.lowercase ?? false);
             } else {
-                if (outdir === undefined) {
-                    throw new ToolError("Must specify an output directory");
-                }
-                extract(infile, outdir, options.system ?? false, options.cpmRecords ?? false,
-                    options.ucsdPascalRaw ?? false, options.markDamaged ?? false, options.lowercase ?? false);
+                extract(expandedInfile, options.outDir ?? ".", names, options.system ?? false,
+                    options.cpmRecords ?? false, options.ucsdPascalRaw ?? false, options.markDamaged ?? false,
+                    options.lowercase ?? false);
             }
         });
     if (2 > 3) {
@@ -234,9 +234,9 @@ async function main(): Promise<void> {
         .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
             if (options.json) {
-                sectorsJson(infiles, options.contents ?? false, options.bad ?? false);
+                sectorsJson(expandInputPatterns(infiles), options.contents ?? false, options.bad ?? false);
             } else {
-                for (const infile of infiles) {
+                for (const infile of expandInputPatterns(infiles)) {
                     sectors(infile, options.contents, options.bad);
                     await pagerYield();
                 }
@@ -249,7 +249,7 @@ async function main(): Promise<void> {
         })
         .option("--no-collapse", "collapse consecutive identical lines")
         .action(paged((infile, options) => {
-            hexdump(infile, options.collapse);
+            hexdump(expandInputPattern(infile), options.collapse);
         }));
     program
         .command("asm <infile> <outfile>")
@@ -267,7 +267,7 @@ async function main(): Promise<void> {
             if (modelType === undefined) {
                 throw new ToolError("Invalid model: " + modelName);
             }
-            asm(infile, outfile, speed, options.listing, modelType);
+            asm(expandInputPattern(infile), outfile, speed, options.listing, modelType);
         });
     program
         .command("disasm <infile>")
@@ -293,7 +293,7 @@ async function main(): Promise<void> {
                 throw new ToolError("Invalid hex format: " + hexFormatString);
             }
             const hexFormat = hexFormatString === "c" ? HexFormat.C : hexFormatString === "dollar" ? HexFormat.DOLLAR : HexFormat.H;
-            disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat,
+            disasm(expandInputPattern(infile), options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat,
                 options.upper, options.full, options.dataComment);
         }));
     program
@@ -341,7 +341,8 @@ async function main(): Promise<void> {
                 throw new ToolError("Invalid model and Basic level configuration");
             }
 
-            run(program, options.mount ?? [], options.xray, options.writable ?? false, config, printerPathname);
+            run(program === undefined ? undefined : expandInputPattern(program),
+                expandInputPatterns(options.mount ?? []), options.xray, options.writable ?? false, config, printerPathname);
         });
     program
         .command("repl")
