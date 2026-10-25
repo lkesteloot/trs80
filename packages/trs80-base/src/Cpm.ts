@@ -65,6 +65,8 @@ const CPM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[] = 
     {pattern: /CP\/M +V (\d\.\d+) +COPYRIGHT \(C\) 1979[\s\S]LIFEBOAT ASSOCIATES/, name: m => `Lifeboat CP/M ${m[1]}`},
     {pattern: /FMG TRS-80 \d+K CP\/M VERS (\d\.\d+)/, name: m => `FMG CP/M ${m[1]}`},
     {pattern: /TPM SYSTEM FOR TRS-80 - \d+K V(\d\.\d+)/, name: m => `TPM ${m[1]}`},
+    // LNW's CP/M is 2.2, so its version is the BIOS's.
+    {pattern: /LNW-II ver (\d\.\d+)/, name: m => `LNW CP/M ${m[1]}`},
 ];
 
 /**
@@ -166,6 +168,19 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         skew: 1,
         reservedTrackCounts: [1],
         blockSize: 1024,
+        dirEntryCount: 64,
+    },
+    // LNW Research's CP/M 2.2 for the LNW80 (R. M. Stiles's BIOS, "LNW-II ver 2.80"), measured
+    // from the disks (see FLOPPY_FORMATS.md). Cylinder 0 is single density; the other two
+    // system tracks and the data tracks have 18 sectors of 256 bytes.
+    {
+        name: "LNW Research",
+        sectorSizes: [256],
+        sectorsPerTrack: [18],
+        firstSectorNumber: 1,
+        skew: 5,
+        reservedTrackCounts: [3],
+        blockSize: 2048,
         dirEntryCount: 64,
     },
     // Digital Research's CP/M Plus for the Model 4, sold by Radio Shack, measured from the

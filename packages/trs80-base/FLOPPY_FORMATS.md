@@ -1768,6 +1768,18 @@ Two Lifeboat-layout disks are truncated images (see "Truncated images" below):
   of a 35-track disk. A 35-track BIOS never allocates them, so the disk was
   written on 40 tracks, and the image stops at 35.
 
+**LNW Research CP/M 2.2** (LNW80, R. M. Stiles's BIOS, "LNW-II ver 2.80" and
+3.00; October 2026, from Ira's four disks, measured since there's no DPB):
+
+- Cylinder 0 is single density, 10 sectors of 256 bytes numbered 0-9. The rest
+  is double density, 18 sectors of 256 bytes numbered 1-18, single-sided.
+- 3 reserved tracks: the directory is cylinder 3, sectors 1, 6, 11, ... (skew 5).
+- 2K blocks, 8-bit block pointers, and 64 directory entries (block 0). MOVCPM's
+  76 records fill blocks 1-5, and `DUMP.ASM` reads as clean text across blocks.
+- The sign-on is "CP/M ver 2.2", "Copyright (c), 1979 Digital Research",
+  "LNW-II ver 2.80", "by R.M. Stiles"; the 3.0 disks say "ver 3.00". The 3.0
+  disks boot to garbage in our emulator, which doesn't emulate the LNW80.
+
 **Holmes Engineering CP/M 2.2** (Model I with Holmes's VID-80 80-column board).
 mloewen's `Holmes-Engineering-VID80/holmes-cpm.dmk` is single-sided, 40 tracks,
 double density throughout, with 10 sectors of 512 bytes numbered 0-9. The
