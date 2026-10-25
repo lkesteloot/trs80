@@ -241,3 +241,115 @@ export function outputPathComponents(filename: string, hasDirectories: boolean, 
     components[components.length - 1] += damaged && markDamaged ? DAMAGED_SUFFIX : "";
     return components;
 }
+
+/**
+ * Whether the string contains a character that makes it a glob pattern.
+ */
+function hasGlobCharacters(arg: string): boolean {
+    return /[*?\[\]{}]/.test(arg);
+}
+
+/**
+ * Expand one command-line argument that names host files. Cmd.exe and PowerShell don't expand
+ * wildcards for native programs, so we do it ourselves on every platform.
+ *
+ * An argument that names an existing file or directory is used unchanged, which matters because
+ * names like "Zork (1980)(Infocom)[a].dsk" contain glob syntax, and because the shell has already
+ * expanded the arguments on Unix. Otherwise an argument with glob characters is a pattern,
+ * and is replaced by the regular files that it matches, sorted. Any other argument is returned
+ * unchanged, so that the command reports it as a missing file.
+ *
+ * @param arg the argument from the command line.
+ * @returns the files the argument stands for, which is never empty.
+ * @throws ToolError if the argument is a pattern that matches no files.
+ */
+function expandInputPatternArg(arg: string): string[] {
+    const exists = fs.statSync(arg, { throwIfNoEntry: false }) !== undefined;
+    if (exists || !hasGlobCharacters(arg)) {
+        return [arg];
+    }
+
+    // A backslash is a path separator on Windows, not an escape.
+    const pattern = process.platform === "win32" ? arg.replace(/\\/g, "/") : arg;
+    const matches = fs.globSync(pattern)
+        .filter(match => fs.statSync(match, { throwIfNoEntry: false })?.isFile() === true)
+        .sort();
+    if (matches.length === 0) {
+        throw new ToolError("No files match \"" + arg + "\"");
+    }
+
+    return matches;
+}
+
+/**
+ * Expand the wildcards in the command-line arguments that name host files. See
+ * expandInputPatternArg() for the rules.
+ *
+ * @param args the arguments from the command line.
+ * @returns the files that the arguments stand for, in order.
+ * @throws ToolError if an argument is a pattern that matches no files.
+ */
+export function expandInputPatterns(args: string[]): string[] {
+    return args.flatMap(expandInputPatternArg);
+}
+
+/**
+ * Expand the wildcards in a command-line argument for a command that takes only one host file.
+ *
+ * @param arg the argument from the command line.
+ * @returns the one file that the argument stands for.
+ * @throws ToolError if the argument is a pattern that doesn't match exactly one file.
+ */
+export function expandInputPattern(arg: string): string {
+    const files = expandInputPatternArg(arg);
+    if (files.length !== 1) {
+        throw new ToolError("\"" + arg + "\" matches " + files.length + " files, but this command takes one");
+    }
+
+    return files[0];
+}
+
+/**
+ * Whether the name of a file inside a container matches a pattern given to "extract". Matching is
+ * case-insensitive. A "*" matches any run of characters except "/", a "?" matches one character
+ * except "/", and "**" matches any characters including "/". Every other character is literal.
+ *
+ * On file systems with directories, a pattern without a "/" is matched against the last component
+ * of the name only, so that "*.cmd" finds files in every directory, and a pattern with a "/" is
+ * matched against the whole path. Elsewhere a "/" in the pattern is treated as a ".", so that the
+ * TRSDOS-style "HELLO/BAS" matches "HELLO.BAS".
+ *
+ * @param filename the name of the file as decoded (see InputFile.filename).
+ * @param hasDirectories whether a "/" in the name separates directories (see InputFile.hasDirectories()).
+ * @param pattern the pattern to match.
+ */
+export function fileNameMatchesPattern(filename: string, hasDirectories: boolean, pattern: string): boolean {
+    let name = filename;
+    let effectivePattern = pattern;
+    if (hasDirectories) {
+        if (!pattern.includes("/")) {
+            name = filename.substring(filename.lastIndexOf("/") + 1);
+        }
+    } else {
+        effectivePattern = pattern.replace(/\//g, ".");
+    }
+
+    let regex = "";
+    for (let i = 0; i < effectivePattern.length; i++) {
+        const c = effectivePattern[i];
+        if (c === "*") {
+            if (effectivePattern[i + 1] === "*") {
+                regex += ".*";
+                i++;
+            } else {
+                regex += "[^/]*";
+            }
+        } else if (c === "?") {
+            regex += "[^/]";
+        } else {
+            regex += c.replace(/[.*+?^${}()|[\]\\\/-]/g, "\\$&");
+        }
+    }
+
+    return new RegExp("^" + regex + "$", "is").test(name);
+}

@@ -4,7 +4,7 @@ import {
 } from "trs80-base";
 import {LogLevel, MAIN_SINK} from "z80-logger";
 import {assertNever} from "z80-base";
-import {type InputFile, loadInputFile, notContainerError} from "./InputFile.js";
+import {type InputFile, loadInputFile, notContainerError, selectInputFiles} from "./InputFile.js";
 import {outputPathComponents, ToolError} from "./utils.js";
 
 // This file defines the types of the JSON that the --json flags of the "dir", "extract", "sectors",
@@ -437,6 +437,8 @@ export interface ExtractJsonOptions {
     lowercase: boolean;
     /** Whether "--mark-damaged" was given. */
     markDamaged: boolean;
+    /** The patterns that name the files to include (see fileNameMatchesPattern()), or empty for all of them. */
+    patterns: string[];
 }
 
 /**
@@ -542,8 +544,9 @@ export interface FilesInfileJson extends InfileJson {
  * @param inFilename the file to load.
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records.
- * @param forExtract options if this is for "extract", which needs the input to be a container, and
- * adds the contents to each file. Undefined for "dir".
+ * @param forExtract options if this is for "extract", which needs the input to be a container, includes
+ * only the files that match its patterns (an error if a pattern matches none), and adds the contents to
+ * each file. Undefined for "dir".
  */
 export function filesInfileJson(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean,
                                 forExtract: ExtractJsonOptions | undefined): FilesInfileJson {
@@ -555,7 +558,16 @@ export function filesInfileJson(inFilename: string, includeSystemFiles: boolean,
                 throw notContainerError(inFilename);
             }
 
-            const files = inFiles.map(inFile => fileToJson(inFile, forExtract));
+            let chosenFiles = inFiles;
+            if (forExtract !== undefined) {
+                const { selected, unmatchedPattern } = selectInputFiles(inFiles, forExtract.patterns);
+                if (unmatchedPattern !== undefined) {
+                    throw new ToolError("No file in \"" + inFilename + "\" matches \"" + unmatchedPattern + "\"");
+                }
+                chosenFiles = selected;
+            }
+
+            const files = chosenFiles.map(inFile => fileToJson(inFile, forExtract));
             return os === undefined ? { infile: inFilename, files } : { infile: inFilename, os, files };
         } catch (e) {
             if (!(e instanceof ToolError)) {

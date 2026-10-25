@@ -12,7 +12,7 @@ import {
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {
-    ToolError, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
+    ToolError, fileNameMatchesPattern, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
     xenixTarTypeLetter,
 } from "./utils.js";
 import {colorDate} from "./lscolors.js";
@@ -823,4 +823,39 @@ export function expandContainer(inFilename: string, includeSystemFiles: boolean,
     }
 
     return inFiles;
+}
+
+/**
+ * Choose the files whose names match at least one of the patterns (see fileNameMatchesPattern()).
+ *
+ * @param inFiles the files in a container.
+ * @param patterns the patterns to match, or an empty array to choose every file.
+ * @returns the chosen files, in their original order, and the first pattern that matched no file at
+ * all (undefined if every pattern matched something).
+ */
+export function selectInputFiles(inFiles: InputFile[], patterns: string[]):
+    { selected: InputFile[], unmatchedPattern: string | undefined } {
+
+    if (patterns.length === 0) {
+        return { selected: inFiles, unmatchedPattern: undefined };
+    }
+
+    const selected: InputFile[] = [];
+    const matchedPatterns = new Set<string>();
+    for (const inFile of inFiles) {
+        let isSelected = false;
+        for (const pattern of patterns) {
+            const matches = fileNameMatchesPattern(inFile.filename, inFile.hasDirectories(), pattern);
+            if (matches) {
+                isSelected = true;
+                matchedPatterns.add(pattern);
+            }
+        }
+        if (isSelected) {
+            selected.push(inFile);
+        }
+    }
+
+    const unmatchedPattern = patterns.find(pattern => !matchedPatterns.has(pattern));
+    return { selected, unmatchedPattern };
 }

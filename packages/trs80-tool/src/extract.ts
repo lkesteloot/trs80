@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { withCommas } from "teamten-ts-utils";
 import { type XenixTarExtent } from "trs80-base";
-import { expandContainer, type InputFile, XenixTarInputFile } from "./InputFile.js";
+import { expandContainer, type InputFile, selectInputFiles, XenixTarInputFile } from "./InputFile.js";
 import { filesInfileJson, printInfilesJson } from "./json.js";
 import {
     DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, ToolError,
@@ -135,7 +135,8 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
 
 /**
  * Handle the "extract" command: write the files inside a container (a floppy image,
- * CAS file, or cassette WAV file) to an existing directory.
+ * CAS file, or cassette WAV file) to a directory, creating the directory if needed. Existing
+ * host files with the same names are overwritten.
  *
  * A Xenix tar floppy can hold just a part (an extent) of a file that's split across the disks of
  * a set. The first part is written as a file, with a warning that it's incomplete. Extracting each
@@ -144,7 +145,9 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
  * in the directory, if the file is already complete, or if the part doesn't fit after what's there.
  *
  * @param inFilename the container to extract from.
- * @param outDirname existing directory to write the files to.
+ * @param outDirname directory to write the files to. It's created if it doesn't exist.
+ * @param patterns patterns for the names of the files to extract (see fileNameMatchesPattern()), or
+ * an empty array to extract every file.
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
@@ -153,22 +156,29 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
  * @param markDamaged whether to add " [DAMAGED]" to the name of each file that had unreadable
  * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
  * @param lowercase whether to write the files with lowercase names, as in "foo.cmd" for "FOO.CMD".
- * @throws ToolError if the directory doesn't exist or the input isn't a readable container.
+ * @throws ToolError if the output path exists but isn't a directory, if the input isn't a readable
+ * container, or if a pattern matches no file. Nothing is written in the last two cases.
  */
-export function extract(inFilename: string, outDirname: string, includeSystemFiles: boolean,
+export function extract(inFilename: string, outDirname: string, patterns: string[], includeSystemFiles: boolean,
                         cpmWholeRecords: boolean, ucsdPascalRawText: boolean, markDamaged: boolean,
                         lowercase: boolean): void {
 
     // Check the destination before reading the input.
     const outStat = fs.statSync(outDirname, { throwIfNoEntry: false });
-    if (outStat === undefined) {
-        throw new ToolError("Directory \"" + outDirname + "\" doesn't exist");
-    }
-    if (!outStat.isDirectory()) {
+    if (outStat !== undefined && !outStat.isDirectory()) {
         throw new ToolError("\"" + outDirname + "\" is not a directory");
     }
 
-    const inFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
+    const allFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
+    const { selected: inFiles, unmatchedPattern } = selectInputFiles(allFiles, patterns);
+    if (unmatchedPattern !== undefined) {
+        // People used to give the output directory here.
+        const isDirectory = fs.statSync(unmatchedPattern, { throwIfNoEntry: false })?.isDirectory() === true;
+        throw new ToolError("No file in \"" + inFilename + "\" matches \"" + unmatchedPattern + "\"" +
+            (isDirectory ? ". To extract into that directory, use --out-dir " + unmatchedPattern : ""));
+    }
+
+    fs.mkdirSync(outDirname, { recursive: true });
 
     let writtenCount = 0;
     let appendedCount = 0;
@@ -221,19 +231,23 @@ export function extract(inFilename: string, outDirname: string, includeSystemFil
 
 /**
  * Handle the "extract" command with "--json": print the files inside a container (a floppy image,
- * CAS file, or cassette WAV file) as one JSON object, including their contents in base64, instead
+ * CAS file, or cassette audio file) as one JSON object, including their contents in base64, instead
  * of writing them to a directory. Nothing is written to disk. A part of a file that's split across
- * disks is reported as it is, with its extent, and isn't appended to the earlier parts.
+ * disks is reported as it is, with its extent, and isn't appended to the earlier parts. A pattern
+ * that matches no file is reported as the entry's error.
  *
  * @param inFilename the container to extract from.
+ * @param patterns patterns for the names of the files to include (see fileNameMatchesPattern()), or
+ * an empty array to include every file.
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
  * @param markDamaged whether the output name of each damaged file has " [DAMAGED]" added.
  * @param lowercase whether the output names are lowercase.
  */
-export function extractJson(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean,
-                            markDamaged: boolean, lowercase: boolean): void {
+export function extractJson(inFilename: string, patterns: string[], includeSystemFiles: boolean,
+                            cpmWholeRecords: boolean, markDamaged: boolean, lowercase: boolean): void {
 
-    printInfilesJson([filesInfileJson(inFilename, includeSystemFiles, cpmWholeRecords, { lowercase, markDamaged })]);
+    printInfilesJson([filesInfileJson(inFilename, includeSystemFiles, cpmWholeRecords,
+        { lowercase, markDamaged, patterns })]);
 }

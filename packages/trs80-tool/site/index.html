@@ -321,17 +321,41 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 
             <h3 id="extract"><code>extract</code></h3>
             <p>The <code>extract</code> command writes the files inside a floppy image, hard disk
-            image, <code>.CAS</code> file, or cassette audio file to an existing directory:</p>
-            <div><pre><code>% mkdir out
-% trs80-tool extract in.dmk out
-% trs80-tool extract in.hdv out
-% trs80-tool extract in.cas out
-% trs80-tool extract in.wav out</code></pre>
+            image, <code>.CAS</code> file, or cassette audio file to a directory. The files go into
+            the current directory unless you give <code>--out-dir</code>, which creates the directory
+            if it doesn’t exist. Files already in the directory with the same names are overwritten.</p>
+            <div><pre><code>% trs80-tool extract in.dmk
+% trs80-tool extract in.dmk --out-dir out
+% trs80-tool extract in.hdv --out-dir out
+% trs80-tool extract in.cas --out-dir out
+% trs80-tool extract in.wav --out-dir out</code></pre>
             </div>
             <p>A hard disk’s files go into a subdirectory for each partition, named for the
             partition, as in <code>out/LDM3HDB/BASIC.CMD</code>.</p>
+            <p>To extract only some of the files, name them after the input file. Each name is matched
+            against the names of the files on the disk (as <a href="#dir"><code>dir</code></a>
+            shows them), not against files on your computer, and may have wildcards:</p>
+            <div><pre><code>% trs80-tool extract in.dmk "*.bas"
+% trs80-tool extract in.dmk HELLO.BAS GOODBYE.BAS --out-dir out
+% trs80-tool extract in.hdv "LDM3HDB/*.CMD" --out-dir out</code></pre>
+            </div>
+            <p>Quote the names that have wildcards, so that your shell doesn’t expand them against the
+            files in the current directory first. Matching ignores case. A <code>*</code> matches any
+            number of characters except <code>/</code>, a <code>?</code> matches one character other
+            than <code>/</code>, and <code>**</code> matches any characters including <code>/</code>.
+            Every other character matches itself. On a hard disk or Xenix floppy, whose files are in directories, a
+            name without a <code>/</code> is matched against the last part of each path, so
+            <code>"*.CMD"</code> finds the <code>.CMD</code> files in every directory; a name with
+            a <code>/</code> is matched against the whole path. Elsewhere a <code>/</code> in the name
+            means <code>.</code>, so <code>HELLO/BAS</code> finds <code>HELLO.BAS</code>. It’s an error
+            if a name matches no files, and nothing is written.</p>
 
             <table class="flags">
+                <tr>
+                    <td><code>--out-dir DIR</code></td>
+                    <td>Write the files to this directory, which is created if needed. The
+                        default is the current directory.</td>
+                </tr>
                 <tr>
                     <td><code>--system</code></td>
                     <td>Include system files from floppies and hard disks.</td>
@@ -358,8 +382,9 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                 <tr>
                     <td><code>--json</code></td>
                     <td>Print a JSON object to standard output instead of writing files.
-                        Omit the output directory from the command line. The JSON
-                        includes the contents of each file in base64.</td>
+                        Only the files that match the names, if any, are included.
+                        The JSON includes the contents of each file in base64.
+                        This can’t be used with <code>--out-dir</code>.</td>
                 </tr>
             </table>
 
