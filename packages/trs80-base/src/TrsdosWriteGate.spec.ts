@@ -4,10 +4,12 @@ import {Density, FloppyDisk, type FloppyDiskGeometry, SectorData, SectorPosition
 import {type Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
 import {decodeTrsdos, Trsdos, TrsdosVersion} from "./Trsdos.js";
 import {TrsdosFindingKind} from "./TrsdosCheck.js";
+import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
 import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile} from "./TrsdosTestDisk.js";
 import {
     directorySizesTried,
     dirSysCoversDirectory,
+    evaluateDosRules,
     evaluateTrsdosWriteGate,
     sidesAreUnproven,
     TrsdosWriteAccess,
@@ -71,6 +73,14 @@ function decode(files: TestFile[] = [], options: TestDiskOptions = {}): Trsdos {
  */
 function kinds(blockers: TrsdosWriteBlocker[]): TrsdosWriteBlockerKind[] {
     return blockers.map(blocker => blocker.kind);
+}
+
+/**
+ * Make the decoded disk claim to be from another DOS, since the test disk can't carry a banner.
+ */
+function withName(trsdos: Trsdos, nameAndVersion: string): Trsdos {
+    Object.defineProperty(trsdos, "nameAndVersion", {value: nameAndVersion});
+    return trsdos;
 }
 
 /**
@@ -195,6 +205,96 @@ describe("evaluateTrsdosWriteGate", () => {
     });
 });
 
+describe("the gate's DOS rules", () => {
+    it("takes the rule set from the disk's name", () => {
+        const gate = evaluateTrsdosWriteGate(decode());
+        expect(decode().nameAndVersion).to.equal("TRSDOS 2.x");
+        expect(gate.ruleSet).to.equal(TrsdosRuleSet.TRSDOS_2);
+        expect(gate.access).to.equal(TrsdosWriteAccess.WRITABLE);
+    });
+
+    it("lets the user's rule set agree with the disk", () => {
+        const gate = evaluateTrsdosWriteGate(decode(), TrsdosRuleSet.TRSDOS_2);
+        expect(gate.blockers).to.eql([]);
+        expect(gate.ruleSet).to.equal(TrsdosRuleSet.TRSDOS_2);
+    });
+
+    it("lets the user name the rules of a disk that doesn't say", () => {
+        const unknown = withName(decode(), "Unknown DOS");
+        const gate = evaluateTrsdosWriteGate(unknown, TrsdosRuleSet.LDOS_5);
+        expect(gate.blockers).to.eql([]);
+        expect(gate.ruleSet).to.equal(TrsdosRuleSet.LDOS_5);
+        expect(gate.access).to.equal(TrsdosWriteAccess.WRITABLE);
+    });
+
+    it("blocks a disk that doesn't say which DOS wrote it", () => {
+        const gate = evaluateTrsdosWriteGate(withName(decode(), "Unknown DOS"));
+        expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
+        expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.UNKNOWN_DOS]);
+        expect(gate.blockers[0].forceable).to.equal(false);
+        expect(gate.blockers[0].message).to.contain("--dos");
+        expect(gate.ruleSet).to.be.undefined;
+    });
+
+    it("blocks a DOS that we have no rules for", () => {
+        const gate = evaluateTrsdosWriteGate(withName(decode(), "TRSDOS 2.3B"));
+        expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
+        expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.UNSUPPORTED_DOS]);
+        expect(gate.blockers[0].forceable).to.equal(false);
+        expect(gate.blockers[0].message).to.equal("Writing TRSDOS 2.3B disks isn't supported yet.");
+    });
+
+    it("blocks a rule set that differs from the disk's DOS, and lets it be forced", () => {
+        const gate = evaluateTrsdosWriteGate(withName(decode(), "LDOS 5.1.4"), TrsdosRuleSet.TRSDOS_2);
+        expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
+        expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.DOS_MISMATCH]);
+        expect(gate.blockers[0].forceable).to.equal(true);
+        expect(gate.blockers[0].message).to.equal("The disk says it's LDOS 5.1.4, not TRSDOS 2.x.");
+        expect(gate.ruleSet).to.equal(TrsdosRuleSet.TRSDOS_2);
+    });
+
+    it("blocks a rule set that differs from an unsupported DOS", () => {
+        const gate = evaluateTrsdosWriteGate(withName(decode(), "DOSPLUS IV 1.0"), TrsdosRuleSet.DOSPLUS);
+        expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.DOS_MISMATCH]);
+    });
+
+    it("blocks a rule set whose layout isn't the disk's, and can't be forced", () => {
+        const gate = evaluateTrsdosWriteGate(decode(), TrsdosRuleSet.TRSDOS_1_3);
+        expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
+        expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH]);
+        expect(gate.blockers[0].forceable).to.equal(false);
+        expect(gate.blockers[0].message).to.equal(
+            "TRSDOS 1.3's rules don't fit this disk's TRSDOS 2.3-style layout.");
+    });
+
+    it("skips the DOS rules for a layout we can't write", () => {
+        const lumpy = reinterpret(decode(), TrsdosVersion.V2_3, 4, 4);
+        const gate = evaluateTrsdosWriteGate(withName(lumpy, "Unknown DOS"));
+        expect(kinds(gate.blockers)).not.to.include(TrsdosWriteBlockerKind.UNKNOWN_DOS);
+        expect(kinds(gate.blockers)).to.include(TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT);
+    });
+
+    it("puts the DOS blockers after the layout and before the rest", () => {
+        const disk = makeTrsdos23TestDisk([]);
+        disk.setMountedWriteProtected(true);
+        const gate = evaluateTrsdosWriteGate(withName(decodeTrsdos(disk)!, "Unknown DOS"));
+        expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.UNKNOWN_DOS, TrsdosWriteBlockerKind.WRITE_PROTECTED]);
+    });
+
+    it("decides from the name and layout alone in evaluateDosRules", () => {
+        const verdict = evaluateDosRules("LS-DOS 6.3", TrsdosVersion.V2_3, undefined);
+        expect(verdict.ruleSet).to.equal(TrsdosRuleSet.TRSDOS_6);
+        expect(verdict.blockers).to.eql([]);
+
+        const named = evaluateDosRules("LS-DOS 6.3", TrsdosVersion.V2_3, TrsdosRuleSet.TRSDOS_6);
+        expect(named.blockers).to.eql([]);
+
+        // The layout mismatch is reported alone, not also as a DOS mismatch.
+        const wrongLayout = evaluateDosRules("TRSDOS 1.3", TrsdosVersion.V1_3, TrsdosRuleSet.LDOS_5);
+        expect(wrongLayout.blockers.map(blocker => blocker.kind)).to.eql([TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH]);
+    });
+});
+
 describe("unsupportedLayoutMessage", () => {
     it("accepts the 2.3 family", () => {
         expect(unsupportedLayoutMessage(decode())).to.be.undefined;
@@ -313,6 +413,10 @@ describe("write access", () => {
     it("maps every kind of blocker to an access level", () => {
         const expected = new Map<TrsdosWriteBlockerKind, TrsdosWriteAccess>([
             [TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT, TrsdosWriteAccess.READ_ONLY],
+            [TrsdosWriteBlockerKind.UNKNOWN_DOS, TrsdosWriteAccess.READ_ONLY],
+            [TrsdosWriteBlockerKind.UNSUPPORTED_DOS, TrsdosWriteAccess.READ_ONLY],
+            [TrsdosWriteBlockerKind.DOS_MISMATCH, TrsdosWriteAccess.READ_ONLY],
+            [TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.WRITE_PROTECTED, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.LAYOUT_DOUBT, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.SIDES_UNPROVEN, TrsdosWriteAccess.READ_ONLY],

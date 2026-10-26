@@ -29,7 +29,7 @@ const NO_PASSWORD = 0xEF5C;
 const PASSWORD = 0xD38F;
 
 // Name of a disk whose DOS we can't tell.
-const UNKNOWN_DOS = "Unknown DOS";
+export const UNKNOWN_DOS = "Unknown DOS";
 
 // Names (in upper case) of the files that hold the boot track, in the DOSes that have one.
 const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);

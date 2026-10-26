@@ -3,13 +3,20 @@ import {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {FloppyDisk} from "./FloppyDisk.js";
 import {Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
 import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
-import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
+import {type Trsdos, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
 import {
     checkTrsdos,
     type TrsdosCheckResult,
     TrsdosFindingSeverity,
     trsdosFindingKindSeverity,
 } from "./TrsdosCheck.js";
+import {
+    identifyTrsdosRuleSet,
+    ruleSetForDosName,
+    type TrsdosRuleSet,
+    trsdosRuleSetLayout,
+    trsdosRuleSetToString,
+} from "./TrsdosRuleSet.js";
 
 // The raw name of the directory's own file, as the directory stores it (8 + 3 characters).
 const DIR_SYS_RAW_FILENAME = "DIR     SYS";
@@ -68,6 +75,28 @@ export enum TrsdosWriteBlockerKind {
     UNSUPPORTED_LAYOUT,
 
     /**
+     * The disk doesn't say which DOS wrote it, and the user didn't name a rule set. The DOS decides
+     * how files are written, and forcing can't choose it. See {@link TrsdosRuleSet}.
+     */
+    UNKNOWN_DOS,
+
+    /**
+     * The disk names a DOS that we have no rules for.
+     */
+    UNSUPPORTED_DOS,
+
+    /**
+     * The user named a rule set, but the disk names a different DOS: one that we have rules for, or one
+     * that we don't.
+     */
+    DOS_MISMATCH,
+
+    /**
+     * The user named a rule set whose layout isn't the disk's.
+     */
+    RULE_SET_LAYOUT_MISMATCH,
+
+    /**
      * The image says it's write-protected, or its format can't be written.
      */
     WRITE_PROTECTED,
@@ -102,6 +131,14 @@ export function trsdosWriteBlockerKindToString(kind: TrsdosWriteBlockerKind): st
     switch (kind) {
         case TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT:
             return "unsupported-layout";
+        case TrsdosWriteBlockerKind.UNKNOWN_DOS:
+            return "unknown-dos";
+        case TrsdosWriteBlockerKind.UNSUPPORTED_DOS:
+            return "unsupported-dos";
+        case TrsdosWriteBlockerKind.DOS_MISMATCH:
+            return "dos-mismatch";
+        case TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH:
+            return "rule-set-layout-mismatch";
         case TrsdosWriteBlockerKind.WRITE_PROTECTED:
             return "write-protected";
         case TrsdosWriteBlockerKind.LAYOUT_DOUBT:
@@ -129,8 +166,8 @@ export interface TrsdosWriteBlocker {
     message: string;
 
     /**
-     * Whether the user may override this blocker (with --force). False only where we have no writer
-     * at all, so there's nothing to force.
+     * Whether the user may override this blocker (with --force). False where we have no writer at
+     * all, or no rules to write with, so there's nothing to force.
      */
     forceable: boolean;
 }
@@ -151,6 +188,12 @@ export interface TrsdosWriteGate {
      * The check that the blockers were based on, so that callers needn't run it again.
      */
     check: TrsdosCheckResult;
+
+    /**
+     * The rule set that applies to writes: the one the user named, or else the one the disk's DOS
+     * follows. Undefined if there's neither.
+     */
+    ruleSet: TrsdosRuleSet | undefined;
 }
 
 /**
@@ -159,6 +202,10 @@ export interface TrsdosWriteGate {
 export function trsdosWriteBlockerKindAccess(kind: TrsdosWriteBlockerKind): TrsdosWriteAccess {
     switch (kind) {
         case TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT:
+        case TrsdosWriteBlockerKind.UNKNOWN_DOS:
+        case TrsdosWriteBlockerKind.UNSUPPORTED_DOS:
+        case TrsdosWriteBlockerKind.DOS_MISMATCH:
+        case TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH:
         case TrsdosWriteBlockerKind.WRITE_PROTECTED:
         case TrsdosWriteBlockerKind.LAYOUT_DOUBT:
         case TrsdosWriteBlockerKind.SIDES_UNPROVEN:
@@ -343,6 +390,102 @@ export function dirSysCoversDirectory(trsdos: Trsdos): boolean {
 }
 
 /**
+ * What the DOS rules say about writing a disk. See {@link evaluateDosRules}.
+ */
+export interface TrsdosDosRulesVerdict {
+    /**
+     * The rule set that applies, or undefined if none does.
+     */
+    ruleSet: TrsdosRuleSet | undefined;
+
+    /**
+     * The DOS blockers (of the four DOS kinds), if any.
+     */
+    blockers: TrsdosWriteBlocker[];
+}
+
+/**
+ * Decide which rule set applies to a disk, and what stands in the way. (Exported for tests.)
+ * Without a rule set from the user, the disk has to name a DOS that we have rules for. With one,
+ * its layout has to be the disk's, and the disk may only name that DOS or none.
+ *
+ * @param nameAndVersion the DOS the disk names ({@link Trsdos.nameAndVersion}).
+ * @param layout the layout the disk was decoded with.
+ * @param givenRuleSet the user's choice, if any.
+ */
+export function evaluateDosRules(nameAndVersion: string, layout: TrsdosVersion,
+                                 givenRuleSet: TrsdosRuleSet | undefined): TrsdosDosRulesVerdict {
+
+    const identifiedRuleSet = ruleSetForDosName(nameAndVersion, layout);
+    const recognized = nameAndVersion !== UNKNOWN_DOS;
+
+    if (givenRuleSet !== undefined) {
+        const ruleSetLayout = trsdosRuleSetLayout(givenRuleSet);
+        if (ruleSetLayout !== layout) {
+            return {
+                ruleSet: givenRuleSet,
+                blockers: [{
+                    kind: TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH,
+                    message: `${trsdosRuleSetToString(givenRuleSet)}'s rules don't fit this disk's ` +
+                        `${layoutDescription(layout)} layout.`,
+                    forceable: false,
+                }],
+            };
+        }
+        if (recognized && identifiedRuleSet !== givenRuleSet) {
+            return {
+                ruleSet: givenRuleSet,
+                blockers: [{
+                    kind: TrsdosWriteBlockerKind.DOS_MISMATCH,
+                    message: `The disk says it's ${nameAndVersion}, not ${trsdosRuleSetToString(givenRuleSet)}.`,
+                    forceable: true,
+                }],
+            };
+        }
+        return {ruleSet: givenRuleSet, blockers: []};
+    }
+
+    if (!recognized) {
+        return {
+            ruleSet: undefined,
+            blockers: [{
+                kind: TrsdosWriteBlockerKind.UNKNOWN_DOS,
+                message: `Can't tell which DOS wrote this disk, and that decides how files are written. ` +
+                    `Name it with --dos; "help dos" lists the choices.`,
+                forceable: false,
+            }],
+        };
+    }
+    if (identifiedRuleSet === undefined) {
+        return {
+            ruleSet: undefined,
+            blockers: [{
+                kind: TrsdosWriteBlockerKind.UNSUPPORTED_DOS,
+                message: `Writing ${nameAndVersion} disks isn't supported yet.`,
+                forceable: false,
+            }],
+        };
+    }
+    return {ruleSet: identifiedRuleSet, blockers: []};
+}
+
+/**
+ * Describe a layout for a message, such as "TRSDOS 2.3-style".
+ */
+function layoutDescription(layout: TrsdosVersion): string {
+    switch (layout) {
+        case TrsdosVersion.V2_3:
+            return "TRSDOS 2.3-style";
+        case TrsdosVersion.V1_3:
+            return "TRSDOS 1.3-style";
+        case TrsdosVersion.V2_7:
+            return "TRSDOS 2.7-style";
+        default:
+            assertNever(layout);
+    }
+}
+
+/**
  * Pick the singular or plural form of "problem" for a count.
  */
 function problems(count: number): string {
@@ -356,15 +499,27 @@ function problems(count: number): string {
  * otherwise written. Each reason is a blocker that a forced write could override, except
  * where we have no writer. Reads the disk (the check does) and changes nothing.
  *
+ * Writing also needs to know which DOS's rules to follow; see {@link TrsdosRuleSet}. The disk's own
+ * name decides that unless the user names a rule set.
+ *
  * @param trsdos the decoded file system.
+ * @param givenRuleSet the rule set the user chose (with --dos), if any.
  */
-export function evaluateTrsdosWriteGate(trsdos: Trsdos): TrsdosWriteGate {
+export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRuleSet): TrsdosWriteGate {
     const check = checkTrsdos(trsdos);
     const blockers: TrsdosWriteBlocker[] = [];
 
     const unsupported = unsupportedLayoutMessage(trsdos);
     if (unsupported !== undefined) {
         blockers.push({kind: TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT, message: unsupported, forceable: false});
+    }
+
+    // The rules are for a layout we can write, as with the sides and the directory size below.
+    let ruleSet = givenRuleSet ?? identifyTrsdosRuleSet(trsdos).ruleSet;
+    if (unsupported === undefined) {
+        const verdict = evaluateDosRules(trsdos.nameAndVersion, trsdos.version, givenRuleSet);
+        blockers.push(...verdict.blockers);
+        ruleSet = verdict.ruleSet;
     }
 
     if (trsdos.disk instanceof FloppyDisk) {
@@ -420,5 +575,6 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos): TrsdosWriteGate {
         access: trsdosWriteAccessForBlockerKinds(blockers.map(blocker => blocker.kind)),
         blockers,
         check,
+        ruleSet,
     };
 }

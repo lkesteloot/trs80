@@ -18,6 +18,7 @@ export * from "./SectorOverlay.js";
 export * from "./Trsdos.js";
 export * from "./TrsdosCheck.js";
 export * from "./TrsdosGranuleMap.js";
+export * from "./TrsdosRuleSet.js";
 export * from "./TrsdosWriteGate.js";
 export * from "./Cpm.js";
 export * from "./MicroDos.js";
