@@ -1,5 +1,5 @@
 import fs from "fs";
-import {Option, program} from "commander";
+import {Command, Option, program} from "commander";
 import {version} from "./version.js";
 import {HexFormat} from "z80-disasm";
 import {colors, honorNoColor, setColorLevel} from "./colors.js";
@@ -16,11 +16,16 @@ import {run} from "./run.js";
 import {repl} from "./repl.js";
 import {mcp} from "./mcp.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
-import {mount} from "./mount.js";
+import {disk} from "./disk/disk.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
-import {expandInputPattern, expandInputPatterns, ToolError} from "./utils.js";
+import {expandInputPattern, expandInputPatterns, ToolError, wordsAfterSubcommand} from "./utils.js";
 import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
+
+/**
+ * The program-level options that take a value, which the disk command must skip to find its words.
+ */
+const PROGRAM_OPTIONS_WITH_VALUES = ["--color", "--trace", "--log-file"];
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -213,17 +218,28 @@ async function main(): Promise<void> {
                     options.lowercase ?? false);
             }
         });
-    if (2 > 3) {
-        program
-            .command("mount <diskfile> [commands...]")
-            .description("mount a floppy file and perform operations on it", {
-                diskfile: "JV1, JV3, DMK, or DSK file",
-                commands: "import FILE [as FILE], export FILE [as FILE], delete FILE, rename FILE to FILE"
-            })
-            .action((diskfile, commands, options) => {
-                mount(diskfile, commands);
-            });
-    }
+    program
+        .command("disk [image] [words...]")
+        .description("operate on one floppy image: disk IMAGE [COMMAND ... [: COMMAND ...]]", {
+            image: "floppy image (JV1, JV3, DMK, DSK, HFE, IMD, SCP)",
+            words: "commands to run in order, separated by a lone \":\" (try \"dir\"); program options such as " +
+                "--color must come before \"disk\"",
+        })
+        .helpOption(false)
+        .allowUnknownOption()
+        .allowExcessArguments()
+        .action((_image, _words, _options, command: Command) => {
+            // Commander eats options it knows anywhere on the line and drops some "--", so ignore its
+            // idea of the arguments and take the raw words.
+            const words = wordsAfterSubcommand(process.argv.slice(2), "disk", PROGRAM_OPTIONS_WITH_VALUES) ?? [];
+            if (words.length === 0 || words[0] === "-h" || words[0] === "--help") {
+                command.outputHelp();
+            } else if (words[0].startsWith("-")) {
+                throw new ToolError("The disk image comes first: trs80-tool disk IMAGE [COMMAND ...]");
+            } else {
+                disk([expandInputPattern(words[0]), ...words.slice(1)]);
+            }
+        });
     program
         .command("sectors <infiles...>")
         .description("show a sector map for each floppy file", {

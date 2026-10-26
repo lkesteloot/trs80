@@ -2,7 +2,9 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import {afterAll, beforeAll, describe, expect, it} from "vitest";
-import {expandInputPattern, expandInputPatterns, fileNameMatchesPattern, ToolError} from "./utils.js";
+import {
+    expandInputPattern, expandInputPatterns, fileNameMatchesPattern, ToolError, wordsAfterSubcommand,
+} from "./utils.js";
 
 describe("fileNameMatchesPattern", () => {
     /**
@@ -161,5 +163,40 @@ describe("expandInputPatterns", () => {
     it("requires exactly one match for a single file", () => {
         expect(path.relative(dir, expandInputPattern(p("c.*")))).to.equal("c.dsk");
         expect(() => expandInputPattern(p("*.dmk"))).to.throw(ToolError, "matches 2 files");
+    });
+});
+
+describe("wordsAfterSubcommand", () => {
+    const withValues = ["--color", "--trace", "--log-file"];
+
+    /**
+     * Find the words after "disk" with the usual program options.
+     */
+    function after(...argv: string[]): string[] | undefined {
+        return wordsAfterSubcommand(argv, "disk", withValues);
+    }
+
+    it("returns the words after the subcommand unchanged", () => {
+        expect(after("disk", "d.dmk", "dir")).to.eql(["d.dmk", "dir"]);
+        expect(after("disk", "d.dmk", "rm", "--", "--color")).to.eql(["d.dmk", "rm", "--", "--color"]);
+        expect(after("disk", "d.dmk", "--help", "--no-pager")).to.eql(["d.dmk", "--help", "--no-pager"]);
+        expect(after("disk")).to.eql([]);
+    });
+
+    it("skips program options before the subcommand", () => {
+        expect(after("--color", "off", "disk", "d.dmk", "dir")).to.eql(["d.dmk", "dir"]);
+        expect(after("--color=16", "--no-pager", "disk", "x")).to.eql(["x"]);
+        expect(after("--trace", "disk", "--log-file", "a.log", "disk", "d.dmk")).to.eql(["d.dmk"]);
+    });
+
+    it("only recognizes the first word that isn't an option", () => {
+        expect(after("dir", "disk")).to.equal(undefined);
+        expect(after("--color", "disk")).to.equal(undefined);
+        expect(after("--no-pager", "disk", "disk")).to.eql(["disk"]);
+    });
+
+    it("returns undefined without a subcommand", () => {
+        expect(after()).to.equal(undefined);
+        expect(after("--no-pager")).to.equal(undefined);
     });
 });

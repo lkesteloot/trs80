@@ -656,6 +656,53 @@ export class XenixTarInputFile extends InputFile {
 }
 
 /**
+ * The files of a decoded floppy file system, as input files.
+ *
+ * @param fileSystem the file system of the floppy.
+ * @param includeSystemFiles whether to include system files.
+ */
+export function floppyInputFiles(fileSystem: NonNullable<ReturnType<typeof decodeFloppyFileSystem>>,
+                                 includeSystemFiles: boolean): InputFile[] {
+    const inFiles: InputFile[] = [];
+
+    if (fileSystem instanceof Trsdos) {
+        for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new TrsdosInputFile(fileSystem, dirEntry));
+        }
+    } else if (fileSystem instanceof Cpm) {
+        const cpmFiles = fileSystem.getDirEntries(includeSystemFiles);
+        const showUser = cpmFiles.some(cpmFile => cpmFile.user !== 0);
+        for (const cpmFile of cpmFiles) {
+            inFiles.push(new CpmInputFile(fileSystem, cpmFile, showUser));
+        }
+    } else if (fileSystem instanceof MicroDos) {
+        for (const microDosFile of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new MicroDosInputFile(fileSystem, microDosFile));
+        }
+    } else if (fileSystem instanceof ModelIITrsdos) {
+        for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new ModelIITrsdosInputFile(fileSystem, dirEntry));
+        }
+    } else if (fileSystem instanceof TrsdosII) {
+        for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new TrsdosIIInputFile(fileSystem, file));
+        }
+    } else if (fileSystem instanceof UcsdPascal) {
+        for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new UcsdPascalInputFile(fileSystem, file));
+        }
+    } else if (fileSystem instanceof XenixTar) {
+        for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new XenixTarInputFile(fileSystem, file));
+        }
+    } else {
+        assertNever(fileSystem);
+    }
+
+    return inFiles;
+}
+
+/**
  * Result of loading an input file.
  */
 export interface LoadedInput {
@@ -718,40 +765,7 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
 
             os = fileSystem.nameAndVersion;
 
-            // Expand floppy.
-            if (fileSystem instanceof Trsdos) {
-                for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new TrsdosInputFile(fileSystem, dirEntry));
-                }
-            } else if (fileSystem instanceof Cpm) {
-                const cpmFiles = fileSystem.getDirEntries(includeSystemFiles);
-                const showUser = cpmFiles.some(cpmFile => cpmFile.user !== 0);
-                for (const cpmFile of cpmFiles) {
-                    inFiles.push(new CpmInputFile(fileSystem, cpmFile, showUser));
-                }
-            } else if (fileSystem instanceof MicroDos) {
-                for (const microDosFile of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new MicroDosInputFile(fileSystem, microDosFile));
-                }
-            } else if (fileSystem instanceof ModelIITrsdos) {
-                for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new ModelIITrsdosInputFile(fileSystem, dirEntry));
-                }
-            } else if (fileSystem instanceof TrsdosII) {
-                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new TrsdosIIInputFile(fileSystem, file));
-                }
-            } else if (fileSystem instanceof UcsdPascal) {
-                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new UcsdPascalInputFile(fileSystem, file));
-                }
-            } else if (fileSystem instanceof XenixTar) {
-                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new XenixTarInputFile(fileSystem, file));
-                }
-            } else {
-                assertNever(fileSystem);
-            }
+            inFiles.push(...floppyInputFiles(fileSystem, includeSystemFiles));
         } else if (isHardDisk(trs80File)) {
             const ldosPartitions = findLdosPartitions(trs80File);
             if (ldosPartitions.length === 0) {

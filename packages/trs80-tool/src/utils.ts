@@ -310,6 +310,36 @@ export function expandInputPattern(arg: string): string {
 }
 
 /**
+ * Find the words that follow a subcommand in the raw command line, exactly as the user typed them.
+ * Commander consumes the program-level options it knows wherever they appear and drops some "--"
+ * words, so a subcommand that parses its own words must not take them from commander.
+ *
+ * Program options are skipped up to the subcommand, along with the values of those that take one
+ * (given as "--color 16" or "--color=16"). The first word that isn't an option must be the subcommand.
+ *
+ * @param argv the command-line arguments, without the node executable and script (process.argv.slice(2)).
+ * @param subcommand the name of the subcommand.
+ * @param programOptionsWithValues the long program options that take a value, such as "--color".
+ * @returns the words after the subcommand, or undefined if the first word that isn't a program
+ * option is not the subcommand (or there is none).
+ */
+export function wordsAfterSubcommand(argv: string[], subcommand: string,
+                                     programOptionsWithValues: string[]): string[] | undefined {
+
+    let i = 0;
+    while (i < argv.length && argv[i].startsWith("-") && argv[i] !== "-" && argv[i] !== "--") {
+        // Skip the value of an option that takes one, unless it was attached with "=".
+        i += programOptionsWithValues.includes(argv[i]) ? 2 : 1;
+    }
+
+    if (i >= argv.length || argv[i] !== subcommand) {
+        return undefined;
+    }
+
+    return argv.slice(i + 1);
+}
+
+/**
  * Whether the name of a file inside a container matches a pattern given to "extract". Matching is
  * case-insensitive. A "*" matches any run of characters except "/", a "?" matches one character
  * except "/", and "**" matches any characters including "/". Every other character is literal.
