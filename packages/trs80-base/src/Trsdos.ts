@@ -713,8 +713,6 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
     const granulesPerTrack = (flags & 0x07) + 1;
     const sideCount = (flags & 0x20) !== 0 ? 2 : 1;
     const density = (flags & 0x40) !== 0 ? Density.DOUBLE : Density.SINGLE;
-    // TODO data disks only reserve 2 entries for system files, not 16. But I don't know which two!
-    const isDataDisk = osVersion === 0x60 && (flags & 0x80) !== 0;
 
     return new TrsdosGatInfo(gat, lockOut, password, name, date, autoCommand,
         osVersion, cylinderCount, granulesPerTrack, sideCount, density);
@@ -1716,9 +1714,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Map a directory sector and dir entry index to an index into the HIT (zero-based).
+     * Map a directory sector and dir entry index to an index into the HIT (zero-based), the entry's
+     * DEC. The sector index counts directory sectors from the one after the GAT and HIT, as
+     * {@link getDirSectors} does. The result isn't checked against the directory's or the HIT's size.
      */
-    private dirEntryToHitNumber(sectorIndex: number,
+    public dirEntryToHitNumber(sectorIndex: number,
                                 dirEntryIndex: number): number {
 
         switch (this.version) {
