@@ -1606,6 +1606,133 @@ export function encodeTrsdos23ExtendedDirEntry(fields: Trsdos23ExtendedDirEntryF
 }
 
 /**
+ * The most extents that a TRSDOS 1.3 directory entry holds, which is all a file can have since 1.3 has
+ * no extended entries. See "Directory entries (TRSDOS 1.3)" in FLOPPY_FORMATS.md.
+ */
+export const TRSDOS_13_EXTENTS_PER_ENTRY = 13;
+
+/**
+ * The 16-bit hash of a blank password under TRSDOS 1.3's own hash, which is what a 1.3 directory entry
+ * holds when the file has no password. The algorithm is {@link hashTrsdos13Password}'s; see "Password
+ * hashes" in FLOPPY_FORMATS.md.
+ */
+export const TRSDOS_13_BLANK_PASSWORD_HASH = 0x5CEF;
+
+/**
+ * The fields of a TRSDOS 1.3 directory entry, as {@link encodeTrsdos13DirEntry} writes them. Each is
+ * the raw value that goes in the entry, so that the caller (which knows the DOS's rules) decides
+ * what the bytes mean. See "Directory entries (TRSDOS 1.3)" in FLOPPY_FORMATS.md.
+ */
+export interface Trsdos13DirEntryFields {
+    /**
+     * Byte 0: the in-use, system, limited-backup and invisible bits and the protection level.
+     */
+    flags: number;
+
+    /**
+     * Byte 1: the month of the file's creation, 0 for none.
+     */
+    month: number;
+
+    /**
+     * Byte 2: the year of the file's creation minus 1900.
+     */
+    year: number;
+
+    /**
+     * Byte 3: the offset of the end of file within the sector after the full ones (0 when the file
+     * ends on a sector boundary).
+     */
+    eofOffset: number;
+
+    /**
+     * Byte 4: the logical record length, where 256 is stored as 0.
+     */
+    lrl: number;
+
+    /**
+     * Bytes 5-15: the name and extension, space padded, 11 characters.
+     */
+    rawFilename: string;
+
+    /**
+     * Bytes 16-17: the update (owner) password hash.
+     */
+    updatePassword: number;
+
+    /**
+     * Bytes 18-19: the access (user) password hash.
+     */
+    accessPassword: number;
+
+    /**
+     * Bytes 20-21: the number of full sectors in the file, not counting a partly filled last one.
+     */
+    sectorCount: number;
+
+    /**
+     * Bytes 22-47: up to 13 extents, each with a granule count of 1 to 31.
+     */
+    extents: AllocatedExtent[];
+}
+
+/**
+ * Build the 48 bytes of a TRSDOS 1.3 directory entry, the inverse of what {@link decodeDirEntry}
+ * reads for that version. Unused extent bytes are 0xFF, as TRSDOS 1.3 leaves them in a new
+ * entry. The fields aren't interpreted, only checked to fit their bytes.
+ *
+ * @param fields the entry's fields.
+ * @return the entry's bytes.
+ * @throws Error if a field doesn't fit, such as more than 13 extents or an extent of 32 granules.
+ */
+export function encodeTrsdos13DirEntry(fields: Trsdos13DirEntryFields): Uint8Array {
+    if (fields.rawFilename.length !== 11) {
+        throw new Error(`The raw file name "${fields.rawFilename}" isn't 11 characters`);
+    }
+    if (fields.extents.length > TRSDOS_13_EXTENTS_PER_ENTRY) {
+        throw new Error(`A TRSDOS 1.3 directory entry holds ${TRSDOS_13_EXTENTS_PER_ENTRY} extents, ` +
+            `not ${fields.extents.length}`);
+    }
+    if (fields.sectorCount < 0 || fields.sectorCount > 0xFFFF) {
+        throw new Error(`The sector count ${fields.sectorCount} doesn't fit in 16 bits`);
+    }
+    if (fields.month < 0 || fields.month > 0xFF || fields.year < 0 || fields.year > 0xFF) {
+        throw new Error(`The date (month ${fields.month}, year ${fields.year}) doesn't fit in the entry`);
+    }
+
+    const binary = new Uint8Array(48);
+    binary[0] = fields.flags;
+    binary[1] = fields.month;
+    binary[2] = fields.year;
+    binary[3] = fields.eofOffset;
+    binary[4] = fields.lrl & 0xFF;
+    for (let i = 0; i < 11; i++) {
+        binary[5 + i] = fields.rawFilename.charCodeAt(i);
+    }
+    binary[16] = fields.updatePassword & 0xFF;
+    binary[17] = fields.updatePassword >> 8;
+    binary[18] = fields.accessPassword & 0xFF;
+    binary[19] = fields.accessPassword >> 8;
+    binary[20] = fields.sectorCount & 0xFF;
+    binary[21] = fields.sectorCount >> 8;
+
+    binary.fill(0xFF, 22, 48);
+    fields.extents.forEach((extent, i) => {
+        // The count is stored as is (not less one) in five bits, so 1 to 31.
+        if (extent.granuleCount < 1 || extent.granuleCount > 31 || extent.granuleOffset < 0 ||
+            extent.granuleOffset > 7 || extent.lump < 0 || extent.lump > 0xFD) {
+
+            throw new Error(`Extent ${i} (lump ${extent.lump}, granule ${extent.granuleOffset}, ` +
+                `count ${extent.granuleCount}) doesn't fit in a directory entry`);
+        }
+        binary[22 + 2*i] = extent.lump;
+        binary[23 + 2*i] = (extent.granuleOffset << 5) | extent.granuleCount;
+    });
+
+    return binary;
+}
+
+/**
  * The NEWDOS/80 PDRIVE settings that read a disk the way we decoded it, worked out from its layout
  * rather than read from the disk. See "PDRIVE" in FLOPPY_FORMATS.md. The interface letter of TI and
  * the step rate (TSR) leave no trace on the disk, so they're not here.

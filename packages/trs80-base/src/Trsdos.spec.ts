@@ -1,10 +1,11 @@
 import {describe, expect, it} from "vitest";
 import {
-    decodeDirEntry, decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, hashTrsdosPassword,
-    parseTrsdosProtectionLevel, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
+    decodeDirEntry, decodeTrsdos, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
+    hashTrsdosPassword, parseTrsdosProtectionLevel, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
     TrsdosProtectionLevel, TrsdosProtectionNames, trsdosProtectionLevels, trsdosProtectionLevelToString,
-    trsdosProtectionNamesFor, TrsdosVersion, type Trsdos23DirEntryFields,
+    trsdosProtectionNamesFor, TrsdosVersion, type Trsdos13DirEntryFields, type Trsdos23DirEntryFields,
 } from "./Trsdos.js";
+import {hashTrsdos13Password} from "./TrsdosFormat.js";
 import {makeTrsdos23TestDisk} from "./TrsdosTestDisk.js";
 
 /**
@@ -295,5 +296,105 @@ describe("protection level names", () => {
         expect(parseTrsdosProtectionLevel("8", ldos)).to.be.undefined;
         expect(parseTrsdosProtectionLevel("bogus", ldos)).to.be.undefined;
         expect(parseTrsdosProtectionLevel("", ldos)).to.be.undefined;
+    });
+});
+
+describe("encodeTrsdos13DirEntry", () => {
+    // The geometry is only used to read the entry back.
+    const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]));
+    if (trsdos === undefined) {
+        throw new Error("Test disk didn't decode as TRSDOS");
+    }
+
+    /**
+     * Decode the bytes as a TRSDOS 1.3 entry, failing the test if they don't decode.
+     */
+    function decode(binary: Uint8Array): TrsdosDirEntry {
+        const dirEntry = decodeDirEntry(binary, trsdos!.geometry, TrsdosVersion.V1_3, undefined, false);
+        if (dirEntry === undefined || typeof dirEntry === "string") {
+            throw new Error("Entry didn't decode: " + dirEntry);
+        }
+        return dirEntry;
+    }
+
+    /**
+     * Fields that use every part of the entry.
+     */
+    function makeFields(): Trsdos13DirEntryFields {
+        return {
+            flags: 0x5A, month: 11, year: 83, eofOffset: 200, lrl: 0, rawFilename: "HELLO   BAS",
+            updatePassword: 0x1234, accessPassword: 0xABCD, sectorCount: 0x0123,
+            extents: Array.from({length: 13}, (_, i) => ({lump: 3 + i, granuleOffset: i % 6, granuleCount: 31 - i})),
+        };
+    }
+
+    it("lays out the entry as the DOS does, with the count as is", () => {
+        const binary = encodeTrsdos13DirEntry(makeFields());
+
+        expect(binary.length).to.eql(48);
+        expect([...binary.subarray(0, 5)]).to.eql([0x5A, 11, 83, 200, 0]);
+        expect(String.fromCharCode(...binary.subarray(5, 16))).to.eql("HELLO   BAS");
+        expect([...binary.subarray(16, 22)]).to.eql([0x34, 0x12, 0xCD, 0xAB, 0x23, 0x01]);
+        expect([...binary.subarray(22, 26)]).to.eql([3, 31, 4, (1 << 5) | 30]);
+    });
+
+    it("round-trips every field through the decoder", () => {
+        const fields = makeFields();
+        const binary = encodeTrsdos13DirEntry(fields);
+        const dirEntry = decode(binary);
+
+        expect(dirEntry.flags).to.eql(0x5A);
+        expect(dirEntry.month).to.eql(11);
+        expect(dirEntry.year).to.eql(1983);
+        expect(dirEntry.day).to.eql(0);
+        expect(dirEntry.lastSectorSize).to.eql(200);
+        expect(dirEntry.rawFilename).to.eql("HELLO   BAS");
+        expect(dirEntry.updatePassword).to.eql(0x1234);
+        expect(dirEntry.accessPassword).to.eql(0xABCD);
+        expect(dirEntry.sectorCount).to.eql(0x0123);
+        expect(dirEntry.getSize()).to.eql(0x0123*256 + 200);
+        expect(dirEntry.extents.map(e => [e.cylinderNumber, e.granuleOffset, e.granuleCount])).to.eql(
+            fields.extents.map(e => [e.lump, e.granuleOffset, e.granuleCount]));
+    });
+
+    it("re-encodes the bytes of an entry the DOS wrote", () => {
+        // A 300-byte file in granule 1 of cylinder 0, with blank passwords, as a hand-made entry.
+        const original = new Uint8Array(48).fill(0xFF);
+        original.set([0x10, 5, 83, 44, 0], 0);
+        original.set([...("HELLO   BAS")].map(c => c.charCodeAt(0)), 5);
+        original.set([0xEF, 0x5C, 0xEF, 0x5C, 1, 0, 0, 0x21], 16);
+        const dirEntry = decode(original);
+        const bytes = encodeTrsdos13DirEntry({
+            flags: dirEntry.flags, month: dirEntry.month, year: dirEntry.year! - 1900, eofOffset: dirEntry.lastSectorSize,
+            lrl: dirEntry.lrl, rawFilename: dirEntry.rawFilename, updatePassword: dirEntry.updatePassword!,
+            accessPassword: dirEntry.accessPassword!, sectorCount: dirEntry.sectorCount,
+            extents: dirEntry.extents.map(e => ({lump: e.cylinderNumber, granuleOffset: e.granuleOffset, granuleCount: e.granuleCount})),
+        });
+
+        expect(bytes).to.eql(original);
+        expect(dirEntry.updatePassword).to.eql(TRSDOS_13_BLANK_PASSWORD_HASH);
+        expect(dirEntry.updatePassword).to.eql(hashTrsdos13Password(""));
+    });
+
+    it("leaves unused extents at 0xFF, and encodes an empty file", () => {
+        const binary = encodeTrsdos13DirEntry({...makeFields(), sectorCount: 0, eofOffset: 0, extents: []});
+
+        expect(binary.subarray(22)).to.eql(new Uint8Array(26).fill(0xFF));
+        const dirEntry = decode(binary);
+        expect(dirEntry.getSize()).to.eql(0);
+        expect(dirEntry.extents).to.eql([]);
+    });
+
+    it("refuses fields that don't fit", () => {
+        const fields = makeFields();
+        const extent = fields.extents[0];
+
+        expect(() => encodeTrsdos13DirEntry({...fields, extents: [...fields.extents, extent]})).to.throw("13 extents");
+        expect(() => encodeTrsdos13DirEntry({...fields, rawFilename: "SHORT"})).to.throw("11 characters");
+        expect(() => encodeTrsdos13DirEntry({...fields, sectorCount: 0x10000})).to.throw("16 bits");
+        expect(() => encodeTrsdos13DirEntry({...fields, extents: [{...extent, granuleCount: 32}]})).to.throw("doesn't fit");
+        expect(() => encodeTrsdos13DirEntry({...fields, extents: [{...extent, granuleCount: 0}]})).to.throw("doesn't fit");
+        expect(() => encodeTrsdos13DirEntry({...fields, extents: [{...extent, lump: 0xFE}]})).to.throw("doesn't fit");
+        expect(() => encodeTrsdos13DirEntry({...fields, year: 256})).to.throw("doesn't fit");
     });
 });

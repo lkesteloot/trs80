@@ -1267,6 +1267,49 @@ LS-DOS 6) and TRSDOS 6's (also used for TRSDOS 1.3 and 2.7; see "Protection leve
 1.3 and 2.7" in `FLOPPY_TODO.md`). `Trsdos.protectionNames` picks the set from the DOS name. The
 `attr` command accepts level 3 on LDOS-named disks by number or as UNUSED, though LDOS reserves it.
 
+## Directory entries (TRSDOS 1.3)
+
+Documented by *Model III TRSDOS Commented* (PDF page 8), and checked against its listings of INIT, CLOSE,
+KILL and RENAME (PDF pages 66-68, 73-77 and 111). 48 bytes, five to a sector, in sectors 3-18 of the directory
+cylinder (80 entries; the HIT's bytes 0-79 are their hashes, in the same order):
+
+    0      bit 6 system, bit 5 limited backups, bit 4 in use, bit 3 invisible, bits 2-0 protection level
+           (bit 7 unused)
+    1      month of creation (0 for none)
+    2      year of creation minus 1900 (so 83 for 1983; there is no day)
+    3      EOF: the offset of the end of the file in the sector after the full ones
+    4      logical record length, 0 meaning 256
+    5-15   name and extension, space padded
+    16-17  update password hash; 18-19 access password hash (1.3's own hash, blank 0x5CEF; see "Password hashes")
+    20-21  the number of full sectors (the DOS calls it the relative sector number of EOF)
+    22-47  thirteen extents of two bytes: the cylinder, then bits 7-5 the granule within it and bits 4-0 the
+           granule count itself (not less one, so at most 31); 0xFF 0xFF ends the list. There are no
+           extended entries.
+
+What the DOS does with it:
+
+- **A new file** (INIT, PDF pages 66-68) takes the first free HIT byte, stores the name's hash there, and fills
+  the entry: byte 0 is 0x10 (visible, user) with the protection level forced to 6 if the file was given a nonblank
+  update password, otherwise level 0; the month and the year come from the system date; the EOF byte and the
+  sector count are 0; the LRL comes from the OPEN; both password hashes follow the name; and all 26 extent bytes
+  are 0xFF. It gets no granules until it is written.
+- **The size** is the full sectors times 256 plus the EOF byte, and DIR shows the sector count plus one as the
+  number of records when the EOF byte is not 0 (PDF pages 123-124). A file whose size is a multiple of 256 has an EOF
+  byte of 0.
+- **CLOSE** (PDF pages 73-75) can trim the file to the granules it needs when the FCB's bit 3 is set. It works
+  out the granules as the sector count plus one, divided by 3 and rounded up, which by the listing keeps one
+  granule too many when the size is a multiple of 768 (not measured). Files the DOS has written often hold more
+  granules than their size needs, since it allocates as it writes and only trims on request; our writer
+  allocates just the sectors the data fills.
+- **KILL** (PDF pages 76-77) clears the HIT byte, gives the extents' granules back in the GAT, and then zeroes
+  all 48 bytes of the entry (unlike the 2.3 family, which keeps the entry for UNKILL).
+- **RENAME** (PDF pages 111-112) writes the new name in the entry and the new hash in the HIT, and nothing else.
+- **AUTO** (PDF pages 103-104) copies the typed command, which ends with a 0x0D, followed by spaces up to 32
+  bytes, to GAT offset 0xE0. At boot the DOS runs it unless its first byte is 0x0D (PDF page 51). FORMAT leaves
+  zeros there.
+- **The date** is the system date, entered at boot as MM/DD/YY; the DATE command rejects a year over 99, so the
+  DOS never writes a year past 1999.
+
 ## Time stamps (LDOS 5.3 and LS-DOS 6.3)
 
 LDOS 5.3 and LS-DOS 6.3 drop the access (user) password and keep the time of
