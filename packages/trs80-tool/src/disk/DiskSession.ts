@@ -1,7 +1,17 @@
 import fs from "fs";
-import {decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, isFloppy, isHardDisk} from "trs80-base";
+import {
+    decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, isFloppy, isHardDisk, Trsdos, TrsdosGranuleMap,
+} from "trs80-base";
+import {withCommas} from "teamten-ts-utils";
 import {floppyInputFiles, InputFile} from "../InputFile.js";
 import {pluralizeWithCount, ToolError} from "../utils.js";
+
+/**
+ * The free space on a TRSDOS-family disk in whole KB, rounded down, such as "23 KB free".
+ */
+function freeKilobytesText(granuleMap: TrsdosGranuleMap): string {
+    return withCommas(Math.floor(granuleMap.getFreeByteCount()/1024)) + " KB free";
+}
 
 /**
  * The open disk that every "disk" command works on. For now it's read-only; later it will
@@ -14,6 +24,8 @@ export class DiskSession {
     public readonly floppy: FloppyDisk;
     /** The DOS on the floppy, or undefined if we didn't recognize one. */
     public readonly fileSystem: ReturnType<typeof decodeFloppyFileSystem>;
+    /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
+    private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
 
     /**
      * Use DiskSession.open() instead.
@@ -68,7 +80,46 @@ export class DiskSession {
     }
 
     /**
-     * A one-line summary of the disk, such as "disk.dmk: Floppy disk (DMK), TRSDOS 2.3, 12 files".
+     * How every granule of a TRSDOS-family disk is used. It's computed on the first call and then kept.
+     *
+     * @returns the map, a string saying why one can't be made, or undefined if the disk has no
+     * file system or its file system isn't TRSDOS-family.
+     */
+    public getGranuleMap(): TrsdosGranuleMap | string | undefined {
+        if (this.granuleMap === null) {
+            this.granuleMap = this.fileSystem instanceof Trsdos ? TrsdosGranuleMap.make(this.fileSystem) : undefined;
+        }
+
+        return this.granuleMap;
+    }
+
+    /**
+     * The space available for new files, such as "112 KB free (90 granules of 1280 bytes)".
+     *
+     * @throws ToolError if the disk has no file system, if its file system isn't TRSDOS-family, or
+     * if the granule map can't be made.
+     */
+    public getFreeSpaceText(): string {
+        if (this.fileSystem === undefined) {
+            throw new ToolError("Can't find a DOS directory on \"" + this.pathname + "\"");
+        }
+        const granuleMap = this.getGranuleMap();
+        if (granuleMap === undefined) {
+            throw new ToolError("Free space isn't known for " + this.fileSystem.nameAndVersion + " disks yet");
+        }
+        if (typeof granuleMap === "string") {
+            throw new ToolError("Can't find the free space: " + granuleMap);
+        }
+
+        const trsdos = granuleMap.trsdos;
+        const granuleBytes = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
+        const freeGranules = granuleMap.getFreeGranuleCount();
+        return freeKilobytesText(granuleMap) + " (" +
+            pluralizeWithCount(freeGranules, "granule") + " of " + withCommas(granuleBytes) + " bytes)";
+    }
+
+    /**
+     * A one-line summary of the disk, such as "disk.dmk: Floppy disk (DMK), TRSDOS 2.3, 12 files, 23 KB free".
      */
     public describe(): string {
         let description = this.pathname + ": " + this.floppy.getDescription();
@@ -78,6 +129,12 @@ export class DiskSession {
             // Users don't care about system files.
             description += ", " + this.fileSystem.nameAndVersion + ", " +
                 pluralizeWithCount(this.fileSystem.getDirEntries(false).length, "file");
+
+            // The free space is only known for some file systems, and not if the GAT is unreadable.
+            const granuleMap = this.getGranuleMap();
+            if (granuleMap !== undefined && typeof granuleMap !== "string") {
+                description += ", " + freeKilobytesText(granuleMap);
+            }
         }
 
         return description;
