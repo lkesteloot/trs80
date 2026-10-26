@@ -2,6 +2,7 @@ import {
     parseTrsdosFormatDos, parseTrsdosRuleSet, TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosCliName, TRSDOS_RULE_SETS,
     TrsdosRuleSet, trsdosRuleSetAliases, trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
+import {assertNever} from "z80-base";
 import {ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, findDiskCommandSpec} from "./DiskCommandParser.js";
 
@@ -43,8 +44,39 @@ const FORMAT_DOS_ALIASES = new Map<string, TrsdosFormatDos>([
 ]);
 
 /**
- * The value of the --dos option of "create" and "format" as the DOS to format for. It takes the names
- * from {@link trsdosFormatDosCliName}, such as "ldos-5.3", and the aliases that name one DOS, such as
+ * Describe a DOS that "create" and "format" can make, for the list of them: what it is and which TRS-80
+ * it's for, such as "TRSDOS 2.3, Model I".
+ */
+function formatDosDescription(dos: TrsdosFormatDos): string {
+    switch (dos) {
+        case TrsdosFormatDos.TRSDOS_2_3:
+            return "TRSDOS 2.3, Model I";
+        case TrsdosFormatDos.TRSDOS_1_3:
+            return "TRSDOS 1.3, Model III";
+        case TrsdosFormatDos.LDOS_5_3:
+            return "LDOS 5.3, Model I (--model 1) or Model III (the default)";
+        case TrsdosFormatDos.TRSDOS_6_2:
+            return "TRSDOS 6.2, Model 4";
+        case TrsdosFormatDos.LSDOS_6_3:
+            return "LS-DOS 6.3, Model 4";
+        default:
+            assertNever(dos);
+    }
+}
+
+/**
+ * The list of the DOSes that "create" and "format" can make disks for, one per line: the name to type,
+ * then what it makes.
+ */
+export function formatDosHelpLines(): string[] {
+    const names = TRSDOS_FORMAT_DOSES.map(trsdosFormatDosCliName);
+    const width = Math.max(... names.map(name => name.length));
+    return TRSDOS_FORMAT_DOSES.map((dos, i) => "  " + names[i].padEnd(width + 2) + formatDosDescription(dos));
+}
+
+/**
+ * The DOS that the user named for "create" or "format". It takes the names from
+ * {@link trsdosFormatDosCliName}, such as "ldos-5.3", and the aliases that name one DOS, such as
  * "ldos-5", "trsdos-6" (TRSDOS 6.2) and "lsdos" (LS-DOS 6.3).
  *
  * @param name what the user typed, in any case.
@@ -53,9 +85,9 @@ const FORMAT_DOS_ALIASES = new Map<string, TrsdosFormatDos>([
 export function parseFormatDosName(name: string): TrsdosFormatDos {
     const dos = parseTrsdosFormatDos(name) ?? FORMAT_DOS_ALIASES.get(name.trim().toLowerCase());
     if (dos === undefined) {
-        const choices = TRSDOS_FORMAT_DOSES.map(trsdosFormatDosCliName).join(", ");
-        throw new ToolError("Unknown DOS \"" + name + "\" for --dos. The choices are " + choices +
-            (name.trim().toLowerCase() === "dosplus" ? " (DOSPLUS disks can't be made yet)" : "") + ".");
+        throw new ToolError("Unknown DOS \"" + name + "\"" +
+            (name.trim().toLowerCase() === "dosplus" ? " (DOSPLUS disks can't be made yet)" : "") +
+            ". The DOSes are:\n" + formatDosHelpLines().join("\n"));
     }
     return dos;
 }

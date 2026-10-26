@@ -154,10 +154,3 @@ export function getDataDiskBootSectors(dos: TrsdosFormatDos, density: Density): 
         return bootSector;
     });
 }
-
-/**
- * Lines for "help create" that list the system disks, one per line.
- */
-export function systemDiskHelpLines(): string[] {
-    return SYSTEM_DISK_TEMPLATES.map(template => "  " + describeSystemDiskTemplate(template));
-}

@@ -21,7 +21,7 @@ const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0
  * One DOS that "create" makes, with what is expected of the disk.
  */
 interface DosCase {
-    /** The value of --dos. */
+    /** The DOS argument of create. */
     dos: string;
     /** The name that the disk's decoded file system has. The decoder can't tell TRSDOS 2.3 from other 2.x. */
     nameAndVersion: string;
@@ -52,17 +52,17 @@ interface BootSectorCase {
 }
 
 const BOOT_SECTOR_CASES: BootSectorCase[] = [
-    {words: ["--dos", "trsdos-2.3"], dos: TrsdosFormatDos.TRSDOS_2_3, density: Density.SINGLE, sectors: [0],
+    {words: ["trsdos-2.3"], dos: TrsdosFormatDos.TRSDOS_2_3, density: Density.SINGLE, sectors: [0],
         directoryCylinderOffset: 2},
-    {words: ["--dos", "trsdos-1.3"], dos: TrsdosFormatDos.TRSDOS_1_3, density: Density.DOUBLE, sectors: [1, 2],
+    {words: ["trsdos-1.3"], dos: TrsdosFormatDos.TRSDOS_1_3, density: Density.DOUBLE, sectors: [1, 2],
         directoryCylinderOffset: 1},
-    {words: ["--dos", "ldos-5.3", "--model", "1"], dos: TrsdosFormatDos.LDOS_5_3, density: Density.SINGLE,
+    {words: ["ldos-5.3", "--model", "1"], dos: TrsdosFormatDos.LDOS_5_3, density: Density.SINGLE,
         sectors: [0, 1], directoryCylinderOffset: 2},
-    {words: ["--dos", "ldos-5.3", "--model", "3"], dos: TrsdosFormatDos.LDOS_5_3, density: Density.DOUBLE,
+    {words: ["ldos-5.3", "--model", "3"], dos: TrsdosFormatDos.LDOS_5_3, density: Density.DOUBLE,
         sectors: [0, 1], directoryCylinderOffset: 2},
-    {words: ["--dos", "trsdos-6.2"], dos: TrsdosFormatDos.TRSDOS_6_2, density: Density.DOUBLE, sectors: [0, 1],
+    {words: ["trsdos-6.2"], dos: TrsdosFormatDos.TRSDOS_6_2, density: Density.DOUBLE, sectors: [0, 1],
         directoryCylinderOffset: 2},
-    {words: ["--dos", "lsdos-6.3"], dos: TrsdosFormatDos.LSDOS_6_3, density: Density.DOUBLE, sectors: [0, 1],
+    {words: ["lsdos-6.3"], dos: TrsdosFormatDos.LSDOS_6_3, density: Density.DOUBLE, sectors: [0, 1],
         directoryCylinderOffset: 2},
 ];
 
@@ -138,12 +138,12 @@ describe("disk create and format", () => {
 
     for (const dosCase of DOS_CASES) {
         it(`creates a ${dosCase.nameAndVersion} disk that decodes by itself and has no files`, async () => {
-            const lines = await runDisk("create", "--dos", dosCase.dos);
+            const lines = await runDisk("create", dosCase.dos);
             expect(lines[0]).to.match(new RegExp("^Created " + imagePathname.replace(/\./g, "\\.") +
                 ": Floppy disk \\(DMK\\), " + dosCase.nameAndVersion.replace(/\./g, "\\.") + ", 0 files, \\d+ KB free$"));
             expect(lines[lines.length - 1]).to.eql("Saved " + imagePathname + ".");
 
-            // Reopen it with no help from --dos.
+            // Reopen it with no help from the global --dos.
             const session = DiskSession.open(imagePathname);
             expect(session.fileSystem?.nameAndVersion).to.eql(dosCase.nameAndVersion);
             expect(session.getInputFiles(false)).to.eql([]);
@@ -152,7 +152,7 @@ describe("disk create and format", () => {
 
         it(`creates a ${dosCase.nameAndVersion} disk, then lists, checks, and adds a file in the same run`, async () => {
             const hostPathname = makeHostFile("data.bin", 3000);
-            const words = ["create", "--dos", dosCase.dos, ":", "dir", ":", "free", ":", "check",
+            const words = ["create", dosCase.dos, ":", "dir", ":", "free", ":", "check",
                 ":", "add", hostPathname, "--as", "DATA/BIN", ":", "dir"];
             const lines = await runDisk(...words);
             expect(lines.some(line => /^\d+ KB free \(\d+ granules? of [\d,]+ bytes( each)?\)$/.test(line))).to.eql(true);
@@ -169,7 +169,7 @@ describe("disk create and format", () => {
     }
 
     it("uses the defaults: 40 cylinders, one side, double density, 35 cylinders for TRSDOS 2.3", async () => {
-        await runDisk("create", "--dos", "ldos-5.3", "--date", "1983-05-09", "--name", "games");
+        await runDisk("create", "ldos-5.3", "--date", "1983-05-09", "--name", "games");
         const lines = await runDisk("label");
         expect(lines.slice(0, 2)).to.eql(["Name: GAMES", "Date: 05/09/83"]);
         const floppy = DiskSession.open(imagePathname).floppy;
@@ -178,23 +178,23 @@ describe("disk create and format", () => {
         expect(geometry.modalDataDensity).to.eql(Density.DOUBLE);
 
         const trsdos23Pathname = path.join(dir, "old.dmk");
-        await runDiskOn(trsdos23Pathname, "create", "--dos", "trsdos-2.3");
+        await runDiskOn(trsdos23Pathname, "create", "trsdos-2.3");
         expect(DiskSession.open(trsdos23Pathname).floppy.getGeometry().cylinderCount).to.eql(35);
     });
 
     it("takes the cylinders, sides, density and model options", async () => {
-        await runDisk("create", "--dos", "ldos-5.3", "--cylinders", "35", "--density", "single");
+        await runDisk("create", "ldos-5.3", "--cylinders", "35", "--density", "single");
         let geometry = DiskSession.open(imagePathname).floppy.getGeometry();
         expect([geometry.cylinderCount, geometry.sideCount, geometry.modalDataDensity]).to.eql([35, 1, Density.SINGLE]);
 
         // Model 1 means single density for LDOS.
-        await runDisk("create", "--dos", "ldos-5.3", "--model", "1", "--force");
+        await runDisk("create", "ldos-5.3", "--model", "1", "--force");
         geometry = DiskSession.open(imagePathname).floppy.getGeometry();
         expect(geometry.modalDataDensity).to.eql(Density.SINGLE);
     });
 
     it("puts today's date on the disk by default, as FORMAT does", async () => {
-        await runDisk("create", "--dos", "lsdos-6.3");
+        await runDisk("create", "lsdos-6.3");
         const lines = await runDisk("label");
         const now = new Date();
         const twoDigits = (n: number) => n.toString().padStart(2, "0");
@@ -213,57 +213,68 @@ describe("disk create and format", () => {
     });
 
     it("refuses an unknown DOS and lists the choices", async () => {
-        const error = await runDiskExpectingError("create", "--dos", "cpm");
-        expect(error.message).to.eql("Unknown DOS \"cpm\" for --dos. The choices are trsdos-2.3, trsdos-1.3, " +
-            "ldos-5.3, trsdos-6.2, lsdos-6.3.");
+        const error = await runDiskExpectingError("create", "cpm");
+        expect(error.message).to.eql("Unknown DOS \"cpm\". The DOSes are:\n" +
+            "  trsdos-2.3  TRSDOS 2.3, Model I\n" +
+            "  trsdos-1.3  TRSDOS 1.3, Model III\n" +
+            "  ldos-5.3    LDOS 5.3, Model I (--model 1) or Model III (the default)\n" +
+            "  trsdos-6.2  TRSDOS 6.2, Model 4\n" +
+            "  lsdos-6.3   LS-DOS 6.3, Model 4");
         expect(fs.existsSync(imagePathname)).to.eql(false);
     });
 
-    it("refuses to create without --dos", async () => {
+    it("refuses to create without a DOS, and lists the choices", async () => {
         const error = await runDiskExpectingError("create");
-        expect(error.message).to.match(/needs --dos/);
+        expect(error.message).to.match(/^create needs a DOS to make the disk for\. The DOSes are:\n  trsdos-2\.3  TRSDOS 2\.3, Model I\n/);
+        expect(error.message).to.contain("  lsdos-6.3   LS-DOS 6.3, Model 4");
+        expect(fs.existsSync(imagePathname)).to.eql(false);
+    });
+
+    it("no longer takes --dos as an option", async () => {
+        const error = await runDiskExpectingError("create", "--dos", "ldos-5.3");
+        expect(error.message).to.match(/Unknown option "--dos"/);
     });
 
     it("refuses options the DOS can't do, and creates no file", async () => {
-        expect((await runDiskExpectingError("create", "--dos", "trsdos-2.3", "--sides", "2")).message)
+        expect((await runDiskExpectingError("create", "trsdos-2.3", "--sides", "2")).message)
             .to.match(/formats only one side/);
-        expect((await runDiskExpectingError("create", "--dos", "ldos-5.3", "--cylinders", "200")).message)
+        expect((await runDiskExpectingError("create", "ldos-5.3", "--cylinders", "200")).message)
             .to.match(/35 to 80 cylinders/);
-        expect((await runDiskExpectingError("create", "--dos", "ldos-5.3", "--cylinders", "x")).message)
+        expect((await runDiskExpectingError("create", "ldos-5.3", "--cylinders", "x")).message)
             .to.match(/Invalid --cylinders/);
-        expect((await runDiskExpectingError("create", "--dos", "ldos-5.3", "--sides", "3")).message)
+        expect((await runDiskExpectingError("create", "ldos-5.3", "--sides", "3")).message)
             .to.match(/Invalid --sides/);
-        expect((await runDiskExpectingError("create", "--dos", "ldos-5.3", "--density", "quad")).message)
+        expect((await runDiskExpectingError("create", "ldos-5.3", "--density", "quad")).message)
             .to.match(/Invalid --density/);
-        expect((await runDiskExpectingError("create", "--dos", "ldos-5.3", "--model", "2")).message)
+        expect((await runDiskExpectingError("create", "ldos-5.3", "--model", "2")).message)
             .to.match(/Invalid --model/);
-        expect((await runDiskExpectingError("create", "--dos", "ldos-5.3", "--name", "1bad")).message)
+        expect((await runDiskExpectingError("create", "ldos-5.3", "--name", "1bad")).message)
             .to.match(/Invalid disk name/);
-        expect((await runDiskExpectingError("create", "--dos", "ldos-5.3", "--date", "1983-02-30")).message)
+        expect((await runDiskExpectingError("create", "ldos-5.3", "--date", "1983-02-30")).message)
             .to.match(/Invalid --date/);
         expect(fs.existsSync(imagePathname)).to.eql(false);
     });
 
-    it("accepts the global --dos option together with the command's own", async () => {
-        const lines = await runDisk("--dos", "ldos-5", "create", "--dos", "lsdos-6.3");
+    it("accepts the global --dos option together with the DOS to create", async () => {
+        const lines = await runDisk("--dos", "ldos-5", "create", "lsdos-6.3");
         expect(lines[0]).to.include("LS-DOS 6.3");
     });
 
     it("refuses an existing disk without --force, and replaces it in memory with it", async () => {
-        await runDisk("create", "--dos", "trsdos-2.3");
+        await runDisk("create", "trsdos-2.3");
         const before = fs.readFileSync(imagePathname);
-        const error = await runDiskExpectingError("create", "--dos", "ldos-5.3");
+        const error = await runDiskExpectingError("create", "ldos-5.3");
         expect(error.message).to.match(/already has a disk; use --force/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
 
-        const lines = await runDisk("create", "--dos", "ldos-5.3", "--force");
+        const lines = await runDisk("create", "ldos-5.3", "--force");
         expect(lines[0]).to.eql("Replaced the disk in memory; nothing is saved until quit.");
         expect(lines[1]).to.include("LDOS 5.3");
         expect(DiskSession.open(imagePathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
     });
 
     it("refuses to create twice in one run without --force", async () => {
-        const error = await runDiskExpectingError("create", "--dos", "ldos-5.3", ":", "create", "--dos", "lsdos-6.3");
+        const error = await runDiskExpectingError("create", "ldos-5.3", ":", "create", "lsdos-6.3");
         expect(error.message).to.match(/already has a disk/);
         // Nothing was saved, since a command failed.
         expect(fs.existsSync(imagePathname)).to.eql(false);
@@ -274,7 +285,7 @@ describe("disk create and format", () => {
             const pathname = path.join(dir, "new" + extension);
             let error: unknown = undefined;
             try {
-                await runDiskOn(pathname, "create", "--dos", "ldos-5.3");
+                await runDiskOn(pathname, "create", "ldos-5.3");
             } catch (e) {
                 error = e;
             }
@@ -287,14 +298,14 @@ describe("disk create and format", () => {
     it("creates to the --output file, even when the image has another name", async () => {
         const inputPathname = path.join(dir, "missing.jv1");
         const outputPathname = path.join(dir, "out.dmk");
-        await runDiskOn(inputPathname, "--output", outputPathname, "create", "--dos", "ldos-5.3");
+        await runDiskOn(inputPathname, "--output", outputPathname, "create", "ldos-5.3");
         expect(fs.existsSync(inputPathname)).to.eql(false);
         expect(DiskSession.open(outputPathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
     });
 
     it("says that a missing image doesn't exist for every other command", async () => {
         for (const command of [["dir"], ["free"], ["check"], ["info"], ["save"], ["rm", "X"], ["add", "x"], ["label"],
-            ["format", "--dos", "ldos-5.3"]]) {
+            ["format", "ldos-5.3"]]) {
 
             const error = await runDiskExpectingError(...command);
             expect(error.message).to.eql(imagePathname + " doesn't exist; use \"create\" to make it");
@@ -309,13 +320,13 @@ describe("disk create and format", () => {
         expect(fs.existsSync(imagePathname)).to.eql(false);
 
         // A quit after a create saves the new disk.
-        const lines = await runDisk("create", "--dos", "ldos-5.3", ":", "quit");
+        const lines = await runDisk("create", "ldos-5.3", ":", "quit");
         expect(lines[lines.length - 1]).to.eql("Saved " + imagePathname + ".");
         expect(fs.existsSync(imagePathname)).to.eql(true);
     });
 
     it("discards a created disk on abort", async () => {
-        const lines = await runDisk("create", "--dos", "ldos-5.3", ":", "abort");
+        const lines = await runDisk("create", "ldos-5.3", ":", "abort");
         expect(lines[lines.length - 1]).to.eql("Discarded the changes to " + imagePathname + ".");
         expect(fs.existsSync(imagePathname)).to.eql(false);
     });
@@ -334,7 +345,7 @@ describe("disk create and format", () => {
     });
 
     it("writes nothing with --dry-run", async () => {
-        const lines = await runDisk("--dry-run", "create", "--dos", "ldos-5.3");
+        const lines = await runDisk("--dry-run", "create", "ldos-5.3");
         expect(lines[lines.length - 1]).to.eql("Not saved (--dry-run): " + imagePathname + " would have changed.");
         expect(fs.existsSync(imagePathname)).to.eql(false);
         expect(fs.readdirSync(dir)).to.eql([]);
@@ -345,7 +356,7 @@ describe("disk create and format", () => {
         // Adding a file verifies the whole disk, which takes a while, so each DOS gets one density.
         for (const [dos, density] of [["ldos-5.3", "single"], ["trsdos-6.2", "double"], ["lsdos-6.3", "double"]]) {
             const pathname = path.join(dir, dos + "-" + density + ".dmk");
-            const lines = await runDiskOn(pathname, "create", "--dos", dos, "--sides", "2", "--density", density,
+            const lines = await runDiskOn(pathname, "create", dos, "--sides", "2", "--density", density,
                 "--cylinders", "35", ":", "add", hostPathname);
             expect(lines.some(line => line.includes("Read-only: "))).to.eql(false);
             const session = DiskSession.open(pathname);
@@ -383,7 +394,7 @@ describe("disk create and format", () => {
     });
 
     it("still makes a disk where we have no boot sectors of the DOS's own", async () => {
-        await runDisk("create", "--dos", "lsdos-6.3", "--density", "single");
+        await runDisk("create", "lsdos-6.3", "--density", "single");
         expect(DiskSession.open(imagePathname).fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
     });
 
@@ -392,7 +403,7 @@ describe("disk create and format", () => {
          * The words of "create" that choose a system disk.
          */
         function systemWords(template: SystemDiskTemplate): string[] {
-            return ["create", "--dos", trsdosFormatDosCliName(template.dos), "--model", String(template.model), "--system"];
+            return ["create", trsdosFormatDosCliName(template.dos), "--model", String(template.model), "--system"];
         }
 
         for (const template of SYSTEM_DISK_TEMPLATES) {
@@ -449,9 +460,9 @@ describe("disk create and format", () => {
         });
 
         it("chooses LDOS 5.3's Model I disk for --model 1 and the Model III disk otherwise", async () => {
-            await runDisk("create", "--dos", "ldos-5.3", "--model", "1", "--system");
+            await runDisk("create", "ldos-5.3", "--model", "1", "--system");
             expect(DiskSession.open(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.SINGLE);
-            await runDisk("create", "--dos", "ldos-5.3", "--system", "--force");
+            await runDisk("create", "ldos-5.3", "--system", "--force");
             expect(DiskSession.open(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.DOUBLE);
         });
 
@@ -480,15 +491,28 @@ describe("disk create and format", () => {
         });
 
         it("refuses --minimal without --system", async () => {
-            const error = await runDiskExpectingError("create", "--dos", "ldos-5.3", "--minimal");
+            const error = await runDiskExpectingError("create", "ldos-5.3", "--minimal");
             expect(error.message).to.eql("--minimal only applies with --system");
         });
 
-        it("lists the system disks in the help for create", async () => {
-            const lines = await runDisk("help", "create");
-            for (const template of SYSTEM_DISK_TEMPLATES) {
-                expect(lines).to.include("  " + describeSystemDiskTemplate(template));
+        it("lists each DOS's name and what it makes in the help for create and format", async () => {
+            const expected = [
+                "  trsdos-2.3  TRSDOS 2.3, Model I",
+                "  trsdos-1.3  TRSDOS 1.3, Model III",
+                "  ldos-5.3    LDOS 5.3, Model I (--model 1) or Model III (the default)",
+                "  trsdos-6.2  TRSDOS 6.2, Model 4",
+                "  lsdos-6.3   LS-DOS 6.3, Model 4",
+            ];
+            for (const command of ["create", "format"]) {
+                const lines = await runDisk("help", command);
+                for (const line of expected) {
+                    expect(lines).to.include(line);
+                }
             }
+            const help = (await runDisk("help", "create")).join("\n");
+            expect(help).to.contain("create DOS [--cylinders N]");
+            expect(help).not.to.contain("other spellings");
+            expect(help).not.to.contain("--dos");
         });
     });
 
@@ -504,7 +528,7 @@ describe("disk create and format", () => {
 
         it("refuses a disk with files without --force and counts them", async () => {
             const pathname = path.join(dir, "old.dmk");
-            await runDiskOn(pathname, "create", "--dos", "ldos-5.3", ":", "add", makeHostFile("a.bin", 100),
+            await runDiskOn(pathname, "create", "ldos-5.3", ":", "add", makeHostFile("a.bin", 100),
                 makeHostFile("b.bin", 100));
             const before = fs.readFileSync(pathname);
 
@@ -521,7 +545,7 @@ describe("disk create and format", () => {
 
         it("formats an empty disk without --force, keeping its DOS, size, and density", async () => {
             const pathname = path.join(dir, "old.dmk");
-            await runDiskOn(pathname, "create", "--dos", "trsdos-6.2", "--cylinders", "50", "--sides", "2",
+            await runDiskOn(pathname, "create", "trsdos-6.2", "--cylinders", "50", "--sides", "2",
                 "--density", "single", "--name", "first");
             const lines = await runDiskOn(pathname, "format", "--name", "second");
             expect(lines[0]).to.eql("Replaced the disk in memory with a blank TRSDOS 6.2 disk; nothing is saved until quit.");
@@ -535,9 +559,9 @@ describe("disk create and format", () => {
 
         it("erases the files with --force and takes a different DOS and size", async () => {
             const pathname = path.join(dir, "old.dmk");
-            await runDiskOn(pathname, "create", "--dos", "ldos-5.3", ":", "add", makeHostFile("a.bin", 100));
+            await runDiskOn(pathname, "create", "ldos-5.3", ":", "add", makeHostFile("a.bin", 100));
 
-            await runDiskOn(pathname, "format", "--force", "--dos", "lsdos-6.3", "--cylinders", "80");
+            await runDiskOn(pathname, "format", "lsdos-6.3", "--force", "--cylinders", "80");
             const session = DiskSession.open(pathname);
             expect(session.fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
             expect(session.getInputFiles(false)).to.eql([]);
@@ -546,7 +570,7 @@ describe("disk create and format", () => {
 
         it("can then add files in the same run", async () => {
             const pathname = path.join(dir, "old.dmk");
-            await runDiskOn(pathname, "create", "--dos", "ldos-5.3");
+            await runDiskOn(pathname, "create", "ldos-5.3");
             await runDiskOn(pathname, "format", ":", "add", makeHostFile("a.bin", 100));
             expect(DiskSession.open(pathname).getInputFiles(false).map(f => f.filename)).to.eql(["A.BIN"]);
         });
@@ -589,27 +613,27 @@ describe("disk create and format", () => {
 
         it("writes nothing with --dry-run", async () => {
             const pathname = path.join(dir, "old.dmk");
-            await runDiskOn(pathname, "create", "--dos", "ldos-5.3");
+            await runDiskOn(pathname, "create", "ldos-5.3");
             const before = fs.readFileSync(pathname);
-            const lines = await runDiskOn(pathname, "--dry-run", "format", "--dos", "lsdos-6.3");
+            const lines = await runDiskOn(pathname, "--dry-run", "format", "lsdos-6.3");
             expect(lines[lines.length - 1]).to.eql("Not saved (--dry-run): " + pathname + " would have changed.");
             expect(fs.readFileSync(pathname)).to.eql(before);
         });
 
         it("refuses an unknown DOS for format, listing the choices", async () => {
             const pathname = path.join(dir, "blank.dmk");
-            await runDiskOn(pathname, "create", "--dos", "ldos-5.3");
+            await runDiskOn(pathname, "create", "ldos-5.3");
 
             let error: unknown = undefined;
             try {
-                await runDiskOn(pathname, "format", "--dos", "dosplus");
+                await runDiskOn(pathname, "format", "dosplus");
             } catch (e) {
                 error = e;
             }
-            expect((error as ToolError).message).to.match(/Unknown DOS "dosplus" for --dos.*DOSPLUS disks can't be made yet/);
+            expect((error as ToolError).message).to.match(/Unknown DOS "dosplus" .*DOSPLUS disks can't be made yet.*The DOSes are/s);
         });
 
-        it("needs --dos and --force for a disk with no file system we recognize", async () => {
+        it("needs a DOS and --force for a disk with no file system we recognize", async () => {
             const pathname = path.join(dir, "blank.jv1");
             fs.writeFileSync(pathname, new Uint8Array(35*10*256));
             const outputPathname = path.join(dir, "formatted.dmk");
@@ -620,17 +644,17 @@ describe("disk create and format", () => {
             } catch (e) {
                 error = e;
             }
-            expect((error as ToolError).message).to.match(/^format needs --dos NAME/);
+            expect((error as ToolError).message).to.match(/^format needs a DOS to format for.*The DOSes are:\n  trsdos-2\.3/s);
 
             error = undefined;
             try {
-                await runDiskOn(pathname, "--output", outputPathname, "format", "--dos", "trsdos-2.3");
+                await runDiskOn(pathname, "--output", outputPathname, "format", "trsdos-2.3");
             } catch (e) {
                 error = e;
             }
             expect((error as ToolError).message).to.match(/no file system that we recognize.*use --force/);
 
-            await runDiskOn(pathname, "--output", outputPathname, "format", "--dos", "trsdos-2.3", "--force");
+            await runDiskOn(pathname, "--output", outputPathname, "format", "trsdos-2.3", "--force");
             expect(DiskSession.open(outputPathname).fileSystem?.nameAndVersion).to.eql("TRSDOS 2.x");
         });
     });

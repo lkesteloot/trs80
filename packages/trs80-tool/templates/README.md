@@ -9,7 +9,7 @@ ships them, and will be taken down on request.
 
 ## System disks
 
-Bootable disks, as gzipped DMK images, copied by `disk create --dos NAME --system`:
+Bootable disks, as gzipped DMK images, copied by `disk create DOS --system`:
 
 | File | What it is |
 |---|---|

@@ -191,17 +191,17 @@ describe("disk undo, redo and revert", () => {
         const missingPathname = path.join(dir, "new.dmk");
         const session = DiskSession.open(missingPathname);
 
-        await run(session, "create --dos ldos-5.3");
+        await run(session, "create ldos-5.3");
         expect(session.hasDisk()).to.equal(true);
         expect(session.hasChanges()).to.equal(true);
 
-        expect(await run(session, "undo")).to.eql(["Undid \"create --dos ldos-5.3\"."]);
+        expect(await run(session, "undo")).to.eql(["Undid \"create ldos-5.3\"."]);
         expect(session.hasDisk()).to.equal(false);
         expect(session.hasChanges()).to.equal(false);
         expect(session.fileSystem).to.equal(undefined);
         expect(session.save()).to.equal(undefined);
 
-        expect(await run(session, "redo")).to.eql(["Redid \"create --dos ldos-5.3\"."]);
+        expect(await run(session, "redo")).to.eql(["Redid \"create ldos-5.3\"."]);
         expect(session.hasDisk()).to.equal(true);
         expect(session.fileSystem?.nameAndVersion).to.match(/^LDOS/);
         expect(session.hasChanges()).to.equal(true);
@@ -301,7 +301,7 @@ describe("disk undo, redo and revert", () => {
     it("reverts a create of an image that never existed to having no disk", async () => {
         const session = DiskSession.open(path.join(dir, "new.dmk"));
 
-        await run(session, "create --dos trsdos-2.3");
+        await run(session, "create trsdos-2.3");
         await run(session, "label --name SECOND");
         await run(session, "revert");
         expect(session.hasDisk()).to.equal(false);

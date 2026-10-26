@@ -7,12 +7,11 @@ import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
-import {DiskOptionSpec, DiskOptionValues, parseAddDate} from "./DiskCommandParser.js";
-import {parseFormatDosName} from "./DiskHelp.js";
+import {DiskOptionSpec, DiskOptionValues, parseAddDate, type ParsedDiskCommand} from "./DiskCommandParser.js";
+import {formatDosHelpLines, parseFormatDosName} from "./DiskHelp.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {
     describeSystemDiskTemplate, findSystemDiskTemplate, getDataDiskBootSectors, loadSystemDiskTemplate,
-    systemDiskHelpLines,
 } from "./DiskTemplates.js";
 
 /**
@@ -25,7 +24,7 @@ const OTHER_IMAGE_EXTENSIONS = [".jv1", ".jv3", ".dsk", ".hfe", ".imd", ".scp", 
  * What the user chose for the disk to make, with what they left out undefined.
  */
 interface FormatChoices {
-    /** The DOS to format for (--dos). */
+    /** The DOS to format for (the command's argument). */
     dos: TrsdosFormatDos | undefined;
     /** The number of cylinders (--cylinders). */
     cylinders: number | undefined;
@@ -42,18 +41,12 @@ interface FormatChoices {
 }
 
 /**
- * The options of "create" and "format", which are the same except for what --dos says.
+ * The options of "create" and "format", which are the same except for what --force says.
  *
- * @param dosDescription the description of --dos.
  * @param forceDescription the description of --force.
  */
-function makeFormatOptionSpecs(dosDescription: string, forceDescription: string): DiskOptionSpec[] {
+function makeFormatOptionSpecs(forceDescription: string): DiskOptionSpec[] {
     return [
-        {
-            name: "--dos",
-            valueName: "NAME",
-            description: dosDescription,
-        },
         {
             name: "--cylinders",
             valueName: "N",
@@ -112,14 +105,14 @@ export function parseCountOption(options: DiskOptionValues, name: string): numbe
 }
 
 /**
- * Read the options that say what disk to make.
+ * Read the DOS argument and the options that say what disk to make.
  *
- * @param options the command's options.
- * @throws ToolError if an option has a bad value.
+ * @param command the parsed command, with at most one argument: the DOS.
+ * @throws ToolError if the DOS or an option has a bad value.
  */
-function parseFormatChoices(options: DiskOptionValues): FormatChoices {
-    const dosText = options.getString("--dos");
-    const dos = dosText === undefined ? undefined : parseFormatDosName(dosText);
+function parseFormatChoices(command: ParsedDiskCommand): FormatChoices {
+    const options = command.options;
+    const dos = command.args.length === 0 ? undefined : parseFormatDosName(command.args[0]);
 
     const sides = parseCountOption(options, "--sides");
     if (sides !== undefined && sides !== 1 && sides !== 2) {
@@ -354,15 +347,14 @@ export const CREATE_COMMAND: DiskCommand = {
     spec: {
         name: "create",
         aliases: [],
-        usage: "--dos NAME [--cylinders N] [--sides 1|2] [--density single|double] [--model 1|3|4] " +
+        usage: "DOS [--cylinders N] [--sides 1|2] [--density single|double] [--model 1|3|4] " +
             "[--name NAME] [--date YYYY-MM-DD] [--system [--minimal]] [--force]",
-        summary: "make a new, blank, formatted data disk, or a bootable system disk",
+        summary: "make a new, blank, formatted data disk for a DOS, or a bootable system disk",
+        // The DOS is required, but a missing one is reported by run(), which lists the choices.
         minArgs: 0,
-        maxArgs: 0,
+        maxArgs: 1,
         options: [
-            ... makeFormatOptionSpecs("the DOS to format for: trsdos-2.3, trsdos-1.3, ldos-5.3, trsdos-6.2, or lsdos-6.3 " +
-                "(required; some other spellings work)",
-                "replace the disk that the image already has, in memory"),
+            ... makeFormatOptionSpecs("replace the disk that the image already has, in memory"),
             {
                 name: "--system",
                 valueName: undefined,
@@ -376,8 +368,10 @@ export const CREATE_COMMAND: DiskCommand = {
             },
         ],
         extraHelpLines: [
-            "The --system disks, one per DOS and model; --cylinders, --sides and --density must match the disk:",
-            ... systemDiskHelpLines(),
+            "DOS is one of:",
+            ... formatDosHelpLines(),
+            "With --system the disk is a copy of the DOS's own (TRSDOS 2.3, TRSDOS 1.3, LDOS 5.3.1, TRSDOS 6.2.1,",
+            "or LS-DOS 6.3.1), which fixes its shape: --cylinders, --sides and --density must match it.",
         ],
     },
 
@@ -395,9 +389,9 @@ export const CREATE_COMMAND: DiskCommand = {
      */
     run(session, command) {
         const options = command.options;
-        const choices = parseFormatChoices(options);
+        const choices = parseFormatChoices(command);
         if (choices.dos === undefined) {
-            throw new ToolError("create needs --dos NAME to say which DOS to format for");
+            throw new ToolError("create needs a DOS to make the disk for. The DOSes are:\n" + formatDosHelpLines().join("\n"));
         }
         const dos = choices.dos;
         const system = options.has("--system");
@@ -494,31 +488,34 @@ export const FORMAT_COMMAND: DiskCommand = {
     spec: {
         name: "format",
         aliases: [],
-        usage: "[--dos NAME] [--cylinders N] [--sides 1|2] [--density single|double] [--model 1|3|4] " +
+        usage: "[DOS] [--cylinders N] [--sides 1|2] [--density single|double] [--model 1|3|4] " +
             "[--name NAME] [--date YYYY-MM-DD] [--force]",
         summary: "erase the disk and format it as an empty data disk",
         minArgs: 0,
-        maxArgs: 0,
-        options: makeFormatOptionSpecs("the DOS to format for, as for create (default: the disk's own DOS, if it's one of those)",
-            "erase a disk that has files"),
+        maxArgs: 1,
+        options: makeFormatOptionSpecs("erase a disk that has files"),
+        extraHelpLines: [
+            "DOS is as for create (default: the disk's own DOS, if it's one of those):",
+            ... formatDosHelpLines(),
+        ],
     },
 
     endsSession: false,
 
     /**
      * Replace the disk in memory with a blank one, as "create" makes. The cylinders and sides default to the
-     * current disk's, and the DOS to the current disk's (which is required if it isn't one that we can format).
+     * current disk's, and the DOS to the current disk's (which must be given if the disk's isn't one that we can format).
      * The result is a DMK image, so a file name for another kind is refused. If the disk has files then
      * --force is required, and the files lost are counted in the message.
      */
     run(session, command) {
         const options = command.options;
-        const choices = parseFormatChoices(options);
+        const choices = parseFormatChoices(command);
 
         const dos = choices.dos ?? sessionFormatDos(session);
         if (dos === undefined) {
-            throw new ToolError("format needs --dos NAME to say which DOS to format for; the disk's DOS isn't one " +
-                "that format can make");
+            throw new ToolError("format needs a DOS to format for, since the disk's DOS isn't one that format can " +
+                "make. The DOSes are:\n" + formatDosHelpLines().join("\n"));
         }
 
         requireDmkPathname(session, "format makes the image a DMK image; give -o NEW.dmk to save to a .dmk file instead");

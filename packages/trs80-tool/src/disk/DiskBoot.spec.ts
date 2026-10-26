@@ -278,7 +278,7 @@ describe("boot", () => {
     }
 
     it("refuses without a terminal", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3");
+        const session = await makeSession("trsdos-2.3");
         vi.spyOn(bootEnvironment, "isTerminal").mockReturnValue(false);
         const runMachine = vi.spyOn(bootEnvironment, "runMachine");
         await expect(run(session, "boot")).rejects.toThrow("boot needs a terminal");
@@ -286,7 +286,7 @@ describe("boot", () => {
     });
 
     it("refuses a bad model, and a disk that doesn't exist", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3");
+        const session = await makeSession("trsdos-2.3");
         fakeTerminal(async () => {});
         await expect(run(session, "boot --model 2")).rejects.toThrow("Invalid --model");
         await expect(runDisk("boot")).resolves.toBeDefined();
@@ -302,12 +302,12 @@ describe("boot", () => {
 
     it("picks the model from the DOS of each system disk, and says why", async () => {
         const cases: { createWords: string[], model: number, density: Density }[] = [
-            { createWords: ["--dos", "trsdos-2.3", "--system"], model: 1, density: Density.SINGLE },
-            { createWords: ["--dos", "trsdos-1.3", "--system"], model: 3, density: Density.DOUBLE },
-            { createWords: ["--dos", "ldos-5.3", "--system", "--model", "1"], model: 1, density: Density.SINGLE },
-            { createWords: ["--dos", "ldos-5.3", "--system"], model: 3, density: Density.DOUBLE },
-            { createWords: ["--dos", "trsdos-6.2", "--system"], model: 4, density: Density.DOUBLE },
-            { createWords: ["--dos", "lsdos-6.3", "--system"], model: 4, density: Density.DOUBLE },
+            { createWords: ["trsdos-2.3", "--system"], model: 1, density: Density.SINGLE },
+            { createWords: ["trsdos-1.3", "--system"], model: 3, density: Density.DOUBLE },
+            { createWords: ["ldos-5.3", "--system", "--model", "1"], model: 1, density: Density.SINGLE },
+            { createWords: ["ldos-5.3", "--system"], model: 3, density: Density.DOUBLE },
+            { createWords: ["trsdos-6.2", "--system"], model: 4, density: Density.DOUBLE },
+            { createWords: ["lsdos-6.3", "--system"], model: 4, density: Density.DOUBLE },
         ];
         for (const { createWords, model, density } of cases) {
             fs.rmSync(imagePathname, { force: true });
@@ -324,7 +324,7 @@ describe("boot", () => {
     });
 
     it("lets --model override the DOS", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3");
+        const session = await makeSession("trsdos-2.3");
         let ranModel = 0;
         fakeTerminal(async config => { ranModel = modelNumber(config); });
         const lines = await run(session, "boot --model 4");
@@ -333,7 +333,7 @@ describe("boot", () => {
     });
 
     it("mounts the session's disk, not the file, and a change to it isn't in the file", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3");
+        const session = await makeSession("trsdos-2.3");
         session.saveAndReport(false);
         const fileBefore = fs.readFileSync(imagePathname);
         let mounted: FloppyDisk | undefined = undefined;
@@ -348,7 +348,7 @@ describe("boot", () => {
     });
 
     it("marks the session changed when the DOS writes, and undo takes the whole session back", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3", "--system");
+        const session = await makeSession("trsdos-2.3", "--system");
         session.saveAndReport(false);
         expect(session.hasChanges()).to.equal(false);
         const before = new Uint8Array(session.floppy.binary);
@@ -377,7 +377,7 @@ describe("boot", () => {
     }, 60_000);
 
     it("decodes the file system again after the DOS wrote", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3", "--system");
+        const session = await makeSession("trsdos-2.3", "--system");
         const fileSystemBefore = session.fileSystem;
         fakeTerminal(async (_config, floppy) => {
             // Any write will do; the session must decode again whatever happened.
@@ -389,7 +389,7 @@ describe("boot", () => {
     });
 
     it("leaves the session unchanged when the DOS doesn't write", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3", "--system");
+        const session = await makeSession("trsdos-2.3", "--system");
         session.saveAndReport(false);
         fakeTerminal(async () => {});
         const lines = await run(session, "boot");
@@ -400,7 +400,7 @@ describe("boot", () => {
     });
 
     it("mounts write-protected with --write-protected, so that the DOS can't write", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3", "--system");
+        const session = await makeSession("trsdos-2.3", "--system");
         session.saveAndReport(false);
         let protectedWhenRun: boolean | undefined = undefined;
         fakeTerminal(async (_config, floppy) => {
@@ -420,7 +420,7 @@ describe("boot", () => {
     });
 
     it("stays write-protected when the image says so, and says why", async () => {
-        await runDisk("create", "--dos", "trsdos-2.3", "--system");
+        await runDisk("create", "trsdos-2.3", "--system");
         // The first byte of a DMK file is its write-protect flag.
         const binary = fs.readFileSync(imagePathname);
         binary[0] = 0xFF;
@@ -437,7 +437,7 @@ describe("boot", () => {
     });
 
     it("is writable by default", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3", "--system");
+        const session = await makeSession("trsdos-2.3", "--system");
         let protectedWhenRun: boolean | undefined = undefined;
         fakeTerminal(async (_config, floppy) => {
             protectedWhenRun = floppy.isWriteProtected();
@@ -448,7 +448,7 @@ describe("boot", () => {
     });
 
     it("hands the shell's terminal back and forth around the machine, even when it fails", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3");
+        const session = await makeSession("trsdos-2.3");
         const events: string[] = [];
         const shellTerminal: DiskShellTerminal = {
             release: () => events.push("release"),
@@ -468,7 +468,7 @@ describe("boot", () => {
     });
 
     it("works in a chain, and the next command sees the disk the DOS left", async () => {
-        await runDisk("create", "--dos", "trsdos-2.3", "--system");
+        await runDisk("create", "trsdos-2.3", "--system");
         fakeTerminal(async (config, floppy) => {
             const machine = new TestMachine(config, floppy);
             killTest1(machine);
@@ -482,7 +482,7 @@ describe("boot", () => {
     }, 60_000);
 
     it("doesn't drop doubled letters typed at the terminal on a Model I", async () => {
-        const session = await makeSession("--dos", "trsdos-2.3", "--system");
+        const session = await makeSession("trsdos-2.3", "--system");
         const config = Config.makeDefault().edit()
             .withModelType(ModelType.MODEL1)
             .withBasicLevel(BasicLevel.LEVEL2)
