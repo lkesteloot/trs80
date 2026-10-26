@@ -79,6 +79,11 @@ export interface FloppyFileSystem<T extends FloppyDirEntry = FloppyDirEntry> {
 }
 
 /**
+ * One of the floppy file systems that decodeFloppyFileSystem() recognizes.
+ */
+export type KnownFloppyFileSystem = Trsdos | Cpm | MicroDos | ModelIITrsdos | TrsdosII | UcsdPascal | XenixTar;
+
+/**
  * Decode whichever file system the floppy has, or return undefined if we don't recognize one.
  *
  * @param disk the floppy.
@@ -86,7 +91,7 @@ export interface FloppyFileSystem<T extends FloppyDirEntry = FloppyDirEntry> {
  * ending text files at their first Ctrl-Z. See decodeCpm(). TRSDOS files aren't affected.
  */
 export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false):
-    Trsdos | Cpm | MicroDos | ModelIITrsdos | TrsdosII | UcsdPascal | XenixTar | undefined {
+    KnownFloppyFileSystem | undefined {
 
     // The Model II's TRSDOS-II and TRSDOS first: their structures are at known places and their
     // decoders are strict, while the TRSDOS decoder searches the whole disk and can find a

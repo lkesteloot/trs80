@@ -1,6 +1,6 @@
 import fs from "fs";
 import {
-    decodeFloppyFileSystem, decodeTrs80File, evaluateTrsdosWriteGate, FloppyDisk, isFloppy, isHardDisk, Trsdos,
+    decodeFloppyFileSystem, decodeTrs80File, evaluateTrsdosWriteGate, FloppyDisk, isFloppy, isHardDisk, type KnownFloppyFileSystem, Trsdos,
     TrsdosGranuleMap, TrsdosWriteAccess, type TrsdosWriteGate,
 } from "trs80-base";
 import {withCommas} from "teamten-ts-utils";
@@ -25,7 +25,7 @@ export class DiskSession {
     /** The decoded floppy. */
     public readonly floppy: FloppyDisk;
     /** The DOS on the floppy, or undefined if we didn't recognize one. */
-    public readonly fileSystem: ReturnType<typeof decodeFloppyFileSystem>;
+    public readonly fileSystem: KnownFloppyFileSystem | undefined;
     /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
     private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
     /** Cache for getWriteGate(), null until the first call (undefined is a valid result). */
@@ -34,7 +34,7 @@ export class DiskSession {
     /**
      * Use DiskSession.open() instead.
      */
-    private constructor(pathname: string, floppy: FloppyDisk, fileSystem: ReturnType<typeof decodeFloppyFileSystem>) {
+    private constructor(pathname: string, floppy: FloppyDisk, fileSystem: KnownFloppyFileSystem | undefined) {
         this.pathname = pathname;
         this.floppy = floppy;
         this.fileSystem = fileSystem;

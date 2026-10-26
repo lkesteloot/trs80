@@ -5,7 +5,7 @@ import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
-    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, findLdosPartitions, getFloppyDetails, isFloppy,
+    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findLdosPartitions, getFloppyDetails, isFloppy,
     isHardDisk, MicroDos,
     modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
     UcsdPascal, XenixTar} from "trs80-base";
@@ -43,7 +43,7 @@ function getWavFileMetadata(wavFile: AudioFile): string[] {
  * @param floppy the decoded floppy image.
  * @param fileSystem the DOS on the floppy, or undefined if none was recognized.
  */
-export function floppyDetailLines(floppy: FloppyDisk, fileSystem: ReturnType<typeof decodeFloppyFileSystem>): string[] {
+export function floppyDetailLines(floppy: FloppyDisk, fileSystem: KnownFloppyFileSystem | undefined): string[] {
     return getFloppyDetails(floppy, fileSystem).map(detail => detail.label + ": " + detail.value);
 }
 
@@ -404,7 +404,7 @@ function trackGeometryToJson(trackGeometry: TrackGeometry): TrackGeometryInfoJso
  *
  * @param fileSystem the file system.
  */
-function fileSystemDetailsToJson(fileSystem: NonNullable<ReturnType<typeof decodeFloppyFileSystem>>):
+function fileSystemDetailsToJson(fileSystem: KnownFloppyFileSystem):
     Pick<OsInfoJson, "trsdos" | "cpm" | "microDos" | "ucsdPascal" | "modelIITrsdos" | "trsdosII" | "xenixTar"> {
 
     if (fileSystem instanceof Trsdos) {

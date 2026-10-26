@@ -6,7 +6,7 @@ import {
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem,
+    TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type KnownFloppyFileSystem,
     decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, getTrs80FileExtension, isFloppy, isHardDisk, microDosFileTypeToString, trsdosIIProtectionLevelToString,
     trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
@@ -661,7 +661,7 @@ export class XenixTarInputFile extends InputFile {
  * @param fileSystem the file system of the floppy.
  * @param includeSystemFiles whether to include system files.
  */
-export function floppyInputFiles(fileSystem: NonNullable<ReturnType<typeof decodeFloppyFileSystem>>,
+export function floppyInputFiles(fileSystem: KnownFloppyFileSystem,
                                  includeSystemFiles: boolean): InputFile[] {
     const inFiles: InputFile[] = [];
 
