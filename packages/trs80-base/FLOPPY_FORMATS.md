@@ -323,6 +323,9 @@ entry in DEC 0x01. BOOT/SYS matched on all 68 disks that have it. The NEWDOS/80
 manual (page 98) calls 0x2C a bug of old Model I disks, which NEWDOS/80 reports as
 "file not in directory" until it's patched to 0xC4, and the HIT dump in the
 1979 *Disk & Other Mysteries* (page 45) has it too.
+Percom DoubleDOS 4.2x keeps DIR/SYS in DEC 0x00 rather than 0x01, with the same
+0x2C. `evaluate()` doesn't count that one, but `checkTrsdos()` doesn't report it as
+a HIT mismatch either.
 
 **Blank system names can be confirmed from their slot.** Four Meta Technologies data
 disks in `ira/lk-341-set-2` (Mingle II, Rebuild, Shrink, Supersede) have the names of

@@ -23,7 +23,8 @@ export interface TestFile {
     name: string;
 
     /**
-     * The file's extents, at most four (there are no extended entries yet).
+     * The file's extents. The first four go in its directory entry; any more go four at a time into
+     * extended entries, in the next free slots, chained with the DOS's links.
      */
     extents: TestExtent[];
 
@@ -46,6 +47,44 @@ export interface TestFile {
      * The byte that fills the file's sectors. Defaults to a different value for each file.
      */
     data?: number | undefined;
+
+    /**
+     * The HIT byte for the file's primary entry, in place of the hash of its name, to make a
+     * mismatch.
+     */
+    hitByte?: number | undefined;
+
+    /**
+     * The HIT byte for the file's extended entries, in place of the hash of its name.
+     */
+    extendedHitByte?: number | undefined;
+
+    /**
+     * The DEC to write as the link to an extended entry (for a file with no extended entries
+     * of its own), pointing at a slot that holds nothing, to make a broken chain. See
+     * {@link testUserSlotDec}.
+     */
+    danglingNextDec?: number | undefined;
+}
+
+/**
+ * An extended directory entry that belongs to no file's chain, to put on the test disk.
+ */
+export interface TestStrayExtendedEntry {
+    /**
+     * The DEC of the entry this one claims to extend. See {@link testUserSlotDec}.
+     */
+    prevDec: number;
+
+    /**
+     * The HIT byte for the entry.
+     */
+    hitByte: number;
+
+    /**
+     * The entry's extents, at most four.
+     */
+    extents: TestExtent[];
 }
 
 /**
@@ -71,6 +110,11 @@ export interface TestDiskOptions {
      * Lumps (cylinders) to lock out: both granules, and used in the GAT.
      */
     lockedOut?: number[] | undefined;
+
+    /**
+     * Extended entries to put in the free user slots after the files' own, which no chain reaches.
+     */
+    strayExtendedEntries?: TestStrayExtendedEntry[] | undefined;
 }
 
 const SECTORS_PER_TRACK = 10;
@@ -87,6 +131,7 @@ const USER_ENTRIES_PER_SECTOR = DIR_ENTRIES_PER_SECTOR - FIRST_USER_ENTRY;
 const MAX_EXTENTS_PER_ENTRY = 4;
 const FLAG_IN_USE = 0x10;
 const FLAG_INVISIBLE = 0x08;
+const FLAG_EXTENDED = 0x80;
 const FLAG_SYSTEM = 0x40;
 // GAT byte of a lump with no granules in use: the unused high bits are set.
 const GAT_FREE_BYTE = 0xFC;
@@ -138,53 +183,83 @@ function toRawFilename(name: string): string {
 }
 
 /**
- * The directory entry, GAT bits and sector fill that a file needs.
+ * The DEC (HIT index) of a user directory slot. User slot 0 is entry 2 of directory sector 0, slot 1 is
+ * entry 3, and so on, six entries per sector. Files take one slot each, plus one for every
+ * extended entry (see {@link TestFile.extents}), in order. Stray extended entries come after.
  */
-interface PlacedFile {
-    file: TestFile;
+export function testUserSlotDec(userSlotIndex: number): number {
+    const dirSectorIndex = Math.floor(userSlotIndex/USER_ENTRIES_PER_SECTOR);
+    const entryIndex = FIRST_USER_ENTRY + userSlotIndex % USER_ENTRIES_PER_SECTOR;
+    return (entryIndex << 5) | dirSectorIndex;
+}
+
+/**
+ * A directory slot to write.
+ */
+interface DirSlotToWrite {
     // The sector index within the directory, and the entry within that sector.
     dirSectorIndex: number;
     entryIndex: number;
-    // The byte that fills the file's sectors, or undefined for the system files, which have no data of their own.
-    fillByte: number | undefined;
+    // The raw 11-character name, blank for extended entries.
+    rawFilename: string;
+    system: boolean;
+    invisible: boolean;
+    // The DEC of the primary entry (or previous extended entry), for an extended entry, otherwise undefined.
+    prevDec: number | undefined;
+    // The DEC to write as the link to the next extended entry, if any.
+    nextDec: number | undefined;
+    // The extents that go in this entry, at most four.
+    extents: TestExtent[];
+    // The file's size, or 0 for an extended entry.
+    size: number;
+    hitByte: number;
 }
 
 /**
  * Write a directory entry and its HIT byte.
  */
-function writeDirEntry(binary: Uint8Array, placed: PlacedFile, hitByte: number, size: number): void {
-    const {file, dirSectorIndex, entryIndex} = placed;
-    const rawFilename = toRawFilename(file.name);
+function writeDirEntry(binary: Uint8Array, slot: DirSlotToWrite): void {
+    const {dirSectorIndex, entryIndex} = slot;
     const entryOffset = sectorOffset(DIR_CYLINDER, 2 + dirSectorIndex) + entryIndex*DIR_ENTRY_LENGTH;
+    const isExtended = slot.prevDec !== undefined;
 
     let flags = FLAG_IN_USE;
-    if (file.system === true) {
+    if (slot.system) {
         flags |= FLAG_SYSTEM;
     }
-    if (file.invisible === true) {
+    if (slot.invisible) {
         flags |= FLAG_INVISIBLE;
     }
+    if (isExtended) {
+        flags |= FLAG_EXTENDED;
+    }
     binary[entryOffset] = flags;
+    // An extended entry's byte 1 is the DEC of the entry it extends.
+    binary[entryOffset + 1] = slot.prevDec ?? 0;
     // TRSDOS 2.3 counts the partial last sector in the sector count, so the sector count is the
     // rounded-up number of sectors and byte 3 is the end-of-file offset in the last one.
-    binary[entryOffset + 3] = size % BYTES_PER_SECTOR;
+    binary[entryOffset + 3] = slot.size % BYTES_PER_SECTOR;
     // LRL of 256.
     binary[entryOffset + 4] = 0;
-    writeText(binary, entryOffset + 5, rawFilename, 11);
+    writeText(binary, entryOffset + 5, slot.rawFilename, 11);
     writeWord(binary, entryOffset + 16, TRSDOS_BLANK_PASSWORD_HASH);
     writeWord(binary, entryOffset + 18, TRSDOS_BLANK_PASSWORD_HASH);
-    writeWord(binary, entryOffset + 20, Math.ceil(size/BYTES_PER_SECTOR));
+    writeWord(binary, entryOffset + 20, Math.ceil(slot.size/BYTES_PER_SECTOR));
 
     // Extents, then 0xFF 0xFF for the unused ones and for the (absent) extended entry link.
     binary.fill(0xFF, entryOffset + 22, entryOffset + DIR_ENTRY_LENGTH);
-    for (let i = 0; i < file.extents.length; i++) {
-        const [lump, granuleOffset, granuleCount] = file.extents[i];
+    for (let i = 0; i < slot.extents.length; i++) {
+        const [lump, granuleOffset, granuleCount] = slot.extents[i];
         binary[entryOffset + 22 + 2*i] = lump;
         binary[entryOffset + 22 + 2*i + 1] = (granuleOffset << 5) | (granuleCount - 1);
     }
+    if (slot.nextDec !== undefined) {
+        binary[entryOffset + 30] = 0xFE;
+        binary[entryOffset + 31] = slot.nextDec;
+    }
 
     // HIT byte: index is (entry << 5) | sector.
-    binary[sectorOffset(DIR_CYLINDER, 1) + ((entryIndex << 5) | dirSectorIndex)] = hitByte;
+    binary[sectorOffset(DIR_CYLINDER, 1) + ((entryIndex << 5) | dirSectorIndex)] = slot.hitByte;
 }
 
 /**
@@ -204,9 +279,6 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
     const cylinderCount = options.cylinderCount ?? 35;
     if (cylinderCount <= DIR_CYLINDER || cylinderCount > GAT_LOCKOUT_OFFSET) {
         throw new Error("Unsupported cylinder count " + cylinderCount);
-    }
-    if (files.length > DIR_SECTOR_COUNT*USER_ENTRIES_PER_SECTOR) {
-        throw new Error("Too many files");
     }
     const binary = new Uint8Array(cylinderCount*SECTORS_PER_TRACK*BYTES_PER_SECTOR);
 
@@ -244,25 +316,39 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
         }
     };
 
-    // Place all the files: system files first, at their fixed slots.
+    // The files to place: system files first, at their fixed slots, then the user files in the
+    // user slots, which are allocated as we go.
+    interface PlacedFile {
+        file: TestFile;
+        // The byte that fills the file's sectors, or undefined for the system files, which have no data of their own.
+        fillByte: number | undefined;
+        // The primary entry's slot, for the system files only.
+        fixedSlot: { dirSectorIndex: number, entryIndex: number } | undefined;
+    }
     const placed: PlacedFile[] = [
-        {file: bootFile, dirSectorIndex: 0, entryIndex: 0, fillByte: undefined},
-        {file: dirFile, dirSectorIndex: 1, entryIndex: 0, fillByte: undefined},
+        {file: bootFile, fillByte: undefined, fixedSlot: {dirSectorIndex: 0, entryIndex: 0}},
+        {file: dirFile, fillByte: undefined, fixedSlot: {dirSectorIndex: 1, entryIndex: 0}},
     ];
     files.forEach((file, i) => {
-        placed.push({
-            file,
-            dirSectorIndex: Math.floor(i/USER_ENTRIES_PER_SECTOR),
-            entryIndex: FIRST_USER_ENTRY + i % USER_ENTRIES_PER_SECTOR,
-            fillByte: file.data ?? (0x41 + i) & 0xFF,
-        });
+        placed.push({file, fillByte: file.data ?? (0x41 + i) & 0xFF, fixedSlot: undefined});
     });
+
+    // Allocate the next free user slot.
+    let nextUserSlot = 0;
+    const allocateUserSlot = (): { dirSectorIndex: number, entryIndex: number, dec: number } => {
+        if (nextUserSlot >= DIR_SECTOR_COUNT*USER_ENTRIES_PER_SECTOR) {
+            throw new Error("Too many directory entries");
+        }
+        const userSlotIndex = nextUserSlot++;
+        return {
+            dirSectorIndex: Math.floor(userSlotIndex/USER_ENTRIES_PER_SECTOR),
+            entryIndex: FIRST_USER_ENTRY + userSlotIndex % USER_ENTRIES_PER_SECTOR,
+            dec: testUserSlotDec(userSlotIndex),
+        };
+    };
 
     for (const placedFile of placed) {
         const {file} = placedFile;
-        if (file.extents.length > MAX_EXTENTS_PER_ENTRY) {
-            throw new Error(`File ${file.name} has more than ${MAX_EXTENTS_PER_ENTRY} extents`);
-        }
 
         // The GAT bit and fill for every granule the file's extents cover. Like the DOS, a count that
         // runs past the end of a lump continues in the next one.
@@ -296,10 +382,51 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
             }
         }
 
+        // Split the extents among the primary entry and any extended entries, and give each a slot.
+        const rawFilename = toRawFilename(file.name);
+        const extentGroups: TestExtent[][] = [];
+        for (let i = 0; i < Math.max(file.extents.length, 1); i += MAX_EXTENTS_PER_ENTRY) {
+            extentGroups.push(file.extents.slice(i, i + MAX_EXTENTS_PER_ENTRY));
+        }
+        const entrySlots = extentGroups.map((_, i) =>
+            i === 0 && placedFile.fixedSlot !== undefined ? {...placedFile.fixedSlot, dec: -1} : allocateUserSlot());
+
         // DIR/SYS's HIT slot (entry 0 of sector 1, which is HIT index 1) holds the old wrong hash.
         const isDirSys = file === dirFile;
-        const hitByte = isDirSys ? OLD_DIR_SYS_HASH : hashForFilename(toRawFilename(file.name));
-        writeDirEntry(binary, placedFile, hitByte, size);
+        const hash = hashForFilename(rawFilename);
+        for (let i = 0; i < extentGroups.length; i++) {
+            const isPrimary = i === 0;
+            const nextDec = i + 1 < extentGroups.length ? entrySlots[i + 1].dec : file.danglingNextDec;
+            writeDirEntry(binary, {
+                dirSectorIndex: entrySlots[i].dirSectorIndex,
+                entryIndex: entrySlots[i].entryIndex,
+                rawFilename: isPrimary ? rawFilename : "",
+                system: file.system === true,
+                invisible: file.invisible === true,
+                prevDec: isPrimary ? undefined : entrySlots[i - 1].dec,
+                nextDec,
+                extents: extentGroups[i],
+                size: isPrimary ? size : 0,
+                hitByte: isPrimary ? file.hitByte ?? (isDirSys ? OLD_DIR_SYS_HASH : hash) : file.extendedHitByte ?? hash,
+            });
+        }
+    }
+
+    // Extended entries that belong to no chain.
+    for (const stray of options.strayExtendedEntries ?? []) {
+        const slot = allocateUserSlot();
+        writeDirEntry(binary, {
+            dirSectorIndex: slot.dirSectorIndex,
+            entryIndex: slot.entryIndex,
+            rawFilename: "",
+            system: false,
+            invisible: false,
+            prevDec: stray.prevDec,
+            nextDec: undefined,
+            extents: stray.extents,
+            size: 0,
+            hitByte: stray.hitByte,
+        });
     }
 
     for (const [lump, granule] of options.gatUsed ?? []) {

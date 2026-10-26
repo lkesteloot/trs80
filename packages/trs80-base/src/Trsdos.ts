@@ -200,8 +200,17 @@ const OLD_DIR_SYS_HASH = 0x2C;
  * shows it. Accept it only in DIR/SYS's own slot, so that it's as specific as a real match.
  */
 function isOldDirSysHash(version: TrsdosVersion, hitIndex: number, rawFilename: string, hitHash: number): boolean {
+    return hitIndex === DIR_SYS_HIT_INDEX && isOldDirSysHashInAnySlot(version, rawFilename, hitHash);
+}
+
+/**
+ * Whether a HIT byte is the old wrong hash for DIR/SYS, wherever DIR/SYS's entry is. The decoder
+ * accepts it only in DIR/SYS's usual slot (see isOldDirSysHash()), but Percom DoubleDOS keeps
+ * DIR/SYS in DEC 0x00 with the same byte ("The HIT" in FLOPPY_FORMATS.md), so a consistency
+ * check shouldn't call it a mismatch there either.
+ */
+export function isOldDirSysHashInAnySlot(version: TrsdosVersion, rawFilename: string, hitHash: number): boolean {
     return version === TrsdosVersion.V2_3 &&
-        hitIndex === DIR_SYS_HIT_INDEX &&
         rawFilename === "DIR     SYS" &&
         hitHash === OLD_DIR_SYS_HASH;
 }
@@ -781,6 +790,50 @@ function decodeHitInfo(binary: Uint8Array, version: TrsdosVersion): TrsdosHitInf
     const hit = binary.subarray(0, hitLength);
 
     return new TrsdosHitInfo(hit, systemFiles);
+}
+
+/**
+ * One active slot of the directory: an entry, primary or extended, and where the HIT lists it.
+ */
+export interface TrsdosDirSlot {
+    /**
+     * The entry, after the decoder has named blank-named entries and linked extended entries to
+     * their primaries (prevDirEntry and nextDirEntry).
+     */
+    dirEntry: TrsdosDirEntry;
+
+    /**
+     * The entry's position in the HIT (its DEC, the directory entry code).
+     */
+    hitIndex: number;
+
+    /**
+     * The HIT's byte for this slot, which should be the hash of the file's name. Undefined when the
+     * HIT is ignored or can't be read.
+     */
+    hitByte: number | undefined;
+
+    /**
+     * Whether the entry's name was blank on disk. The decoder restores or invents a name for these,
+     * so the name's hash can't be compared with the HIT byte.
+     */
+    nameWasBlank: boolean;
+}
+
+/**
+ * The result of reading the directory: its slots and the files made from them.
+ */
+export interface TrsdosDirectory {
+    /**
+     * Every active slot, primary and extended, in directory order.
+     */
+    slots: TrsdosDirSlot[];
+
+    /**
+     * The primary entries, including system files and TRSDOS 1.3's synthesized ones. The entries
+     * from slots are the same objects as in the slots.
+     */
+    files: TrsdosDirEntry[];
 }
 
 /**
@@ -1798,11 +1851,34 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * active even if its in-use bit is set: the DOS finds files through the HIT, so it can't reach
      * the entry, which is left over from an earlier directory. Disks made by copying a directory
      * sector have these, often with the same names as live files.
+     *
+     * Only primary entries are returned. See {@link getDirectory} for the extended ones.
      */
     public getDirEntries(includeSystemFiles: boolean): TrsdosDirEntry[] {
-        // Map from position of directory entry to its actual entry. The key is the asKey() result
+        return this.getDirectory().files.filter(d => includeSystemFiles || !d.isSystemFile());
+    }
+
+    /**
+     * Read every active slot of the directory, including extended entries, each with its position in
+     * the HIT and its HIT byte. These are the same slots (and the same entry objects) that
+     * {@link getDirEntries} considers, in directory order, but without TRSDOS 1.3's synthesized
+     * system files, which have no slot. Each call decodes the directory again, so use
+     * {@link getDirectory} when you need the slots and the files together.
+     */
+    public getDirSlots(): TrsdosDirSlot[] {
+        return this.getDirectory().slots;
+    }
+
+    /**
+     * Read the directory once and return both its active slots (primary and extended) and the files
+     * built from them, so that the entry objects in the two agree. Extended entries are linked to
+     * their primaries through prevDirEntry and nextDirEntry. See {@link getDirEntries} for which
+     * entries are active.
+     */
+    public getDirectory(): TrsdosDirectory {
+        // Map from position of directory entry to its slot. The key is the key() result
         // of DirEntryPosition.
-        const dirEntries = new Map<string, TrsdosDirEntry>();
+        const slotsByPosition = new Map<string, TrsdosDirSlot>();
         // Without a readable HIT, or when ignoring it, assume it lists every entry.
         const hitInfo = this.hitIgnored ? "ignored" : this.getHitInfo();
         // Count of entries whose names are still blank, for naming them.
@@ -1829,7 +1905,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                             // blank name extracts as "_" and two of them would overwrite each other.
                             // Do this before the entry goes in the map so that the linking below uses
                             // the renamed objects. No warning here, since this method is called often.
+                            let nameWasBlank = false;
                             if (!dirEntry.isExtendedEntry() && isBlankFilename(dirEntry.rawFilename)) {
+                                nameWasBlank = true;
                                 const reconstructedName = typeof hitInfo === "string" ? undefined :
                                     reconstructBlankFilename(this.version, hitIndex, hitInfo.hit[hitIndex], dirEntry);
                                 if (reconstructedName !== undefined) {
@@ -1839,7 +1917,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                                     dirEntry = dirEntry.withRawFilename(("BLANK" + blankCount).padEnd(11, " "));
                                 }
                             }
-                            dirEntries.set(new DirEntryPosition(sectorIndex, i).key(), dirEntry);
+                            slotsByPosition.set(new DirEntryPosition(sectorIndex, i).key(), {
+                                dirEntry,
+                                hitIndex,
+                                hitByte: typeof hitInfo === "string" ? undefined : hitInfo.hit[hitIndex],
+                                nameWasBlank,
+                            });
                         }
                     }
                 }
@@ -1847,39 +1930,34 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
 
         // Look up continuations by sector/index and update original entries.
-        for (const dirEntry of dirEntries.values()) {
+        for (const {dirEntry} of slotsByPosition.values()) {
             if (dirEntry.prevDec !== undefined) {
                 const position = this.hitNumberToDirEntry(dirEntry.prevDec);
-                const prevDirEntry = dirEntries.get(position.key());
+                const prevDirEntry = slotsByPosition.get(position.key())?.dirEntry;
                 if (prevDirEntry !== undefined) {
                     dirEntry.prevDirEntry = prevDirEntry;
                 }
             }
             if (dirEntry.nextDec !== undefined) {
                 const position = this.hitNumberToDirEntry(dirEntry.nextDec);
-                const nextDirEntry = dirEntries.get(position.key());
+                const nextDirEntry = slotsByPosition.get(position.key())?.dirEntry;
                 if (nextDirEntry !== undefined) {
                     dirEntry.nextDirEntry = nextDirEntry;
                 }
             }
         }
 
-        if (2 > 3) {
-            // Find extended entries, for debugging. TODO remove.
-            for (const dirEntry of dirEntries.values()) {
-                if (dirEntry.isExtendedEntry()) {
-                    console.log("extended entry", dirEntry);
-                }
-            }
-        }
+        const slots = [...slotsByPosition.values()];
 
         // TRSDOS 1.3's system files aren't in the directory.
         const trsdos13SystemFiles = typeof hitInfo === "string" ? [] :
-            this.getTrsdos13SystemFiles(hitInfo, [...dirEntries.values()]);
+            this.getTrsdos13SystemFiles(hitInfo, slots.map(slot => slot.dirEntry));
 
-        // Remove the extended entries and possibly the system files.
-        return [...trsdos13SystemFiles, ...dirEntries.values()]
-            .filter(d => !d.isExtendedEntry() && (includeSystemFiles || !d.isSystemFile()));
+        // The files are the primary entries, leaving out the extended ones.
+        const files = [...trsdos13SystemFiles, ...slots.map(slot => slot.dirEntry)]
+            .filter(d => !d.isExtendedEntry());
+
+        return {slots, files};
     }
 
     /**

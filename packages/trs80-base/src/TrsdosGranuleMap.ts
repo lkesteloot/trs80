@@ -100,9 +100,13 @@ export class TrsdosGranuleMap {
     /**
      * Analyze the disk.
      *
+     * @param trsdos the file system.
+     * @param files the primary entries to analyze, system files included, or undefined to read them
+     * from the directory. Pass them when the caller has its own copy of the directory, so that the
+     * entries in the map are the caller's objects.
      * @return the map, or a string saying why we can't make one (for example, the GAT can't be read).
      */
-    public static make(trsdos: Trsdos): TrsdosGranuleMap | string {
+    public static make(trsdos: Trsdos, files?: TrsdosDirEntry[]): TrsdosGranuleMap | string {
         const gatInfo = trsdos.getGatInfo();
         if (typeof gatInfo === "string") {
             return gatInfo;
@@ -147,7 +151,7 @@ export class TrsdosGranuleMap {
         }
 
         const outOfRange: TrsdosExtentOutOfRange[] = [];
-        for (const dirEntry of trsdos.getDirEntries(true)) {
+        for (const dirEntry of files ?? trsdos.getDirEntries(true)) {
             for (const extent of trsdos.getFileExtents(dirEntry)) {
                 // An extent's granules continue into the next lump when they run past the end of one
                 // (as Trsdos.logicalToPhysical() does), so use the linear index.
