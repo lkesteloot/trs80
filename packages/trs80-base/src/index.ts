@@ -20,6 +20,7 @@ export * from "./TrsdosCheck.js";
 export * from "./TrsdosGranuleMap.js";
 export * from "./TrsdosRuleSet.js";
 export * from "./TrsdosWriteGate.js";
+export * from "./TrsdosWriter.js";
 export * from "./Cpm.js";
 export * from "./MicroDos.js";
 export * from "./ModelIITrsdos.js";

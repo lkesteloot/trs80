@@ -821,6 +821,21 @@ export interface TrsdosDirSlot {
 }
 
 /**
+ * Where a directory entry's bytes are on the disk.
+ */
+export interface TrsdosDirEntryLocation {
+    /**
+     * The directory sector that holds the entry.
+     */
+    sectorPosition: SectorPosition;
+
+    /**
+     * The offset of the entry's first byte within that sector.
+     */
+    offset: number;
+}
+
+/**
  * The result of reading the directory: its slots and the files made from them.
  */
 export interface TrsdosDirectory {
@@ -1796,6 +1811,35 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             console.log(`${lumpNumber}:${granule}:${sectorOffset} -> ${sectorPosition.key()}`);
         }
         return sectorPosition;
+    }
+
+    /**
+     * The physical position of the sector that holds the GAT: the first sector of the directory lump.
+     */
+    public getGatPosition(): SectorPosition {
+        return this.logicalToPhysical(this.dirLumpNumber, 0, 0);
+    }
+
+    /**
+     * The physical position of the sector that holds the HIT: the second sector of the directory lump.
+     */
+    public getHitPosition(): SectorPosition {
+        return this.logicalToPhysical(this.dirLumpNumber, 0, 1);
+    }
+
+    /**
+     * Where a directory entry lives, given its index in the HIT (its DEC, as in
+     * {@link TrsdosDirSlot.hitIndex}). Like {@link getDirSectors}, this counts directory sectors
+     * from the one after the GAT and HIT. The index isn't checked against the directory's size.
+     */
+    public getDirEntryLocation(hitIndex: number): TrsdosDirEntryLocation {
+        const position = this.hitNumberToDirEntry(hitIndex);
+        // Skip the GAT and HIT sectors, as getDirSectors() does.
+        const gatHitSectorCount = 2;
+        return {
+            sectorPosition: this.logicalToPhysical(this.dirLumpNumber, 0, position.sectorIndex + gatHitSectorCount),
+            offset: position.dirEntryIndex*this.dirEntryLength,
+        };
     }
 
     public getGatInfo(): TrsdosGatInfo | string {
