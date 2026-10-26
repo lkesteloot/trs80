@@ -217,3 +217,21 @@ export function decodeJv1FloppyDisk(binary: Uint8Array): Jv1FloppyDisk | undefin
 
     return new Jv1FloppyDisk(binary, undefined, annotations);
 }
+
+/**
+ * Make a copy of a JV1 image that keeps only its first cylinders. JV1 is just the sectors in order, so
+ * this is the start of the file. (JV1 has only one side, so there's no side to drop.)
+ *
+ * @param disk the image to copy. It isn't changed.
+ * @param cylinderCount the cylinders to keep, from cylinder 0. Asking for more than the image has keeps
+ * what it has.
+ * @return the new image, or undefined if the count isn't a positive whole number.
+ */
+export function trimJv1FloppyDisk(disk: Jv1FloppyDisk, cylinderCount: number): Jv1FloppyDisk | undefined {
+    if (!Number.isInteger(cylinderCount) || cylinderCount < 1) {
+        return undefined;
+    }
+
+    const byteCount = Math.min(disk.binary.length, cylinderCount*BYTES_PER_TRACK);
+    return decodeJv1FloppyDisk(disk.binary.slice(0, byteCount));
+}
