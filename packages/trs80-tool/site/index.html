@@ -396,7 +396,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
             </div>
-            <p>Most commands only read the disk; <code>add</code> and <code>rm</code> change it. Commands that change the disk do
+            <p>Most commands only read the disk; <code>add</code>, <code>rm</code> and <code>mv</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command, all or nothing: if any
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
             one step, so an interrupted write can’t leave half a disk.</p>
@@ -493,6 +493,16 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be removed at all. It prints
                         <code>Removed HELLO/BAS.</code> for each file. Also called <code>del</code>,
                         <code>delete</code>, <code>kill</code>, and <code>remove</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>mv OLDNAME NEWNAME</code></td>
+                    <td>Rename a file on the disk. Both names are single TRSDOS names, with no wildcards, and
+                        either <code>/</code> or <code>.</code> may come before the extension. The new name
+                        must not belong to another file. System files can be renamed only if you give
+                        <code>--system</code>, and <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be
+                        renamed at all. Only the name changes, not the file’s contents, dates or attributes.
+                        It prints <code>Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>ren</code>,
+                        <code>rename</code>, and <code>move</code>.</td>
                 </tr>
                 <tr>
                     <td><code>info</code></td>

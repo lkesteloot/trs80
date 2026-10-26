@@ -230,6 +230,64 @@ const RM_COMMAND: DiskCommand = {
 };
 
 /**
+ * The "mv" command: rename a file on the disk.
+ */
+const MV_COMMAND: DiskCommand = {
+    spec: {
+        name: "mv",
+        aliases: ["ren", "rename", "move"],
+        usage: "OLDNAME NEWNAME [--system]",
+        summary: "rename a file on the disk",
+        minArgs: 2,
+        maxArgs: 2,
+        options: [
+            {
+                name: "--system",
+                valueName: undefined,
+                description: "allow renaming system files (BOOT/SYS and DIR/SYS can't be renamed)",
+            },
+        ],
+    },
+
+    endsSession: false,
+
+    /**
+     * Rename the one file called OLDNAME to NEWNAME, with no wildcards. It's an error if there's no such
+     * file, if the new name belongs to another file, or if the file is a system file and --system wasn't
+     * given. Then say what was renamed.
+     */
+    run(session, command) {
+        const [oldText, newText] = command.args;
+        const oldFilename = parseTrsdosFilename(oldText);
+        if (typeof oldFilename === "string") {
+            throw new ToolError(oldFilename);
+        }
+        const newFilename = parseTrsdosFilename(newText);
+        if (typeof newFilename === "string") {
+            throw new ToolError(newFilename);
+        }
+        const oldName = trsdosFilenameToString(oldFilename);
+        const newName = trsdosFilenameToString(newFilename);
+
+        let shownOldName = oldName;
+        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
+            const dirEntry = writer.findFile(oldName);
+            if (dirEntry === undefined) {
+                throw new ToolError("No file on the disk is called " + oldName);
+            }
+            // The name as it is on the disk.
+            shownOldName = dirEntry.getFilename("/");
+            if (dirEntry.isSystemFile() && !command.options.has("--system")) {
+                throw new ToolError(shownOldName + " is a system file (use --system)");
+            }
+            writer.renameFile(dirEntry, newFilename);
+        });
+
+        console.log("Renamed " + shownOldName + " to " + newName + ".");
+    },
+};
+
+/**
  * Parse the value of "add --date", which must be YYYY-MM-DD.
  *
  * @param text what the user gave.
@@ -646,6 +704,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     EXTRACT_COMMAND,
     ADD_COMMAND,
     RM_COMMAND,
+    MV_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
     CHECK_COMMAND,
