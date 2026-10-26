@@ -133,7 +133,7 @@ export class DiskSession {
     }
 
     /**
-     * The space available for new files, such as "112 KB free (90 granules of 1280 bytes)".
+     * The space available for new files, such as "112 KB free (90 granules of 1,280 bytes each)".
      *
      * @throws ToolError if the disk has no file system, if its file system isn't TRSDOS-family, or
      * if the granule map can't be made.
@@ -154,7 +154,8 @@ export class DiskSession {
         const granuleBytes = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
         const freeGranules = granuleMap.getFreeGranuleCount();
         return freeKilobytesText(granuleMap) + " (" +
-            pluralizeWithCount(freeGranules, "granule") + " of " + granuleBytes.toLocaleString() + " bytes)";
+            pluralizeWithCount(freeGranules, "granule") + " of " + granuleBytes.toLocaleString() + " bytes" +
+            (freeGranules === 1 ? "" : " each") + ")";
     }
 
     /**
