@@ -5,6 +5,7 @@ import {selectInputFiles} from "../InputFile.js";
 import {ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {DiskSession} from "./DiskSession.js";
+import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
 
 /**
  * One command of the "disk" command: its syntax (for the parser and for help) and what it does.
@@ -237,7 +238,37 @@ const ABORT_COMMAND: DiskCommand = {
 };
 
 /**
- * All the commands of the "disk" command.
+ * The "help" command: list the commands, or describe one.
+ */
+const HELP_COMMAND: DiskCommand = {
+    spec: {
+        name: "help",
+        aliases: [],
+        usage: "[COMMAND]",
+        summary: "list the commands, or describe one and name its aliases",
+        minArgs: 0,
+        maxArgs: 1,
+        options: [],
+    },
+
+    endsSession: false,
+
+    /**
+     * Print the list of commands, or the help for the named one.
+     */
+    run(session, command) {
+        const specs = DISK_COMMANDS.map(c => c.spec);
+        const lines = command.args.length === 0 ?
+            diskHelpLines(specs, DISK_GLOBAL_OPTIONS) :
+            diskCommandHelpLines(command.args[0], specs);
+        for (const line of lines) {
+            console.log(line);
+        }
+    },
+};
+
+/**
+ * All the commands of the "disk" command, in the order that help lists them.
  */
 export const DISK_COMMANDS: DiskCommand[] = [
     DIR_COMMAND,
@@ -246,6 +277,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     FREE_COMMAND,
     QUIT_COMMAND,
     ABORT_COMMAND,
+    HELP_COMMAND,
 ];
 
 /**

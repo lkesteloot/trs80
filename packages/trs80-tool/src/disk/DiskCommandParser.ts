@@ -182,7 +182,7 @@ function parseOption(words: string[], index: number, end: number, specs: DiskOpt
  * @param commandSpecs all known commands.
  * @returns the matching spec, or undefined.
  */
-function findCommandSpec(name: string, commandSpecs: DiskCommandSpec[]): DiskCommandSpec | undefined {
+export function findDiskCommandSpec(name: string, commandSpecs: DiskCommandSpec[]): DiskCommandSpec | undefined {
     const lower = name.toLowerCase();
     return commandSpecs.find(spec => spec.name.toLowerCase() === lower ||
         spec.aliases.some(alias => alias.toLowerCase() === lower));
@@ -198,7 +198,7 @@ function findCommandSpec(name: string, commandSpecs: DiskCommandSpec[]): DiskCom
  */
 function parseOneCommand(words: string[], commandSpecs: DiskCommandSpec[]): ParsedDiskCommand {
     const name = words[0];
-    const spec = findCommandSpec(name, commandSpecs);
+    const spec = findDiskCommandSpec(name, commandSpecs);
     if (spec === undefined) {
         throw new ToolError("Unknown command \"" + name + "\"");
     }

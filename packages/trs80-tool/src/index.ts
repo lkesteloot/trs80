@@ -17,6 +17,8 @@ import {repl} from "./repl.js";
 import {mcp} from "./mcp.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {disk} from "./disk/disk.js";
+import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS} from "./disk/DiskCommands.js";
+import {diskHelpLines} from "./disk/DiskHelp.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
 import {expandInputPattern, expandInputPatterns, ToolError, wordsAfterSubcommand} from "./utils.js";
@@ -225,6 +227,7 @@ async function main(): Promise<void> {
             words: "commands to run in order, separated by a lone \":\" (try \"dir\"); program options such as " +
                 "--color must come before \"disk\"",
         })
+        .addHelpText("after", "\n" + diskHelpLines(DISK_COMMANDS.map(c => c.spec), DISK_GLOBAL_OPTIONS).join("\n"))
         .helpOption(false)
         .allowUnknownOption()
         .allowExcessArguments()
