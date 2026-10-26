@@ -26,18 +26,18 @@ export class TrsdosGranule {
     /**
      * Whether the GAT's bit for this granule is set (used).
      */
-    public gatUsed = false;
+    public readonly gatUsed: boolean;
 
     /**
      * Whether the lockout table marks this granule as unusable. Always false where the disk has no
      * lockout table we can trust; see {@link TrsdosGranuleMap.make}.
      */
-    public lockedOut = false;
+    public readonly lockedOut: boolean;
 
     /**
      * Whether the granule is in the directory's range.
      */
-    public inDirectory = false;
+    public readonly inDirectory: boolean;
 
     /**
      * The primary entries of the files whose extents include this granule, each at most once. System
@@ -45,9 +45,12 @@ export class TrsdosGranule {
      */
     public readonly owners: TrsdosDirEntry[] = [];
 
-    constructor(lump: number, granule: number) {
+    constructor(lump: number, granule: number, gatUsed: boolean, lockedOut: boolean, inDirectory: boolean) {
         this.lump = lump;
         this.granule = granule;
+        this.gatUsed = gatUsed;
+        this.lockedOut = lockedOut;
+        this.inDirectory = inDirectory;
     }
 
     /**
@@ -130,24 +133,22 @@ export class TrsdosGranuleMap {
             lumpCount <= MAX_LUMPS_WITH_LOCKOUT_TABLE &&
             trsdos.disk instanceof FloppyDisk;
 
+        // The directory's range, as in Trsdos.getTrsdos13SystemFiles().
+        const dirStart = trsdos.dirLumpNumber*granulesPerLump;
+        const dirEnd = dirStart + trsdos.granulesPerDir;
+
         const granules: TrsdosGranule[] = [];
         for (let lump = 0; lump < lumpCount; lump++) {
             const gatByte = gatInfo.gat[lump] ?? 0;
             const lockOutByte = hasLockoutTable ? gatInfo.lockOut[lump] ?? 0 : 0;
             for (let granule = 0; granule < granulesPerLump; granule++) {
-                const mapGranule = new TrsdosGranule(lump, granule);
                 // Bits at or above granulesPerLump are filler.
-                mapGranule.gatUsed = (gatByte & (1 << granule)) !== 0;
-                mapGranule.lockedOut = (lockOutByte & (1 << granule)) !== 0;
-                granules.push(mapGranule);
+                const gatUsed = (gatByte & (1 << granule)) !== 0;
+                const lockedOut = (lockOutByte & (1 << granule)) !== 0;
+                const index = lump*granulesPerLump + granule;
+                const inDirectory = index >= dirStart && index < dirEnd;
+                granules.push(new TrsdosGranule(lump, granule, gatUsed, lockedOut, inDirectory));
             }
-        }
-
-        // The directory's range, as in Trsdos.getTrsdos13SystemFiles().
-        const dirStart = trsdos.dirLumpNumber*granulesPerLump;
-        const dirEnd = dirStart + trsdos.granulesPerDir;
-        for (let i = Math.max(dirStart, 0); i < Math.min(dirEnd, granuleCount); i++) {
-            granules[i].inDirectory = true;
         }
 
         const outOfRange: TrsdosExtentOutOfRange[] = [];
