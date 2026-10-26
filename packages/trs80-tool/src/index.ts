@@ -228,7 +228,7 @@ async function main(): Promise<void> {
         .helpOption(false)
         .allowUnknownOption()
         .allowExcessArguments()
-        .action((_image, _words, _options, command: Command) => {
+        .action(async (_image, _words, _options, command: Command) => {
             // Commander eats options it knows anywhere on the line and drops some "--", so ignore its
             // idea of the arguments and take the raw words.
             const words = wordsAfterSubcommand(process.argv.slice(2), "disk", PROGRAM_OPTIONS_WITH_VALUES) ?? [];
@@ -237,7 +237,7 @@ async function main(): Promise<void> {
             } else if (words[0].startsWith("-")) {
                 throw new ToolError("The disk image comes first: trs80-tool disk IMAGE [COMMAND ...]");
             } else {
-                disk([expandInputPattern(words[0]), ...words.slice(1)]);
+                await disk([expandInputPattern(words[0]), ...words.slice(1)]);
             }
         });
     program

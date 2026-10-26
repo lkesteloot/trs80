@@ -13,6 +13,9 @@ export interface DiskCommand {
     /** The syntax of the command. */
     spec: DiskCommandSpec;
 
+    /** Whether running this command ends the session, so that no later command in the chain or script runs. */
+    endsSession: boolean;
+
     /**
      * Run the command.
      *
@@ -48,6 +51,8 @@ const DIR_COMMAND: DiskCommand = {
             },
         ],
     },
+
+    endsSession: false,
 
     /**
      * Print the listing, which is the same as the top-level "dir" command's.
@@ -102,6 +107,8 @@ const GET_COMMAND: DiskCommand = {
         ],
     },
 
+    endsSession: false,
+
     /**
      * Write the selected files to the host, as the top-level "extract" command does, or with --as write the
      * one selected file to the given path. Nothing is written if a name matches no file.
@@ -137,6 +144,8 @@ const INFO_COMMAND: DiskCommand = {
         options: [],
     },
 
+    endsSession: false,
+
     /**
      * Print the one-line description, then the same details as the top-level "info --verbose", then the
      * free space if it's known.
@@ -169,11 +178,61 @@ const FREE_COMMAND: DiskCommand = {
         options: [],
     },
 
+    endsSession: false,
+
     /**
      * Print the free space, from the granule map.
      */
     run(session) {
         console.log(session.getFreeSpaceText());
+    },
+};
+
+/**
+ * The "quit" command: leave the shell. Later it will save any changes first.
+ */
+const QUIT_COMMAND: DiskCommand = {
+    spec: {
+        name: "quit",
+        aliases: ["exit"],
+        usage: "",
+        summary: "leave the shell",
+        minArgs: 0,
+        maxArgs: 0,
+        options: [],
+    },
+
+    endsSession: true,
+
+    /**
+     * Do nothing: the runner stops after a command that ends the session.
+     */
+    run() {
+        // Nothing to save yet.
+    },
+};
+
+/**
+ * The "abort" command: leave the shell, throwing away any changes.
+ */
+const ABORT_COMMAND: DiskCommand = {
+    spec: {
+        name: "abort",
+        aliases: [],
+        usage: "",
+        summary: "leave the shell, discarding any changes",
+        minArgs: 0,
+        maxArgs: 0,
+        options: [],
+    },
+
+    endsSession: true,
+
+    /**
+     * Do nothing: the runner stops after a command that ends the session.
+     */
+    run() {
+        // Nothing to discard yet.
     },
 };
 
@@ -185,4 +244,34 @@ export const DISK_COMMANDS: DiskCommand[] = [
     GET_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
+    QUIT_COMMAND,
+    ABORT_COMMAND,
 ];
+
+/**
+ * Run parsed commands on the session, in order. The first command to fail stops the rest.
+ * The chain on the command line, each line of the shell, and each line of a script all run this way.
+ *
+ * @param session the open disk.
+ * @param commands the commands to run.
+ * @param globalOptions the options that apply to the whole run.
+ * @returns whether a command ended the session (such as "quit"), in which case the commands after
+ * it did not run and the caller should stop reading more.
+ * @throws ToolError if a command fails.
+ */
+export function runDiskCommands(session: DiskSession, commands: ParsedDiskCommand[],
+                                globalOptions: DiskOptionValues): boolean {
+
+    for (const command of commands) {
+        const diskCommand = DISK_COMMANDS.find(c => c.spec === command.spec);
+        if (diskCommand === undefined) {
+            throw new Error("Parsed command has no implementation: " + command.spec.name);
+        }
+        diskCommand.run(session, command, globalOptions);
+        if (diskCommand.endsSession) {
+            return true;
+        }
+    }
+
+    return false;
+}
