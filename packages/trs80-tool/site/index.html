@@ -25,6 +25,7 @@
                         <li><a href="#info"><code>info</code></a></li>
                         <li><a href="#convert"><code>convert</code></a></li>
                         <li><a href="#extract"><code>extract</code></a></li>
+                        <li><a href="#disk"><code>disk</code></a></li>
                         <li><a href="#hexdump"><code>hexdump</code></a></li>
                         <li><a href="#sectors"><code>sectors</code></a></li>
                         <li><a href="#asm"><code>asm</code></a></li>
@@ -387,6 +388,69 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         This can’t be used with <code>--out-dir</code>.</td>
                 </tr>
             </table>
+
+            <h3 id="disk"><code>disk</code></h3>
+            <p>The <code>disk</code> command works on one floppy image: give the image, then one
+            or more commands to run on it, separated by a lone <code>:</code>.</p>
+            <div><pre><code>% trs80-tool disk in.dmk dir
+% trs80-tool disk in.dmk get "*.bas" --out-dir out : free
+% trs80-tool disk in.dmk check</code></pre>
+            </div>
+            <p>The commands so far only read the disk. Writing to disk images will come in later
+            releases, through the same command.</p>
+            <table class="flags">
+                <tr>
+                    <td><code>dir [NAME...]</code></td>
+                    <td>List the files, as the <a href="#dir"><code>dir</code></a> command does, or only
+                        those matching the names, which may have wildcards as in
+                        <a href="#extract"><code>extract</code></a>. With <code>--system</code>,
+                        include system files.</td>
+                </tr>
+                <tr>
+                    <td><code>get NAME...</code></td>
+                    <td>Copy files to your computer, with the same names, wildcards and options as
+                        <a href="#extract"><code>extract</code></a> (<code>--out-dir</code>,
+                        <code>--system</code>, <code>--lowercase</code>, <code>--mark-damaged</code>).
+                        <code>get "*"</code> copies them all. With <code>--as PATH</code>, write the
+                        one file that the name matches to that path.</td>
+                </tr>
+                <tr>
+                    <td><code>info</code></td>
+                    <td>Describe the image and its file system, as <code>info --verbose</code> does,
+                        with the free space and whether the disk can be written.</td>
+                </tr>
+                <tr>
+                    <td><code>free</code></td>
+                    <td>Show the space left for new files on a TRSDOS-family disk: granules that
+                        the GAT says are free and that no file uses.</td>
+                </tr>
+                <tr>
+                    <td><code>check</code></td>
+                    <td>Check a TRSDOS-family file system for problems, changing nothing:
+                        files that share granules, files in granules the GAT says are free,
+                        extents past the end of the disk, HIT bytes that don’t match names,
+                        and damaged files. It also says whether the disk would be safe to write,
+                        and if not, why not.</td>
+                </tr>
+                <tr>
+                    <td><code>help [COMMAND]</code></td>
+                    <td>List the commands, or describe one with its options and other names
+                        (<code>ls</code> for <code>dir</code>, for example).</td>
+                </tr>
+            </table>
+            <p>With no commands after the image, <code>disk</code> opens a prompt where you type
+            the same commands, one line at a time, with tab completion of command and file names.
+            <code>quit</code> leaves it. If the input isn’t a terminal, the commands are read from
+            it instead, so <code>trs80-tool disk in.dmk &lt; script.txt</code> runs a script, stopping at
+            the first error. Lines starting with <code>#</code> are comments.</p>
+            <div><pre><code>% trs80-tool disk in.dmk
+in.dmk: Floppy disk (DMK), LDOS 5.1, 26 files, 157 KB free
+&gt;free
+157 KB free (105 granules of 1536 bytes)
+&gt;quit</code></pre>
+            </div>
+            <p>Flags such as <code>--color</code> go before <code>disk</code>; after the image,
+            everything belongs to the disk commands.</p>
 
             <h3 id="hexdump"><code>hexdump</code></h3>
 
