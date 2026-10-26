@@ -94,6 +94,14 @@ describe("evaluateTrsdosWriteGate", () => {
         expect(gate.check.findings).to.eql([]);
     });
 
+    it("lets a disk be written whose BOOT/SYS shares a granule of the boot cylinder", () => {
+        const gate = evaluateTrsdosWriteGate(decode([
+            {name: "SYS7/SYS", system: true, extents: [{lump: 0, granuleOffset: 0, granuleCount: 1}]},
+        ]));
+
+        expect(gate.access).to.equal(TrsdosWriteAccess.WRITABLE);
+    });
+
     it("lets an empty disk be written", () => {
         expect(evaluateTrsdosWriteGate(decode()).access).to.equal(TrsdosWriteAccess.WRITABLE);
     });

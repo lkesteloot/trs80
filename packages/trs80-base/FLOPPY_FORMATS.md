@@ -669,6 +669,21 @@ On a double-sided disk:
   Sector order is side 0, then side 1, then the next cylinder — verified by
   17 files whose extents cross the side boundary and still decode cleanly.
 
+### BOOT/SYS overlaps SYS7/SYS on LDOS 5.3.1
+
+LDOS 5.3's FORMAT writes a BOOT/SYS entry of 5 sectors in one granule and marks
+only granule 0 of cylinder 0 used (FORMAT/CMD's template at 6524H and the code at
+62A2H in trs-80.com's LDOS 5.3.1 disassembly), as on `simple/trs80gp/formatted/m1-ldos-blank.dmk`.
+But on all ten LDOS 5.3.1 Model I distribution images in `ira/all-dos/`, BOOT/SYS's
+entry says 7 sectors in two granules (extent byte `01`), and SYS7/SYS's second
+extent is cylinder 0, granule 1, which holds its 51st and last sector (cylinder 0,
+sector 5). The GAT marks both granules used. So BOOT/SYS was grown after SYS7
+took that granule, or the other way round; which file's data sectors 5 and 6
+hold isn't settled (sector 5 starts with text, sector 6 with Z80 code).
+`checkTrsdos()` reports a granule that BOOT/SYS shares on the boot cylinder as a
+note, not damage: a writer that never allocates a granule any file claims, and
+never frees one that another file still claims, leaves both files as they are.
+
 ## GAT bytes 0xCB-0xCD
 
 LDOS added three bytes to the end of the 2.3 GAT, and TRSDOS 6 and LS-DOS 6

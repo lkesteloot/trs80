@@ -75,6 +75,13 @@ describe("checkTrsdos", () => {
         expect(finding.granules.map(granule => granule.lump + ":" + granule.granule)).to.eql(["5:0", "5:1"]);
     });
 
+    it("notes a granule that BOOT/SYS shares on the boot cylinder", () => {
+        const result = check([{name: "SYS7/SYS", system: true, extents: [{lump: 0, granuleOffset: 0, granuleCount: 1}]}]);
+
+        expect(kinds(result)).to.eql([TrsdosFindingKind.BOOT_SYS_OVERLAP]);
+        expect(result.findings[0].message).to.match(/^BOOT\/SYS and SYS7\/SYS share 1 granule \(cylinder 0, granule 0\) on the boot cylinder\./);
+    });
+
     it("lists several ranges of shared granules", () => {
         const result = check([
             {name: "ONE/DAT", extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}, {lump: 7, granuleOffset: 0, granuleCount: 1}]},
@@ -238,6 +245,7 @@ describe("TrsdosFindingKind", () => {
             [TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY, TrsdosFindingSeverity.DAMAGE],
             [TrsdosFindingKind.DAMAGED_FILE, TrsdosFindingSeverity.DAMAGE],
             [TrsdosFindingKind.USED_BUT_UNCLAIMED, TrsdosFindingSeverity.NOTE],
+            [TrsdosFindingKind.BOOT_SYS_OVERLAP, TrsdosFindingSeverity.NOTE],
         ]);
 
         const names = new Set<string>();

@@ -76,6 +76,11 @@ export enum TrsdosFindingKind {
 
     /** The GAT marks granules used that no file claims. */
     USED_BUT_UNCLAIMED,
+    /**
+     * BOOT/SYS shares granules of the boot cylinder with another file. See "BOOT/SYS overlaps SYS7/SYS
+     * on LDOS 5.3.1" in FLOPPY_FORMATS.md.
+     */
+    BOOT_SYS_OVERLAP,
 }
 
 /**
@@ -103,6 +108,8 @@ export function trsdosFindingKindToString(kind: TrsdosFindingKind): string {
             return "damaged-file";
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
             return "used-but-unclaimed";
+        case TrsdosFindingKind.BOOT_SYS_OVERLAP:
+            return "boot-sys-overlap";
         default:
             assertNever(kind);
     }
@@ -125,6 +132,7 @@ export function trsdosFindingKindSeverity(kind: TrsdosFindingKind): TrsdosFindin
         case TrsdosFindingKind.DAMAGED_FILE:
             return TrsdosFindingSeverity.DAMAGE;
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
+        case TrsdosFindingKind.BOOT_SYS_OVERLAP:
             return TrsdosFindingSeverity.NOTE;
         default:
             assertNever(kind);
@@ -169,6 +177,9 @@ export interface TrsdosCheckResult {
      */
     granuleMap: TrsdosGranuleMap | undefined;
 }
+
+// The raw name of the boot file, as the directory stores it (8 + 3 characters).
+const BOOT_SYS_RAW_FILENAME = "BOOT    SYS";
 
 // The most ranges of granules to spell out in a message before saying "and N more".
 const MAX_RANGES_IN_MESSAGE = 8;
@@ -289,27 +300,41 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
 
     // Granule-based damage.
     if (typeof granuleMap !== "string") {
-        // Granules shared by the same set of files.
+        // Granules shared by the same set of files. BOOT/SYS's sharing of the boot cylinder is kept
+        // apart: it's how some DOSes' system disks come, and harmless to a writer, since no file
+        // ever gets a granule that any file claims.
         const fileIndexes = new Map<TrsdosDirEntry, number>(files.map((file, i) => [file, i]));
-        const sharedGroups = new Map<string, { owners: TrsdosDirEntry[], granules: TrsdosGranule[] }>();
+        const sharedGroups = new Map<string, { owners: TrsdosDirEntry[], granules: TrsdosGranule[], bootOverlap: boolean }>();
         for (const granule of granuleMap.getSharedGranules()) {
             const owners = [...granule.owners].sort((a, b) => (fileIndexes.get(a) ?? 0) - (fileIndexes.get(b) ?? 0));
-            const key = owners.map(owner => fileIndexes.get(owner)).join(",");
+            const bootOverlap = granule.lump === 0 && owners.some(owner => owner.rawFilename === BOOT_SYS_RAW_FILENAME);
+            const key = (bootOverlap ? "boot:" : "") + owners.map(owner => fileIndexes.get(owner)).join(",");
             let group = sharedGroups.get(key);
             if (group === undefined) {
-                group = {owners, granules: []};
+                group = {owners, granules: [], bootOverlap};
                 sharedGroups.set(key, group);
             }
             group.granules.push(granule);
         }
-        for (const {owners, granules} of sharedGroups.values()) {
-            damageFindings.push({
-                kind: TrsdosFindingKind.SHARED_GRANULES,
-                message: `${joinNames(owners.map(nameOf))} share ${granules.length} ${plural(granules.length, "granule")} ` +
-                    `(${formatGranules(granules, lumpTerm)}).`,
-                dirEntries: owners,
-                granules,
-            });
+        for (const {owners, granules, bootOverlap} of sharedGroups.values()) {
+            const sharing = `${joinNames(owners.map(nameOf))} share ${granules.length} ${plural(granules.length, "granule")} ` +
+                `(${formatGranules(granules, lumpTerm)})`;
+            if (bootOverlap) {
+                noteFindings.push({
+                    kind: TrsdosFindingKind.BOOT_SYS_OVERLAP,
+                    message: `${sharing} on the boot ${lumpTerm}. Some DOSes' system disks come that way, and it's ` +
+                        `harmless, since no new file gets a granule that a file claims.`,
+                    dirEntries: owners,
+                    granules,
+                });
+            } else {
+                damageFindings.push({
+                    kind: TrsdosFindingKind.SHARED_GRANULES,
+                    message: sharing + ".",
+                    dirEntries: owners,
+                    granules,
+                });
+            }
         }
 
         // Granules a file uses that the GAT says are free.
