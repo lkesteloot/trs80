@@ -1,7 +1,7 @@
 import {assertNever} from "z80-base";
 import {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {FloppyDisk} from "./FloppyDisk.js";
-import {Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
+import {Jv1FloppyDisk, JV1_DIRECTORY_CYLINDER} from "./Jv1FloppyDisk.js";
 import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {type Trsdos, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
 import {
@@ -102,6 +102,13 @@ export enum TrsdosWriteBlockerKind {
     WRITE_PROTECTED,
 
     /**
+     * The image format can't store the directory as the DOS needs it: a JV1 image keeps no data
+     * address marks, and reads only cylinder 17's sectors as deleted, so a directory elsewhere
+     * would lose its deleted marks when saved.
+     */
+    IMAGE_CANT_HOLD_DIRECTORY,
+
+    /**
      * A layout finding of {@link checkTrsdos}: we may have guessed the disk's layout wrong.
      */
     LAYOUT_DOUBT,
@@ -141,6 +148,8 @@ export function trsdosWriteBlockerKindToString(kind: TrsdosWriteBlockerKind): st
             return "rule-set-layout-mismatch";
         case TrsdosWriteBlockerKind.WRITE_PROTECTED:
             return "write-protected";
+        case TrsdosWriteBlockerKind.IMAGE_CANT_HOLD_DIRECTORY:
+            return "image-cant-hold-directory";
         case TrsdosWriteBlockerKind.LAYOUT_DOUBT:
             return "layout-doubt";
         case TrsdosWriteBlockerKind.SIDES_UNPROVEN:
@@ -207,6 +216,7 @@ export function trsdosWriteBlockerKindAccess(kind: TrsdosWriteBlockerKind): Trsd
         case TrsdosWriteBlockerKind.DOS_MISMATCH:
         case TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH:
         case TrsdosWriteBlockerKind.WRITE_PROTECTED:
+        case TrsdosWriteBlockerKind.IMAGE_CANT_HOLD_DIRECTORY:
         case TrsdosWriteBlockerKind.LAYOUT_DOUBT:
         case TrsdosWriteBlockerKind.SIDES_UNPROVEN:
         case TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN:
@@ -279,6 +289,24 @@ export function writeProtectionMessage(disk: FloppyDisk): string | undefined {
     }
 
     return `Writing ${floppyFormatName(disk)} images isn't supported yet.`;
+}
+
+/**
+ * Why the image can't store the disk's directory as the DOS needs it, or undefined if it can.
+ * (Exported for tests.) A JV1 image keeps no data address marks, and reads cylinder 17's sectors as
+ * deleted and all others as normal, so a directory on any other cylinder would lose its deleted
+ * marks when saved, and the DOS would no longer find it.
+ *
+ * @param trsdos the decoded file system.
+ */
+export function imageCantHoldDirectoryMessage(trsdos: Trsdos): string | undefined {
+    const directoryOnJv1Cylinder = trsdos.lumpsAreCylinders && trsdos.dirLumpNumber === JV1_DIRECTORY_CYLINDER;
+    if (trsdos.disk instanceof Jv1FloppyDisk && !directoryOnJv1Cylinder) {
+        return `JV1 images can't store the deleted marks of a directory on ${trsdos.lumpTerm} ` +
+            `${trsdos.dirLumpNumber}. Convert the disk to DMK to write to it.`;
+    }
+
+    return undefined;
 }
 
 /**
@@ -527,6 +555,11 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRul
         if (protectionMessage !== undefined) {
             blockers.push({kind: TrsdosWriteBlockerKind.WRITE_PROTECTED, message: protectionMessage, forceable: true});
         }
+    }
+
+    const directoryMessage = imageCantHoldDirectoryMessage(trsdos);
+    if (directoryMessage !== undefined) {
+        blockers.push({kind: TrsdosWriteBlockerKind.IMAGE_CANT_HOLD_DIRECTORY, message: directoryMessage, forceable: false});
     }
 
     for (const finding of check.findings) {

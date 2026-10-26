@@ -19,6 +19,7 @@ import {
     TrsdosWriteBlockerKind,
     trsdosWriteBlockerKindAccess,
     trsdosWriteBlockerKindToString,
+    imageCantHoldDirectoryMessage,
     unsupportedLayoutMessage,
     writeProtectionMessage,
 } from "./TrsdosWriteGate.js";
@@ -418,6 +419,7 @@ describe("write access", () => {
             [TrsdosWriteBlockerKind.DOS_MISMATCH, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.WRITE_PROTECTED, TrsdosWriteAccess.READ_ONLY],
+            [TrsdosWriteBlockerKind.IMAGE_CANT_HOLD_DIRECTORY, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.LAYOUT_DOUBT, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.SIDES_UNPROVEN, TrsdosWriteAccess.READ_ONLY],
             [TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN, TrsdosWriteAccess.READ_ONLY],
@@ -447,5 +449,17 @@ describe("write access", () => {
         expect(trsdosWriteAccessToString(TrsdosWriteAccess.WRITABLE)).to.equal("writable");
         expect(trsdosWriteAccessToString(TrsdosWriteAccess.REPAIR_ONLY)).to.equal("repair-only");
         expect(trsdosWriteAccessToString(TrsdosWriteAccess.READ_ONLY)).to.equal("read-only");
+    });
+});
+
+describe("imageCantHoldDirectoryMessage", () => {
+    it("accepts a JV1 image whose directory is on cylinder 17", () => {
+        expect(imageCantHoldDirectoryMessage(decode())).to.equal(undefined);
+    });
+
+    it("refuses a JV1 image whose directory is elsewhere", () => {
+        const trsdos = decode();
+        const elsewhere = new Trsdos(trsdos.disk, trsdos.geometry, TrsdosVersion.V2_3, 1, 2, 5, 20, 2, 0);
+        expect(imageCantHoldDirectoryMessage(elsewhere)).to.contain("cylinder 20");
     });
 });

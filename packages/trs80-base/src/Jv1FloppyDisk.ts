@@ -14,7 +14,11 @@ import {isDeletedDataAddressMark, USER_DATA_ADDRESS_MARK_FA} from "./TrackBytes.
 
 const SECTORS_PER_TRACK = 10;
 const BYTES_PER_TRACK = BYTES_PER_SECTOR * SECTORS_PER_TRACK;
-const DIRECTORY_CYLINDER = 17;
+/**
+ * The cylinder whose sectors JV1 reads with a deleted data address mark, where TRSDOS 2.3 keeps its
+ * directory. JV1 can't record marks, so this is the only place a directory's deleted marks survive.
+ */
+export const JV1_DIRECTORY_CYLINDER = 17;
 
 /**
  * Floppy disk in the JV1 format.
@@ -45,7 +49,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
             const sectorNumber = i % SECTORS_PER_TRACK;
             const sectorPosition = SectorPosition.make(cylinderNumber, 0, sectorNumber);
             const sectorInfo = new SectorInfo(sectorPosition, density, BYTES_PER_SECTOR);
-            if (cylinderNumber === DIRECTORY_CYLINDER) {
+            if (cylinderNumber === JV1_DIRECTORY_CYLINDER) {
                 // Directory sectors are marked as deleted in TRSDOS 2.3.
                 sectorInfo.deleted = true;
                 sectorInfo.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
@@ -101,7 +105,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
         if (writtenDataAddressMark !== undefined) {
             sectorData.deleted = isDeletedDataAddressMark(writtenDataAddressMark);
             sectorData.dataAddressMark = writtenDataAddressMark;
-        } else if (sectorPosition.cylinderNumber === DIRECTORY_CYLINDER) {
+        } else if (sectorPosition.cylinderNumber === JV1_DIRECTORY_CYLINDER) {
             // Directory sectors are marked as deleted in TRSDOS 2.3, with the Model I's mark.
             sectorData.deleted = true;
             sectorData.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
