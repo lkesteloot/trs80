@@ -11,6 +11,11 @@ import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./T
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
+import {
+    formatTrsdosGatDate, GAT_AUTO_OFFSET, GAT_DATE_OFFSET, GAT_NAME_OFFSET, GAT_PASSWORD_OFFSET, GAT_TEXT_LENGTH,
+    GAT_MEDIA_BLOCK_OFFSET, gatHasMediaBlock, isTrsdosSystemInformationSector, readTrsdosDiskInfo, SYSINFO_AUTO_LENGTH, SYSINFO_AUTO_OFFSET,
+    type TrsdosDiskInfo, trsdosGatDateYearRange, trsdosKeepsAutoInSystemInformation, trsdosSystemInformationPosition,
+} from "./TrsdosDiskInfo.js";
 import {TrsdosRuleSet, trsdosRuleSetToString} from "./TrsdosRuleSet.js";
 
 /**
@@ -175,6 +180,31 @@ export interface TrsdosAttributeChanges {
      * The date to record, in local time, or null to record none. Only the LDOS line of DOSes has file dates.
      */
     date?: Date | null | undefined;
+}
+
+/**
+ * What {@link TrsdosWriter.setDiskInfo} changes. A field that's undefined is left as it is.
+ */
+export interface TrsdosDiskInfoChanges {
+    /**
+     * The disk's name, up to eight characters. See {@link TrsdosWriter.setDiskInfo} for what is accepted.
+     */
+    name?: string | undefined;
+
+    /**
+     * The disk's date, in local time, which the DOS stores as MM/DD/YY.
+     */
+    date?: Date | undefined;
+
+    /**
+     * The master password, up to eight letters and digits starting with a letter; empty for a blank one.
+     */
+    masterPassword?: string | undefined;
+
+    /**
+     * The AUTO command, which the DOS runs when it boots; empty for none.
+     */
+    autoCommand?: string | undefined;
 }
 
 /**
@@ -359,6 +389,18 @@ export class TrsdosWriter {
      * The HIT sector's working copy.
      */
     private readonly hit: SectorCopy;
+
+    /**
+     * The working copy of the system information sector (cylinder 0, sector 2), made the first time
+     * {@link setDiskInfo} changes an AUTO command that TRSDOS 6 keeps there.
+     */
+    private sysInfo: SectorCopy | undefined = undefined;
+
+    /**
+     * What the disk's name, date, master password and AUTO command must read as after {@link setDiskInfo}
+     * has changed them, or undefined if it hasn't.
+     */
+    private expectedDiskInfo: TrsdosDiskInfo | undefined = undefined;
 
     /**
      * The working copies of the directory sectors we've changed, by position key.
@@ -1027,6 +1069,243 @@ export class TrsdosWriter {
     }
 
     /**
+     * Change the disk's name, date, master password and AUTO command, which are in the GAT (except the
+     * AUTO command of TRSDOS 6 and LS-DOS 6, which is in the system information sector). Only what's given
+     * changes. Nothing reaches the overlay until {@link flush}, which verifies that the disk reads back
+     * with the new values and the old values of the rest. If this throws, the writer is as it was before the call.
+     * See "The GAT's name, date and AUTO command" in FLOPPY_FORMATS.md.
+     *
+     * Only TRSDOS 2.3 layouts are supported for now, and not under TRSDOS 1.3 rules.
+     *
+     * - The name is trimmed, then must be one to eight printable ASCII characters. It's stored padded with
+     *   spaces, and uppercased except on DOSPLUS, whose names are mixed case.
+     * - The date's year must be one that the DOS can enter: 1980 to 1999, or to 2011 on LDOS 5.3 and LS-DOS 6.3
+     *   disks (1978 to 1999 on TRSDOS 2.x).
+     * - The master password is hashed like the file passwords.
+     * - The AUTO command is trimmed, then must be printable ASCII, and at most 31 characters on the DOSes that
+     *   keep it in the GAT (32 bytes at 0xE0 including the 0x0D terminator, fewer if the GAT ends with a media
+     *   block) or 79 on TRSDOS 6 and LS-DOS 6 (80 bytes at 0x20 of the system information sector). A disk
+     *   that has no such sector (one that a different formatter made) is refused. Whatever the DOS keeps
+     *   elsewhere in that sector, including the DOS version banner at 0x10, stays as it is.
+     *
+     * @param changes what to change.
+     * @throws TrsdosWriteError if the information can't be changed, or a value isn't acceptable.
+     */
+    public setDiskInfo(changes: TrsdosDiskInfoChanges): void {
+        this.checkNotFlushed();
+        const trsdos = this.trsdos;
+
+        switch (trsdos.version) {
+            case TrsdosVersion.V2_3:
+                break;
+
+            case TrsdosVersion.V1_3:
+                throw new TrsdosWriteError("Changing the disk's name, date, password and AUTO command isn't " +
+                    "supported yet on TRSDOS 1.3 disks");
+
+            case TrsdosVersion.V2_7:
+                throw new TrsdosWriteError("Changing the disk's name, date, password and AUTO command isn't " +
+                    "supported yet on TRSDOS 2.7 disks");
+
+            default:
+                assertNever(trsdos.version);
+        }
+        switch (this.ruleSet) {
+            case TrsdosRuleSet.TRSDOS_2:
+            case TrsdosRuleSet.LDOS_5:
+            case TrsdosRuleSet.TRSDOS_6:
+            case TrsdosRuleSet.DOSPLUS:
+                break;
+
+            case TrsdosRuleSet.TRSDOS_1_3:
+                throw new TrsdosWriteError("Changing the disk's name, date, password and AUTO command isn't " +
+                    "supported yet on TRSDOS 1.3 disks");
+
+            default:
+                assertNever(this.ruleSet);
+        }
+        if (trsdos.geometry.modalDataSectorSize !== SECTOR_SIZE) {
+            throw new TrsdosWriteError(`Changing the disk's information isn't supported on disks with ` +
+                `${trsdos.geometry.modalDataSectorSize}-byte sectors`);
+        }
+
+        // What the disk reads as now, which the changes go over. A copy, so that a refusal below leaves
+        // the expectation as it was.
+        const current = this.expectedDiskInfo ?? readTrsdosDiskInfo(trsdos, this.ruleSet);
+        if (typeof current === "string") {
+            throw new TrsdosWriteError(`Can't read the disk's information: ${current}`);
+        }
+        const expected: TrsdosDiskInfo = {...current};
+        const gatBytes = this.gat.bytes.slice();
+
+        if (changes.name !== undefined) {
+            const name = this.checkDiskName(changes.name);
+            TrsdosWriter.putPaddedText(gatBytes, GAT_NAME_OFFSET, name);
+            expected.name = name;
+        }
+
+        if (changes.date !== undefined) {
+            const date = changes.date;
+            const year = date.getFullYear();
+            const range = trsdosGatDateYearRange(this.ruleSet, trsdos.hasTimeStamps);
+            if (Number.isNaN(year) || year < range.first || year > range.last) {
+                throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
+                    `${Number.isNaN(year) ? "of that date" : year}; give a date from ${range.first} to ${range.last}`);
+            }
+            const dateText = formatTrsdosGatDate(date);
+            TrsdosWriter.putPaddedText(gatBytes, GAT_DATE_OFFSET, dateText);
+            expected.date = dateText;
+        }
+
+        if (changes.masterPassword !== undefined) {
+            const hash = TrsdosWriter.hashPassword(changes.masterPassword);
+            gatBytes[GAT_PASSWORD_OFFSET] = hash & 0xFF;
+            gatBytes[GAT_PASSWORD_OFFSET + 1] = hash >> 8;
+            expected.passwordHash = hash;
+        }
+
+        let sysInfoBytes: Uint8Array | undefined = undefined;
+        if (changes.autoCommand !== undefined) {
+            const command = TrsdosWriter.checkAutoCommand(changes.autoCommand);
+            if (trsdosKeepsAutoInSystemInformation(this.ruleSet)) {
+                const sysInfo = this.getSysInfoCopy();
+                if (!isTrsdosSystemInformationSector(sysInfo.bytes)) {
+                    throw new TrsdosWriteError("Can't change the AUTO command: the disk has no system " +
+                        "information sector (cylinder 0, sector 2), which is where TRSDOS 6 and LS-DOS 6 keep it");
+                }
+                if (command.length >= SYSINFO_AUTO_LENGTH) {
+                    throw new TrsdosWriteError(`The AUTO command is ${command.length} characters, but at most ` +
+                        `${SYSINFO_AUTO_LENGTH - 1} fit on this disk`);
+                }
+                // The command and its terminator, then zeros as FORMAT leaves it.
+                sysInfoBytes = sysInfo.bytes.slice();
+                sysInfoBytes.fill(0, SYSINFO_AUTO_OFFSET, SYSINFO_AUTO_OFFSET + SYSINFO_AUTO_LENGTH);
+                TrsdosWriter.putAutoCommand(sysInfoBytes, SYSINFO_AUTO_OFFSET, command);
+            } else {
+                // The field runs to the end of the sector, or to the media block if the GAT has one.
+                const fieldEnd = gatHasMediaBlock(gatBytes) ? GAT_MEDIA_BLOCK_OFFSET - 1 : SECTOR_SIZE;
+                const fieldLength = fieldEnd - GAT_AUTO_OFFSET;
+                if (command.length >= fieldLength) {
+                    throw new TrsdosWriteError(`The AUTO command is ${command.length} characters, but at most ` +
+                        `${fieldLength - 1} fit on this disk`);
+                }
+                // The DOSes that keep it here pad with spaces, except TRSDOS 2.x, whose FORMAT leaves 0xFF.
+                const filler = this.ruleSet === TrsdosRuleSet.TRSDOS_2 ? 0xFF : 0x20;
+                gatBytes.fill(filler, GAT_AUTO_OFFSET, fieldEnd);
+                TrsdosWriter.putAutoCommand(gatBytes, GAT_AUTO_OFFSET, command);
+            }
+            expected.autoCommand = command;
+        }
+
+        // Everything has been checked; now change the working copies.
+        for (let i = 0; i < SECTOR_SIZE; i++) {
+            if (this.gat.bytes[i] !== gatBytes[i]) {
+                this.gat.bytes[i] = gatBytes[i];
+                this.gat.dirty = true;
+            }
+        }
+        if (sysInfoBytes !== undefined && this.sysInfo !== undefined) {
+            for (let i = 0; i < SECTOR_SIZE; i++) {
+                if (this.sysInfo.bytes[i] !== sysInfoBytes[i]) {
+                    this.sysInfo.bytes[i] = sysInfoBytes[i];
+                    this.sysInfo.dirty = true;
+                }
+            }
+        }
+        this.expectedDiskInfo = expected;
+    }
+
+    /**
+     * Check a disk name and put it in the form that the GAT holds it as far as the decoder is concerned.
+     *
+     * @param name what the caller gave.
+     * @return the trimmed name, in the case the DOS stores.
+     * @throws TrsdosWriteError if the DOS wouldn't accept the name.
+     */
+    private checkDiskName(name: string): string {
+        const trimmed = name.trim();
+        if (trimmed === "") {
+            throw new TrsdosWriteError("A disk name can't be empty");
+        }
+        if (trimmed.length > GAT_TEXT_LENGTH) {
+            throw new TrsdosWriteError(`The disk name "${trimmed}" is too long: a name is up to ${GAT_TEXT_LENGTH} characters`);
+        }
+        if (!/^[\x20-\x7E]+$/.test(trimmed)) {
+            throw new TrsdosWriteError(`The disk name "${trimmed}" has characters that a name can't have: ` +
+                `use printable ASCII characters`);
+        }
+        switch (this.ruleSet) {
+            case TrsdosRuleSet.DOSPLUS:
+                return trimmed;
+
+            case TrsdosRuleSet.TRSDOS_2:
+            case TrsdosRuleSet.TRSDOS_1_3:
+            case TrsdosRuleSet.LDOS_5:
+            case TrsdosRuleSet.TRSDOS_6:
+                return trimmed.toUpperCase();
+
+            default:
+                assertNever(this.ruleSet);
+        }
+    }
+
+    /**
+     * Check an AUTO command.
+     *
+     * @param command what the caller gave, empty for none.
+     * @return the command without leading or trailing spaces.
+     * @throws TrsdosWriteError if the command has characters that can't be typed.
+     */
+    private static checkAutoCommand(command: string): string {
+        const trimmed = command.trim();
+        if (!/^[\x20-\x7E]*$/.test(trimmed)) {
+            throw new TrsdosWriteError("The AUTO command has characters that can't be stored: " +
+                "use printable ASCII characters");
+        }
+        return trimmed;
+    }
+
+    /**
+     * Write text into a fixed-width field, padded on the right with spaces.
+     *
+     * @param bytes the sector.
+     * @param offset where the field starts.
+     * @param text the text, at most {@link GAT_TEXT_LENGTH} characters.
+     */
+    private static putPaddedText(bytes: Uint8Array, offset: number, text: string): void {
+        const padded = text.padEnd(GAT_TEXT_LENGTH, " ");
+        for (let i = 0; i < GAT_TEXT_LENGTH; i++) {
+            bytes[offset + i] = padded.charCodeAt(i);
+        }
+    }
+
+    /**
+     * Write an AUTO command and its 0x0D terminator.
+     *
+     * @param bytes the sector.
+     * @param offset where the command goes.
+     * @param command the command, printable ASCII.
+     */
+    private static putAutoCommand(bytes: Uint8Array, offset: number, command: string): void {
+        for (let i = 0; i < command.length; i++) {
+            bytes[offset + i] = command.charCodeAt(i);
+        }
+        bytes[offset + command.length] = 0x0D;
+    }
+
+    /**
+     * The working copy of the system information sector, made the first time it's asked for.
+     *
+     * @throws TrsdosWriteError if the sector can't be read.
+     */
+    private getSysInfoCopy(): SectorCopy {
+        if (this.sysInfo === undefined) {
+            this.sysInfo = this.copySector(trsdosSystemInformationPosition(), "system information");
+        }
+        return this.sysInfo;
+    }
+
+    /**
      * Hash a password for a directory entry, turning the hash function's error into a write error.
      *
      * @param password the password, or empty for none.
@@ -1046,7 +1325,7 @@ export class TrsdosWriter {
      */
     public hasChanges(): boolean {
         return this.gat.dirty || this.hit.dirty || [...this.dirSectors.values()].some(copy => copy.dirty) ||
-            this.pendingSectors.length > 0;
+            this.sysInfo?.dirty === true || this.pendingSectors.length > 0;
     }
 
     /**
@@ -1054,7 +1333,7 @@ export class TrsdosWriter {
      * it must have the same layout, hold the files it had before less the deleted ones and plus the
      * added ones, with the renamed ones under their new names, read every remaining file exactly as before (except any file that includes the
      * directory sectors), read every added file as the contents given, show the attributes
-     * that {@link setAttributes} set, and have no layout or damage problem it didn't have. With no changes, nothing is written and the
+     * that {@link setAttributes} set, read the disk information that {@link setDiskInfo} set, and have no layout or damage problem it didn't have. With no changes, nothing is written and the
      * result is verified all the same.
      *
      * @return the file system decoded from the changed overlay.
@@ -1073,6 +1352,9 @@ export class TrsdosWriter {
             }
         }
         const copies = [this.gat, this.hit, ...this.dirSectors.values()];
+        if (this.sysInfo !== undefined) {
+            copies.push(this.sysInfo);
+        }
         for (const copy of copies) {
             if (copy.dirty) {
                 try {
@@ -1245,6 +1527,57 @@ export class TrsdosWriter {
     }
 
     /**
+     * What a file must read as after the change, given what it read as before. A file on cylinder 0
+     * (BOOT/SYS) includes the system information sector, so if {@link setDiskInfo} changed that sector,
+     * the file reads with the new sector in place of the old one.
+     *
+     * @param dirEntry the file's primary entry.
+     * @param original the file's contents before the change.
+     * @return the contents the file must have now.
+     */
+    private withSystemInformation(dirEntry: TrsdosDirEntry, original: Uint8Array): Uint8Array {
+        if (this.sysInfo === undefined || !this.sysInfo.dirty) {
+            return original;
+        }
+        const key = this.sysInfo.sectorPosition.key();
+        const index = this.trsdos.getFileSectorPositions(dirEntry).findIndex(position => position.key() === key);
+        if (index < 0 || index*SECTOR_SIZE >= original.length) {
+            return original;
+        }
+        const expected = original.slice();
+        expected.set(this.sysInfo.bytes.subarray(0, Math.min(SECTOR_SIZE, original.length - index*SECTOR_SIZE)),
+            index*SECTOR_SIZE);
+        return expected;
+    }
+
+    /**
+     * Throw if the disk's name, date, master password and AUTO command, read after the change, aren't
+     * what {@link setDiskInfo} meant them to be.
+     *
+     * @param newTrsdos the file system decoded after the change.
+     * @param expected what the information must read as, which includes the fields that didn't change.
+     */
+    private verifyDiskInfo(newTrsdos: Trsdos, expected: TrsdosDiskInfo): void {
+        const info = readTrsdosDiskInfo(newTrsdos, this.ruleSet);
+        if (typeof info === "string") {
+            throw new TrsdosWriteError(`After the change, the disk's information can't be read: ${info}`);
+        }
+        if (info.name !== expected.name) {
+            throw new TrsdosWriteError(`After the change, the disk's name reads as "${info.name}" instead of "${expected.name}"`);
+        }
+        if (info.date !== expected.date) {
+            throw new TrsdosWriteError(`After the change, the disk's date reads as "${info.date}" instead of "${expected.date}"`);
+        }
+        if (info.passwordHash !== expected.passwordHash) {
+            throw new TrsdosWriteError("After the change, the disk's master password reads differently");
+        }
+        if (info.autoCommand !== expected.autoCommand) {
+            throw new TrsdosWriteError(`After the change, the disk's AUTO command reads as "${info.autoCommand}" ` +
+                `instead of "${expected.autoCommand}"`);
+        }
+    }
+
+    /**
      * Compare the disk decoded after the change with the disk as it was, and throw if the
      * difference isn't exactly the files we deleted, added, renamed and changed the attributes of.
      */
@@ -1306,8 +1639,10 @@ export class TrsdosWriter {
                 continue;
             }
             const originalBinary = this.originalContents.get(expectedEntry);
-            if (newEntry === undefined || originalBinary === undefined ||
-                !bytesEqual(originalBinary, newTrsdos.readFile(newEntry))) {
+            const expectedBinary = originalBinary === undefined ? undefined :
+                this.withSystemInformation(expectedEntry, originalBinary);
+            if (newEntry === undefined || expectedBinary === undefined ||
+                !bytesEqual(expectedBinary, newTrsdos.readFile(newEntry))) {
 
                 throw new TrsdosWriteError(`After the change, ${name} reads differently`);
             }
@@ -1319,6 +1654,11 @@ export class TrsdosWriter {
             if (newEntry === undefined || !bytesEqual(addedFile.contents, newTrsdos.readFile(newEntry))) {
                 throw new TrsdosWriteError(`After the change, ${addedFile.name} reads differently from what was added`);
             }
+        }
+
+        // The disk's name, date, master password and AUTO command.
+        if (this.expectedDiskInfo !== undefined) {
+            this.verifyDiskInfo(newTrsdos, this.expectedDiskInfo);
         }
 
         // No new problems.

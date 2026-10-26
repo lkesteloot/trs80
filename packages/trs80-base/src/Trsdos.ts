@@ -467,9 +467,10 @@ function decodeGatText(binary: Uint8Array): string | undefined {
 
 /**
  * Decode the GAT's AUTO command, which ends at 0x0D, 0x00, 0x03 (DOSPLUS 3.x), 0xFF (filler), or
- * the end of the sector. Other bytes outside printable ASCII are shown as ".".
+ * the end of the sector. Other bytes outside printable ASCII are shown as ".". (Exported for
+ * {@link readTrsdosDiskInfo}, which also reads the AUTO command from TRSDOS 6's system information sector.)
  */
-function decodeAutoCommand(binary: Uint8Array): string {
+export function decodeAutoCommand(binary: Uint8Array): string {
     const parts: string[] = [];
 
     for (const b of binary) {

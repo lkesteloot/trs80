@@ -822,7 +822,8 @@ technical reference (pages 18-19) describe the same GAT, with these additions:
   writes it on data disks too, unlike the system information sector below.
 - **The system information sector** is cylinder 0 sector 2 (guide, page 145):
   0x00 the DOS version, 0xC0 the disk type (0xFF system, 0x00 data), 0x10-0x1F
-  the pack name and date, 0x20-0x6F the AUTO command, and 0x70-0xBF the drive
+  the pack name and date (really a release banner; see "The GAT's name, date and AUTO command"),
+  0x20-0x6F the AUTO command, and 0x70-0xBF the drive
   table, eight 10-byte DCTs. Like NEWDOS/80's PDRIVE copy in the same sector, the
   table describes the *drives* of the machine that wrote it, and it's zeros on
   blank disks. Measured: the nine TRSDOS 6 and LS-DOS system disks have version
@@ -870,6 +871,50 @@ six granules. It doesn't try every count that divides the track: with 4 granules
 check passes any GAT, and that reading beat the right one on four LDOS and MultiDOS
 disks. GAT byte 0xCB is 0x10, as on MultiDOS 1.x, so only the system disk is named,
 from SYS0's banner, "DosPLUS II - Series A.00".
+
+### The GAT's name, date and AUTO command
+
+What `TrsdosWriter.setDiskInfo()` writes, from the manuals and from every 2.3-family
+disk in the collection that decodes with a rule set we write (TRSDOS 2.x, LDOS 5,
+TRSDOS 6 and LS-DOS 6, DOSPLUS 3):
+
+- **The master password** is the 16-bit hash of the password (see "Password hashes") at
+  0xCE, little endian. "PASSWORD" is 0x42E0 and a blank one 0x4296.
+- **The name** is 8 characters at 0xD0, padded on the right with spaces. LDOS's manual
+  (*LDOS & LS-DOS Reference Manual*, PDF pages 57-58 and the FORMAT section) says a name is
+  up to eight characters and doesn't restrict them, and the disks agree: names have `:`,
+  `-`, `.`, `*` and spaces ("DOS:3.50", "LDOS-5.0", "* Data *"). No LDOS 5, TRSDOS 6 or TRSDOS 2.x
+  name has a lowercase letter; DOSPLUS names do ("DataDisk", "dos+35RS").
+- **The date** is 8 characters of `MM/DD/YY` at 0xD8, with a two-digit year. LS-DOS 6.3's DATE
+  command takes 80-99 for 1980-1999 and 00-11 for 2000-2011 (same manual, DATE). Disks hold
+  "00/00/00" when no date was set, and TRSDOS 2.0 and 2.1 disks go back to "78".
+- **The AUTO command before TRSDOS 6** is at 0xE0-0xFF, 32 bytes: the command, a 0x0D, then
+  filler. LDOS 5.1's manual (PDF page 36, AUTO) allows 31 characters. Filler is spaces on LDOS and
+  DOSPLUS (over 100 disks, including an empty command, which is 0x0D and 31 spaces) and 0xFF on
+  freshly formatted TRSDOS 2.1-2.3 disks, whose empty command is 0x0D 0x0D 0xFF...; TRSDOS 2.3's own
+  AUTO command copies 32 bytes of the command line (*TRSDOS 2.3 Decoded*, section 9.3), so a
+  command written by that DOS has leftover bytes after the 0x0D. DOSPLUS 3.4 and later, and DOSPLUS IV,
+  end the command with 0x0D like the others; three third-party disks have 0x03 instead (see "The
+  GAT's AUTO command doesn't always end in 0x0D"), which looks like a program's own writing,
+  not DOSPLUS's. There is no DOSPLUS 3 manual in the library to say. The media block at 0xF5 (see
+  "What the TRSDOS 6 manuals add") would end the field early on a disk that has one; no LDOS 5 or
+  DOSPLUS disk does.
+- **The AUTO command on TRSDOS 6 and LS-DOS 6** isn't in the GAT: its 0xE0-0xF4 are zeros on all of
+  them. It's in the system information sector, cylinder 0 sector 2, at 0x20-0x6F (80 bytes), as
+  the *Programmer's Guide to TRSDOS Version 6* says (PDF page 145). The command ends in 0x0D, and
+  nothing is cleared after it: an empty command on a disk that once had one is a 0x0D with the old
+  text still behind it (`TRSDOS62Level-AN` 0x0D `CRIPSIT/CMD` 0x0D), while FORMAT's is a 0x0D and zeros.
+  About twenty disks in the collection have a real command ("basic HARDGEN/BAS" on the hard disk
+  initialization sets, "*DO START" on the training course). The
+  sector's 0x10-0x1F aren't the disk's name and date, whatever the guide says ("same as in
+  Granule Allocation Table"): they hold the DOS release's banner ("TRSDOS62Level-AN", "LS-DOS63Level-L ",
+  "TRSDOS6101/24/84"), and match the GAT's name on 123 of 232 TRSDOS 6 and LS-DOS disks and its date on 17. Some
+  disks have zeros there, and a disk with 0xE5 filler in the whole sector (a different formatter,
+  the *TRSLink* magazine disks) has no usable sector at all. A sector is real if byte 0 is
+  0x60-0x6F and byte 0xC0 is 0x00 or 0xFF; byte 0 isn't always the GAT's 0xCB (14 real ones differ by
+  one release).
+- **BOOT/SYS covers the system information sector**, since it owns the boot track, so changing the
+  AUTO command changes what BOOT/SYS reads as. The writer's final check expects that.
 
 ## Identifying the DOS
 
@@ -2616,51 +2661,6 @@ The MFM sync (three A1 before every mark) follows the ID sync and data sync zero
   from the HFE), and everything about two-sided TRSDOS 1.3 and 2.3 disks. The Model I
   LDOS system disk's cylinder 0 is single density on a double-density disk.
 
-## Hard disk images
-
-Hard disks are `HardDisk` objects, not `FloppyDisk`s: a flat array of 256-byte
-sectors addressed by (cylinder, head, sector), with none of a floppy's recording
-details. Each partition is a `HardDiskPartition`, which implements `DiskVolume`
-(the part of a floppy that the TRSDOS decoder uses), so the same `Trsdos` class
-reads floppies and partitions. LDOS 5, LS-DOS 6 and DOSPLUS 3 partitions are read.
-Everything below was measured on the images in `disks/hard/`, and agrees with *The
-Programmer's Guide to TRSDOS Version 6* (`TRSDOS/`), the drive control table (DCT)
-in section 4.2, PDF pages 32-35.
-
-**Why not a subclass of `FloppyDisk`:**
-- A `FloppyDisk` models a floppy's recording: density, CRCs, data marks, sector
-  sizes, mixed geometry and `formatTrack()`, with a `SectorInfo` for every
-  sector, which would be 262,144 meaningless objects for a 64 MB disk.
-- The emulator's floppy controller accepts any `FloppyDisk`, and a hard disk
-  belongs on a different controller (the WD1010, below).
-- A hard disk isn't one file system but several partitions, whose layout lives
-  in the driver's configuration, so the unit a decoder reads is a partition.
-
-The decoders only use a small part of a floppy, so that part is the `DiskVolume`
-interface, and only `Trsdos` uses it so far. Every reference we looked at made
-the same split: Matthew Reed's tools (`~/others/matthew-reed-tools`) have
-`THardImage` beside `TFloppyImage`, and trsfs and trs80gp have `hd_image*.cpp`
-beside `fd_image*.cpp`.
-
-**References for hard disks:**
-- Matthew Reed's HDV1 spec, <https://www.trs-80.com/sub-tips-file-formats.htm#HDV1>.
-- George Phillips' xfile (<https://48k.ca/xfile.html>, public, with source): its
-  `hd_image_*.cpp` read HDV1, HDV2, DREM and `.emu` images. They're the same files
-  as trsfs's (`~/others/trsfs`, Peter Phillips' private reader) and close to
-  trs80gp's `lib/` (`~/others/trs80gp`).
-- Matthew Reed's tools (`~/others/matthew-reed-tools`): `DiskImage/hdv1.cpp`,
-  `hdv2.cpp`, and `FileSystem/LDOS.cpp`, whose partition walk and hard disk GAT
-  handling were the model for ours; also `NEWDOS80.cpp`, which reads NEWDOS/80
-  hard disks.
-- FreHD's source (GPL, <http://www.vecoven.com/trs80/trs80.html>, release 2.14 and
-  github.com/fvecoven/FreHDv1): the PIC firmware's `trs_hard.c` (opening an image,
-  the header, sector addressing), `trs_extra.c` (its extra commands) and the Z80
-  boot ROM's `frehd.inc` (ports, and the auto-boot DOS codes).
-- Tandy and LSI's LS-DOS 6.3 hard disk drivers and formatter, in Pete's Model II
-  archive (github.com/pski/model2archive, `Other/I_III_4/MAD Soft/LS-DOS 6.3.x
-  Source Code/LS-DOS-6.3.0-tree/trshard/`): `trshd6.asm`, `hdwd6a.asm`,
-  `hdform6.asm` and others. They show the WD1010 ports and how the DCT's head
-  offset and DBLBIT are used.
 ## Blank data disks by DOS
 
 What a DOS's FORMAT puts on a new data disk, after the tracks (see "Track layouts by DOS"), as
@@ -2740,6 +2740,51 @@ DIR/SYS entries.
 density on the Model 4 (the hardware LS-DOS image is the only evidence), and a double-density LDOS
 disk for the Model I, whose cylinder 0 is single density. `formatTrsdosDataDisk()` refuses the last.
 
+## Hard disk images
+
+Hard disks are `HardDisk` objects, not `FloppyDisk`s: a flat array of 256-byte
+sectors addressed by (cylinder, head, sector), with none of a floppy's recording
+details. Each partition is a `HardDiskPartition`, which implements `DiskVolume`
+(the part of a floppy that the TRSDOS decoder uses), so the same `Trsdos` class
+reads floppies and partitions. LDOS 5, LS-DOS 6 and DOSPLUS 3 partitions are read.
+Everything below was measured on the images in `disks/hard/`, and agrees with *The
+Programmer's Guide to TRSDOS Version 6* (`TRSDOS/`), the drive control table (DCT)
+in section 4.2, PDF pages 32-35.
+
+**Why not a subclass of `FloppyDisk`:**
+- A `FloppyDisk` models a floppy's recording: density, CRCs, data marks, sector
+  sizes, mixed geometry and `formatTrack()`, with a `SectorInfo` for every
+  sector, which would be 262,144 meaningless objects for a 64 MB disk.
+- The emulator's floppy controller accepts any `FloppyDisk`, and a hard disk
+  belongs on a different controller (the WD1010, below).
+- A hard disk isn't one file system but several partitions, whose layout lives
+  in the driver's configuration, so the unit a decoder reads is a partition.
+
+The decoders only use a small part of a floppy, so that part is the `DiskVolume`
+interface, and only `Trsdos` uses it so far. Every reference we looked at made
+the same split: Matthew Reed's tools (`~/others/matthew-reed-tools`) have
+`THardImage` beside `TFloppyImage`, and trsfs and trs80gp have `hd_image*.cpp`
+beside `fd_image*.cpp`.
+
+**References for hard disks:**
+- Matthew Reed's HDV1 spec, <https://www.trs-80.com/sub-tips-file-formats.htm#HDV1>.
+- George Phillips' xfile (<https://48k.ca/xfile.html>, public, with source): its
+  `hd_image_*.cpp` read HDV1, HDV2, DREM and `.emu` images. They're the same files
+  as trsfs's (`~/others/trsfs`, Peter Phillips' private reader) and close to
+  trs80gp's `lib/` (`~/others/trs80gp`).
+- Matthew Reed's tools (`~/others/matthew-reed-tools`): `DiskImage/hdv1.cpp`,
+  `hdv2.cpp`, and `FileSystem/LDOS.cpp`, whose partition walk and hard disk GAT
+  handling were the model for ours; also `NEWDOS80.cpp`, which reads NEWDOS/80
+  hard disks.
+- FreHD's source (GPL, <http://www.vecoven.com/trs80/trs80.html>, release 2.14 and
+  github.com/fvecoven/FreHDv1): the PIC firmware's `trs_hard.c` (opening an image,
+  the header, sector addressing), `trs_extra.c` (its extra commands) and the Z80
+  boot ROM's `frehd.inc` (ports, and the auto-boot DOS codes).
+- Tandy and LSI's LS-DOS 6.3 hard disk drivers and formatter, in Pete's Model II
+  archive (github.com/pski/model2archive, `Other/I_III_4/MAD Soft/LS-DOS 6.3.x
+  Source Code/LS-DOS-6.3.0-tree/trshard/`): `trshd6.asm`, `hdwd6a.asm`,
+  `hdform6.asm` and others. They show the WD1010 ports and how the DCT's head
+  offset and DBLBIT are used.
 
 ### The HDV file
 

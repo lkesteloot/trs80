@@ -7,6 +7,7 @@ import {
 } from "./Trsdos.js";
 import {checkTrsdos} from "./TrsdosCheck.js";
 import {reservedDecs} from "./TrsdosDirSlots.js";
+import {readTrsdosDiskInfo} from "./TrsdosDiskInfo.js";
 import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile, type TestGranule, testUserSlotDec} from "./TrsdosTestDisk.js";
@@ -1361,5 +1362,315 @@ describe("TrsdosWriter.setAttributes", () => {
         expect(entryBytesAt(overlay, trsdos, testUserSlotDec(1))).to.eql(oldFxde);
         expect(newTrsdos.readFile(getFile(newTrsdos, "BIG/DAT"))).to.eql(bigBytes);
         expect(getFile(newTrsdos, "BIG/DAT").isHidden()).to.eql(true);
+    });
+});
+
+describe("TrsdosWriter.setDiskInfo", () => {
+    /**
+     * The position of the system information sector of the test disk.
+     */
+    const SYSINFO_POSITION = SectorPosition.make(0, 0, 2);
+
+    /**
+     * Make a system information sector as TRSDOS 6 writes it: the DOS version in the first byte, a banner
+     * at 0x10, the AUTO command at 0x20, and a system disk type at 0xC0.
+     *
+     * @param auto the AUTO command, which is followed by its terminator and then the bytes of an older command.
+     */
+    function makeSysInfo(auto: string): Uint8Array {
+        const bytes = new Uint8Array(256);
+        bytes[0] = 0x62;
+        bytes[1] = 0xC9;
+        bytes.set(Array.from("TRSDOS62Level-AN", c => c.charCodeAt(0)), 0x10);
+        const text = auto + "\r" + "OLDER";
+        bytes.set(Array.from(text, c => c.charCodeAt(0)), 0x20);
+        bytes[0xC0] = 0xFF;
+        return bytes;
+    }
+
+    /**
+     * Make a fixture with HELLO/BAS and WORLD/TXT, with the GAT's version byte and the system
+     * information sector patched as given, and a writer with the given rules.
+     *
+     * @param ruleSet the rules the writer follows.
+     * @param osVersion the DOS version to put in the GAT (byte 0xCB), or undefined to leave the test disk's.
+     * @param sysInfo the bytes to put in cylinder 0, sector 2, or undefined to leave the test disk's.
+     * @param gatPatch a function that changes the GAT's bytes, or undefined.
+     */
+    function makeInfoFixture(ruleSet: TrsdosRuleSet, osVersion: number | undefined = undefined,
+                             sysInfo: Uint8Array | undefined = undefined,
+                             gatPatch: ((gat: Uint8Array) => void) | undefined = undefined) {
+
+        const disk = makeTrsdos23TestDisk([HELLO, WORLD]);
+        const patch = new SectorOverlay(disk);
+        const gatPosition = SectorPosition.make(17, 0, 0);
+        const gat = readBytes(disk, gatPosition).slice();
+        if (osVersion !== undefined) {
+            gat[0xCB] = osVersion;
+        }
+        if (gatPatch !== undefined) {
+            gatPatch(gat);
+        }
+        patch.writeSector(gatPosition, gat);
+        if (sysInfo !== undefined) {
+            patch.writeSector(SYSINFO_POSITION, sysInfo);
+        }
+        patch.commit();
+
+        const overlay = new SectorOverlay(disk);
+        const trsdos = decodeTrsdos(overlay);
+        if (trsdos === undefined) {
+            throw new Error("Test disk didn't decode as TRSDOS");
+        }
+        const oldGat = readBytes(overlay, trsdos.getGatPosition()).slice();
+        const oldSysInfo = readBytes(overlay, SYSINFO_POSITION).slice();
+        return {overlay, trsdos, writer: new TrsdosWriter(trsdos, ruleSet), oldGat, oldSysInfo};
+    }
+
+    /**
+     * The text of bytes, with 0x0D shown as "<CR>".
+     */
+    function asText(bytes: Uint8Array): string {
+        return Array.from(bytes, b => b === 0x0D ? "<CR>" : String.fromCharCode(b)).join("");
+    }
+
+    /**
+     * Read the disk information of a file system with the given rules, failing the test if it can't be read.
+     */
+    function diskInfo(trsdos: Trsdos, ruleSet: TrsdosRuleSet) {
+        const info = readTrsdosDiskInfo(trsdos, ruleSet);
+        if (typeof info === "string") {
+            throw new Error(info);
+        }
+        return info;
+    }
+
+    it("reads the test disk's information", () => {
+        const {trsdos} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        expect(diskInfo(trsdos, TrsdosRuleSet.LDOS_5))
+            .to.eql({name: "TESTDISK", date: "10/25/26", passwordHash: 0x42E0, autoCommand: ""});
+    });
+
+    it("changes the name, date and password by changing only those GAT bytes", () => {
+        const {overlay, writer, oldGat} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+
+        expect(writer.hasChanges()).to.eql(false);
+        writer.setDiskInfo({name: "Games", date: new Date(1983, 4, 9), masterPassword: "Secret"});
+        expect(writer.hasChanges()).to.eql(true);
+        const newTrsdos = writer.flush();
+
+        const expectedGat = oldGat.slice();
+        expectedGat.set(Array.from("GAMES   ", c => c.charCodeAt(0)), 0xD0);
+        expectedGat.set(Array.from("05/09/83", c => c.charCodeAt(0)), 0xD8);
+        const hash = hashTrsdosPassword("SECRET");
+        expectedGat[0xCE] = hash & 0xFF;
+        expectedGat[0xCF] = hash >> 8;
+        expect(readBytes(overlay, newTrsdos.getGatPosition())).to.eql(expectedGat);
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5))
+            .to.eql({name: "GAMES", date: "05/09/83", passwordHash: hash, autoCommand: ""});
+
+        // The files are as they were.
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["HELLO/BAS", "WORLD/TXT"]);
+    });
+
+    it("changes one field and leaves the others as they were", () => {
+        const {writer} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        writer.setDiskInfo({name: "ONLY"});
+        const newTrsdos = writer.flush();
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5))
+            .to.eql({name: "ONLY", date: "10/25/26", passwordHash: 0x42E0, autoCommand: ""});
+    });
+
+    it("blanks the master password", () => {
+        const {writer} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        writer.setDiskInfo({masterPassword: ""});
+        const newTrsdos = writer.flush();
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5).passwordHash).to.eql(TRSDOS_BLANK_PASSWORD_HASH);
+    });
+
+    it("writes an AUTO command in the GAT, ended by 0x0D and padded with spaces", () => {
+        const {overlay, writer, oldGat} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+
+        writer.setDiskInfo({autoCommand: '  BASIC RUN"MENU"  '});
+        const newTrsdos = writer.flush();
+
+        const gat = readBytes(overlay, newTrsdos.getGatPosition());
+        expect(asText(gat.subarray(0xE0))).to.eql('BASIC RUN"MENU"<CR>' + " ".repeat(32 - 'BASIC RUN"MENU"'.length - 1));
+        expect(gat.subarray(0, 0xE0)).to.eql(oldGat.subarray(0, 0xE0));
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5).autoCommand).to.eql('BASIC RUN"MENU"');
+
+        // And remove it again.
+        const writer2 = new TrsdosWriter(newTrsdos, TrsdosRuleSet.LDOS_5);
+        writer2.setDiskInfo({autoCommand: ""});
+        const clearedTrsdos = writer2.flush();
+        expect(readBytes(overlay, clearedTrsdos.getGatPosition())).to.eql(oldGat);
+    });
+
+    it("fits an AUTO command of 31 characters in the GAT and refuses 32", () => {
+        const {overlay, writer} = makeInfoFixture(TrsdosRuleSet.DOSPLUS);
+        const thirtyOne = "A".repeat(31);
+
+        expect(() => writer.setDiskInfo({autoCommand: "A".repeat(32)}))
+            .to.throw(TrsdosWriteError, "at most 31 fit");
+        expect(writer.hasChanges()).to.eql(false);
+        writer.setDiskInfo({autoCommand: thirtyOne});
+        const newTrsdos = writer.flush();
+        const gat = readBytes(overlay, newTrsdos.getGatPosition());
+        expect(asText(gat.subarray(0xE0))).to.eql(thirtyOne + "<CR>");
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.DOSPLUS).autoCommand).to.eql(thirtyOne);
+    });
+
+    it("pads an AUTO command with 0xFF on TRSDOS 2.x, as its FORMAT leaves the field", () => {
+        const {overlay, writer} = makeInfoFixture(TrsdosRuleSet.TRSDOS_2);
+        writer.setDiskInfo({autoCommand: "BASIC"});
+        const newTrsdos = writer.flush();
+        const field = readBytes(overlay, newTrsdos.getGatPosition()).subarray(0xE0);
+        expect(Array.from(field.subarray(0, 6))).to.eql([0x42, 0x41, 0x53, 0x49, 0x43, 0x0D]);
+        expect(field.subarray(6).every(b => b === 0xFF)).to.eql(true);
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.TRSDOS_2).autoCommand).to.eql("BASIC");
+    });
+
+    it("stops the AUTO command before a media block at the end of the GAT", () => {
+        const media = [0x03, 0x4C, 0x53, 0x49, 0x44, 0x42, 0x00, 0x27, 0x11, 0x45, 0x14];
+        const {overlay, writer, oldGat} = makeInfoFixture(TrsdosRuleSet.LDOS_5, undefined, undefined,
+            gat => gat.set(media, 0xF5));
+
+        // 0xE0 to 0xF3 is 20 bytes, so 19 characters and the terminator.
+        expect(() => writer.setDiskInfo({autoCommand: "A".repeat(20)})).to.throw(TrsdosWriteError, "at most 19 fit");
+        writer.setDiskInfo({autoCommand: "A".repeat(19)});
+        const newTrsdos = writer.flush();
+        const gat = readBytes(overlay, newTrsdos.getGatPosition());
+        expect(gat.subarray(0xF4)).to.eql(oldGat.subarray(0xF4));
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5).autoCommand).to.eql("A".repeat(19));
+    });
+
+    it("uppercases the name except on DOSPLUS", () => {
+        const dosplus = makeInfoFixture(TrsdosRuleSet.DOSPLUS);
+        dosplus.writer.setDiskInfo({name: "DataDisk"});
+        expect(diskInfo(dosplus.writer.flush(), TrsdosRuleSet.DOSPLUS).name).to.eql("DataDisk");
+
+        const ldos = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        ldos.writer.setDiskInfo({name: "DataDisk"});
+        expect(diskInfo(ldos.writer.flush(), TrsdosRuleSet.LDOS_5).name).to.eql("DATADISK");
+
+        const trsdos2 = makeInfoFixture(TrsdosRuleSet.TRSDOS_2);
+        trsdos2.writer.setDiskInfo({name: "* Data *"});
+        expect(diskInfo(trsdos2.writer.flush(), TrsdosRuleSet.TRSDOS_2).name).to.eql("* DATA *");
+    });
+
+    it("refuses names that the DOS wouldn't take, leaving the writer as it was", () => {
+        const {writer} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        expect(() => writer.setDiskInfo({name: "  "})).to.throw(TrsdosWriteError, "can't be empty");
+        expect(() => writer.setDiskInfo({name: "NINECHARS"})).to.throw(TrsdosWriteError, "up to 8 characters");
+        expect(() => writer.setDiskInfo({name: "CAF\u00C9"})).to.throw(TrsdosWriteError, "printable ASCII");
+        expect(() => writer.setDiskInfo({name: "OK", masterPassword: "bad password"}))
+            .to.throw(TrsdosWriteError, "Invalid password");
+        expect(() => writer.setDiskInfo({name: "OK", autoCommand: "A\rB"})).to.throw(TrsdosWriteError, "printable ASCII");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("limits the date's year to what the DOS can enter", () => {
+        const plain = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        expect(() => plain.writer.setDiskInfo({date: new Date(2005, 0, 1)}))
+            .to.throw(TrsdosWriteError, "can't store the year 2005; give a date from 1980 to 1999");
+        expect(() => plain.writer.setDiskInfo({date: new Date(1979, 0, 1)})).to.throw(TrsdosWriteError, "from 1980");
+        expect(() => plain.writer.setDiskInfo({date: new Date(Number.NaN)})).to.throw(TrsdosWriteError, "of that date");
+        plain.writer.setDiskInfo({date: new Date(1999, 11, 31)});
+        expect(diskInfo(plain.writer.flush(), TrsdosRuleSet.LDOS_5).date).to.eql("12/31/99");
+
+        // LDOS 5.3 has time stamps, and its years run through 2011.
+        const stamped = makeInfoFixture(TrsdosRuleSet.LDOS_5, 0x53);
+        stamped.writer.setDiskInfo({date: new Date(2005, 0, 2)});
+        expect(diskInfo(stamped.writer.flush(), TrsdosRuleSet.LDOS_5).date).to.eql("01/02/05");
+        const tooLate = makeInfoFixture(TrsdosRuleSet.LDOS_5, 0x53);
+        expect(() => tooLate.writer.setDiskInfo({date: new Date(2012, 0, 1)})).to.throw(TrsdosWriteError, "to 2011");
+
+        // TRSDOS 2.x disks go back to 1978.
+        const old = makeInfoFixture(TrsdosRuleSet.TRSDOS_2);
+        old.writer.setDiskInfo({date: new Date(1978, 7, 15)});
+        expect(diskInfo(old.writer.flush(), TrsdosRuleSet.TRSDOS_2).date).to.eql("08/15/78");
+    });
+
+    it("writes the AUTO command of TRSDOS 6 in the system information sector, and nowhere else", () => {
+        const {overlay, writer, oldGat, oldSysInfo} = makeInfoFixture(TrsdosRuleSet.TRSDOS_6, 0x62,
+            makeSysInfo("do startup/jcl"));
+        expect(asText(oldSysInfo.subarray(0x20, 0x34))).to.eql("do startup/jcl<CR>OLDER");
+
+        writer.setDiskInfo({autoCommand: "BASIC"});
+        const newTrsdos = writer.flush();
+
+        // The command, its terminator, and zeros to the end of the area; the rest of the sector is as it was.
+        const expectedSysInfo = oldSysInfo.slice();
+        expectedSysInfo.fill(0, 0x20, 0x70);
+        expectedSysInfo.set([0x42, 0x41, 0x53, 0x49, 0x43, 0x0D], 0x20);
+        expect(readBytes(overlay, SYSINFO_POSITION)).to.eql(expectedSysInfo);
+        expect(readBytes(overlay, newTrsdos.getGatPosition())).to.eql(oldGat);
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.TRSDOS_6).autoCommand).to.eql("BASIC");
+
+        // BOOT/SYS covers the sector, so it reads with the new one.
+        const boot = newTrsdos.readFile(getFile(newTrsdos, "BOOT/SYS"));
+        expect(boot.subarray(2*256, 3*256)).to.eql(expectedSysInfo);
+    });
+
+    it("keeps the system information sector's other fields when the name and date change", () => {
+        const {overlay, writer, oldSysInfo} = makeInfoFixture(TrsdosRuleSet.TRSDOS_6, 0x62, makeSysInfo("RUN"));
+
+        writer.setDiskInfo({name: "Work", date: new Date(1986, 5, 7), autoCommand: "KEEP"});
+        const newTrsdos = writer.flush();
+
+        const sysInfo = readBytes(overlay, SYSINFO_POSITION);
+        // The banner at 0x10 is the DOS release's, not the disk's name, and isn't changed.
+        expect(sysInfo.subarray(0, 0x20)).to.eql(oldSysInfo.subarray(0, 0x20));
+        expect(sysInfo.subarray(0x70)).to.eql(oldSysInfo.subarray(0x70));
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.TRSDOS_6))
+            .to.eql({name: "WORK", date: "06/07/86", passwordHash: 0x42E0, autoCommand: "KEEP"});
+    });
+
+    it("limits a TRSDOS 6 AUTO command to 79 characters", () => {
+        const {writer} = makeInfoFixture(TrsdosRuleSet.TRSDOS_6, 0x62, makeSysInfo(""));
+        expect(() => writer.setDiskInfo({autoCommand: "A".repeat(80)})).to.throw(TrsdosWriteError, "at most 79 fit");
+        writer.setDiskInfo({autoCommand: "A".repeat(79)});
+        expect(diskInfo(writer.flush(), TrsdosRuleSet.TRSDOS_6).autoCommand).to.eql("A".repeat(79));
+    });
+
+    it("refuses a TRSDOS 6 AUTO command on a disk with no system information sector", () => {
+        // The test disk's cylinder 0, sector 2 is zeros, which isn't a system information sector.
+        const {oldSysInfo, trsdos, writer} = makeInfoFixture(TrsdosRuleSet.TRSDOS_6, 0x62);
+        expect(oldSysInfo.every(b => b === 0)).to.eql(true);
+        expect(diskInfo(trsdos, TrsdosRuleSet.TRSDOS_6).autoCommand).to.be.undefined;
+
+        expect(() => writer.setDiskInfo({autoCommand: "BASIC"})).to.throw(TrsdosWriteError, "no system information sector");
+        expect(writer.hasChanges()).to.eql(false);
+        // Without an AUTO command, the other fields can still change.
+        writer.setDiskInfo({name: "FILLER"});
+        expect(diskInfo(writer.flush(), TrsdosRuleSet.TRSDOS_6).name).to.eql("FILLER");
+    });
+
+    it("refuses TRSDOS 1.3 rules, and a writer that has flushed", () => {
+        const old = makeInfoFixture(TrsdosRuleSet.TRSDOS_1_3);
+        expect(() => old.writer.setDiskInfo({name: "X"})).to.throw(TrsdosWriteError, "TRSDOS 1.3");
+
+        const {writer} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        writer.flush();
+        expect(() => writer.setDiskInfo({name: "X"})).to.throw(TrsdosWriteError, "already been flushed");
+    });
+
+    it("combines with other changes, and with several calls", () => {
+        const {writer} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        writer.deleteFile(writerFile(writer, "HELLO/BAS"));
+        writer.setDiskInfo({name: "FIRST", date: new Date(1984, 0, 2)});
+        writer.setDiskInfo({name: "SECOND", autoCommand: "DIR"});
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["WORLD/TXT"]);
+        expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5))
+            .to.eql({name: "SECOND", date: "01/02/84", passwordHash: 0x42E0, autoCommand: "DIR"});
+    });
+
+    it("does nothing when given no changes", () => {
+        const {writer} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
+        writer.setDiskInfo({});
+        expect(writer.hasChanges()).to.eql(false);
+        writer.flush();
     });
 });
