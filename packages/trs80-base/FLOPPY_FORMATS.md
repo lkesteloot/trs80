@@ -2661,6 +2661,85 @@ beside `fd_image*.cpp`.
   Source Code/LS-DOS-6.3.0-tree/trshard/`): `trshd6.asm`, `hdwd6a.asm`,
   `hdform6.asm` and others. They show the WD1010 ports and how the DCT's head
   offset and DBLBIT are used.
+## Blank data disks by DOS
+
+What a DOS's FORMAT puts on a new data disk, after the tracks (see "Track layouts by DOS"), as
+`formatTrsdosDataDisk()` in `TrsdosFormat.ts` writes it. Measured on the formatted blanks in
+`simple/trs80gp/formatted/` (one-sided: LDOS 5.3 on the Models I and III, LS-DOS 6.3, TRSDOS 6.2,
+TRSDOS 1.3), on a TRSDOS 2.3 data disk, and for two sides, 80 cylinders and both densities on the
+real-hardware LDOS 5.3 and LS-DOS 6.3 images in `telanoc/`. For the LDOS line, FORMAT's source
+(`format1.asm`, `format2.asm`) agrees with the disks. Every sector of the five blanks (data and
+data address mark) is reproduced exactly; the hardware images agree on every structure sector
+except the drive-select bits in the media block (see below).
+
+**What the DOSes share (the 2.3 family: TRSDOS 2.3, LDOS 5.3, TRSDOS 6.2, LS-DOS 6.3).**
+
+- **The directory cylinder** is the middle one, cylinders divided by two (17, 20, 40), searching
+  outward past locked-out cylinders. TRSDOS 2.3 and 1.3 always use 17. The whole cylinder, both
+  sides, is the directory: GAT, HIT, then entry sectors, every one with the directory's data
+  address mark (0xF8 on the LDOS line, 0xFA on TRSDOS 2.3, in single density).
+- **The GAT** (directory sector 0). Bytes 0x00-0xCA are 0xFF; then each existing cylinder gets the
+  free byte, `0xFF << granules per cylinder`, truncated to 8 bits (0xFC, 0xF8, 0xF0 or 0xC0 for 2, 3, 4
+  or 6 granules). The lockout table at 0x60 gets a copy of that, before anything is marked used.
+  Then granule 0 of cylinder 0 is marked used (the boot granule) and the directory cylinder is set
+  to 0xFF. Cylinders past the end stay 0xFF in both tables. The master password hash is at 0xCE, the
+  disk name (8 characters, space padded) at 0xD0 and the date as `MM/DD/YY` at 0xD8; FORMAT's
+  defaults are "DATADISK" and "PASSWORD".
+- **0xCB-0xCD**: 0x21, 0, 0 on TRSDOS 2.3; 0x53 on LDOS 5.3, 0x62 on TRSDOS 6.2, 0x63 on LS-DOS 6.3,
+  then cylinders minus 35, then 0x80 (data disk) plus 0x40 (double density), 0x20 (two sides),
+  0x08 (new date style: LDOS 5.3 and LS-DOS 6.3 set it, TRSDOS 6.2 doesn't) and granules per side
+  minus one.
+- **0xE0, the AUTO command**: an empty one (0x0D, then spaces) on TRSDOS 2.3 and LDOS 5.3; zeros on
+  TRSDOS 6.2 and LS-DOS 6.3.
+- **The media block** (TRSDOS 6.2 and LS-DOS 6.3) at 0xF5: 0x03, then "LSI" (TRSDOS 6.2) or "631"
+  (LS-DOS 6.3.1), then the drive control table's last seven bytes: flags 1 (0x44 double density,
+  0x04 single), flags 2 (0x40, plus 0x20 for two sides, plus the drive FORMAT ran in: 0x02 on trs80gp's
+  blanks and 0x01 on the hardware ones; we write 0x02), current cylinder 0, highest cylinder,
+  sectors per track minus one, granules per side minus one over sectors per granule minus one
+  (0x45, or 0x24 in single density), and the directory cylinder. LDOS 5.3 has no media block.
+- **The HIT** (sector 1): 0xA2 for BOOT/SYS, then 0xC4 for DIR/SYS (0x2C on TRSDOS 2.3), zeros.
+- **BOOT/SYS and DIR/SYS** in the first entry of directory sectors 2 and 3: attributes 0x5E and
+  0x5D (system, invisible, in use, protection level 6 and 5), five sectors for BOOT/SYS (one extent,
+  cylinder 0 granule 0, one granule) and for DIR/SYS the number of sectors in the cylinder, at most
+  34, one extent covering every granule of the directory cylinder. Bytes 16-19 (the two password
+  hashes) and the unused extents differ by DOS:
+
+  | | BOOT/SYS bytes 16-19 | tail | DIR/SYS bytes 16-19 | tail |
+  |---|---|---|---|---|
+  | TRSDOS 2.3 | `60 7F 1F B2` | `FF FF` and zeros | `A7 1D F9 E5` | `FF FF` and zeros |
+  | LDOS 5.3 | `AE 01 00 00` | eight `FF` | `AE 01 96 42` | eight `FF` |
+  | TRSDOS 6.2 | `F6 37 F5 9C` | eight `FF` | `F6 37 96 42` | `FF FF` and zeros |
+  | LS-DOS 6.3 | `F4 71 00 00` | eight `FF` | `F4 71 96 42` | `FF FF` and zeros |
+
+  The rest of the directory is zeros. DIR/SYS's size stops at 34 sectors because the HIT can't
+  address more (a two-sided 18-sector cylinder has 36), yet FORMAT writes the last two sectors too.
+- **The LDOS line also writes** a system information sector in cylinder 0 sector 2 (the release
+  number at byte 0; TRSDOS 6.2 and LS-DOS 6.3 add an empty AUTO, 0x0D, at 0x20) and a copy of the GAT
+  in cylinder 0 sector 3, made after the directory cylinder is marked used. TRSDOS 2.3 leaves
+  cylinder 0 sectors 1-9 as the format filler.
+- **Boot sectors.** The data-disk boot sector goes in cylinder 0 sector 0, and on the LDOS line also
+  sector 1 (the same code on the Model III and 4; two different sectors on the Model I, where the
+  first loads the second). Byte 2 holds the directory cylinder (0x00, 0xFE, cylinder). They are
+  the only DOS-specific code on the disk and how most tools identify the formatter, which is why
+  `formatTrsdosDataDisk()` takes them from the caller; it patches byte 2 and nothing else (the
+  boot step rate, for one, stays as in the source disk).
+
+**TRSDOS 1.3** writes much less. The boot sector is cylinder 0 sector 1 (byte 0 0xFE, byte 1 the
+directory cylinder, 17) and sector 2 holds "Not a SYSTEM Disk", both with data address mark 0xF8;
+cylinder 0's other sectors are the format filler. The directory cylinder is 17, with its sectors
+numbered from 1: the GAT in sector 1 is a byte per cylinder with a bit per used granule, six
+granules (so unused bits are clear), 0x01 for cylinder 0 and 0x3F for cylinder 17, zeros everywhere
+else, including the existence table at 0x60 and the part past the last cylinder; the master password
+at 0xCE (1.3's own hash: "PASSWORD" 0x8FD3, none 0x5CEF), name and date at 0xD0 and 0xD8, and zeros
+for the AUTO command. The HIT in sector 2 is zeros except the sixteen system file slots at 0xE0, all
+0xFF (none). Sectors 3-18 are sixteen empty sectors of 48-byte entries that end with the format's
+"(c) 1980 Tandy" filler. All use the normal data address mark. A data disk has no BOOT/SYS or
+DIR/SYS entries.
+
+**Not measured**: two-sided or 80-cylinder TRSDOS 2.3 and 1.3 (neither DOS formats them), single
+density on the Model 4 (the hardware LS-DOS image is the only evidence), and a double-density LDOS
+disk for the Model I, whose cylinder 0 is single density. `formatTrsdosDataDisk()` refuses the last.
+
 
 ### The HDV file
 
