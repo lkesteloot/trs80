@@ -15,7 +15,7 @@ const COMMANDS: DiskCommandSpec[] = [
     },
     {
         name: "rm", aliases: ["del", "kill"], usage: "NAME...", summary: "Remove files.",
-        minArgs: 1, maxArgs: undefined, options: [],
+        minArgs: 1, maxArgs: Infinity, options: [],
     },
     {
         name: "mv", aliases: [], usage: "OLD NEW", summary: "Rename a file.",
@@ -27,7 +27,7 @@ const COMMANDS: DiskCommandSpec[] = [
     },
     {
         name: "get", aliases: [], usage: "NAME... [--out-dir DIR]", summary: "Extract files.",
-        minArgs: 1, maxArgs: undefined,
+        minArgs: 1, maxArgs: Infinity,
         options: [{ name: "--out-dir", shortName: "-d", valueName: "DIR", description: "Directory to write to." }],
     },
 ];
@@ -51,19 +51,19 @@ describe("parseDiskCommandLine", () => {
     it("returns no commands for no words", () => {
         const result = parse();
         expect(result.commands).to.eql([]);
-        expect(result.globalOptions.getFlag("--force")).to.be.false;
+        expect(result.globalOptions.has("--force")).to.be.false;
     });
 
     it("returns no commands for only global options", () => {
         const result = parse("--force", "-o", "out.dmk");
         expect(result.commands).to.eql([]);
-        expect(result.globalOptions.getFlag("--force")).to.be.true;
+        expect(result.globalOptions.has("--force")).to.be.true;
         expect(result.globalOptions.getString("--output")).to.eql("out.dmk");
     });
 
     it("parses global options before the command", () => {
         const result = parse("--force", "--output=x.dmk", "dir");
-        expect(result.globalOptions.getFlag("--force")).to.be.true;
+        expect(result.globalOptions.has("--force")).to.be.true;
         expect(result.globalOptions.getString("--output")).to.eql("x.dmk");
         expect(result.commands.length).to.eql(1);
     });
@@ -101,7 +101,7 @@ describe("parseDiskCommandLine", () => {
 
     it("parses flags and value options", () => {
         const dir = parse("dir", "--system").commands[0];
-        expect(dir.options.getFlag("--system")).to.be.true;
+        expect(dir.options.has("--system")).to.be.true;
         expect(dir.args).to.eql([]);
 
         const get = parse("get", "A", "--out-dir", "out").commands[0];
@@ -157,7 +157,7 @@ describe("parseDiskCommandLine", () => {
         expect(rm.args).to.eql(["-WEIRD", "--system"]);
 
         const dir = parse("dir", "--system", "--", "-X").commands[0];
-        expect(dir.options.getFlag("--system")).to.be.true;
+        expect(dir.options.has("--system")).to.be.true;
         expect(dir.args).to.eql(["-X"]);
     });
 
@@ -166,7 +166,7 @@ describe("parseDiskCommandLine", () => {
         expect(result.commands.length).to.eql(2);
         expect(result.commands[0].args).to.eql(["-A"]);
         expect(result.commands[1].spec.name).to.eql("dir");
-        expect(result.commands[1].options.getFlag("--system")).to.be.true;
+        expect(result.commands[1].options.has("--system")).to.be.true;
     });
 
     it("restores option parsing after a colon", () => {
@@ -188,7 +188,7 @@ describe("parseDiskCommandLine", () => {
 
     it("parses several commands", () => {
         const result = parse("--force", "get", "A", "-d", "out", ":", "Rm", "B", "C", ":", "free", ":", "mv", "X", "Y");
-        expect(result.globalOptions.getFlag("--force")).to.be.true;
+        expect(result.globalOptions.has("--force")).to.be.true;
         expect(result.commands.map(c => c.spec.name)).to.eql(["get", "rm", "free", "mv"]);
         expect(result.commands[0].options.getString("--out-dir")).to.eql("out");
         expect(result.commands[1].args).to.eql(["B", "C"]);
@@ -197,34 +197,34 @@ describe("parseDiskCommandLine", () => {
 
     it("keeps options separate between commands", () => {
         const result = parse("dir", "--system", ":", "dir");
-        expect(result.commands[0].options.getFlag("--system")).to.be.true;
-        expect(result.commands[1].options.getFlag("--system")).to.be.false;
+        expect(result.commands[0].options.has("--system")).to.be.true;
+        expect(result.commands[1].options.has("--system")).to.be.false;
     });
 
     it("checks the minimum argument count", () => {
         expect(() => parse("rm")).to.throw(ToolError, /"rm" needs at least 1 argument$/);
         expect(() => parse("kill")).to.throw(ToolError, /"kill" needs at least 1 argument/);
-        expect(() => parse("mv", "A")).to.throw(ToolError, /"mv" takes exactly 2 arguments/);
+        expect(() => parse("mv", "A")).to.throw(ToolError, /"mv" takes 2 arguments/);
         expect(() => parse("get", "-d", "out")).to.throw(ToolError, /"get" needs at least 1 argument/);
     });
 
     it("checks the maximum argument count", () => {
         expect(() => parse("free", "A")).to.throw(ToolError, /"free" takes no arguments/);
-        expect(() => parse("mv", "A", "B", "C")).to.throw(ToolError, /"mv" takes exactly 2 arguments/);
+        expect(() => parse("mv", "A", "B", "C")).to.throw(ToolError, /"mv" takes 2 arguments/);
         expect(() => parse("LS", "A", "B")).to.throw(ToolError, /"LS" takes at most 1 argument$/);
     });
 
     it("counts arguments per command", () => {
         expect(() => parse("rm", "A", ":", "rm")).to.throw(ToolError, /"rm" needs at least 1 argument/);
-        expect(() => parse("mv", "A", ":", "B")).to.throw(ToolError, /"mv" takes exactly 2 arguments/);
+        expect(() => parse("mv", "A", ":", "B")).to.throw(ToolError, /"mv" takes 2 arguments/);
     });
 
-    it("rejects empty commands", () => {
-        expect(() => parse(":")).to.throw(ToolError, /Empty command before the first ":"/);
-        expect(() => parse(":", "dir")).to.throw(ToolError, /Empty command before the first ":"/);
-        expect(() => parse("dir", ":")).to.throw(ToolError, /Empty command after the last ":"/);
-        expect(() => parse("dir", ":", ":", "dir")).to.throw(ToolError, /Empty command between two ":" \(command 2\)/);
-        expect(() => parse("--force", ":", "dir")).to.throw(ToolError, /Empty command before the first ":"/);
+    it("skips empty commands", () => {
+        expect(parse(":").commands).to.eql([]);
+        expect(parse(":", "dir").commands.map(c => c.spec.name)).to.eql(["dir"]);
+        expect(parse("dir", ":").commands.map(c => c.spec.name)).to.eql(["dir"]);
+        expect(parse("dir", ":", ":", "free").commands.map(c => c.spec.name)).to.eql(["dir", "free"]);
+        expect(parse("--force", ":", "dir").commands.map(c => c.spec.name)).to.eql(["dir"]);
     });
 });
 

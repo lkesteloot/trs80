@@ -45,7 +45,7 @@ const DIR_COMMAND: DiskCommand = {
         usage: "[PATTERN...] [--system]",
         summary: "list the files on the disk, optionally only those matching the TRS-80 name patterns",
         minArgs: 0,
-        maxArgs: undefined,
+        maxArgs: Infinity,
         options: [
             {
                 name: "--system",
@@ -61,7 +61,7 @@ const DIR_COMMAND: DiskCommand = {
      * Print the listing, which is the same as the top-level "dir" command's.
      */
     run(session, command) {
-        const allFiles = session.getInputFiles(command.options.getFlag("--system"));
+        const allFiles = session.getInputFiles(command.options.has("--system"));
         const { selected, unmatchedPattern } = selectInputFiles(allFiles, command.args);
         if (unmatchedPattern !== undefined) {
             throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"");
@@ -80,7 +80,7 @@ const GET_COMMAND: DiskCommand = {
         usage: "NAME... [--out-dir DIR] [--as HOSTPATH] [--system] [--lowercase] [--mark-damaged]",
         summary: "copy files from the disk to the host (use \"*\" for all of them)",
         minArgs: 1,
-        maxArgs: undefined,
+        maxArgs: Infinity,
         options: [
             {
                 name: "--out-dir",
@@ -123,12 +123,12 @@ const GET_COMMAND: DiskCommand = {
             throw new ToolError("Use either --as or --out-dir, not both");
         }
 
-        const allFiles = session.getInputFiles(command.options.getFlag("--system"));
+        const allFiles = session.getInputFiles(command.options.has("--system"));
         if (asPathname !== undefined) {
             extractOneInputFile(allFiles, session.pathname, asPathname, command.args, false);
         } else {
             extractInputFiles(allFiles, session.pathname, outDir ?? ".", command.args, false,
-                command.options.getFlag("--mark-damaged"), command.options.getFlag("--lowercase"));
+                command.options.has("--mark-damaged"), command.options.has("--lowercase"));
         }
     },
 };

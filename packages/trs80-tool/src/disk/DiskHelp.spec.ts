@@ -6,7 +6,7 @@ import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
 const COMMANDS: DiskCommandSpec[] = [
     {
         name: "dir", aliases: ["ls"], usage: "[PATTERN...] [--system]", summary: "list the files",
-        minArgs: 0, maxArgs: undefined,
+        minArgs: 0, maxArgs: Infinity,
         options: [{ name: "--system", valueName: undefined, description: "include system files" }],
     },
     {
@@ -15,7 +15,7 @@ const COMMANDS: DiskCommandSpec[] = [
     },
     {
         name: "rm", aliases: ["del", "kill"], usage: "NAME...", summary: "remove files",
-        minArgs: 1, maxArgs: undefined,
+        minArgs: 1, maxArgs: Infinity,
         options: [
             { name: "--quiet", valueName: undefined, description: "say nothing" },
             { name: "--out-dir", shortName: "-d", valueName: "DIR", description: "where to go" },

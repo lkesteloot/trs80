@@ -29,8 +29,8 @@ export interface DiskCommandSpec {
     summary: string;
     /** Minimum number of positional arguments. */
     minArgs: number;
-    /** Maximum number of positional arguments, or undefined for no limit. */
-    maxArgs: number | undefined;
+    /** Maximum number of positional arguments, or Infinity for no limit. */
+    maxArgs: number;
     /** The options this command accepts. */
     options: DiskOptionSpec[];
 }
@@ -40,6 +40,10 @@ export interface DiskCommandSpec {
  * of the option. If an option is repeated then the last value wins.
  */
 export class DiskOptionValues {
+    /**
+     * The value of each option given, keyed by its long name including the dashes (such as
+     * "--out-dir"). The value is the string given for an option that takes one, or true for a flag.
+     */
     private readonly values = new Map<string, string | true>();
 
     /**
@@ -57,7 +61,7 @@ export class DiskOptionValues {
      *
      * @param name the long name of the option.
      */
-    public getFlag(name: string): boolean {
+    public has(name: string): boolean {
         return this.values.has(name);
     }
 
@@ -223,18 +227,18 @@ function parseOneCommand(words: string[], commandSpecs: DiskCommandSpec[]): Pars
 
     if (args.length < spec.minArgs) {
         if (spec.minArgs === spec.maxArgs) {
-            throw new ToolError("\"" + name + "\" takes exactly " + spec.minArgs + " " +
+            throw new ToolError("\"" + name + "\" takes " + spec.minArgs + " " +
                 pluralize(spec.minArgs, "argument"));
         }
         throw new ToolError("\"" + name + "\" needs at least " + spec.minArgs + " " +
             pluralize(spec.minArgs, "argument"));
     }
-    if (spec.maxArgs !== undefined && args.length > spec.maxArgs) {
+    if (args.length > spec.maxArgs) {
         if (spec.maxArgs === 0) {
             throw new ToolError("\"" + name + "\" takes no arguments");
         }
         throw new ToolError("\"" + name + "\" takes " +
-            (spec.minArgs === spec.maxArgs ? "exactly " : "at most ") + spec.maxArgs + " " +
+            (spec.minArgs === spec.maxArgs ? "" : "at most ") + spec.maxArgs + " " +
             pluralize(spec.maxArgs, "argument"));
     }
 
@@ -255,8 +259,9 @@ function parseOneCommand(words: string[], commandSpecs: DiskCommandSpec[]): Pars
  * A ":" after "--" still separates commands, since a TRSDOS file can't be named ":"
  * and it keeps scripts predictable.
  *
- * Having no commands at all is valid and gives an empty command list (callers can
- * treat that as a request for an interactive shell).
+ * Empty commands, as in ": :" or a ":" at either end, are skipped. Having no commands at all
+ * is valid and gives an empty command list (callers can treat that as a request for an
+ * interactive shell).
  *
  * @param words the words following the disk image.
  * @param globalOptionSpecs the options accepted before the first command.
@@ -290,19 +295,10 @@ export function parseDiskCommandLine(words: string[], globalOptionSpecs: DiskOpt
         groups.push(group);
     }
 
-    const commands: ParsedDiskCommand[] = [];
-    for (let g = 0; g < groups.length; g++) {
-        if (groups[g].length === 0) {
-            if (g === 0) {
-                throw new ToolError("Empty command before the first \":\"");
-            } else if (g === groups.length - 1) {
-                throw new ToolError("Empty command after the last \":\"");
-            } else {
-                throw new ToolError("Empty command between two \":\" (command " + (g + 1) + ")");
-            }
-        }
-        commands.push(parseOneCommand(groups[g], commandSpecs));
-    }
+    // Empty commands (": :", or a ":" at either end) are skipped.
+    const commands = groups
+        .filter(group => group.length > 0)
+        .map(group => parseOneCommand(group, commandSpecs));
 
     return { globalOptions, commands };
 }
