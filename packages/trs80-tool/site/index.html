@@ -582,6 +582,24 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         and if not, why not.</td>
                 </tr>
                 <tr>
+                    <td><code>repair [--free-unclaimed]</code></td>
+                    <td><p>Fix the damage that <code>check</code> finds, where it can be fixed without guessing, in
+                        the GAT, the HIT and the directory only: granules that a file uses and the GAT says are free
+                        are marked used, HIT bytes that aren’t the hash of the file’s name are set to it, and
+                        extended directory entries that no file reaches are deleted. It prints what it changed,
+                        then the damage it can’t fix (files that share granules, extents past the end of the disk,
+                        damaged files), and says whether the disk is now safe to write. It works on a disk that
+                        is damaged but otherwise sound, which is the only kind of write that such a disk allows, so
+                        <code>repair : add FILE</code> works. It refuses a disk that can’t be written for another
+                        reason, such as an uncertain layout, even with <code>--force</code>. Under TRSDOS 2.x’s
+                        rules the HIT bytes of extended directory entries are left alone, since we don’t know what
+                        the DOS puts there.</p>
+                        <p>Granules that the GAT marks used but no file claims are left alone, since some programs
+                        keep data there; <code>--free-unclaimed</code> frees them. Granules on the boot cylinder
+                        and locked-out ones are never freed. Like any other change, a repair can be taken back
+                        with <code>undo</code>.</p></td>
+                </tr>
+                <tr>
                     <td><code>create --dos NAME</code></td>
                     <td><p>Make a new, blank, formatted data disk, with no files, the way the DOS’s own
                         <code>FORMAT</code> leaves one. It works when the image doesn’t exist yet (the disk is
