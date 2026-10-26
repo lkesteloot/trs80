@@ -396,7 +396,12 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
             </div>
-            <p>Most commands only read the disk; <code>add</code>, <code>rm</code>, <code>mv</code>, <code>attr</code> and <code>label</code> change it. Commands that change the disk do
+            <p>The image doesn’t have to exist: <code>create</code> makes a new, blank disk, and the other commands
+            can then work on it in the same run.</p>
+            <div><pre><code>% trs80-tool disk games.dmk create --dos ldos-5.3 : add *.bas</code></pre>
+            </div>
+            <p>Most commands only read the disk; <code>add</code>, <code>rm</code>, <code>mv</code>, <code>attr</code>, <code>label</code>,
+            <code>create</code> and <code>format</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command, all or nothing: if any
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
             one step, so an interrupted write can’t leave half a disk.</p>
@@ -565,6 +570,40 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         extents past the end of the disk, HIT bytes that don’t match names,
                         and damaged files. It also says whether the disk would be safe to write,
                         and if not, why not.</td>
+                </tr>
+                <tr>
+                    <td><code>create --dos NAME</code></td>
+                    <td><p>Make a new, blank, formatted data disk, with no files, the way the DOS’s own
+                        <code>FORMAT</code> leaves one. It works when the image doesn’t exist yet (the disk is
+                        saved under that name at the end), or with <code>--force</code> to replace in memory the
+                        disk that the image has. The image is always a DMK one, so a name ending in
+                        <code>.jv1</code>, <code>.jv3</code>, <code>.dsk</code>, <code>.hfe</code> or <code>.imd</code> is
+                        refused. The disk can be used by later commands in the same run, and a
+                        <code>quit</code> or the end of the run saves it.</p>
+                        <p><code>--dos</code> is required and is this command’s own option, separate from the
+                        <code>--dos</code> that goes before the first command. The names are
+                        <code>trsdos-2.3</code>, <code>trsdos-1.3</code>, <code>ldos-5.3</code>,
+                        <code>trsdos-6.2</code> and <code>lsdos-6.3</code>; <code>ldos</code>, <code>ldos-5</code>,
+                        <code>trsdos-2</code>, <code>trsdos-6</code> and <code>lsdos</code> also work. The other
+                        options are <code>--cylinders N</code> (default 40, or 35 for TRSDOS 2.3; the DOS sets the
+                        limits), <code>--sides 1|2</code> (default 1; TRSDOS 2.3 and 1.3 have only one),
+                        <code>--density single|double</code> (default: single for TRSDOS 2.3, double for the others),
+                        <code>--model 1|3|4</code> (only chooses LDOS 5.3’s default density: single for the
+                        Model I, double otherwise), <code>--name NAME</code> (default <code>DATADISK</code>) and
+                        <code>--date YYYY-MM-DD</code> (default today, as <code>FORMAT</code> does).</p>
+                        <p>The disk gets a boot sector of our own, which only prints a message and halts, so it is a
+                        data disk and not a system disk. The DOS and this tool still recognize it by its other
+                        sectors. TRSDOS 1.3 disks can be made, but files can’t be added to them yet.</p></td>
+                </tr>
+                <tr>
+                    <td><code>format</code></td>
+                    <td><p>Erase the disk and format it as an empty data disk. It takes the same options as
+                        <code>create</code>, but <code>--dos</code> defaults to the disk’s own DOS (it is required if
+                        that isn’t one of the five), the cylinders and sides default to the disk’s, and an
+                        LDOS-family disk keeps its density. If the disk has files, <code>format</code> says how many
+                        would be lost and needs <code>--force</code>. The result is a DMK image, so
+                        for an image of another kind give <code>-o NEW.dmk</code> to save it under a new name.
+                        Like everything else it changes the disk in memory, and nothing is saved until the end.</p></td>
                 </tr>
                 <tr>
                     <td><code>save</code></td>

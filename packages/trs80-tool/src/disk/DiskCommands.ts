@@ -14,7 +14,8 @@ import {extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
 import {expandInputPatterns, fileNameMatchesPattern, pluralizeWithCount, ToolError} from "../utils.js";
-import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, ParsedDiskCommand} from "./DiskCommandParser.js";
+import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
+import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {importHostFile} from "./DiskImport.js";
 import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
@@ -28,6 +29,13 @@ export interface DiskCommand {
 
     /** Whether running this command ends the session, so that no later command in the chain or script runs. */
     endsSession: boolean;
+
+    /**
+     * Whether the command can run when the session has no disk, because the image doesn't exist yet.
+     * Without this, running the command in that state fails, telling the user to make the disk. Leave
+     * it out for the commands that work on a disk.
+     */
+    worksWithoutDisk?: boolean;
 
     /**
      * Run the command.
@@ -533,26 +541,6 @@ const ATTR_COMMAND: DiskCommand = {
 };
 
 /**
- * Parse the value of "add --date", which must be YYYY-MM-DD.
- *
- * @param text what the user gave.
- * @return the date at local midnight.
- * @throws ToolError if it isn't a real calendar date in that form.
- */
-function parseAddDate(text: string): Date {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
-    if (match !== null) {
-        const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-        const date = new Date(year, month - 1, day);
-        // Reject days that roll over, such as February 30.
-        if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
-            return date;
-        }
-    }
-    throw new ToolError("Invalid --date \"" + text + "\": use YYYY-MM-DD, such as 1983-05-01");
-}
-
-/**
  * A host file that the "add" command will put on the disk.
  */
 interface AddSource {
@@ -998,10 +986,11 @@ const QUIT_COMMAND: DiskCommand = {
     },
 
     endsSession: true,
+    worksWithoutDisk: true,
 
     /**
-     * Save the changes, if any. If that fails then the error is reported as usual and the session
-     * doesn't end, so the shell is still there to try again or to abort.
+     * Save the changes, if any (there are none if no disk was made). If that fails then the error is
+     * reported as usual and the session doesn't end, so the shell is still there to try again or to abort.
      */
     run(session) {
         session.saveAndReport(false);
@@ -1023,6 +1012,7 @@ const ABORT_COMMAND: DiskCommand = {
     },
 
     endsSession: true,
+    worksWithoutDisk: true,
 
     /**
      * Discard the changes, if any, so that nothing is saved at the end.
@@ -1074,6 +1064,7 @@ const HELP_COMMAND: DiskCommand = {
     },
 
     endsSession: false,
+    worksWithoutDisk: true,
 
     /**
      * Print the list of commands, or the help for the named one.
@@ -1103,6 +1094,8 @@ export const DISK_COMMANDS: DiskCommand[] = [
     INFO_COMMAND,
     FREE_COMMAND,
     CHECK_COMMAND,
+    CREATE_COMMAND,
+    FORMAT_COMMAND,
     SAVE_COMMAND,
     QUIT_COMMAND,
     ABORT_COMMAND,
@@ -1127,6 +1120,9 @@ export function runDiskCommands(session: DiskSession, commands: ParsedDiskComman
         const diskCommand = DISK_COMMANDS.find(c => c.spec === command.spec);
         if (diskCommand === undefined) {
             throw new Error("Parsed command has no implementation: " + command.spec.name);
+        }
+        if (diskCommand.worksWithoutDisk !== true) {
+            session.requireDisk();
         }
         diskCommand.run(session, command, globalOptions);
         if (diskCommand.endsSession) {

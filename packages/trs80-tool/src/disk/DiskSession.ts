@@ -103,12 +103,15 @@ export interface DiskSessionOptions {
  * The open disk that every "disk" command works on. Commands change the in-memory floppy, and the
  * session writes the result once at the end (or when the user says "save"), so a chain of commands
  * either all takes effect or none of it does.
+ *
+ * A session can start with no disk, when the image file doesn't exist yet. Then only the commands
+ * that make a disk (or that don't need one) can run, and {@link setFloppy} gives it the new disk.
  */
 export class DiskSession {
     /** The host pathname of the image. */
     public readonly pathname: string;
-    /** The decoded floppy. */
-    public readonly floppy: FloppyDisk;
+    /** The decoded floppy, or undefined if the image doesn't exist yet and no command has made a disk. */
+    private currentFloppy: FloppyDisk | undefined;
     /** The DOS on the floppy, or undefined if we didn't recognize one. Decoded again after each change. */
     private currentFileSystem: KnownFloppyFileSystem | undefined;
     /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
@@ -133,35 +136,50 @@ export class DiskSession {
     /**
      * Use DiskSession.open() instead.
      */
-    private constructor(pathname: string, floppy: FloppyDisk, fileSystem: KnownFloppyFileSystem | undefined,
+    private constructor(pathname: string, floppy: FloppyDisk | undefined, fileSystem: KnownFloppyFileSystem | undefined,
                         options: DiskSessionOptions) {
 
         this.pathname = pathname;
-        this.floppy = floppy;
+        this.currentFloppy = floppy;
         this.currentFileSystem = fileSystem;
         this.savePathname = options.outputPathname ?? pathname;
         this.dryRun = options.dryRun ?? false;
         this.ruleSet = options.ruleSet;
         this.force = options.force ?? false;
+        if (floppy !== undefined) {
+            this.watchFloppy(floppy);
+        }
+    }
+
+    /**
+     * Note a change to the floppy whenever it's written.
+     */
+    private watchFloppy(floppy: FloppyDisk): void {
         floppy.onWrite.subscribe(() => {
-            this.changed = true;
+            if (floppy === this.currentFloppy) {
+                this.changed = true;
+            }
         });
     }
 
     /**
      * Read and decode a floppy image. A floppy whose file system we don't recognize still opens,
-     * since commands that work on the image itself don't need one.
+     * since commands that work on the image itself don't need one. If the file doesn't exist then the
+     * session has no disk (see {@link hasDisk}), for a command such as "create" to make one.
      *
      * @param pathname the host pathname of the image.
      * @param options where and whether to save changes.
-     * @throws ToolError if the file can't be read, isn't a TRS-80 file we can decode, isn't a floppy, or
-     * if options.ruleSet is given and the file system isn't TRSDOS-family.
+     * @throws ToolError if the file exists but can't be read, isn't a TRS-80 file we can decode, isn't a
+     * floppy, or if options.ruleSet is given and the file system isn't TRSDOS-family.
      */
     public static open(pathname: string, options: DiskSessionOptions = {}): DiskSession {
         let binary: Uint8Array;
         try {
             binary = fs.readFileSync(pathname);
         } catch (e: any) {
+            if (e.code === "ENOENT") {
+                return new DiskSession(pathname, undefined, undefined, options);
+            }
             throw new ToolError("Can't open \"" + pathname + "\": " + e.message);
         }
 
@@ -182,6 +200,68 @@ export class DiskSession {
         }
 
         return new DiskSession(pathname, trs80File, fileSystem, options);
+    }
+
+    /**
+     * Whether the session has a disk: the image existed when it was opened, or a command has made one.
+     */
+    public hasDisk(): boolean {
+        return this.currentFloppy !== undefined;
+    }
+
+    /**
+     * Check that the session has a disk, for the commands that need one.
+     *
+     * @throws ToolError saying that the image doesn't exist and how to make it, if there's no disk.
+     */
+    public requireDisk(): void {
+        if (this.currentFloppy === undefined) {
+            throw this.makeNoDiskError();
+        }
+    }
+
+    /**
+     * The error for a command that needs a disk when the session has none.
+     */
+    private makeNoDiskError(): ToolError {
+        return new ToolError(this.pathname + " doesn't exist; use \"create\" to make it");
+    }
+
+    /**
+     * The decoded floppy.
+     *
+     * @throws ToolError if the session has no disk.
+     */
+    public get floppy(): FloppyDisk {
+        if (this.currentFloppy === undefined) {
+            throw this.makeNoDiskError();
+        }
+        return this.currentFloppy;
+    }
+
+    /**
+     * Where the next save goes: the image, or the --output file.
+     */
+    public get savedPathname(): string {
+        return this.savePathname;
+    }
+
+    /**
+     * Put a new floppy in the session, replacing the one it has if any (the caller decides whether that's
+     * allowed). The new disk counts as a change that hasn't been saved, even if it's identical to the
+     * old one, since it replaces the whole image. The file system is decoded again, and the caches and
+     * the warning about forcing start over.
+     *
+     * @param floppy the new floppy, with the contents to be saved.
+     */
+    public setFloppy(floppy: FloppyDisk): void {
+        this.currentFloppy = floppy;
+        this.currentFileSystem = decodeFloppyFileSystem(floppy);
+        this.granuleMap = null;
+        this.writeGate = null;
+        this.forceWarningShown = false;
+        this.changed = true;
+        this.watchFloppy(floppy);
     }
 
     /**
@@ -265,9 +345,10 @@ export class DiskSession {
      * The files on the disk, as input files so that commands can reuse the listing and extraction code.
      *
      * @param includeSystemFiles whether to include system files.
-     * @throws ToolError if the disk has no file system we recognize.
+     * @throws ToolError if the session has no disk, or the disk has no file system we recognize.
      */
     public getInputFiles(includeSystemFiles: boolean): InputFile[] {
+        this.requireDisk();
         if (this.fileSystem === undefined) {
             throw new ToolError("Can't find a DOS directory on \"" + this.pathname + "\"");
         }
@@ -307,6 +388,9 @@ export class DiskSession {
      * Why the disk's file system can't be written, in one or more sentences, or undefined if it can.
      */
     public getReadOnlyReason(): string | undefined {
+        if (!this.hasDisk()) {
+            return this.pathname + " doesn't exist yet.";
+        }
         if (this.fileSystem === undefined) {
             return "No file system was found on the disk.";
         }
@@ -330,9 +414,10 @@ export class DiskSession {
      * can be overridden don't stop it, and a warning saying so is printed (the first time only).
      *
      * @param purpose why the command wants to write.
-     * @throws ToolError if the disk has no file system, or the write isn't allowed.
+     * @throws ToolError if the session has no disk, the disk has no file system, or the write isn't allowed.
      */
     public requireWritable(purpose: DiskWritePurpose): void {
+        this.requireDisk();
         if (this.fileSystem === undefined) {
             throw new ToolError("Can't find a DOS directory on \"" + this.pathname + "\"");
         }
@@ -464,9 +549,14 @@ export class DiskSession {
     }
 
     /**
-     * A one-line summary of the disk, such as "disk.dmk: Floppy disk (DMK), TRSDOS 2.3, 12 files, 23 KB free".
+     * A one-line summary of the disk, such as "disk.dmk: Floppy disk (DMK), TRSDOS 2.3, 12 files, 23 KB free",
+     * or a note that the image doesn't exist yet.
      */
     public describe(): string {
+        if (!this.hasDisk()) {
+            return this.pathname + " doesn't exist yet; use \"create\" to make it.";
+        }
+
         let description = this.pathname + ": " + this.floppy.getDescription();
         if (this.fileSystem === undefined) {
             description += ", no file system found";

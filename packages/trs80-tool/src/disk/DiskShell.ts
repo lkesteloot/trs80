@@ -127,7 +127,8 @@ async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskO
  */
 function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOptionValues): Promise<void> {
     console.log(session.describe());
-    const readOnlyReason = session.getReadOnlyReason();
+    // A missing image has no disk to be read-only, and describe() has said what to do.
+    const readOnlyReason = session.hasDisk() ? session.getReadOnlyReason() : undefined;
     if (readOnlyReason !== undefined) {
         console.log(colors.warning("Read-only: " + readOnlyReason));
     }

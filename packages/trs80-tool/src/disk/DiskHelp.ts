@@ -1,5 +1,6 @@
 import {
-    parseTrsdosRuleSet, TRSDOS_RULE_SETS, TrsdosRuleSet, trsdosRuleSetAliases, trsdosRuleSetCliName, trsdosRuleSetToString,
+    parseTrsdosFormatDos, parseTrsdosRuleSet, TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosCliName, TRSDOS_RULE_SETS,
+    TrsdosRuleSet, trsdosRuleSetAliases, trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
 import {ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, findDiskCommandSpec} from "./DiskCommandParser.js";
@@ -21,6 +22,42 @@ export function parseDosName(name: string): TrsdosRuleSet {
             " (\"help dos\" has more).");
     }
     return ruleSet;
+}
+
+/**
+ * Other names for the DOSes that "create" and "format" can make, besides the ones from
+ * {@link trsdosFormatDosCliName}: the names that the global --dos option takes (see
+ * {@link parseDosName}) when they mean one DOS that we can format, and a few more that are common.
+ * Names that could mean several DOSes are left out. Keys are lowercase.
+ */
+const FORMAT_DOS_ALIASES = new Map<string, TrsdosFormatDos>([
+    ["trsdos-2", TrsdosFormatDos.TRSDOS_2_3],
+    ["ldos", TrsdosFormatDos.LDOS_5_3],
+    ["ldos-5", TrsdosFormatDos.LDOS_5_3],
+    ["trsdos-6", TrsdosFormatDos.TRSDOS_6_2],
+    ["ldos-6", TrsdosFormatDos.LSDOS_6_3],
+    ["lsdos", TrsdosFormatDos.LSDOS_6_3],
+    ["ls-dos", TrsdosFormatDos.LSDOS_6_3],
+    ["lsdos-6", TrsdosFormatDos.LSDOS_6_3],
+    ["ls-dos-6", TrsdosFormatDos.LSDOS_6_3],
+]);
+
+/**
+ * The value of the --dos option of "create" and "format" as the DOS to format for. It takes the names
+ * from {@link trsdosFormatDosCliName}, such as "ldos-5.3", and the aliases that name one DOS, such as
+ * "ldos-5", "trsdos-6" (TRSDOS 6.2) and "lsdos" (LS-DOS 6.3).
+ *
+ * @param name what the user typed, in any case.
+ * @throws ToolError if it's not a name of a DOS we can format, listing the ones that are.
+ */
+export function parseFormatDosName(name: string): TrsdosFormatDos {
+    const dos = parseTrsdosFormatDos(name) ?? FORMAT_DOS_ALIASES.get(name.trim().toLowerCase());
+    if (dos === undefined) {
+        const choices = TRSDOS_FORMAT_DOSES.map(trsdosFormatDosCliName).join(", ");
+        throw new ToolError("Unknown DOS \"" + name + "\" for --dos. The choices are " + choices +
+            (name.trim().toLowerCase() === "dosplus" ? " (DOSPLUS disks can't be made yet)" : "") + ".");
+    }
+    return dos;
 }
 
 /**

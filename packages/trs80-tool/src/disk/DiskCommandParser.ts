@@ -107,6 +107,26 @@ export interface ParsedDiskCommandLine {
 const COMMAND_SEPARATOR = ":";
 
 /**
+ * Parse the value of a --date option (of "add", "attr", "label", "create"), which must be YYYY-MM-DD.
+ *
+ * @param text what the user gave.
+ * @return the date at local midnight.
+ * @throws ToolError if it isn't a real calendar date in that form.
+ */
+export function parseAddDate(text: string): Date {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+    if (match !== null) {
+        const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+        const date = new Date(year, month - 1, day);
+        // Reject days that roll over, such as February 30.
+        if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+            return date;
+        }
+    }
+    throw new ToolError("Invalid --date \"" + text + "\": use YYYY-MM-DD, such as 1983-05-01");
+}
+
+/**
  * Find the spec for an option word, by long or short name.
  *
  * @param word the name part of the option as typed, such as "--out-dir" or "-d".

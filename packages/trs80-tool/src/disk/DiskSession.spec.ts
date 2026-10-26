@@ -123,6 +123,31 @@ describe("DiskSession saving", () => {
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
     });
 
+    it("opens a missing image with no disk, and takes one from setFloppy()", () => {
+        const missingPathname = path.join(dir, "missing.jv1");
+        const session = DiskSession.open(missingPathname);
+        expect(session.hasDisk()).to.equal(false);
+        expect(session.hasChanges()).to.equal(false);
+        expect(session.fileSystem).to.equal(undefined);
+        expect(session.describe()).to.equal(missingPathname + " doesn't exist yet; use \"create\" to make it.");
+        const noDiskMessage = missingPathname + " doesn't exist; use \"create\" to make it";
+        expect(() => session.requireDisk()).to.throw(ToolError, noDiskMessage);
+        expect(() => session.floppy).to.throw(ToolError, noDiskMessage);
+        expect(() => session.getInputFiles(true)).to.throw(ToolError, noDiskMessage);
+        expect(session.save()).to.equal(undefined);
+
+        session.setFloppy(DiskSession.open(imagePathname).floppy);
+        expect(session.hasDisk()).to.equal(true);
+        expect(session.hasChanges()).to.equal(true);
+        expect(session.save()).to.equal(missingPathname);
+        expect(fs.existsSync(missingPathname)).to.equal(true);
+    });
+
+    it("still fails to open an existing file that can't be read", () => {
+        // A directory exists but can't be read as a file.
+        expect(() => DiskSession.open(dir)).to.throw(ToolError, "Can't open");
+    });
+
     /**
      * Run a function and return the lines that it printed with console.log().
      */
