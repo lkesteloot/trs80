@@ -2,7 +2,7 @@ import {describe, expect, it} from "vitest";
 import {completeDiskLine, runDiskScript} from "./DiskShell.js";
 import {ToolError} from "../utils.js";
 
-const COMMANDS = ["dir", "get", "info", "free", "quit", "abort"];
+const COMMANDS = ["dir", "extract", "info", "free", "quit", "abort"];
 const FILES = ["HELLO/BAS", "Hello2/CMD", "GOODBYE/CMD"];
 
 describe("completeDiskLine", () => {
@@ -18,14 +18,14 @@ describe("completeDiskLine", () => {
     });
 
     it("completes file names after the command, ignoring case, in the disk's spelling", () => {
-        expect(completeDiskLine("get he", COMMANDS, FILES)).to.eql([["HELLO/BAS", "Hello2/CMD"], "he"]);
-        expect(completeDiskLine("get good", COMMANDS, FILES)).to.eql([["GOODBYE/CMD"], "good"]);
-        expect(completeDiskLine("get HELLO/BAS ", COMMANDS, FILES)).to.eql([FILES, ""]);
+        expect(completeDiskLine("extract he", COMMANDS, FILES)).to.eql([["HELLO/BAS", "Hello2/CMD"], "he"]);
+        expect(completeDiskLine("extract good", COMMANDS, FILES)).to.eql([["GOODBYE/CMD"], "good"]);
+        expect(completeDiskLine("extract HELLO/BAS ", COMMANDS, FILES)).to.eql([FILES, ""]);
     });
 
     it("offers nothing when nothing matches or there are no files", () => {
         expect(completeDiskLine("zz", COMMANDS, FILES)).to.eql([[], "zz"]);
-        expect(completeDiskLine("get h", COMMANDS, [])).to.eql([[], "h"]);
+        expect(completeDiskLine("extract h", COMMANDS, [])).to.eql([[], "h"]);
     });
 });
 

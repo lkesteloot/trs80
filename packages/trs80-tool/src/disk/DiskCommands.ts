@@ -71,12 +71,12 @@ const DIR_COMMAND: DiskCommand = {
 };
 
 /**
- * The "get" command: copy files from the disk to the host.
+ * The "extract" command: copy files from the disk to the host, like the top-level command of that name.
  */
-const GET_COMMAND: DiskCommand = {
+const EXTRACT_COMMAND: DiskCommand = {
     spec: {
-        name: "get",
-        aliases: ["export", "extract"],
+        name: "extract",
+        aliases: ["get", "export"],
         usage: "NAME... [--out-dir DIR] [--as HOSTPATH] [--system] [--lowercase] [--mark-damaged]",
         summary: "copy files from the disk to the host (use \"*\" for all of them)",
         minArgs: 1,
@@ -258,14 +258,14 @@ const CHECK_COMMAND: DiskCommand = {
 };
 
 /**
- * The "quit" command: leave the shell. Later it will save any changes first.
+ * The "quit" command: save the disk if it changed, and leave the shell.
  */
 const QUIT_COMMAND: DiskCommand = {
     spec: {
         name: "quit",
         aliases: ["exit"],
         usage: "",
-        summary: "leave the shell",
+        summary: "save the disk if it changed, and leave the shell",
         minArgs: 0,
         maxArgs: 0,
         options: [],
@@ -340,7 +340,7 @@ const HELP_COMMAND: DiskCommand = {
  */
 export const DISK_COMMANDS: DiskCommand[] = [
     DIR_COMMAND,
-    GET_COMMAND,
+    EXTRACT_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
     CHECK_COMMAND,
