@@ -10,7 +10,7 @@ import {
     TrsdosFindingSeverity,
     trsdosFindingSeverityToString,
 } from "./TrsdosCheck.js";
-import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile, testUserSlotDec} from "./TrsdosTestDisk.js";
+import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile, type TestGranule, testUserSlotDec} from "./TrsdosTestDisk.js";
 
 /**
  * Make a test disk, decode it as TRSDOS, and check it, failing the test if it doesn't decode.
@@ -40,8 +40,8 @@ function kinds(result: TrsdosCheckResult): TrsdosFindingKind[] {
 describe("checkTrsdos", () => {
     it("finds nothing wrong on a clean disk", () => {
         const result = check([
-            {name: "HELLO/BAS", extents: [[3, 0, 2]], size: 1000},
-            {name: "WORLD/TXT", extents: [[5, 0, 1], [8, 1, 1]]},
+            {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000},
+            {name: "WORLD/TXT", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}, {lump: 8, granuleOffset: 1, granuleCount: 1}]},
         ]);
 
         // BOOT/SYS, DIR/SYS and the directory account for their own granules, so there are no notes either.
@@ -56,7 +56,7 @@ describe("checkTrsdos", () => {
     it("accepts a file with extended entries", () => {
         const result = check([{
             name: "BIG/DAT",
-            extents: [[3, 0, 1], [4, 0, 1], [5, 0, 1], [6, 0, 1], [7, 0, 1], [8, 0, 1]],
+            extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}, {lump: 4, granuleOffset: 0, granuleCount: 1}, {lump: 5, granuleOffset: 0, granuleCount: 1}, {lump: 6, granuleOffset: 0, granuleCount: 1}, {lump: 7, granuleOffset: 0, granuleCount: 1}, {lump: 8, granuleOffset: 0, granuleCount: 1}],
         }]);
 
         expect(result.findings).to.eql([]);
@@ -64,8 +64,8 @@ describe("checkTrsdos", () => {
 
     it("groups granules shared by the same files into one finding", () => {
         const result = check([
-            {name: "HELLO/CMD", extents: [[5, 0, 2]]},
-            {name: "GAME/BAS", extents: [[5, 0, 3]]},
+            {name: "HELLO/CMD", extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}]},
+            {name: "GAME/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 3}]},
         ]);
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.SHARED_GRANULES]);
@@ -77,8 +77,8 @@ describe("checkTrsdos", () => {
 
     it("lists several ranges of shared granules", () => {
         const result = check([
-            {name: "ONE/DAT", extents: [[5, 0, 2], [7, 0, 1]]},
-            {name: "TWO/DAT", extents: [[5, 0, 2], [7, 0, 1]]},
+            {name: "ONE/DAT", extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}, {lump: 7, granuleOffset: 0, granuleCount: 1}]},
+            {name: "TWO/DAT", extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}, {lump: 7, granuleOffset: 0, granuleCount: 1}]},
         ]);
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.SHARED_GRANULES]);
@@ -88,9 +88,9 @@ describe("checkTrsdos", () => {
 
     it("makes one finding for each distinct set of files that share granules", () => {
         const result = check([
-            {name: "A/DAT", extents: [[3, 0, 1]]},
-            {name: "B/DAT", extents: [[3, 0, 1], [6, 0, 1]]},
-            {name: "C/DAT", extents: [[6, 0, 1]]},
+            {name: "A/DAT", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}]},
+            {name: "B/DAT", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}, {lump: 6, granuleOffset: 0, granuleCount: 1}]},
+            {name: "C/DAT", extents: [{lump: 6, granuleOffset: 0, granuleCount: 1}]},
         ]);
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.SHARED_GRANULES, TrsdosFindingKind.SHARED_GRANULES]);
@@ -100,9 +100,9 @@ describe("checkTrsdos", () => {
 
     it("finds granules that are claimed but free in the GAT, one finding per file", () => {
         const result = check([
-            {name: "ONE/DAT", extents: [[3, 0, 2]]},
-            {name: "TWO/DAT", extents: [[8, 0, 1]]},
-        ], {gatFree: [[3, 1], [4, 0], [8, 0]]});
+            {name: "ONE/DAT", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}]},
+            {name: "TWO/DAT", extents: [{lump: 8, granuleOffset: 0, granuleCount: 1}]},
+        ], {gatFree: [{lump: 3, granule: 1}, {lump: 4, granule: 0}, {lump: 8, granule: 0}]});
 
         // 4:0 isn't claimed by anyone, so it's just free.
         expect(kinds(result)).to.eql([TrsdosFindingKind.CLAIMED_BUT_FREE, TrsdosFindingKind.CLAIMED_BUT_FREE]);
@@ -114,7 +114,7 @@ describe("checkTrsdos", () => {
     });
 
     it("finds an extent that runs past the end of the disk", () => {
-        const result = check([{name: "ONE/DAT", extents: [[34, 1, 3]]}]);
+        const result = check([{name: "ONE/DAT", extents: [{lump: 34, granuleOffset: 1, granuleCount: 3}]}]);
 
         expect(ofKind(result, TrsdosFindingKind.EXTENT_OUT_OF_RANGE).length).to.equal(1);
         expect(ofKind(result, TrsdosFindingKind.EXTENT_OUT_OF_RANGE)[0].message).to.equal(
@@ -123,7 +123,7 @@ describe("checkTrsdos", () => {
     });
 
     it("reports used granules that no file claims as one note", () => {
-        const result = check([{name: "ONE/DAT", extents: [[3, 0, 2]]}], {gatUsed: [[10, 0], [11, 1], [12, 0]]});
+        const result = check([{name: "ONE/DAT", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}]}], {gatUsed: [{lump: 10, granule: 0}, {lump: 11, granule: 1}, {lump: 12, granule: 0}]});
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.USED_BUT_UNCLAIMED]);
         const finding = result.findings[0];
@@ -143,9 +143,9 @@ describe("checkTrsdos", () => {
     });
 
     it("shortens a long list of granules", () => {
-        const gatUsed: [number, number][] = [];
+        const gatUsed: TestGranule[] = [];
         for (let lump = 1; lump < 15; lump++) {
-            gatUsed.push([lump, 0]);
+            gatUsed.push({lump, granule: 0});
         }
         const result = check([], {gatUsed});
 
@@ -155,8 +155,8 @@ describe("checkTrsdos", () => {
 
     it("finds a HIT byte that doesn't match the file's name", () => {
         const result = check([
-            {name: "HELLO/BAS", extents: [[3, 0, 1]], hitByte: 0x99},
-            {name: "WORLD/TXT", extents: [[4, 0, 1]]},
+            {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}], hitByte: 0x99},
+            {name: "WORLD/TXT", extents: [{lump: 4, granuleOffset: 0, granuleCount: 1}]},
         ]);
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.HIT_MISMATCH]);
@@ -165,7 +165,7 @@ describe("checkTrsdos", () => {
     });
 
     it("compares an extended entry's HIT byte with its primary's hash", () => {
-        const extents: TestFile["extents"] = [[3, 0, 1], [4, 0, 1], [5, 0, 1], [6, 0, 1], [7, 0, 1]];
+        const extents: TestFile["extents"] = [{lump: 3, granuleOffset: 0, granuleCount: 1}, {lump: 4, granuleOffset: 0, granuleCount: 1}, {lump: 5, granuleOffset: 0, granuleCount: 1}, {lump: 6, granuleOffset: 0, granuleCount: 1}, {lump: 7, granuleOffset: 0, granuleCount: 1}];
         const result = check([{name: "BIG/DAT", extents, extendedHitByte: 0x99}]);
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.HIT_MISMATCH]);
@@ -174,8 +174,8 @@ describe("checkTrsdos", () => {
 
     it("finds an extended entry that no file reaches", () => {
         // The stray entry claims to extend HELLO/BAS (user slot 0), but HELLO/BAS doesn't link to it.
-        const result = check([{name: "HELLO/BAS", extents: [[3, 0, 1]]}], {
-            strayExtendedEntries: [{prevDec: testUserSlotDec(0), hitByte: 0x99, extents: [[10, 0, 1]]}],
+        const result = check([{name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}]}], {
+            strayExtendedEntries: [{prevDec: testUserSlotDec(0), hitByte: 0x99, extents: [{lump: 10, granuleOffset: 0, granuleCount: 1}]}],
         });
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY]);
@@ -186,7 +186,7 @@ describe("checkTrsdos", () => {
     });
 
     it("finds a file whose chain of directory entries is broken", () => {
-        const result = check([{name: "HELLO/BAS", extents: [[3, 0, 1]], danglingNextDec: testUserSlotDec(20)}]);
+        const result = check([{name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}], danglingNextDec: testUserSlotDec(20)}]);
 
         expect(kinds(result)).to.eql([TrsdosFindingKind.DAMAGED_FILE]);
         expect(result.findings[0].message).to.equal("HELLO/BAS is damaged: missing extended directory entry.");
@@ -194,9 +194,9 @@ describe("checkTrsdos", () => {
 
     it("puts layout findings first, then damage, then notes", () => {
         const result = check([
-            {name: "A/DAT", extents: [[3, 0, 1]]},
-            {name: "B/DAT", extents: [[3, 0, 1]], hitByte: 0x99},
-        ], {gatUsed: [[10, 0]]});
+            {name: "A/DAT", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}]},
+            {name: "B/DAT", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}], hitByte: 0x99},
+        ], {gatUsed: [{lump: 10, granule: 0}]});
 
         expect(kinds(result)).to.eql([
             TrsdosFindingKind.SHARED_GRANULES,
@@ -209,8 +209,8 @@ describe("checkTrsdos", () => {
 
     it("doesn't change the disk or the decoder's output", () => {
         const trsdos: Trsdos = decodeTrsdos(makeTrsdos23TestDisk([
-            {name: "HELLO/BAS", extents: [[3, 0, 2]]},
-            {name: "BIG/DAT", extents: [[5, 0, 1], [6, 0, 1], [7, 0, 1], [8, 0, 1], [9, 0, 1]]},
+            {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}]},
+            {name: "BIG/DAT", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}, {lump: 6, granuleOffset: 0, granuleCount: 1}, {lump: 7, granuleOffset: 0, granuleCount: 1}, {lump: 8, granuleOffset: 0, granuleCount: 1}, {lump: 9, granuleOffset: 0, granuleCount: 1}]},
         ]))!;
         const before = trsdos.getDirEntries(true).map(entry => entry.getFilename("/"));
         checkTrsdos(trsdos);

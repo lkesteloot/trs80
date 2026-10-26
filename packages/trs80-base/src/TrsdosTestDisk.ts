@@ -9,9 +9,32 @@ import {decodeJv1FloppyDisk, type Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
 import {hashForFilename, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH} from "./Trsdos.js";
 
 /**
- * One extent of a test file: the lump (cylinder), the first granule within it, and the granule count.
+ * One extent of a test file.
  */
-export type TestExtent = [lump: number, granuleOffset: number, granuleCount: number];
+export interface TestExtent {
+    /**
+     * The lump (cylinder) the extent starts in.
+     */
+    lump: number;
+
+    /**
+     * The first granule within the lump.
+     */
+    granuleOffset: number;
+
+    /**
+     * The number of granules, which may run into the next lumps.
+     */
+    granuleCount: number;
+}
+
+/**
+ * One granule of the test disk.
+ */
+export interface TestGranule {
+    lump: number;
+    granule: number;
+}
 
 /**
  * A file to put on the test disk.
@@ -97,14 +120,14 @@ export interface TestDiskOptions {
     cylinderCount?: number | undefined;
 
     /**
-     * Extra (lump, granule) pairs to mark used in the GAT without any file claiming them.
+     * Extra granules to mark used in the GAT without any file claiming them.
      */
-    gatUsed?: [lump: number, granule: number][] | undefined;
+    gatUsed?: TestGranule[] | undefined;
 
     /**
-     * (lump, granule) pairs to mark free in the GAT even though a file uses them.
+     * Granules to mark free in the GAT even though a file uses them.
      */
-    gatFree?: [lump: number, granule: number][] | undefined;
+    gatFree?: TestGranule[] | undefined;
 
     /**
      * Lumps (cylinders) to lock out: both granules, and used in the GAT.
@@ -249,7 +272,7 @@ function writeDirEntry(binary: Uint8Array, slot: DirSlotToWrite): void {
     // Extents, then 0xFF 0xFF for the unused ones and for the (absent) extended entry link.
     binary.fill(0xFF, entryOffset + 22, entryOffset + DIR_ENTRY_LENGTH);
     for (let i = 0; i < slot.extents.length; i++) {
-        const [lump, granuleOffset, granuleCount] = slot.extents[i];
+        const {lump, granuleOffset, granuleCount} = slot.extents[i];
         binary[entryOffset + 22 + 2*i] = lump;
         binary[entryOffset + 22 + 2*i + 1] = (granuleOffset << 5) | (granuleCount - 1);
     }
@@ -287,13 +310,13 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
     // the directory sectors are directory entries.
     const bootFile: TestFile = {
         name: "BOOT/SYS",
-        extents: [[0, 0, 1]],
+        extents: [{lump: 0, granuleOffset: 0, granuleCount: 1}],
         system: true,
         invisible: true,
     };
     const dirFile: TestFile = {
         name: "DIR/SYS",
-        extents: [[DIR_CYLINDER, 0, GRANULES_PER_LUMP]],
+        extents: [{lump: DIR_CYLINDER, granuleOffset: 0, granuleCount: GRANULES_PER_LUMP}],
         system: true,
         invisible: true,
     };
@@ -353,7 +376,7 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
         // The GAT bit and fill for every granule the file's extents cover. Like the DOS, a count that
         // runs past the end of a lump continues in the next one.
         let extentSectors = 0;
-        for (const [lump, granuleOffset, granuleCount] of file.extents) {
+        for (const {lump, granuleOffset, granuleCount} of file.extents) {
             for (let i = 0; i < granuleCount; i++) {
                 const linear = lump*GRANULES_PER_LUMP + granuleOffset + i;
                 // Tests can point an extent past the end of the disk, so there's nothing to mark there.
@@ -369,7 +392,7 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
         const dataSectors = Math.min(extentSectors, Math.ceil(size/BYTES_PER_SECTOR));
         if (placedFile.fillByte !== undefined) {
             let sectorsLeft = dataSectors;
-            for (const [lump, granuleOffset, granuleCount] of file.extents) {
+            for (const {lump, granuleOffset, granuleCount} of file.extents) {
                 const firstSector = (lump*GRANULES_PER_LUMP + granuleOffset)*SECTORS_PER_GRANULE;
                 for (let i = 0; i < granuleCount*SECTORS_PER_GRANULE && sectorsLeft > 0; i++, sectorsLeft--) {
                     const linearSector = firstSector + i;
@@ -429,10 +452,10 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
         });
     }
 
-    for (const [lump, granule] of options.gatUsed ?? []) {
+    for (const {lump, granule} of options.gatUsed ?? []) {
         markGranule(lump, granule, true);
     }
-    for (const [lump, granule] of options.gatFree ?? []) {
+    for (const {lump, granule} of options.gatFree ?? []) {
         markGranule(lump, granule, false);
     }
 

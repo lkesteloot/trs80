@@ -85,8 +85,8 @@ function reinterpret(trsdos: Trsdos, version: TrsdosVersion, granulesPerLump: nu
 describe("evaluateTrsdosWriteGate", () => {
     it("lets a clean single-sided disk be written", () => {
         const gate = evaluateTrsdosWriteGate(decode([
-            {name: "HELLO/BAS", extents: [[3, 0, 2]], size: 1000},
-            {name: "WORLD/TXT", extents: [[5, 0, 1], [8, 1, 1]]},
+            {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000},
+            {name: "WORLD/TXT", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}, {lump: 8, granuleOffset: 1, granuleCount: 1}]},
         ]));
 
         expect(gate.blockers).to.eql([]);
@@ -100,8 +100,8 @@ describe("evaluateTrsdosWriteGate", () => {
 
     it("allows only repairs on a damaged file system", () => {
         const gate = evaluateTrsdosWriteGate(decode([
-            {name: "HELLO/CMD", extents: [[5, 0, 2]]},
-            {name: "GAME/BAS", extents: [[5, 0, 3]]},
+            {name: "HELLO/CMD", extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}]},
+            {name: "GAME/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 3}]},
         ]));
 
         expect(gate.access).to.equal(TrsdosWriteAccess.REPAIR_ONLY);
@@ -114,9 +114,9 @@ describe("evaluateTrsdosWriteGate", () => {
 
     it("counts every damage finding in the one blocker", () => {
         const gate = evaluateTrsdosWriteGate(decode([
-            {name: "HELLO/CMD", extents: [[5, 0, 2]]},
-            {name: "GAME/BAS", extents: [[5, 0, 3]]},
-            {name: "BAD/DAT", extents: [[9, 0, 1]], hitByte: 0x55},
+            {name: "HELLO/CMD", extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}]},
+            {name: "GAME/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 3}]},
+            {name: "BAD/DAT", extents: [{lump: 9, granuleOffset: 0, granuleCount: 1}], hitByte: 0x55},
         ]));
 
         expect(gate.access).to.equal(TrsdosWriteAccess.REPAIR_ONLY);
@@ -127,7 +127,7 @@ describe("evaluateTrsdosWriteGate", () => {
 
     it("makes a disk read-only, one blocker per finding, when its layout is in doubt", () => {
         // Clear the unused bits of the GAT byte for cylinder 3, which the DOS always sets.
-        const disk = makeTrsdos23TestDisk([{name: "HELLO/BAS", extents: [[3, 0, 1]]}]);
+        const disk = makeTrsdos23TestDisk([{name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}]}]);
         const gatPosition = SectorPosition.make(17, 0, 0);
         const gatSector = disk.readSector(gatPosition)!;
         const data = new Uint8Array(gatSector.data);
@@ -159,8 +159,8 @@ describe("evaluateTrsdosWriteGate", () => {
     it("lists the blockers in the order of the enum", () => {
         // Write-protected and damaged: the write protection comes first.
         const disk = makeTrsdos23TestDisk([
-            {name: "HELLO/CMD", extents: [[5, 0, 2]]},
-            {name: "GAME/BAS", extents: [[5, 0, 3]]},
+            {name: "HELLO/CMD", extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}]},
+            {name: "GAME/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 3}]},
         ]);
         disk.setMountedWriteProtected(true);
 
