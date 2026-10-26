@@ -160,6 +160,12 @@ class TtyScreen extends Trs80Screen {
     private lastCursorIndex: number | undefined = undefined;
     private lastUnderscoreIndex = 0;
     private drive: number | undefined = undefined;
+    // The timer that keeps the cursor up to date, for exit() to stop.
+    private readonly cursorTimer: ReturnType<typeof setInterval>;
+    // Redraws on a terminal resize. Kept so that exit() can stop listening.
+    private readonly resizeListener = () => this.redraw();
+    // False after exit(), when nothing more should be drawn.
+    private active = true;
 
     constructor(readMemory: (address: number) => number, config: Config) {
         super();
@@ -171,17 +177,21 @@ class TtyScreen extends Trs80Screen {
 
         // Update cursor periodically. Have to do this on a timer since the memory location
         // can be updated anytime.
-        setInterval(() => this.checkCursorPosition(false), 10);
+        this.cursorTimer = setInterval(() => this.checkCursorPosition(false), 10);
 
         // Resizing the window might require redrawing the log.
-        process.stdout.on("resize", () => this.redraw());
+        process.stdout.on("resize", this.resizeListener);
     }
 
     /**
      * Move the cursor below the screen and give the console back, so that whatever's printed
-     * after this goes below the screen.
+     * after this goes below the screen. Also stops the timer and the listener that keep the screen up to
+     * date, so that nothing more is drawn: the screen can't be used after this.
      */
     public exit(): void {
+        this.active = false;
+        clearInterval(this.cursorTimer);
+        process.stdout.off("resize", this.resizeListener);
         this.vt100Control.moveTo(HEIGHT + 3, 1);
         Object.assign(console, this.savedConsole);
     }
@@ -227,9 +237,12 @@ class TtyScreen extends Trs80Screen {
     /**
      * Add a message to the log beside the screen. A message with several lines becomes several
      * messages, and other control characters become spaces, since writing them would move the
-     * cursor.
+     * cursor. Messages that arrive after {@link exit} (from a logger that was still batching) are dropped.
      */
     public logSink(level: LogLevel, message: string): void {
+        if (!this.active) {
+            return;
+        }
         for (const line of message.split(/\r?\n/)) {
             this.logMessages.push({level, message: line.replace(/[\x00-\x1F\x7F]/g, " ")});
         }
@@ -434,17 +447,42 @@ class NopScreen extends Trs80Screen {
 }
 
 /**
- * Keyboard implementation for a TTY. Puts the TTY into raw mode.
+ * Keyboard implementation for a TTY. Puts the TTY into raw mode, until {@link dispose} is called.
  */
 class TtyKeyboard extends Keyboard {
     private readonly screen: TtyScreen;
+    // What to do when the user presses Ctrl-C.
+    private readonly onCtrlC: () => void;
+    // Whether the terminal was in raw mode before we took it over, for dispose() to restore.
+    private readonly wasRaw: boolean;
+    // The listener on stdin, kept so that dispose() can remove it.
+    private readonly dataListener = (buffer: Buffer) => this.processBuffer(buffer);
 
-    constructor(screen: TtyScreen) {
+    /**
+     * @param screen the screen to redraw on Ctrl-L.
+     * @param onCtrlC called when the user presses Ctrl-C. The keyboard does nothing else about it, and
+     * ignores the rest of the keys that arrived with it.
+     */
+    constructor(screen: TtyScreen, onCtrlC: () => void) {
         super();
         this.screen = screen;
+        this.onCtrlC = onCtrlC;
 
+        this.wasRaw = process.stdin.isRaw;
         process.stdin.setRawMode(true);
-        process.stdin.on("data", buffer => this.processBuffer(buffer));
+        process.stdin.on("data", this.dataListener);
+        // Reading stdin may have been paused by whoever had it before us (such as a closed readline).
+        process.stdin.resume();
+    }
+
+    /**
+     * Give the terminal back: stop reading keys, leave raw mode if we put it there, and let stdin pause so that
+     * the next reader starts fresh.
+     */
+    public dispose(): void {
+        process.stdin.off("data", this.dataListener);
+        process.stdin.setRawMode(this.wasRaw);
+        process.stdin.pause();
     }
 
     /**
@@ -458,10 +496,9 @@ class TtyKeyboard extends Keyboard {
 
             switch (key) {
                 case 0x03:
-                    // Ctrl-C.
-                    this.screen.exit();
-                    process.exit();
-                    break;
+                    // Ctrl-C. Whatever it does may end this keyboard, so the keys after it are dropped.
+                    this.onCtrlC();
+                    return;
 
                 case 0x0C:
                     // Ctrl-L.
@@ -624,7 +661,10 @@ export function run(programFilename: string | undefined,
         exitScreen = () => ttyScreen.exit();
         showDrive =  (drive: number | undefined) => ttyScreen.showDrive(drive);
         printer = ttyScreen.printer;
-        keyboard = new TtyKeyboard(ttyScreen);
+        keyboard = new TtyKeyboard(ttyScreen, () => {
+            ttyScreen.exit();
+            process.exit();
+        });
         screen = ttyScreen;
         MAIN_SINK.delegatedSinks.shift();
         MAIN_SINK.delegatedSinks.unshift(makeBatchingSink(ttyScreen.logSink.bind(ttyScreen)));
@@ -711,4 +751,66 @@ export function run(programFilename: string | undefined,
     if (xray) {
         connectXray(trs80, keyboard, config);
     }
+}
+
+/**
+ * Run a TRS-80 in the terminal, drawn the way the "run" command draws it, until the user presses
+ * Ctrl-C. Unlike "run", Ctrl-C doesn't end the process: the machine stops, the terminal is given back
+ * as it was found (raw mode off, stdin no longer read, the console and the log sinks restored, the
+ * timers stopped), and the returned promise resolves, with the final screen left in the terminal and the
+ * cursor below it. The caller must not be reading stdin while this runs.
+ *
+ * @param config the machine configuration.
+ * @param setUp mounts floppies on the new machine. The machine is reset after this returns, so that a
+ * mounted floppy boots, and then started.
+ * @returns a promise that resolves after the user presses Ctrl-C and the terminal is back, or rejects
+ * (also after the terminal is back) if setUp throws.
+ */
+export function runInTerminal(config: Config, setUp: (trs80: Trs80) => void): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        const savedSinks = MAIN_SINK.delegatedSinks.slice();
+        let trs80: Trs80 | undefined = undefined;
+        let stopped = false;
+        let unsubscribeMotor: (() => void) | undefined = undefined;
+
+        const screen = new TtyScreen(address => trs80?.readMemory(address) ?? 0, config);
+        const keyboard = new TtyKeyboard(screen, () => stop());
+        MAIN_SINK.delegatedSinks.shift();
+        MAIN_SINK.delegatedSinks.unshift(makeBatchingSink(screen.logSink.bind(screen)));
+
+        /**
+         * Stop the machine and give the terminal back, once.
+         */
+        function stop(error?: unknown): void {
+            if (stopped) {
+                return;
+            }
+            stopped = true;
+
+            trs80?.setRunningState(RunningState.STOPPED);
+            unsubscribeMotor?.();
+            keyboard.dispose();
+            screen.exit();
+            MAIN_SINK.delegatedSinks.splice(0, MAIN_SINK.delegatedSinks.length, ...savedSinks);
+
+            if (error === undefined) {
+                resolve();
+            } else {
+                reject(error);
+            }
+        }
+
+        try {
+            const machine = new Trs80(config, screen, keyboard, new AudioFileCassettePlayer(),
+                new SilentSoundPlayer());
+            trs80 = machine;
+            machine.setPrinter(screen.printer);
+            unsubscribeMotor = machine.onMotorOn.subscribe(drive => screen.showDrive(drive));
+            setUp(machine);
+            machine.reset();
+            machine.setRunningState(RunningState.STARTED);
+        } catch (e) {
+            stop(e);
+        }
+    });
 }

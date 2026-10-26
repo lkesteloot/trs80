@@ -681,6 +681,21 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         until the end, so <code>--dry-run</code> and <code>-o</code> work.</p></td>
                 </tr>
                 <tr>
+                    <td><code>boot [--model 1|3|4] [--write-protected]</code></td>
+                    <td><p>Boot the disk, as it is in memory, in the emulator, drawn in the terminal the way
+                        <code>run</code> draws it. Ctrl-C stops the emulator and returns to the prompt (or to the
+                        next command in a chain). It says which model it chose and why: a Model I for TRSDOS 2.x and
+                        for other DOSes on single-density disks, a Model III for TRSDOS 1.3 and for other DOSes on
+                        double-density disks, and a Model 4 for TRSDOS 6 and LS-DOS 6; a disk with no DOS we recognize
+                        gets a Model III. <code>--model</code> overrides this. Also called <code>run</code>.</p>
+                        <p>The DOS can write to the disk, but only in memory: the whole session is one change that
+                        <code>undo</code> takes back, and <code>save</code> or <code>quit</code> saves, so the
+                        image file is not touched until then. <code>--write-protected</code> mounts the disk
+                        write-protected, and a disk whose image is marked write-protected stays so. Afterward the
+                        file system is read again, since the DOS may have changed anything. It needs a terminal, and
+                        refuses to run in a script.</p></td>
+                </tr>
+                <tr>
                     <td><code>undo</code></td>
                     <td><p>Take back the most recent change to the disk (an <code>add</code>, <code>rm</code>,
                         <code>label</code>, <code>create</code>, <code>format</code>, <code>trim</code> and so on),

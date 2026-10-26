@@ -37,7 +37,7 @@ export async function disk(words: string[]): Promise<void> {
         await runDiskShell(session, globalOptions);
     } else {
         // If a command fails then this throws and nothing is saved.
-        runDiskCommands(session, commands, globalOptions);
+        await runDiskCommands(session, commands, globalOptions);
         session.saveAndReport(false);
     }
 }

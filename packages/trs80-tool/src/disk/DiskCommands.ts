@@ -16,6 +16,7 @@ import {selectInputFiles} from "../InputFile.js";
 import {expandInputPatterns, fileNameMatchesPattern, pluralizeWithCount, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
+import {BOOT_COMMAND} from "./DiskBoot.js";
 import {TRIM_COMMAND} from "./DiskTrim.js";
 import {REPAIR_COMMAND} from "./DiskRepair.js";
 import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
@@ -53,9 +54,11 @@ export interface DiskCommand {
      * @param session the open disk.
      * @param command the parsed command, with its arguments and options.
      * @param globalOptions the options that apply to the whole run.
+     * @returns nothing, or a promise for a command that has to wait for something (such as the emulator
+     * running until the user stops it), which the commands after it wait for too.
      * @throws ToolError if the command fails, which stops the chain of commands.
      */
-    run(session: DiskSession, command: ParsedDiskCommand, globalOptions: DiskOptionValues): void;
+    run(session: DiskSession, command: ParsedDiskCommand, globalOptions: DiskOptionValues): void | Promise<void>;
 }
 
 /**
@@ -1140,6 +1143,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     CREATE_COMMAND,
     FORMAT_COMMAND,
     TRIM_COMMAND,
+    BOOT_COMMAND,
     UNDO_COMMAND,
     REDO_COMMAND,
     REVERT_COMMAND,
@@ -1167,12 +1171,12 @@ function commandLineText(command: ParsedDiskCommand): string {
  * @param globalOptions the options that apply to the whole run.
  * Each command that changes the disk can be taken back with the "undo" command.
  *
- * @returns whether a command ended the session (such as "quit"), in which case the commands after
- * it did not run and the caller should stop reading more.
- * @throws ToolError if a command fails.
+ * @returns a promise for whether a command ended the session (such as "quit"), in which case the commands
+ * after it did not run and the caller should stop reading more.
+ * @throws ToolError (as a rejection) if a command fails.
  */
-export function runDiskCommands(session: DiskSession, commands: ParsedDiskCommand[],
-                                globalOptions: DiskOptionValues): boolean {
+export async function runDiskCommands(session: DiskSession, commands: ParsedDiskCommand[],
+                                      globalOptions: DiskOptionValues): Promise<boolean> {
 
     for (const command of commands) {
         const diskCommand = DISK_COMMANDS.find(c => c.spec === command.spec);
@@ -1183,11 +1187,11 @@ export function runDiskCommands(session: DiskSession, commands: ParsedDiskComman
             session.requireDisk();
         }
         if (diskCommand.managesHistory === true) {
-            diskCommand.run(session, command, globalOptions);
+            await diskCommand.run(session, command, globalOptions);
         } else {
             // Any change the command makes to the disk can be undone. This is done here, around every command,
             // so that a new command can't forget to make its change undoable.
-            session.runUndoable(commandLineText(command), () => diskCommand.run(session, command, globalOptions));
+            await session.runUndoable(commandLineText(command), () => diskCommand.run(session, command, globalOptions));
         }
         if (diskCommand.endsSession) {
             return true;

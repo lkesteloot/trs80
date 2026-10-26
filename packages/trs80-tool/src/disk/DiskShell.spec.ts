@@ -30,44 +30,44 @@ describe("completeDiskLine", () => {
 });
 
 describe("runDiskScript", () => {
-    it("runs every line when nothing fails", () => {
+    it("runs every line when nothing fails", async () => {
         const ran: string[] = [];
-        runDiskScript(["a", "", "b"], line => {
+        await runDiskScript(["a", "", "b"], line => {
             ran.push(line);
             return false;
         });
         expect(ran).to.eql(["a", "", "b"]);
     });
 
-    it("stops at the first error and numbers the line from 1", () => {
+    it("stops at the first error and numbers the line from 1", async () => {
         const ran: string[] = [];
-        expect(() => runDiskScript(["a", "bad", "c"], line => {
+        await expect(runDiskScript(["a", "bad", "c"], line => {
             ran.push(line);
             if (line === "bad") {
                 throw new ToolError("Unknown command \"bad\"");
             }
             return false;
-        })).toThrow("Line 2: Unknown command \"bad\"");
+        })).rejects.toThrow("Line 2: Unknown command \"bad\"");
         expect(ran).to.eql(["a", "bad"]);
     });
 
-    it("throws a ToolError", () => {
+    it("throws a ToolError", async () => {
         let error: unknown = undefined;
         try {
-            runDiskScript(["x"], () => { throw new ToolError("oops"); });
+            await runDiskScript(["x"], () => { throw new ToolError("oops"); });
         } catch (e) {
             error = e;
         }
         expect(error).to.be.instanceOf(ToolError);
     });
 
-    it("passes other errors through unchanged", () => {
-        expect(() => runDiskScript(["x"], () => { throw new TypeError("bug"); })).toThrow("bug");
+    it("passes other errors through unchanged", async () => {
+        await expect(runDiskScript(["x"], () => { throw new TypeError("bug"); })).rejects.toThrow("bug");
     });
 
-    it("stops after a line that ends the session", () => {
+    it("stops after a line that ends the session", async () => {
         const ran: string[] = [];
-        runDiskScript(["a", "quit", "c"], line => {
+        await runDiskScript(["a", "quit", "c"], line => {
             ran.push(line);
             return line === "quit";
         });

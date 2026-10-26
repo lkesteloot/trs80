@@ -4,7 +4,7 @@ import {colorError} from "../lscolors.js";
 import {ToolError} from "../utils.js";
 import {DISK_COMMANDS, runDiskCommands} from "./DiskCommands.js";
 import {DiskOptionValues, parseDiskCommandLine, splitCommandLine} from "./DiskCommandParser.js";
-import {DiskSession} from "./DiskSession.js";
+import {DiskSession, type DiskShellTerminal} from "./DiskSession.js";
 
 /**
  * The prompt of the interactive shell.
@@ -43,10 +43,10 @@ export function completeDiskLine(line: string, commandNames: string[], fileNames
  * @param session the open disk.
  * @param line the line of text, which can have several commands separated by ":".
  * @param globalOptions the options from the real command line, which apply to the whole session.
- * @returns whether a command ended the session.
- * @throws ToolError for syntax errors or failing commands.
+ * @returns a promise for whether a command ended the session.
+ * @throws ToolError (as a rejection) for syntax errors or failing commands.
  */
-export function runDiskLine(session: DiskSession, line: string, globalOptions: DiskOptionValues): boolean {
+export async function runDiskLine(session: DiskSession, line: string, globalOptions: DiskOptionValues): Promise<boolean> {
     const words = splitCommandLine(line);
     if (words.length === 0) {
         return false;
@@ -54,7 +54,7 @@ export function runDiskLine(session: DiskSession, line: string, globalOptions: D
 
     // Global options come from the real command line, so there are none inside the shell.
     const parsed = parseDiskCommandLine(words, [], DISK_COMMANDS.map(c => c.spec));
-    return runDiskCommands(session, parsed.commands, globalOptions);
+    return await runDiskCommands(session, parsed.commands, globalOptions);
 }
 
 /**
@@ -63,13 +63,14 @@ export function runDiskLine(session: DiskSession, line: string, globalOptions: D
  *
  * @param lines the lines of the script.
  * @param runLine runs one line, as runDiskLine() does, returning whether the session ended.
- * @throws ToolError for the first failing line, with the line number (from 1) put before the message.
+ * @throws ToolError (as a rejection) for the first failing line, with the line number (from 1) put before
+ * the message.
  */
-export function runDiskScript(lines: string[], runLine: (line: string) => boolean): void {
+export async function runDiskScript(lines: string[], runLine: (line: string) => boolean | Promise<boolean>): Promise<void> {
     for (let i = 0; i < lines.length; i++) {
         let ended: boolean;
         try {
-            ended = runLine(lines[i]);
+            ended = await runLine(lines[i]);
         } catch (e) {
             if (e instanceof ToolError) {
                 throw new ToolError("Line " + (i + 1) + ": " + e.message);
@@ -109,7 +110,7 @@ async function readStdinLines(): Promise<string[]> {
  */
 async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskOptionValues): Promise<void> {
     const lines = await readStdinLines();
-    runDiskScript(lines, line => runDiskLine(session, line, globalOptions));
+    await runDiskScript(lines, line => runDiskLine(session, line, globalOptions));
 
     // Only reached if every line worked. A "quit" has already saved, and an "abort" saves nothing.
     session.saveAndReport(false);
@@ -119,6 +120,11 @@ async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskO
  * Run the interactive shell on a terminal until the user quits (or presses Ctrl-D), which saves
  * the changes, or aborts (or presses Ctrl-C), which discards them. Errors are shown and the shell
  * carries on, including a failure to save with "save" or "quit".
+ *
+ * A command can take the terminal for itself (as "boot" does, to run the emulator) through
+ * {@link DiskSession.shellTerminal}: the shell closes its readline interface for that time and makes a
+ * new one afterward, with the same history, since readline and a program reading keys from stdin can't share it.
+ * Lines are run one at a time, in order, even when several arrive together, since a command can take a while.
  *
  * @param session the open disk.
  * @param globalOptions the options from the real command line.
@@ -145,35 +151,28 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
         return completeDiskLine(line, commandNames, fileNames);
     };
 
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        prompt: PROMPT,
-        completer,
-    });
-
     return new Promise<void>((resolve, reject) => {
-        rl.on("SIGINT", () => {
-            const discardedPathname = session.abort();
-            if (discardedPathname !== undefined) {
-                console.log("Discarded the changes to " + discardedPathname + ".");
+        // The lines typed so far, newest first, which each readline interface starts with.
+        let history: string[] = [];
+        // Whether the shell has let go of the terminal for a command, so that closing readline isn't the end.
+        let released = false;
+        // Whether a command has ended the session, so that lines waiting to run are dropped.
+        let sessionEnded = false;
+        // Ends when every line received so far has been run.
+        let lineQueue: Promise<void> = Promise.resolve();
+        let rl!: readline.Interface;
+
+        /**
+         * Parse and run one line, and show the prompt again (or close if a command ended the session).
+         */
+        const handleLine = async (line: string): Promise<void> => {
+            if (sessionEnded) {
+                return;
             }
-            rl.close();
-        });
-        rl.on("close", () => {
-            // The "quit" command has already saved, and "abort" and Ctrl-C make this do nothing. This
-            // is for Ctrl-D, which quits.
-            try {
-                session.saveAndReport(false);
-                resolve();
-            } catch (e) {
-                reject(e);
-            }
-        });
-        rl.on("line", line => {
+
             let ended = false;
             try {
-                ended = runDiskLine(session, line, globalOptions);
+                ended = await runDiskLine(session, line, globalOptions);
             } catch (e) {
                 if (e instanceof ToolError) {
                     console.log(colorError(e.message));
@@ -184,12 +183,72 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
             }
 
             if (ended) {
+                sessionEnded = true;
                 rl.close();
             } else {
                 rl.prompt();
             }
-        });
+        };
+
+        /**
+         * Make a readline interface on the terminal, and start reading lines.
+         */
+        const startReading = (): void => {
+            rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout,
+                prompt: PROMPT,
+                completer,
+                history,
+            });
+            rl.on("history", newHistory => {
+                history = newHistory.slice();
+            });
+            rl.on("SIGINT", () => {
+                const discardedPathname = session.abort();
+                if (discardedPathname !== undefined) {
+                    console.log("Discarded the changes to " + discardedPathname + ".");
+                }
+                sessionEnded = true;
+                rl.close();
+            });
+            rl.on("close", () => {
+                if (released) {
+                    return;
+                }
+
+                // The "quit" command has already saved, and "abort" and Ctrl-C make this do nothing. This
+                // is for Ctrl-D, which quits. Wait for the lines that are still running.
+                lineQueue = lineQueue.then(() => {
+                    try {
+                        session.saveAndReport(false);
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            });
+            rl.on("line", line => {
+                lineQueue = lineQueue.then(() => handleLine(line));
+            });
+        };
+
+        const shellTerminal: DiskShellTerminal = {
+            release: () => {
+                released = true;
+                rl.close();
+            },
+            reacquire: () => {
+                released = false;
+                startReading();
+            },
+        };
+        session.shellTerminal = shellTerminal;
+
+        startReading();
         rl.prompt();
+    }).finally(() => {
+        session.shellTerminal = undefined;
     });
 }
 

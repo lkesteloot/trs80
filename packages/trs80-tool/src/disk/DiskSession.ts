@@ -148,6 +148,17 @@ interface DiskHistoryEntry {
 }
 
 /**
+ * How the interactive shell lets a command have the terminal to itself, as the command that runs the
+ * emulator needs: the shell is reading lines from the terminal, and the command must be the only reader.
+ */
+export interface DiskShellTerminal {
+    /** Stop reading lines, and give the terminal back to how it was before the shell took it. */
+    release(): void;
+    /** Take the terminal again after {@link release}, and carry on reading lines. */
+    reacquire(): void;
+}
+
+/**
  * The open disk that every "disk" command works on. Commands change the in-memory floppy, and the
  * session writes the result once at the end (or when the user says "save"), so a chain of commands
  * either all takes effect or none of it does.
@@ -194,6 +205,11 @@ export class DiskSession {
     private undoStack: DiskHistoryEntry[] = [];
     /** The states that {@link redo} goes forward to, most recently undone last. */
     private redoStack: DiskHistoryEntry[] = [];
+    /**
+     * The interactive shell's hold on the terminal, or undefined when there's no shell (a chain of commands on
+     * the command line, or a script), when the terminal is free for a command to use.
+     */
+    public shellTerminal: DiskShellTerminal | undefined = undefined;
 
     /**
      * Use DiskSession.open() instead.
@@ -327,6 +343,18 @@ export class DiskSession {
         this.changed = true;
         this.modificationCount++;
         this.watchFloppy(floppy);
+    }
+
+    /**
+     * Decode the file system again, and start the caches over, after something other than a command
+     * wrote to the floppy in place (such as a DOS running in the emulator, which can change anything,
+     * even the layout of a track). The writes have already counted as changes to the disk.
+     */
+    public refreshFileSystem(): void {
+        this.currentFileSystem = decodeFloppyFileSystem(this.floppy);
+        this.granuleMap = null;
+        this.writeGate = null;
+        this.forceWarningShown = false;
     }
 
     /**
@@ -473,14 +501,16 @@ export class DiskSession {
      * undo stack and the redo stack is cleared. If it changes nothing then nothing is recorded.
      *
      * @param label the command line, to say what {@link undo} undid, such as "add hello.bas".
-     * @param run runs the command.
-     * @throws whatever run() throws.
+     * @param run runs the command. If it returns a promise (as a command that runs the emulator does) then
+     * the whole time until the promise settles is one step.
+     * @returns a promise that resolves when the command is done.
+     * @throws whatever run() throws, or rejects with.
      */
-    public runUndoable(label: string, run: () => void): void {
+    public async runUndoable(label: string, run: () => void | Promise<void>): Promise<void> {
         const before = this.captureState();
         const modificationCountBefore = this.modificationCount;
         try {
-            run();
+            await run();
         } finally {
             const modified = this.modificationCount !== modificationCountBefore;
             if (modified) {
