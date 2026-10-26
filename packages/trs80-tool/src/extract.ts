@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as path from "path";
-import { withCommas } from "teamten-ts-utils";
 import { type XenixTarExtent } from "trs80-base";
 import { expandContainer, type InputFile, selectInputFiles, XenixTarInputFile } from "./InputFile.js";
 import { filesInfileJson, printInfilesJson } from "./json.js";
@@ -79,7 +78,7 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
             components[components.length - 1] += DAMAGED_SUFFIX;
         } else {
             console.log("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
-                " of a " + withCommas(extent.fileSize) + "-byte file, and the earlier parts aren't in " +
+                " of a " + extent.fileSize.toLocaleString() + "-byte file, and the earlier parts aren't in " +
                 outDirname + ". Extract the disk with part 1 into this directory first.");
             return false;
         }
@@ -127,8 +126,8 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
         fs.utimesSync(outpath, date, date);
     }
     console.log("Appended part " + extent.number + " of " + extent.count + " to " + outpath + " (" +
-        pluralizeWithCount(binary.length, "byte") + ", now " + withCommas(newSize) + " of " +
-        withCommas(extent.fileSize) + (newSize === extent.fileSize ? ", complete" : "") +
+        pluralizeWithCount(binary.length, "byte") + ", now " + newSize.toLocaleString() + " of " +
+        extent.fileSize.toLocaleString() + (newSize === extent.fileSize ? ", complete" : "") +
         damageNotes(infile) + (renamed ? ", renamed to mark the damage" : "") + ")");
     return true;
 }
@@ -257,7 +256,7 @@ export function extractInputFiles(allFiles: InputFile[], containerName: string, 
             pluralizeWithCount(binary.length, "byte") + damageNotes(infile) + ")");
         if (extent !== undefined) {
             console.log("  Only part " + extent.number + " of " + extent.count + " of a " +
-                withCommas(extent.fileSize) + "-byte file. Extract the disks with the other parts " +
+                extent.fileSize.toLocaleString() + "-byte file. Extract the disks with the other parts " +
                 "into this directory, in order, to complete it.");
         }
     }

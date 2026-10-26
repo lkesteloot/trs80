@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { withCommas } from "teamten-ts-utils";
 import {
     ModelIITrsdosDirEntry, Trs80File, TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, XenixTarFile,
     decodeTrs80File } from "trs80-base";
@@ -29,7 +28,7 @@ export function pluralize(count: number, singular: string, plural?: string): str
  * Return the count and the singular or plural version of a string depending on the count.
  */
 export function pluralizeWithCount(count: number, singular: string, plural?: string): string {
-    return `${withCommas(count)} ${pluralize(count, singular, plural)}`;
+    return `${count.toLocaleString()} ${pluralize(count, singular, plural)}`;
 }
 
 /**

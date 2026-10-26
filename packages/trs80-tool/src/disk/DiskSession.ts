@@ -3,7 +3,6 @@ import {
     decodeFloppyFileSystem, decodeTrs80File, evaluateTrsdosWriteGate, FloppyDisk, isFloppy, isHardDisk, type KnownFloppyFileSystem, Trsdos,
     TrsdosGranuleMap, TrsdosWriteAccess, type TrsdosWriteGate,
 } from "trs80-base";
-import {withCommas} from "teamten-ts-utils";
 import {assertNever} from "z80-base";
 import {floppyInputFiles, InputFile} from "../InputFile.js";
 import {pluralizeWithCount, ToolError} from "../utils.js";
@@ -12,7 +11,7 @@ import {pluralizeWithCount, ToolError} from "../utils.js";
  * The free space on a TRSDOS-family disk in whole KB, rounded down, such as "23 KB free".
  */
 function freeKilobytesText(granuleMap: TrsdosGranuleMap): string {
-    return withCommas(Math.floor(granuleMap.getFreeByteCount()/1024)) + " KB free";
+    return Math.floor(granuleMap.getFreeByteCount()/1024).toLocaleString() + " KB free";
 }
 
 /**
@@ -155,7 +154,7 @@ export class DiskSession {
         const granuleBytes = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
         const freeGranules = granuleMap.getFreeGranuleCount();
         return freeKilobytesText(granuleMap) + " (" +
-            pluralizeWithCount(freeGranules, "granule") + " of " + withCommas(granuleBytes) + " bytes)";
+            pluralizeWithCount(freeGranules, "granule") + " of " + granuleBytes.toLocaleString() + " bytes)";
     }
 
     /**

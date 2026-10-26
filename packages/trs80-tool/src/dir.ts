@@ -1,4 +1,3 @@
-import { withCommas } from "teamten-ts-utils";
 import {expandFile, InputFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
 import {colorError, colorFilename, colorSize} from "./lscolors.js";
@@ -70,7 +69,7 @@ export function printDirListing(inFiles: InputFile[]): void {
         const parts = [
             // Pad separately, since the color codes would throw off padEnd().
             colorFilename(filename, inFile.trs80File) + " ".repeat(maxFilenameLength - filename.length),
-            colorSize(withCommas(size).padStart(8), size) + " ",
+            colorSize(size.toLocaleString().padStart(8), size) + " ",
             ... inFile.getDirExtras(),
         ];
         if (inFile.damage !== undefined) {
