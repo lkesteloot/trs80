@@ -189,6 +189,8 @@ class TtyScreen extends Trs80Screen {
      * date, so that nothing more is drawn: the screen can't be used after this.
      */
     public exit(): void {
+        // The machine stops with whatever drive it last used still lit; the screen left behind shows none.
+        this.showDrive(undefined);
         this.active = false;
         clearInterval(this.cursorTimer);
         process.stdout.off("resize", this.resizeListener);
