@@ -285,18 +285,7 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
     }
 
     // Which primary entry reaches each extended entry through its chain.
-    const primaryOfExtended = new Map<TrsdosDirEntry, TrsdosDirEntry>();
-    for (const file of files) {
-        const visited = new Set<TrsdosDirEntry>([file]);
-        let next = file.nextDirEntry;
-        while (next !== undefined && !visited.has(next)) {
-            visited.add(next);
-            if (!primaryOfExtended.has(next)) {
-                primaryOfExtended.set(next, file);
-            }
-            next = next.nextDirEntry;
-        }
-    }
+    const primaryOfExtended = findPrimariesOfExtendedEntries(files);
 
     // Granule-based damage.
     if (typeof granuleMap !== "string") {
@@ -393,12 +382,7 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
     for (const slot of slots) {
         const dirEntry = slot.dirEntry;
         if (dirEntry.isExtendedEntry() && !primaryOfExtended.has(dirEntry)) {
-            damageFindings.push({
-                kind: TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY,
-                message: `The extended directory entry at DEC ${toHexByte(slot.hitIndex)} isn't part of any file.`,
-                dirEntries: [dirEntry],
-                granules: [],
-            });
+            damageFindings.push(makeOrphanFinding(slot));
         }
     }
 
@@ -438,14 +422,52 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
 }
 
 /**
- * Compare a slot's HIT byte with the hash of its file's name.
+ * Make the finding for an extended directory entry that no file's chain reaches. (Exported for the repair,
+ * which reports the orphans it leaves alone.)
+ *
+ * @param slot the orphan's slot.
+ */
+export function makeOrphanFinding(slot: TrsdosDirSlot): TrsdosFinding {
+    return {
+        kind: TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY,
+        message: `The extended directory entry at DEC ${toHexByte(slot.hitIndex)} isn't part of any file.`,
+        dirEntries: [slot.dirEntry],
+        granules: [],
+    };
+}
+
+/**
+ * Find the primary entry whose chain reaches each extended entry. An extended entry that no chain
+ * reaches is absent from the map (it's an orphan). One that two chains reach goes to the first file.
+ *
+ * @param files the primary entries.
+ */
+export function findPrimariesOfExtendedEntries(files: TrsdosDirEntry[]): Map<TrsdosDirEntry, TrsdosDirEntry> {
+    const primaryOfExtended = new Map<TrsdosDirEntry, TrsdosDirEntry>();
+    for (const file of files) {
+        const visited = new Set<TrsdosDirEntry>([file]);
+        let next = file.nextDirEntry;
+        while (next !== undefined && !visited.has(next)) {
+            visited.add(next);
+            if (!primaryOfExtended.has(next)) {
+                primaryOfExtended.set(next, file);
+            }
+            next = next.nextDirEntry;
+        }
+    }
+    return primaryOfExtended;
+}
+
+/**
+ * Compare a slot's HIT byte with the hash of its file's name. (Exported for the repair, which fixes
+ * the bytes that this reports.)
  *
  * @param trsdos the file system.
  * @param slot the slot to check.
  * @param primaryOfExtended the primary entry whose chain reaches each extended entry.
  * @return a finding if the byte is wrong, or undefined if it's right or can't be checked.
  */
-function checkHitByte(trsdos: Trsdos, slot: TrsdosDirSlot,
+export function checkHitByte(trsdos: Trsdos, slot: TrsdosDirSlot,
                       primaryOfExtended: Map<TrsdosDirEntry, TrsdosDirEntry>): TrsdosFinding | undefined {
 
     const hitByte = slot.hitByte;

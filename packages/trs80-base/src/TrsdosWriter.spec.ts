@@ -5,7 +5,7 @@ import {
     decodeTrsdos, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, hashForFilename, hashTrsdosPassword,
     type Trsdos, type TrsdosDirEntry, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
-import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
+import {checkTrsdos, TrsdosFindingKind, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
 import {reservedDecs} from "./TrsdosDirSlots.js";
 import {readTrsdosDiskInfo} from "./TrsdosDiskInfo.js";
 import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
@@ -2379,5 +2379,286 @@ describe("TrsdosWriter on TRSDOS 1.3 disks", () => {
         const {trsdos} = make13Fixture();
         expect(() => new TrsdosWriter(trsdos, TrsdosRuleSet.LDOS_5))
             .to.throw(TrsdosWriteError, "LDOS 5 rules don't fit a disk in the TRSDOS 1.3 layout");
+    });
+});
+
+/**
+ * The damage and layout problems that a file system has, as the kinds of their findings.
+ */
+function problemKinds(trsdos: Trsdos): TrsdosFindingKind[] {
+    return checkTrsdos(trsdos).findings
+        .filter(finding => trsdosFindingKindSeverity(finding.kind) !== TrsdosFindingSeverity.NOTE)
+        .map(finding => finding.kind);
+}
+
+/**
+ * A file with five extents, so that it needs an extended directory entry. Its granules are 20:0 to 24:0.
+ */
+const FRAGMENTED: TestFile = {
+    name: "BIG/DAT",
+    extents: [20, 21, 22, 23, 24].map(lump => ({lump, granuleOffset: 0, granuleCount: 1})),
+};
+
+describe("TrsdosWriter.repair", () => {
+    it("marks the granules a file uses as used in the GAT, and changes nothing else", () => {
+        const {disk, overlay, trsdos, writer} = makeFixture([HELLO, WORLD],
+            {gatFree: [{lump: 3, granule: 0}, {lump: 12, granule: 0}]});
+        expect(problemKinds(trsdos)).to.eql([TrsdosFindingKind.CLAIMED_BUT_FREE, TrsdosFindingKind.CLAIMED_BUT_FREE]);
+        const oldGat = readBytes(disk, trsdos.getGatPosition()).slice();
+        const oldHit = readBytes(disk, trsdos.getHitPosition()).slice();
+        const contents = new Map(trsdos.getDirEntries(true).map(dirEntry =>
+            [dirEntry.getFilename("/"), trsdos.readFile(dirEntry)]));
+
+        const result = writer.repair();
+        expect(result.changes).to.eql([
+            "Marked 1 granule used in the GAT for HELLO/BAS.",
+            "Marked 1 granule used in the GAT for WORLD/TXT.",
+        ]);
+        expect(result.remaining).to.eql([]);
+        const newTrsdos = writer.flush();
+
+        expect(problemKinds(newTrsdos)).to.eql([]);
+        const expectedGat = oldGat.slice();
+        expectedGat[3] |= 1;
+        expectedGat[12] |= 1;
+        expect(readBytes(overlay, newTrsdos.getGatPosition())).to.eql(expectedGat);
+        expect(readBytes(overlay, newTrsdos.getHitPosition())).to.eql(oldHit);
+        for (const dirEntry of newTrsdos.getDirEntries(true).filter(dirEntry => dirEntry.getFilename("/") !== "DIR/SYS")) {
+            expect(newTrsdos.readFile(dirEntry)).to.eql(contents.get(dirEntry.getFilename("/")));
+        }
+    });
+
+    it("sets a wrong HIT byte to the hash of the name, but accepts the old DIR/SYS byte", () => {
+        const {disk, overlay, trsdos, writer} = makeFixture([{...HELLO, hitByte: 0x55}, WORLD]);
+        expect(problemKinds(trsdos)).to.eql([TrsdosFindingKind.HIT_MISMATCH]);
+        const oldHit = readBytes(disk, trsdos.getHitPosition()).slice();
+        const helloSlot = trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "HELLO/BAS");
+        if (helloSlot === undefined) {
+            throw new Error("No slot");
+        }
+
+        const result = writer.repair();
+        expect(result.changes).to.eql(["Fixed the HIT byte of HELLO/BAS."]);
+        const newTrsdos = writer.flush();
+
+        expect(problemKinds(newTrsdos)).to.eql([]);
+        const expectedHit = oldHit.slice();
+        expectedHit[helloSlot.hitIndex] = hashForFilename("HELLO   BAS");
+        expect(readBytes(overlay, newTrsdos.getHitPosition())).to.eql(expectedHit);
+    });
+
+    it("fixes the HIT bytes of an extended entry unless the rules are TRSDOS 2.x's", () => {
+        const damaged: TestFile = {...FRAGMENTED, hitByte: 0x11, extendedHitByte: 0x22};
+
+        // Under LDOS rules, both bytes are the hash of the name.
+        const ldos = makeFixture([damaged], {}, TrsdosRuleSet.LDOS_5);
+        expect(problemKinds(ldos.trsdos)).to.eql([TrsdosFindingKind.HIT_MISMATCH, TrsdosFindingKind.HIT_MISMATCH]);
+        expect(ldos.writer.repair().changes).to.eql(["Fixed 2 HIT bytes of BIG/DAT."]);
+        expect(problemKinds(ldos.writer.flush())).to.eql([]);
+
+        // Under TRSDOS 2.x's, the extended entry's byte is left alone and reported.
+        const trsdos2 = makeFixture([damaged], {}, TrsdosRuleSet.TRSDOS_2);
+        const result = trsdos2.writer.repair();
+        expect(result.changes).to.eql(["Fixed the HIT byte of BIG/DAT."]);
+        expect(result.remaining.map(remaining => remaining.finding.kind)).to.eql([TrsdosFindingKind.HIT_MISMATCH]);
+        expect(result.remaining[0].advice).to.contain("aren't understood");
+        expect(problemKinds(trsdos2.writer.flush())).to.eql([TrsdosFindingKind.HIT_MISMATCH]);
+    });
+
+    it("deletes an extended entry that no file reaches", () => {
+        const stray = {prevDec: testUserSlotDec(0), hitByte: 0x99, extents: [{lump: 10, granuleOffset: 0, granuleCount: 1}]};
+        const {overlay, trsdos, writer} = makeFixture([HELLO], {strayExtendedEntries: [stray]});
+        expect(problemKinds(trsdos)).to.eql([TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY]);
+
+        const result = writer.repair();
+        const dec = testUserSlotDec(1).toString(16).toUpperCase();
+        expect(result.changes).to.eql([`Deleted the extended directory entry at DEC ${dec}, which isn't part of any file.`]);
+        const newTrsdos = writer.flush();
+
+        expect(problemKinds(newTrsdos)).to.eql([]);
+        expect(readBytes(overlay, newTrsdos.getHitPosition())[testUserSlotDec(1)]).to.eql(0);
+        expect(newTrsdos.getDirectory().slots.filter(slot => slot.dirEntry.isExtendedEntry())).to.eql([]);
+    });
+
+    it("leaves alone an entry with the extended flag that has a name, since it may be a file", () => {
+        // The decoder takes a named entry as a primary one if its HIT byte is the name's hash, so spoil that too.
+        const base = makeFixture([HELLO, WORLD]);
+        const slot = base.trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "HELLO/BAS");
+        if (slot === undefined) {
+            throw new Error("No slot");
+        }
+        const {sectorPosition, offset} = base.trsdos.getDirEntryLocation(slot.hitIndex);
+        const sector = readBytes(base.disk, sectorPosition).slice();
+        sector[offset] |= 0x80;
+        const hit = readBytes(base.disk, base.trsdos.getHitPosition()).slice();
+        hit[slot.hitIndex] = 0x55;
+        const patch = new SectorOverlay(base.disk);
+        patch.writeSector(sectorPosition, sector);
+        patch.writeSector(base.trsdos.getHitPosition(), hit);
+        patch.commit();
+
+        const overlay = new SectorOverlay(base.disk);
+        const trsdos = decodeTrsdos(overlay);
+        if (trsdos === undefined) {
+            throw new Error("Didn't decode");
+        }
+        expect(problemKinds(trsdos)).to.include(TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY);
+
+        const writer = new TrsdosWriter(trsdos, TrsdosRuleSet.TRSDOS_2);
+        const result = writer.repair();
+        expect(result.changes).to.eql([]);
+        expect(result.remaining.map(remaining => remaining.finding.kind)).to.eql([TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY]);
+        expect(result.remaining[0].advice).to.contain("It has a name");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("frees unclaimed granules only when asked, and never the boot cylinder's or a locked-out one's", () => {
+        const options: TestDiskOptions = {
+            gatUsed: [{lump: 8, granule: 0}, {lump: 8, granule: 1}, {lump: 0, granule: 1}],
+            lockedOut: [30],
+        };
+
+        // By default they stay, and are reported as kept.
+        const kept = makeFixture([HELLO], options);
+        const keptResult = kept.writer.repair();
+        expect(keptResult.changes).to.eql([]);
+        expect(keptResult.keptUnclaimed.length).to.eql(3);
+        expect(keptResult.freeableUnclaimed.length).to.eql(2);
+        expect(kept.writer.hasChanges()).to.eql(false);
+
+        const freed = makeFixture([HELLO], options);
+        const freedResult = freed.writer.repair({freeUnclaimed: true});
+        expect(freedResult.changes).to.eql(["Freed 2 granules that the GAT marked used and no file claims."]);
+        expect(freedResult.keptUnclaimed.map(granule => `${granule.lump}:${granule.granule}`))
+            .to.eql(["0:1", "30:0", "30:1"]);
+        expect(freedResult.freeableUnclaimed).to.eql([]);
+        const newTrsdos = freed.writer.flush();
+
+        const gat = readBytes(freed.overlay, newTrsdos.getGatPosition());
+        expect(gat[8] & 3).to.eql(0);
+        expect(gat[0] & 2).to.eql(2);
+        expect(gat[30] & 3).to.eql(3);
+        expect(problemKinds(newTrsdos)).to.eql([]);
+    });
+
+    it("leaves shared granules as remaining, and still fixes the rest", () => {
+        const first: TestFile = {name: "ONE/DAT", extents: [{lump: 6, granuleOffset: 0, granuleCount: 2}]};
+        const second: TestFile = {
+            name: "TWO/DAT", extents: [{lump: 6, granuleOffset: 1, granuleCount: 2}], hitByte: 0x77,
+        };
+        const {trsdos, writer} = makeFixture([first, second]);
+        expect(problemKinds(trsdos)).to.eql([TrsdosFindingKind.SHARED_GRANULES, TrsdosFindingKind.HIT_MISMATCH]);
+
+        const result = writer.repair();
+        expect(result.changes).to.eql(["Fixed the HIT byte of TWO/DAT."]);
+        expect(result.remaining.map(remaining => remaining.finding.kind)).to.eql([TrsdosFindingKind.SHARED_GRANULES]);
+        expect(result.remaining[0].advice).to.contain("can't be repaired automatically");
+        expect(problemKinds(writer.flush())).to.eql([TrsdosFindingKind.SHARED_GRANULES]);
+    });
+
+    it("changes nothing on a healthy disk", () => {
+        const {writer} = makeFixture([HELLO, WORLD]);
+        const result = writer.repair();
+        expect(result).to.eql({changes: [], remaining: [], keptUnclaimed: [], freeableUnclaimed: []});
+        expect(writer.hasChanges()).to.eql(false);
+        expect(problemKinds(writer.flush())).to.eql([]);
+    });
+
+    it("must be the only change, and can only be made once", () => {
+        const first = makeFixture([HELLO, WORLD]);
+        first.writer.deleteFile(writerFile(first.writer, "WORLD/TXT"));
+        expect(() => first.writer.repair()).to.throw(TrsdosWriteError, "only change");
+
+        const second = makeFixture([HELLO, WORLD]);
+        second.writer.repair();
+        expect(() => second.writer.repair()).to.throw(TrsdosWriteError, "already repaired");
+    });
+
+    describe("on TRSDOS 1.3 disks", () => {
+        /**
+         * Make a TRSDOS 1.3 disk with three files, damaged by freeing the first file's granules in the GAT and changing
+         * its HIT byte (unless told not to), and a writer on it.
+         */
+        function makeDamaged13(damageHit = true): Fixture {
+            const formatted = make13Fixture();
+            formatted.writer.addFile(name("HELLO/BAS"), makeContents(1000, 1));
+            formatted.writer.addFile(name("WORLD/TXT"), makeContents(300, 2));
+            formatted.writer.addFile(name("OTHER/TXT"), makeContents(300, 3));
+            const added = formatted.writer.flush();
+            formatted.overlay.commit();
+
+            const patch = new SectorOverlay(formatted.disk);
+            const gat = readBytes(formatted.disk, added.getGatPosition()).slice();
+            const hit = readBytes(formatted.disk, added.getHitPosition()).slice();
+            // The file is on cylinder 0, granules 1 and 2 (granule 0 is the boot granule).
+            gat[0] = 0x01;
+            if (damageHit) {
+                hit[0] = 0x66;
+            }
+            patch.writeSector(added.getGatPosition(), gat);
+            patch.writeSector(added.getHitPosition(), hit);
+            patch.commit();
+
+            const overlay = new SectorOverlay(formatted.disk);
+            const trsdos = decodeTrsdos(overlay);
+            if (trsdos === undefined) {
+                throw new Error("Didn't decode");
+            }
+            return {disk: formatted.disk, overlay, trsdos, writer: writerFor(trsdos)};
+        }
+
+        it("leaves alone an entry with bit 7 set, which 1.3 doesn't use, since it may be a file", () => {
+            const base = makeDamaged13(false);
+            const slot = base.trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "WORLD/TXT");
+            if (slot === undefined) {
+                throw new Error("No slot");
+            }
+            const {sectorPosition, offset} = base.trsdos.getDirEntryLocation(slot.hitIndex);
+            const sector = readBytes(base.disk, sectorPosition).slice();
+            sector[offset] |= 0x80;
+            const patch = new SectorOverlay(base.disk);
+            patch.writeSector(sectorPosition, sector);
+            patch.commit();
+
+            const overlay = new SectorOverlay(base.disk);
+            const trsdos = decodeTrsdos(overlay);
+            if (trsdos === undefined) {
+                throw new Error("Didn't decode");
+            }
+            expect(problemKinds(trsdos)).to.include(TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY);
+
+            const writer = writerFor(trsdos);
+            const result = writer.repair();
+            expect(result.remaining.map(remaining => remaining.finding.kind)).to.eql([TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY]);
+            expect(result.remaining[0].advice).to.contain("TRSDOS 1.3 has no extended entries");
+            const entryBefore = readBytes(overlay, sectorPosition).slice(offset, offset + 48);
+            const newTrsdos = writer.flush();
+            expect(readBytes(overlay, sectorPosition).slice(offset, offset + 48)).to.eql(entryBefore);
+            expect(problemKinds(newTrsdos)).to.eql([TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY]);
+            expect(newTrsdos.getDirEntries(false).map(dirEntry => dirEntry.getFilename("/"))).to.eql(["HELLO/BAS", "OTHER/TXT"]);
+        });
+
+        it("fixes the GAT and the HIT byte, and the file reads as before", () => {
+            const {trsdos, writer} = makeDamaged13();
+            expect(problemKinds(trsdos)).to.eql([
+                TrsdosFindingKind.CLAIMED_BUT_FREE, TrsdosFindingKind.CLAIMED_BUT_FREE,
+                TrsdosFindingKind.CLAIMED_BUT_FREE, TrsdosFindingKind.HIT_MISMATCH,
+            ]);
+            const contents = trsdos.readFile(getFile(trsdos, "HELLO/BAS"));
+
+            const result = writer.repair({freeUnclaimed: true});
+            expect(result.changes).to.eql([
+                "Marked 2 granules used in the GAT for HELLO/BAS.",
+                "Marked 1 granule used in the GAT for WORLD/TXT.",
+                "Marked 1 granule used in the GAT for OTHER/TXT.",
+                "Fixed the HIT byte of HELLO/BAS.",
+            ]);
+            // The boot granule is unclaimed, but it's never freed.
+            expect(result.keptUnclaimed.map(granule => `${granule.lump}:${granule.granule}`)).to.eql(["0:0"]);
+            const newTrsdos = writer.flush();
+
+            expect(problemKinds(newTrsdos)).to.eql([]);
+            expect(newTrsdos.readFile(getFile(newTrsdos, "HELLO/BAS"))).to.eql(contents);
+        });
     });
 });

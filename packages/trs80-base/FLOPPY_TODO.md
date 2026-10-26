@@ -74,6 +74,16 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       FLOPPY_FORMATS.md). Until it's known, `TrsdosWriter.addFile()` refuses a
       file that would need one under TRSDOS 2.x rules. *TRSDOS 2.3 Decoded* or
       letting TRSDOS 2.3 write a fragmented file in the emulator would settle it.
+- [ ] **TRSDOS 1.x entries with bit 7 set read as orphaned extended entries.**
+      `TrsdosDirEntry.isExtendedEntry()` tests bit 7 of byte 0, but 1.3's
+      directory has no extended entries and calls that bit unused. Entries with
+      the bit set, a good name and valid extents are on about 18 disks (the
+      `Network 3` and other `no-extract` disks, `Computer Talk`), so the decoder
+      drops real files (PB/ORG, EDIR/CMD, KILL/CMD) and `check` calls them
+      orphans, which keeps those disks repair-only. `TrsdosWriter.repair()` leaves
+      such entries alone for that reason. Treating bit 7 as plain data on the
+      1.3 layout, in `decodeDirEntry()`, would list the files and clear the
+      findings.
 - [ ] **Stray sector IDs inflate `TrackGeometry`'s range.** Its first/last
       sector numbers include stray IDs (copy protection writes a few sectors
       numbered far outside the track's numbering, e.g. 124-126 on a 0-9 track,

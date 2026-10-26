@@ -8,11 +8,14 @@ import {
     type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
 import {allocateGranules, type AllocatedExtent, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
-import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
+import {
+    checkHitByte, checkTrsdos, findPrimariesOfExtendedEntries, makeOrphanFinding, type TrsdosFinding, TrsdosFindingKind,
+    TrsdosFindingSeverity, trsdosFindingKindSeverity,
+} from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
 import {hashTrsdos13Password} from "./TrsdosFormat.js";
-import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
+import {type TrsdosGranule, TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {
     formatTrsdosGatDate, GAT_AUTO_OFFSET, GAT_DATE_OFFSET, GAT_NAME_OFFSET, GAT_PASSWORD_OFFSET, GAT_TEXT_LENGTH,
     GAT_MEDIA_BLOCK_OFFSET, gatHasMediaBlock, isTrsdosSystemInformationSector, readTrsdosDiskInfo, SYSINFO_AUTO_LENGTH, SYSINFO_AUTO_OFFSET,
@@ -75,6 +78,11 @@ const NAME_OFFSET = 5;
  * The most extents that one primary directory entry holds.
  */
 const EXTENTS_PER_ENTRY = 4;
+
+/**
+ * The most DECs that a repair names in a message before saying "and N more".
+ */
+const MAX_DECS_IN_MESSAGE = 8;
 
 /**
  * The size of the sectors that the writer can fill with file data.
@@ -277,6 +285,86 @@ interface AttributeExpectation {
      * The date fields, or null if we don't know how the decoder will read them, so they aren't checked.
      */
     date: ExpectedDate | null;
+}
+
+/**
+ * What {@link TrsdosWriter.repair} may do.
+ */
+export interface TrsdosRepairOptions {
+    /**
+     * Whether to free the granules that the GAT marks used but no file claims. Off by default, since some
+     * programs keep data in granules that no file claims. Granules in the directory, on the boot cylinder
+     * and locked out are never freed.
+     */
+    freeUnclaimed?: boolean | undefined;
+}
+
+/**
+ * A problem that {@link TrsdosWriter.repair} could not fix.
+ */
+export interface TrsdosRepairRemaining {
+    /**
+     * The finding, as {@link checkTrsdos} reports it.
+     */
+    finding: TrsdosFinding;
+
+    /**
+     * Why it isn't fixed and what the user could do, as a sentence.
+     */
+    advice: string;
+}
+
+/**
+ * What {@link TrsdosWriter.repair} did.
+ */
+export interface TrsdosRepairResult {
+    /**
+     * What it changed, as sentences for the user, such as "Marked 2 granules used in the GAT for HELLO/CMD.".
+     * Empty if there was nothing to fix.
+     */
+    changes: string[];
+
+    /**
+     * The damage that it can't fix, in the order {@link checkTrsdos} reports it.
+     */
+    remaining: TrsdosRepairRemaining[];
+
+    /**
+     * The granules that the GAT marks used and no file claims and that a repair never frees: those on the boot
+     * cylinder and the locked-out ones.
+     */
+    keptUnclaimed: TrsdosGranule[];
+
+    /**
+     * The granules that the GAT marks used and no file claims and that {@link TrsdosRepairOptions.freeUnclaimed}
+     * would free. Empty if it was on, since they were freed.
+     */
+    freeableUnclaimed: TrsdosGranule[];
+}
+
+/**
+ * What {@link TrsdosWriter.flush} must find after a repair, kept for the final verification.
+ */
+interface RepairExpectation {
+    /**
+     * The number of HIT mismatches that the repair left alone.
+     */
+    unfixedHitMismatches: number;
+
+    /**
+     * The number of orphaned extended entries that the repair left alone.
+     */
+    unfixedOrphans: number;
+
+    /**
+     * The number of used-but-unclaimed granules that must remain if the repair freed them.
+     */
+    keptUnclaimedGranules: number;
+
+    /**
+     * Whether the repair freed unclaimed granules, so that the number kept can be checked.
+     */
+    freedUnclaimed: boolean;
 }
 
 /**
@@ -517,6 +605,11 @@ export class TrsdosWriter {
      * The data sectors of the added files, waiting to be written by {@link flush}.
      */
     private readonly pendingSectors: PendingSector[] = [];
+
+    /**
+     * What a repair promised, or undefined if {@link repair} hasn't been called.
+     */
+    private repairExpectation: RepairExpectation | undefined = undefined;
 
     /**
      * Whether {@link flush} has succeeded.
@@ -1802,6 +1895,314 @@ export class TrsdosWriter {
     }
 
     /**
+     * Repair the damage that {@link checkTrsdos} finds and that can be fixed without guessing, in the GAT, the
+     * HIT and the directory sectors, and nothing else. Nothing reaches the overlay until {@link flush}, which
+     * verifies that the fixed findings are gone, that no problem is new, and that every file reads as before.
+     *
+     * - A granule that a file uses but the GAT says is free is marked used.
+     * - A HIT byte that isn't the hash of its file's name is set to it. The byte of an extended entry under
+     *   TRSDOS 2.x's rules is left alone, since we don't know what the DOS puts there (see "An FXDE" in
+     *   FLOPPY_FORMATS.md), and the entry is reported as remaining.
+     * - An extended entry that no file's chain reaches is deleted, if it looks like one: it has no name. One with
+     *   a name, or any such entry on a TRSDOS 1.3 disk (which has no extended entries, and where bit 7 of the first
+     *   byte is unused), may be a file with an unusual flag byte, so it is left alone and reported as remaining.
+     * - With {@link TrsdosRepairOptions.freeUnclaimed}, a granule that the GAT marks used and no file claims is
+     *   freed, unless it is on the boot cylinder or locked out. (Directory granules aren't unclaimed.)
+     *
+     * Shared granules, extents off the disk and damaged files can't be fixed automatically and are returned as
+     * remaining. A repair must be the only change made in this writer, and can be made once. The 2.3 family's
+     * layouts and TRSDOS 1.3's are supported.
+     *
+     * @param options what the repair may do.
+     * @return what was changed, and what was left.
+     * @throws TrsdosWriteError if the layout is in doubt, the writer has other changes, or the layout isn't
+     * supported.
+     */
+    public repair(options: TrsdosRepairOptions = {}): TrsdosRepairResult {
+        this.checkNotFlushed();
+        if (this.repairExpectation !== undefined) {
+            throw new TrsdosWriteError("This writer has already repaired the disk");
+        }
+        const otherChanges = this.hasChanges() || this.deleted.size > 0 || this.renamed.size > 0 ||
+            this.added.length > 0 || this.attributeExpectations.size > 0 || this.expectedDiskInfo !== undefined;
+        if (otherChanges) {
+            throw new TrsdosWriteError("A repair must be the only change made in a writer");
+        }
+        switch (this.trsdos.version) {
+            case TrsdosVersion.V2_3:
+            case TrsdosVersion.V1_3:
+                break;
+
+            case TrsdosVersion.V2_7:
+                throw new TrsdosWriteError("Repairing isn't supported yet on TRSDOS 2.7 disks");
+
+            default:
+                assertNever(this.trsdos.version);
+        }
+
+        const originalFindings = checkTrsdos(this.trsdos).findings;
+        const layoutDoubt = originalFindings.find(finding =>
+            trsdosFindingKindSeverity(finding.kind) === TrsdosFindingSeverity.LAYOUT);
+        if (layoutDoubt !== undefined) {
+            throw new TrsdosWriteError("Can't repair a disk whose layout is in doubt: " + layoutDoubt.message);
+        }
+
+        const changes: string[] = [];
+        const remaining: TrsdosRepairRemaining[] = [];
+
+        this.repairClaimedButFree(changes);
+        const unfixedHitMismatches = this.repairHitBytes(changes, remaining);
+        const unfixedOrphans = this.repairOrphanExtendedEntries(changes, remaining);
+        const {kept: keptUnclaimed, freeable: freeableUnclaimed} =
+            this.repairUnclaimed(options.freeUnclaimed === true, changes);
+
+        // The damage that can't be fixed. The HIT mismatches that were left alone were added above, so sort
+        // by kind (a stable sort) to put everything in the check's order.
+        for (const finding of originalFindings) {
+            const advice = TrsdosWriter.repairAdvice(finding.kind);
+            if (advice !== null) {
+                remaining.push({finding, advice});
+            }
+        }
+        remaining.sort((a, b) => a.finding.kind - b.finding.kind);
+
+        this.repairExpectation = {
+            unfixedHitMismatches,
+            unfixedOrphans,
+            keptUnclaimedGranules: keptUnclaimed.length,
+            freedUnclaimed: options.freeUnclaimed === true,
+        };
+        return {changes, remaining, keptUnclaimed, freeableUnclaimed};
+    }
+
+    /**
+     * What to tell the user about damage that {@link repair} can't fix, by the kind of finding.
+     *
+     * @param kind the kind of finding.
+     * @return a sentence, or null for a kind that the repair does fix (or that isn't damage).
+     */
+    private static repairAdvice(kind: TrsdosFindingKind): string | null {
+        switch (kind) {
+            case TrsdosFindingKind.SHARED_GRANULES:
+                return "Shared granules can't be repaired automatically: extract the files you need, delete one " +
+                    "of the files that share, and add it again.";
+            case TrsdosFindingKind.EXTENT_OUT_OF_RANGE:
+                return "A file that runs off the disk can't be repaired automatically.";
+            case TrsdosFindingKind.DAMAGED_FILE:
+                return "A damaged file can't be repaired automatically: extract what can be read.";
+            case TrsdosFindingKind.GAT_UNREADABLE:
+            case TrsdosFindingKind.GAT_NOT_STRICT:
+            case TrsdosFindingKind.HIT_IGNORED:
+            case TrsdosFindingKind.CLAIMED_BUT_FREE:
+            case TrsdosFindingKind.HIT_MISMATCH:
+            case TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY:
+            case TrsdosFindingKind.USED_BUT_UNCLAIMED:
+            case TrsdosFindingKind.BOOT_SYS_OVERLAP:
+                return null;
+            default:
+                assertNever(kind);
+        }
+    }
+
+    /**
+     * Mark in the GAT, in memory, every granule that a file claims and the GAT says is free.
+     *
+     * @param changes the user-facing lines, to which the lines for this fix are added.
+     */
+    private repairClaimedButFree(changes: string[]): void {
+        const fixed = new Set<TrsdosGranule>();
+        for (const file of this.directory.files) {
+            // A granule that two files claim is fixed, and mentioned, once.
+            const granules = this.granuleMap.granules.filter(granule =>
+                granule.owners.includes(file) && !granule.gatUsed && !fixed.has(granule));
+            if (granules.length === 0) {
+                continue;
+            }
+
+            for (const granule of granules) {
+                fixed.add(granule);
+                this.gat.bytes[granule.lump] |= 1 << granule.granule;
+                this.gat.dirty = true;
+            }
+            changes.push(`Marked ${granules.length.toLocaleString()} ${granules.length === 1 ? "granule" : "granules"} ` +
+                `used in the GAT for ${file.getFilename("/")}.`);
+        }
+    }
+
+    /**
+     * Set, in memory, the HIT byte of every slot that holds something other than the hash of its file's name,
+     * except those that aren't understood (see {@link repair}).
+     *
+     * @param changes the user-facing lines, to which the lines for this fix are added.
+     * @param remaining the damage that isn't fixed, to which the mismatches left alone are added.
+     * @return the number of mismatches left alone.
+     */
+    private repairHitBytes(changes: string[], remaining: TrsdosRepairRemaining[]): number {
+        const primaryOfExtended = findPrimariesOfExtendedEntries(this.directory.files);
+
+        // The number of bytes fixed for each file, by primary entry, in directory order.
+        const fixedCounts = new Map<TrsdosDirEntry, number>();
+        let unfixed = 0;
+        for (const slot of this.directory.slots) {
+            const finding = checkHitByte(this.trsdos, slot, primaryOfExtended);
+            if (finding === undefined) {
+                continue;
+            }
+            const primary = finding.dirEntries[0];
+            const isExtended = slot.dirEntry.isExtendedEntry();
+            if (isExtended && this.ruleSet === TrsdosRuleSet.TRSDOS_2) {
+                // We don't know what TRSDOS 2.x puts in an FXDE's HIT byte.
+                remaining.push({
+                    finding,
+                    advice: "TRSDOS 2.x's HIT bytes for extended entries aren't understood, so it was left alone.",
+                });
+                unfixed += 1;
+                continue;
+            }
+
+            this.hit.bytes[slot.hitIndex] = hashForFilename(primary.rawFilename);
+            this.hit.dirty = true;
+            fixedCounts.set(primary, (fixedCounts.get(primary) ?? 0) + 1);
+        }
+
+        for (const [primary, count] of fixedCounts) {
+            changes.push(count === 1 ? `Fixed the HIT byte of ${primary.getFilename("/")}.` :
+                `Fixed ${count.toLocaleString()} HIT bytes of ${primary.getFilename("/")}.`);
+        }
+        return unfixed;
+    }
+
+    /**
+     * Delete, in memory, every extended directory entry that no file's chain reaches and that looks like one (see
+     * {@link repair}).
+     *
+     * @param changes the user-facing lines, to which the line for this fix is added.
+     * @param remaining the damage that isn't fixed, to which the orphans left alone are added.
+     * @return the number of orphans left alone.
+     */
+    private repairOrphanExtendedEntries(changes: string[], remaining: TrsdosRepairRemaining[]): number {
+        const primaryOfExtended = findPrimariesOfExtendedEntries(this.directory.files);
+        const decs: string[] = [];
+        let unfixed = 0;
+        for (const slot of this.directory.slots) {
+            if (!slot.dirEntry.isExtendedEntry() || primaryOfExtended.has(slot.dirEntry)) {
+                continue;
+            }
+
+            const advice = this.trsdos.version === TrsdosVersion.V1_3 ?
+                "TRSDOS 1.3 has no extended entries, so this may be a file with an unusual flag byte, and it was " +
+                    "left alone." :
+                !this.hasBlankName(slot) ?
+                    "It has a name, so it may be a file with an unusual flag byte, and it was left alone." :
+                    undefined;
+            if (advice !== undefined) {
+                remaining.push({finding: makeOrphanFinding(slot), advice});
+                unfixed += 1;
+                continue;
+            }
+
+            this.clearDirEntry(slot);
+            decs.push(toHexByte(slot.hitIndex));
+        }
+
+        if (decs.length > 0) {
+            const shown = decs.slice(0, MAX_DECS_IN_MESSAGE).join(", ") +
+                (decs.length > MAX_DECS_IN_MESSAGE ? `, and ${decs.length - MAX_DECS_IN_MESSAGE} more` : "");
+            changes.push(decs.length === 1 ?
+                `Deleted the extended directory entry at DEC ${shown}, which isn't part of any file.` :
+                `Deleted ${decs.length.toLocaleString()} extended directory entries that aren't part of any file ` +
+                `(DEC ${shown}).`);
+        }
+        return unfixed;
+    }
+
+    /**
+     * Whether a directory entry's name field is empty: all zero bytes or spaces, as an extended entry's is.
+     *
+     * @param slot the entry's slot.
+     */
+    private hasBlankName(slot: TrsdosDirSlot): boolean {
+        const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slot.hitIndex);
+        const bytes = this.getDirSectorCopy(sectorPosition).bytes.subarray(offset + NAME_OFFSET, offset + NAME_OFFSET + 11);
+        return bytes.every(byte => byte === 0 || byte === 0x20);
+    }
+
+    /**
+     * Free, in the GAT in memory, the granules that are marked used and that no file claims, if asked to, except
+     * those that are never freed: the boot cylinder's, and locked-out ones. (A TRSDOS 1.3 GAT has no lockout
+     * bits, but it has a table of cylinders that don't exist or are flawed, and a granule on such a cylinder
+     * is kept too.)
+     *
+     * @param free whether to free the granules.
+     * @param changes the user-facing lines, to which the line for this fix is added.
+     * @return the granules that are never freed, and those that would be freed but were not because
+     * {@code free} is false.
+     */
+    private repairUnclaimed(free: boolean, changes: string[]): { kept: TrsdosGranule[], freeable: TrsdosGranule[] } {
+        const gatInfo = this.trsdos.getGatInfo();
+        const existenceTable = this.trsdos.version === TrsdosVersion.V1_3 && typeof gatInfo !== "string" ?
+            gatInfo.lockOut : undefined;
+        const kept: TrsdosGranule[] = [];
+        const freeable: TrsdosGranule[] = [];
+        let freedCount = 0;
+        for (const granule of this.granuleMap.getUsedButUnclaimedGranules()) {
+            const neverFreed = granule.lump === 0 || granule.lockedOut ||
+                (existenceTable !== undefined && (existenceTable[granule.lump] ?? 0) !== 0);
+            if (neverFreed) {
+                kept.push(granule);
+            } else if (free) {
+                this.gat.bytes[granule.lump] &= ~(1 << granule.granule);
+                this.gat.dirty = true;
+                freedCount += 1;
+            } else {
+                freeable.push(granule);
+            }
+        }
+
+        if (freedCount > 0) {
+            changes.push(`Freed ${freedCount.toLocaleString()} ${freedCount === 1 ? "granule" : "granules"} ` +
+                `that the GAT marked used and no file claims.`);
+        }
+        return {kept, freeable};
+    }
+
+    /**
+     * Throw if the disk, decoded after a repair, doesn't show what the repair promised: no granule claimed but
+     * free, no orphaned extended entry, no HIT mismatch beyond those left alone, and no more unclaimed
+     * granules than were kept.
+     *
+     * @param newTrsdos the file system decoded after the change.
+     * @param expectation what the repair promised.
+     */
+    private static verifyRepair(newTrsdos: Trsdos, expectation: RepairExpectation): void {
+        const findings = checkTrsdos(newTrsdos).findings;
+        const claimedButFree = findings.find(finding => finding.kind === TrsdosFindingKind.CLAIMED_BUT_FREE);
+        if (claimedButFree !== undefined) {
+            throw new TrsdosWriteError("After the repair, the disk still has a problem it should have fixed: " +
+                claimedButFree.message);
+        }
+        const orphans = findings.filter(finding => finding.kind === TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY);
+        if (orphans.length !== expectation.unfixedOrphans) {
+            throw new TrsdosWriteError(`After the repair, the disk has ${orphans.length} orphaned extended entries ` +
+                `instead of ${expectation.unfixedOrphans}`);
+        }
+        const mismatches = findings.filter(finding => finding.kind === TrsdosFindingKind.HIT_MISMATCH);
+        if (mismatches.length !== expectation.unfixedHitMismatches) {
+            throw new TrsdosWriteError(`After the repair, the disk has ${mismatches.length} HIT mismatches ` +
+                `instead of ${expectation.unfixedHitMismatches}`);
+        }
+        if (expectation.freedUnclaimed) {
+            const unclaimedCount = findings
+                .filter(finding => finding.kind === TrsdosFindingKind.USED_BUT_UNCLAIMED)
+                .reduce((sum, finding) => sum + finding.granules.length, 0);
+            if (unclaimedCount !== expectation.keptUnclaimedGranules) {
+                throw new TrsdosWriteError(`After the repair, the disk has ${unclaimedCount} unclaimed granules ` +
+                    `instead of ${expectation.keptUnclaimedGranules}`);
+            }
+        }
+    }
+
+    /**
      * Whether anything has been changed in memory since the writer was made, not counting changes
      * that put a byte back to what it was.
      */
@@ -2164,6 +2565,11 @@ export class TrsdosWriter {
         // The disk's name, date, master password and AUTO command.
         if (this.expectedDiskInfo !== undefined) {
             this.verifyDiskInfo(newTrsdos, this.expectedDiskInfo);
+        }
+
+        // What a repair promised.
+        if (this.repairExpectation !== undefined) {
+            TrsdosWriter.verifyRepair(newTrsdos, this.repairExpectation);
         }
 
         // No new problems.
