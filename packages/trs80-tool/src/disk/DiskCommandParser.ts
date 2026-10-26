@@ -33,6 +33,8 @@ export interface DiskCommandSpec {
     maxArgs: number;
     /** The options this command accepts. */
     options: DiskOptionSpec[];
+    /** More lines for "help COMMAND", after the options and aliases, such as a list of choices. */
+    extraHelpLines?: string[] | undefined;
 }
 
 /**

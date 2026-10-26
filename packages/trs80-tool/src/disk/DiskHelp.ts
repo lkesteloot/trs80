@@ -156,6 +156,9 @@ export function diskCommandHelpLines(name: string, commandSpecs: DiskCommandSpec
     if (spec.aliases.length > 0) {
         lines.push("Also called: " + spec.aliases.join(", "));
     }
+    if (spec.extraHelpLines !== undefined) {
+        lines.push(... spec.extraHelpLines);
+    }
 
     return lines;
 }

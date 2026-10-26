@@ -1,12 +1,19 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {Density, makeTrsdos23TestDisk, type TestFile} from "trs80-base";
+import {
+    decodeFloppyFileSystem, Density, makeTrsdos23TestDisk, SectorPosition, type TestFile, TrsdosFormatDos,
+    trsdosFormatDosCliName,
+} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
 import {parseFormatDosName} from "./DiskHelp.js";
 import {DiskSession} from "./DiskSession.js";
+import {
+    describeSystemDiskTemplate, getDataDiskBootSectors, loadSystemDiskTemplate, SYSTEM_DISK_TEMPLATES,
+    type SystemDiskTemplate,
+} from "./DiskTemplates.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 
@@ -27,6 +34,45 @@ const DOS_CASES: DosCase[] = [
     {dos: "trsdos-6.2", nameAndVersion: "TRSDOS 6.2"},
     {dos: "lsdos-6.3", nameAndVersion: "LS-DOS 6.3"},
 ];
+
+/**
+ * One data disk whose boot sectors should be the DOS's own.
+ */
+interface BootSectorCase {
+    /** The words after "create" that choose the DOS and density. */
+    words: string[];
+    /** The DOS. */
+    dos: TrsdosFormatDos;
+    /** The disk's density. */
+    density: Density;
+    /** The sector numbers that the boot sectors are in, on cylinder 0 side 0. */
+    sectors: number[];
+    /** The offset in the first boot sector of the directory cylinder, which the formatter patches. */
+    directoryCylinderOffset: number;
+}
+
+const BOOT_SECTOR_CASES: BootSectorCase[] = [
+    {words: ["--dos", "trsdos-2.3"], dos: TrsdosFormatDos.TRSDOS_2_3, density: Density.SINGLE, sectors: [0],
+        directoryCylinderOffset: 2},
+    {words: ["--dos", "trsdos-1.3"], dos: TrsdosFormatDos.TRSDOS_1_3, density: Density.DOUBLE, sectors: [1, 2],
+        directoryCylinderOffset: 1},
+    {words: ["--dos", "ldos-5.3", "--model", "1"], dos: TrsdosFormatDos.LDOS_5_3, density: Density.SINGLE,
+        sectors: [0, 1], directoryCylinderOffset: 2},
+    {words: ["--dos", "ldos-5.3", "--model", "3"], dos: TrsdosFormatDos.LDOS_5_3, density: Density.DOUBLE,
+        sectors: [0, 1], directoryCylinderOffset: 2},
+    {words: ["--dos", "trsdos-6.2"], dos: TrsdosFormatDos.TRSDOS_6_2, density: Density.DOUBLE, sectors: [0, 1],
+        directoryCylinderOffset: 2},
+    {words: ["--dos", "lsdos-6.3"], dos: TrsdosFormatDos.LSDOS_6_3, density: Density.DOUBLE, sectors: [0, 1],
+        directoryCylinderOffset: 2},
+];
+
+/**
+ * What a system disk template's file system calls itself, such as "LDOS 5.3.1": unlike a data disk
+ * we make, it has the DOS's banner, which names the release.
+ */
+function templateNameAndVersion(template: SystemDiskTemplate): string {
+    return describeSystemDiskTemplate(template).replace(/ system disk for the Model \d$/, "");
+}
 
 describe("disk create and format", () => {
     let dir = "";
@@ -308,6 +354,143 @@ describe("disk create and format", () => {
             expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
         }
     }, 30000);
+
+    for (const bootCase of BOOT_SECTOR_CASES) {
+        it(`gives a ${bootCase.words.join(" ")} disk the DOS's own boot sectors`, async () => {
+            await runDisk("create", ...bootCase.words);
+            const floppy = DiskSession.open(imagePathname).floppy;
+
+            const bundled = getDataDiskBootSectors(bootCase.dos, bootCase.density);
+            expect(bundled).to.not.eql(undefined);
+            expect(bundled?.length).to.eql(bootCase.sectors.length);
+            bootCase.sectors.forEach((sectorNumber, i) => {
+                const actual = floppy.readSector(SectorPosition.make(0, 0, sectorNumber))?.data;
+                expect(actual).to.not.eql(undefined);
+                const expected = new Uint8Array(bundled![i]);
+                // The formatter patches in the directory cylinder (and nothing else), since the bundled sectors
+                // may come from a disk of another size. The LDOS line keeps it in both boot sectors.
+                expected[bootCase.directoryCylinderOffset] = actual![bootCase.directoryCylinderOffset];
+                expect(Array.from(actual!)).to.eql(Array.from(expected));
+            });
+        });
+    }
+
+    it("has boot sectors for the combinations we measured and none for the others", () => {
+        expect(getDataDiskBootSectors(TrsdosFormatDos.LDOS_5_3, Density.SINGLE)).to.not.eql(undefined);
+        expect(getDataDiskBootSectors(TrsdosFormatDos.LDOS_5_3, Density.DOUBLE)).to.not.eql(undefined);
+        expect(getDataDiskBootSectors(TrsdosFormatDos.LSDOS_6_3, Density.SINGLE)).to.eql(undefined);
+        expect(getDataDiskBootSectors(TrsdosFormatDos.TRSDOS_6_2, Density.SINGLE)).to.eql(undefined);
+    });
+
+    it("still makes a disk where we have no boot sectors of the DOS's own", async () => {
+        await runDisk("create", "--dos", "lsdos-6.3", "--density", "single");
+        expect(DiskSession.open(imagePathname).fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
+    });
+
+    describe("--system", () => {
+        /**
+         * The words of "create" that choose a system disk.
+         */
+        function systemWords(template: SystemDiskTemplate): string[] {
+            return ["create", "--dos", trsdosFormatDosCliName(template.dos), "--model", String(template.model), "--system"];
+        }
+
+        for (const template of SYSTEM_DISK_TEMPLATES) {
+            const description = describeSystemDiskTemplate(template);
+
+            it(`copies the ${description}`, async () => {
+                const lines = await runDisk(...systemWords(template));
+                expect(lines[0]).to.match(/^Created .*: Floppy disk \(DMK\), /);
+                expect(lines.some(line => line.startsWith("Copied from the " + description + " ("))).to.eql(true);
+                expect(lines.some(line => line.includes("Read-only: "))).to.eql(false);
+
+                const templateFloppy = loadSystemDiskTemplate(template);
+                const templateFileSystem = decodeFloppyFileSystem(templateFloppy);
+                expect(templateFileSystem?.nameAndVersion).to.eql(templateNameAndVersion(template));
+
+                const session = DiskSession.open(imagePathname);
+                expect(session.fileSystem?.nameAndVersion).to.eql(templateNameAndVersion(template));
+                expect(session.getReadOnlyReason()).to.eql(undefined);
+                expect(session.floppy.isWriteProtected()).to.eql(false);
+                // Exactly what the template has.
+                const names = session.fileSystem!.getDirEntries(true).map(dirEntry => dirEntry.getFilename("/"));
+                const templateNames = templateFileSystem!.getDirEntries(true).map(dirEntry => dirEntry.getFilename("/"));
+                expect(names).to.eql(templateNames);
+            }, 30000);
+
+            it(`makes a minimal ${description} with only system files, which then takes a file`, async () => {
+                const hostPathname = makeHostFile("small.bin", 300);
+                const lines = await runDisk(...systemWords(template), "--minimal", ":", "add", hostPathname, "--as",
+                    "SMALL/BIN");
+                expect(lines).to.include("Added SMALL/BIN (300 bytes).");
+                expect(lines.some(line => line.startsWith("Copied from the " + description))).to.eql(true);
+                expect(lines.some(line => /--minimal/.test(line))).to.eql(true);
+
+                const session = DiskSession.open(imagePathname);
+                expect(session.fileSystem?.nameAndVersion).to.eql(templateNameAndVersion(template));
+                expect(session.getReadOnlyReason()).to.eql(undefined);
+                const dirEntries = session.fileSystem!.getDirEntries(true)
+                    .filter(dirEntry => dirEntry.getFilename("/") !== "SMALL/BIN");
+                expect(dirEntries.every(dirEntry => dirEntry.isSystemFile())).to.eql(true);
+                const templateCount = decodeFloppyFileSystem(loadSystemDiskTemplate(template))!.getDirEntries(true).length;
+                expect(dirEntries.length).to.be.at.most(templateCount);
+                // Whatever was removed is named in the output.
+                const removedCount = templateCount - dirEntries.length;
+                expect(lines.some(line => line.includes(removedCount === 0 ? "No files to remove" :
+                    "Removed " + removedCount + (removedCount === 1 ? " file" : " files")))).to.eql(true);
+            }, 30000);
+        }
+
+        it("changes the name and date of the copy", async () => {
+            const template = SYSTEM_DISK_TEMPLATES.find(t => t.dos === TrsdosFormatDos.LDOS_5_3 && t.model === 3)!;
+            await runDisk(...systemWords(template), "--name", "mydisk", "--date", "1983-05-09");
+            const lines = await runDisk("label");
+            expect(lines.slice(0, 2)).to.eql(["Name: MYDISK", "Date: 05/09/83"]);
+        });
+
+        it("chooses LDOS 5.3's Model I disk for --model 1 and the Model III disk otherwise", async () => {
+            await runDisk("create", "--dos", "ldos-5.3", "--model", "1", "--system");
+            expect(DiskSession.open(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.SINGLE);
+            await runDisk("create", "--dos", "ldos-5.3", "--system", "--force");
+            expect(DiskSession.open(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.DOUBLE);
+        });
+
+        it("refuses a shape that differs from the system disk's, and makes no file", async () => {
+            const lsdos = SYSTEM_DISK_TEMPLATES.find(t => t.dos === TrsdosFormatDos.LSDOS_6_3)!;
+            const cylinders = loadSystemDiskTemplate(lsdos).getGeometry().cylinderCount;
+
+            const cylindersError = await runDiskExpectingError(...systemWords(lsdos), "--cylinders", String(cylinders + 5));
+            expect(cylindersError.message).to.match(new RegExp("^The LS-DOS 6\\.3\\.1 system disk for the Model 4 is " +
+                cylinders + " cylinders, (single|double)-sided, (single|double) density, so create --system can't use " +
+                "--cylinders " + (cylinders + 5) + "$"));
+
+            const densityError = await runDiskExpectingError(...systemWords(lsdos), "--density", "single");
+            expect(densityError.message).to.match(/can't use --density single$/);
+
+            expect(fs.existsSync(imagePathname)).to.eql(false);
+        });
+
+        it("accepts a shape that matches the system disk's", async () => {
+            const lsdos = SYSTEM_DISK_TEMPLATES.find(t => t.dos === TrsdosFormatDos.LSDOS_6_3)!;
+            const geometry = loadSystemDiskTemplate(lsdos).getGeometry();
+            await runDisk(...systemWords(lsdos), "--cylinders", String(geometry.cylinderCount),
+                "--sides", String(geometry.sideCount), "--density",
+                geometry.modalDataDensity === Density.SINGLE ? "single" : "double");
+            expect(fs.existsSync(imagePathname)).to.eql(true);
+        });
+
+        it("refuses --minimal without --system", async () => {
+            const error = await runDiskExpectingError("create", "--dos", "ldos-5.3", "--minimal");
+            expect(error.message).to.eql("--minimal only applies with --system");
+        });
+
+        it("lists the system disks in the help for create", async () => {
+            const lines = await runDisk("help", "create");
+            for (const template of SYSTEM_DISK_TEMPLATES) {
+                expect(lines).to.include("  " + describeSystemDiskTemplate(template));
+            }
+        });
+    });
 
     describe("format", () => {
         /**

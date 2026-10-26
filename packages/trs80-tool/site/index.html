@@ -602,7 +602,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                 <tr>
                     <td><code>create --dos NAME</code></td>
                     <td><p>Make a new, blank, formatted data disk, with no files, the way the DOS’s own
-                        <code>FORMAT</code> leaves one. It works when the image doesn’t exist yet (the disk is
+                        <code>FORMAT</code> leaves one (or, with <code>--system</code>, a bootable system disk). It works when the image doesn’t exist yet (the disk is
                         saved under that name at the end), or with <code>--force</code> to replace in memory the
                         disk that the image has. The image is always a DMK one, so a name ending in
                         <code>.jv1</code>, <code>.jv3</code>, <code>.dsk</code>, <code>.hfe</code> or <code>.imd</code> is
@@ -619,9 +619,33 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         <code>--model 1|3|4</code> (only chooses LDOS 5.3’s default density: single for the
                         Model I, double otherwise), <code>--name NAME</code> (default <code>DATADISK</code>) and
                         <code>--date YYYY-MM-DD</code> (default today, as <code>FORMAT</code> does).</p>
-                        <p>The disk gets a boot sector of our own, which only prints a message and halts, so it is a
-                        data disk and not a system disk. The DOS and this tool still recognize it by its other
-                        sectors.</p></td>
+                        <p>The disk gets the DOS’s own data-disk boot sectors, copied from disks that the DOS formatted,
+                        so apart from the name and date it is the same as what <code>FORMAT</code> makes. It is still
+                        a data disk, not a system disk. (Where we haven’t measured the DOS’s own, which is
+                        single-density TRSDOS 6 and LS-DOS 6 disks, the disk gets a boot sector of our own that only
+                        prints a message and halts; the DOS and this tool still recognize the disk by its other
+                        sectors.)</p>
+                        <p>With <code>--system</code>, <code>create</code> instead makes a bootable system disk: a copy
+                        of the DOS’s own system disk, with all its files. Each DOS has one disk (LDOS 5.3 has one for
+                        the Model I and one for the Model III, and <code>--model 1</code> chooses the first), which
+                        fixes the shape of the disk, so <code>--cylinders</code>, <code>--sides</code> and
+                        <code>--density</code> are refused if they differ from it. <code>--name</code> and
+                        <code>--date</code> change the copy’s name and date. <code>--minimal</code> removes every file
+                        that isn’t a system file, keeping what the DOS needs to boot (and saying what it removed), to
+                        leave room on the disk. The result can be changed by later commands in the same run, such as
+                        <code>add</code>, like any other disk.</p>
+                        <p>The bundled system disks, which <code>help create</code> also lists, are:</p>
+                        <ul>
+                            <li>TRSDOS 2.3 for the Model I</li>
+                            <li>TRSDOS 1.3 for the Model III</li>
+                            <li>LDOS 5.3.1 for the Model I</li>
+                            <li>LDOS 5.3.1 for the Model III</li>
+                            <li>TRSDOS 6.2.1 for the Model 4</li>
+                            <li>LS-DOS 6.3.1 for the Model 4</li>
+                        </ul>
+                        <p>These disks and the DOSes’ boot sectors are the DOS publishers’ software, shipped inside the
+                        tool as the trs80gp emulator ships them. They will be taken out of the tool if the rights holders
+                        ask.</p></td>
                 </tr>
                 <tr>
                     <td><code>format</code></td>

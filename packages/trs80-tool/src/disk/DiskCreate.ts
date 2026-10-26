@@ -1,7 +1,7 @@
 import path from "path";
 import {
-    Density, type DmkFloppyDisk, formatTrsdosDataDisk, TrsdosFormatDos, trsdosFormatDosToString, type TrsdosFormatOptions,
-    TrsdosRuleSet,
+    Density, densityToString, type FloppyDisk, formatTrsdosDataDisk, TrsdosFormatDos, trsdosFormatDosToString,
+    type TrsdosFormatOptions, TrsdosRuleSet,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
@@ -9,7 +9,11 @@ import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {DiskOptionSpec, DiskOptionValues, parseAddDate} from "./DiskCommandParser.js";
 import {parseFormatDosName} from "./DiskHelp.js";
-import {DiskSession} from "./DiskSession.js";
+import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
+import {
+    describeSystemDiskTemplate, findSystemDiskTemplate, getDataDiskBootSectors, loadSystemDiskTemplate,
+    systemDiskHelpLines,
+} from "./DiskTemplates.js";
 
 /**
  * The file name extensions of other kinds of disk image, which "create" and "format" refuse to save a
@@ -162,14 +166,38 @@ function parseFormatChoices(options: DiskOptionValues): FormatChoices {
 }
 
 /**
- * Make the blank disk, in memory.
+ * The density that a disk gets when the options don't say, following {@link formatTrsdosDataDisk}.
+ */
+function effectiveDensity(formatOptions: TrsdosFormatOptions): Density {
+    if (formatOptions.density !== undefined) {
+        return formatOptions.density;
+    }
+
+    switch (formatOptions.dos) {
+        case TrsdosFormatDos.TRSDOS_2_3:
+            return Density.SINGLE;
+        case TrsdosFormatDos.TRSDOS_1_3:
+        case TrsdosFormatDos.TRSDOS_6_2:
+        case TrsdosFormatDos.LSDOS_6_3:
+            return Density.DOUBLE;
+        case TrsdosFormatDos.LDOS_5_3:
+            return formatOptions.model === 1 ? Density.SINGLE : Density.DOUBLE;
+        default:
+            assertNever(formatOptions.dos);
+    }
+}
+
+/**
+ * Make the blank disk, in memory, with the DOS's own boot sectors when we have them for that DOS and
+ * density, so that it matches what the DOS's FORMAT makes. Otherwise the disk gets a boot sector of ours.
  *
  * @param formatOptions what to make.
  * @return the disk.
  * @throws ToolError with the reason, if the DOS can't make a disk like that.
  */
-function makeBlankDisk(formatOptions: TrsdosFormatOptions): DmkFloppyDisk {
-    const floppy = formatTrsdosDataDisk(formatOptions);
+function makeBlankDisk(formatOptions: TrsdosFormatOptions): FloppyDisk {
+    const bootSectors = getDataDiskBootSectors(formatOptions.dos, effectiveDensity(formatOptions));
+    const floppy = formatTrsdosDataDisk({... formatOptions, bootSectors});
     if (typeof floppy === "string") {
         throw new ToolError(floppy);
     }
@@ -238,20 +266,119 @@ function printNewDiskSummary(verb: string, session: DiskSession): void {
 }
 
 /**
- * The "create" command: make a new, blank, formatted data disk.
+ * Describe a floppy's shape for the user, such as "40 cylinders, double-sided, double density".
+ */
+function describeShape(floppy: FloppyDisk): string {
+    const geometry = floppy.getGeometry();
+    const density = geometry.modalDataDensity === undefined ? "unknown" : densityToString(geometry.modalDataDensity);
+    return pluralizeWithCount(geometry.cylinderCount, "cylinder") + ", " +
+        (geometry.sideCount === 1 ? "single" : "double") + "-sided, " + density + " density";
+}
+
+/**
+ * Check that the options don't ask for a shape that differs from the system disk's, since the files on it
+ * fix its shape.
+ *
+ * @param choices what the user chose.
+ * @param floppy the system disk.
+ * @param description what the system disk is, such as "LS-DOS 6.3.1 system disk for the Model 4".
+ * @throws ToolError if --cylinders, --sides or --density names something other than what the disk has.
+ */
+function checkSystemDiskShape(choices: FormatChoices, floppy: FloppyDisk, description: string): void {
+    const geometry = floppy.getGeometry();
+    const conflicts: string[] = [];
+    if (choices.cylinders !== undefined && choices.cylinders !== geometry.cylinderCount) {
+        conflicts.push("--cylinders " + choices.cylinders);
+    }
+    if (choices.sides !== undefined && choices.sides !== geometry.sideCount) {
+        conflicts.push("--sides " + choices.sides);
+    }
+    if (choices.density !== undefined && choices.density !== geometry.modalDataDensity) {
+        conflicts.push("--density " + densityToString(choices.density));
+    }
+
+    if (conflicts.length > 0) {
+        throw new ToolError("The " + description + " is " + describeShape(floppy) + ", so create --system can't " +
+            "use " + conflicts.join(" or "));
+    }
+}
+
+/**
+ * Make the session's disk a copy of a DOS's system disk, for "create --system".
+ *
+ * @param session the session, which has had its checks for replacing a disk.
+ * @param choices what the user chose, including the DOS.
+ * @param minimal whether to remove the files that aren't system files.
+ * @throws ToolError if the options don't fit the system disk or the changes can't be made.
+ */
+function createSystemDisk(session: DiskSession, choices: FormatChoices, dos: TrsdosFormatDos, minimal: boolean): void {
+    const template = findSystemDiskTemplate(dos, choices.model);
+    const description = describeSystemDiskTemplate(template);
+    const floppy = loadSystemDiskTemplate(template);
+    checkSystemDiskShape(choices, floppy, description);
+
+    const replacing = session.hasDisk();
+    session.setFloppy(floppy);
+    if (replacing) {
+        console.log("Replaced the disk in memory; nothing is saved until quit.");
+    }
+
+    const removedNames: string[] = [];
+    if (choices.name !== undefined || choices.date !== undefined || minimal) {
+        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
+            if (choices.name !== undefined || choices.date !== undefined) {
+                writer.setDiskInfo({name: choices.name, date: choices.date});
+            }
+            if (minimal) {
+                // Keep the system files, which are the ones the DOS needs to boot.
+                for (const dirEntry of writer.getFiles().filter(dirEntry => !dirEntry.isSystemFile())) {
+                    writer.deleteFile(dirEntry);
+                    removedNames.push(dirEntry.getFilename("/"));
+                }
+            }
+        });
+    }
+
+    printNewDiskSummary("Created", session);
+    console.log("Copied from the " + description + " (" + describeShape(floppy) + ").");
+    if (minimal) {
+        console.log(removedNames.length === 0 ? "No files to remove for --minimal." :
+            "Removed " + pluralizeWithCount(removedNames.length, "file") + " for --minimal: " + removedNames.join(", ") + ".");
+    }
+}
+
+/**
+ * The "create" command: make a new, blank, formatted data disk, or with --system a copy of a DOS's system disk.
  */
 export const CREATE_COMMAND: DiskCommand = {
     spec: {
         name: "create",
         aliases: [],
         usage: "--dos NAME [--cylinders N] [--sides 1|2] [--density single|double] [--model 1|3|4] " +
-            "[--name NAME] [--date YYYY-MM-DD] [--force]",
-        summary: "make a new, blank, formatted data disk",
+            "[--name NAME] [--date YYYY-MM-DD] [--system [--minimal]] [--force]",
+        summary: "make a new, blank, formatted data disk, or a bootable system disk",
         minArgs: 0,
         maxArgs: 0,
-        options: makeFormatOptionSpecs("the DOS to format for: trsdos-2.3, trsdos-1.3, ldos-5.3, trsdos-6.2, or lsdos-6.3 " +
-            "(required; some other spellings work)",
-            "replace the disk that the image already has, in memory"),
+        options: [
+            ... makeFormatOptionSpecs("the DOS to format for: trsdos-2.3, trsdos-1.3, ldos-5.3, trsdos-6.2, or lsdos-6.3 " +
+                "(required; some other spellings work)",
+                "replace the disk that the image already has, in memory"),
+            {
+                name: "--system",
+                valueName: undefined,
+                description: "make a copy of the DOS's bootable system disk, not a blank one (--model 1 picks " +
+                    "LDOS 5.3's Model I disk, else its Model III disk)",
+            },
+            {
+                name: "--minimal",
+                valueName: undefined,
+                description: "with --system, remove the files that aren't system files, leaving the DOS's own",
+            },
+        ],
+        extraHelpLines: [
+            "The --system disks, one per DOS and model; --cylinders, --sides and --density must match the disk:",
+            ... systemDiskHelpLines(),
+        ],
     },
 
     endsSession: false,
@@ -259,10 +386,12 @@ export const CREATE_COMMAND: DiskCommand = {
     worksWithoutDisk: true,
 
     /**
-     * Make the disk with the DOS's usual layout, as its FORMAT would (but with a boot sector of our own),
-     * and put it in the session as if it had been opened, with changes pending. This only works when the
-     * session has no disk, or with --force, which replaces the session's disk in memory. The image is
-     * a DMK one, so a file name for another kind is refused.
+     * Make the disk with the DOS's usual layout, as its FORMAT would (with its boot sectors when we have them),
+     * and put it in the session as if it had been opened, with changes pending. With --system the disk is
+     * instead a copy of the DOS's system disk, optionally trimmed to its system files, and --name and
+     * --date change that copy's name and date. This only works when the session has no disk, or with
+     * --force, which replaces the session's disk in memory. The image is a DMK one, so a file name for another
+     * kind is refused.
      */
     run(session, command) {
         const options = command.options;
@@ -271,10 +400,20 @@ export const CREATE_COMMAND: DiskCommand = {
             throw new ToolError("create needs --dos NAME to say which DOS to format for");
         }
         const dos = choices.dos;
+        const system = options.has("--system");
+        const minimal = options.has("--minimal");
+        if (minimal && !system) {
+            throw new ToolError("--minimal only applies with --system");
+        }
 
         requireDmkPathname(session, "create makes DMK images; name the file .dmk");
         if (session.hasDisk() && !options.has("--force")) {
             throw new ToolError(session.pathname + " already has a disk; use --force to replace it with a new blank one");
+        }
+
+        if (system) {
+            createSystemDisk(session, choices, dos, minimal);
+            return;
         }
 
         const floppy = makeBlankDisk({
