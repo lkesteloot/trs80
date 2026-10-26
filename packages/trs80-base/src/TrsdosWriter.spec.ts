@@ -832,3 +832,172 @@ describe("TrsdosWriter.addFile", () => {
         expect(() => writer.addFile(name("LATE"), makeContents(1))).to.throw(TrsdosWriteError, "already been flushed");
     });
 });
+
+/**
+ * The raw bytes of a directory entry on the overlay, by its DEC.
+ */
+function entryBytesAt(overlay: SectorOverlay, trsdos: Trsdos, dec: number): Uint8Array {
+    const {sectorPosition, offset} = trsdos.getDirEntryLocation(dec);
+    return readBytes(overlay, sectorPosition).slice(offset, offset + 32);
+}
+
+describe("TrsdosWriter.renameFile", () => {
+    it("changes only the name bytes and the HIT byte, and the file reads the same", () => {
+        const {disk, overlay, trsdos, writer} = makeFixture([HELLO, WORLD]);
+        const helloBytes = trsdos.readFile(getFile(trsdos, "HELLO/BAS"));
+        const worldBytes = trsdos.readFile(getFile(trsdos, "WORLD/TXT"));
+        const helloSlot = trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "HELLO/BAS");
+        if (helloSlot === undefined) {
+            throw new Error("No slot");
+        }
+        const location = trsdos.getDirEntryLocation(helloSlot.hitIndex);
+        const oldDirSector = readBytes(disk, location.sectorPosition).slice();
+        const oldHit = readBytes(disk, trsdos.getHitPosition()).slice();
+        const oldGat = readBytes(disk, trsdos.getGatPosition()).slice();
+
+        expect(writer.hasChanges()).to.eql(false);
+        writer.renameFile(writerFile(writer, "hello/bas"), name("greet.txt"));
+        expect(writer.hasChanges()).to.eql(true);
+        expect(writer.findFile("HELLO/BAS")).to.be.undefined;
+        expect(writer.findFile("greet/txt")).to.not.be.undefined;
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.have.members(["GREET/TXT", "WORLD/TXT"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "GREET/TXT"))).to.eql(helloBytes);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "WORLD/TXT"))).to.eql(worldBytes);
+
+        // The directory sector differs from before only in bytes 5-15 of the entry.
+        const expectedDirSector = oldDirSector.slice();
+        const raw = "GREET   TXT";
+        for (let i = 0; i < 11; i++) {
+            expectedDirSector[location.offset + 5 + i] = raw.charCodeAt(i);
+        }
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(expectedDirSector);
+
+        // The HIT differs only in that entry's byte, which is the new hash.
+        const expectedHit = oldHit.slice();
+        expectedHit[helloSlot.hitIndex] = hashForFilename(raw);
+        expect(readBytes(overlay, trsdos.getHitPosition())).to.eql(expectedHit);
+
+        // The GAT is untouched.
+        expect(readBytes(overlay, trsdos.getGatPosition())).to.eql(oldGat);
+    });
+
+    it("refuses BOOT/SYS and DIR/SYS", () => {
+        const {writer} = makeFixture([HELLO]);
+        expect(() => writer.renameFile(writerFile(writer, "BOOT/SYS"), name("OTHER/SYS")))
+            .to.throw(TrsdosWriteError, "BOOT/SYS can't be renamed: the DOS needs it where it is");
+        expect(() => writer.renameFile(writerFile(writer, "DIR/SYS"), name("OTHER/SYS")))
+            .to.throw(TrsdosWriteError, "DIR/SYS can't be renamed: the DOS needs it where it is");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("refuses a name in use, in any case, and changes nothing", () => {
+        const {writer} = makeFixture([HELLO, WORLD]);
+        const hello = writerFile(writer, "HELLO/BAS");
+        expect(() => writer.renameFile(hello, name("WORLD/TXT"))).to.throw(TrsdosWriteError, "WORLD/TXT is already on the disk");
+        expect(() => writer.renameFile(hello, name("world.txt"))).to.throw(TrsdosWriteError, "WORLD/TXT is already on the disk");
+        // Also a name that addFile has taken.
+        writer.addFile(name("NEW/DAT"), makeContents(10));
+        expect(() => writer.renameFile(hello, name("new.dat"))).to.throw(TrsdosWriteError, "NEW/DAT is already on the disk");
+        expect(writer.findFile("HELLO/BAS")).to.equal(hello);
+    });
+
+    it("changes nothing when renaming a file to its own name", () => {
+        const {writer} = makeFixture([HELLO, WORLD]);
+        writer.renameFile(writerFile(writer, "HELLO/BAS"), name("hello.bas"));
+        expect(writer.hasChanges()).to.eql(false);
+        const newTrsdos = writer.flush();
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.have.members(["HELLO/BAS", "WORLD/TXT"]);
+    });
+
+    it("renames a file and then deletes it", () => {
+        const {trsdos, writer} = makeFixture([HELLO, WORLD]);
+        const worldBytes = trsdos.readFile(getFile(trsdos, "WORLD/TXT"));
+        const hello = writerFile(writer, "HELLO/BAS");
+        writer.renameFile(hello, name("GREET/TXT"));
+        writer.deleteFile(writerFile(writer, "GREET/TXT"));
+        expect(writer.findFile("GREET/TXT")).to.be.undefined;
+        const newTrsdos = writer.flush();
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["WORLD/TXT"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "WORLD/TXT"))).to.eql(worldBytes);
+    });
+
+    it("deletes a file and then renames another to its name", () => {
+        const {trsdos, writer} = makeFixture([HELLO, WORLD]);
+        const worldBytes = trsdos.readFile(getFile(trsdos, "WORLD/TXT"));
+        writer.deleteFile(writerFile(writer, "HELLO/BAS"));
+        writer.renameFile(writerFile(writer, "WORLD/TXT"), name("HELLO/BAS"));
+        const newTrsdos = writer.flush();
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["HELLO/BAS"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "HELLO/BAS"))).to.eql(worldBytes);
+    });
+
+    it("renames a file and then adds a new file with its old name", () => {
+        const {trsdos, writer} = makeFixture([HELLO, WORLD]);
+        const helloBytes = trsdos.readFile(getFile(trsdos, "HELLO/BAS"));
+        const contents = makeContents(300);
+        writer.renameFile(writerFile(writer, "HELLO/BAS"), name("OLD/BAS"));
+        writer.addFile(name("HELLO/BAS"), contents);
+        // The old name is taken again, and the new one too.
+        expect(() => writer.addFile(name("OLD/BAS"), contents)).to.throw(TrsdosWriteError, "OLD/BAS is already on the disk");
+        const newTrsdos = writer.flush();
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.have.members(["OLD/BAS", "HELLO/BAS", "WORLD/TXT"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "OLD/BAS"))).to.eql(helloBytes);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "HELLO/BAS"))).to.eql(contents);
+    });
+
+    it("renames twice, and handles a change of case", () => {
+        const {writer} = makeFixture([HELLO]);
+        writer.renameFile(writerFile(writer, "HELLO/BAS"), name("ONE/BAS"));
+        writer.renameFile(writerFile(writer, "ONE/BAS"), name("TWO/BAS"));
+        expect(writer.findFile("ONE/BAS")).to.be.undefined;
+        expect(writer.findFile("TWO/BAS")).to.not.be.undefined;
+        const newTrsdos = writer.flush();
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["TWO/BAS"]);
+    });
+
+    it("updates the HIT byte of every entry of a file with extended entries under LDOS 5 rules", () => {
+        const lumps = [3, 4, 5, 6, 7, 9];
+        const extents = lumps.map(lump => ({lump, granuleOffset: 0, granuleCount: 2}));
+        const {overlay, trsdos, writer} = makeFixture([{name: "BIG/DAT", extents}, WORLD], {}, TrsdosRuleSet.LDOS_5);
+        const bigBytes = trsdos.readFile(getFile(trsdos, "BIG/DAT"));
+        const decs = [testUserSlotDec(0), testUserSlotDec(1)];
+        const oldFxde = entryBytesAt(overlay, trsdos, decs[1]);
+
+        writer.renameFile(writerFile(writer, "BIG/DAT"), name("HUGE/BIN"));
+        const newTrsdos = writer.flush();
+
+        const hit = readBytes(overlay, trsdos.getHitPosition());
+        const hash = hashForFilename("HUGE    BIN");
+        expect(hit[decs[0]]).to.eql(hash);
+        expect(hit[decs[1]]).to.eql(hash);
+        // The extended entry's own bytes are unchanged.
+        expect(entryBytesAt(overlay, trsdos, decs[1])).to.eql(oldFxde);
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.have.members(["HUGE/BIN", "WORLD/TXT"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "HUGE/BIN"))).to.eql(bigBytes);
+    });
+
+    it("refuses a file with extended entries under TRSDOS 2.x's rules", () => {
+        const lumps = [3, 4, 5, 6, 7, 9];
+        const extents = lumps.map(lump => ({lump, granuleOffset: 0, granuleCount: 2}));
+        const {writer} = makeFixture([{name: "BIG/DAT", extents}]);
+        expect(() => writer.renameFile(writerFile(writer, "BIG/DAT"), name("HUGE/BIN")))
+            .to.throw(TrsdosWriteError, "extended directory entries");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("refuses to rename after the writer has flushed", () => {
+        const {writer} = makeFixture([HELLO]);
+        const hello = writerFile(writer, "HELLO/BAS");
+        writer.flush();
+        expect(() => writer.renameFile(hello, name("LATE"))).to.throw(TrsdosWriteError, "already been flushed");
+    });
+
+    it("refuses a deleted file", () => {
+        const {writer} = makeFixture([HELLO]);
+        const hello = writerFile(writer, "HELLO/BAS");
+        writer.deleteFile(hello);
+        expect(() => writer.renameFile(hello, name("LATE"))).to.throw(TrsdosWriteError, "has been deleted");
+    });
+});

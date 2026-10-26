@@ -40,6 +40,11 @@ const BYTE1_MODIFIED = 0x40;
 const BYTE1_DATE_NOT_SET = 0x10;
 
 /**
+ * The offset in a directory entry of the 11 bytes of the file's name and extension.
+ */
+const NAME_OFFSET = 5;
+
+/**
  * The most extents that one primary directory entry holds.
  */
 const EXTENTS_PER_ENTRY = 4;
@@ -62,7 +67,7 @@ const LAST_YEAR_WITHOUT_TIME_STAMP = 1987;
 const LAST_YEAR_WITH_TIME_STAMP = 2011;
 
 /**
- * The raw names of the files that can't be deleted, because the DOS needs them where they are.
+ * The raw names of the files that can't be deleted or renamed, because the DOS needs them where they are.
  */
 const PROTECTED_RAW_FILENAMES = ["BOOT    SYS", "DIR     SYS"];
 
@@ -189,7 +194,8 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /**
- * Makes changes to a TRSDOS floppy: the writer's core and its operations, deleting and adding files.
+ * Makes changes to a TRSDOS floppy: the writer's core and its operations, deleting, adding
+ * and renaming files.
  *
  * The writer reads the GAT, the HIT and the directory sectors it changes into memory, makes every
  * change there, and writes back only the sectors that changed, into a {@link SectorOverlay} (so
@@ -257,6 +263,12 @@ export class TrsdosWriter {
      * The primary entries that have been deleted.
      */
     private readonly deleted = new Set<TrsdosDirEntry>();
+
+    /**
+     * The new name of each primary entry that {@link renameFile} has renamed, with a slash before any
+     * extension, such as "HELLO/BAS". Use {@link currentName} to read a name.
+     */
+    private readonly renamed = new Map<TrsdosDirEntry, string>();
 
     /**
      * The rules the disk is written under, which decide what the DOS puts in a new directory entry
@@ -332,7 +344,8 @@ export class TrsdosWriter {
     }
 
     /**
-     * Find a file by name in the writer's directory, ignoring files it has deleted.
+     * Find a file by name in the writer's directory, ignoring files it has deleted and using the
+     * new names of files it has renamed.
      *
      * @param name the name with a slash before the extension, as {@link TrsdosDirEntry.getFilename}
      * gives it, such as "HELLO/BAS". The case doesn't matter.
@@ -341,7 +354,18 @@ export class TrsdosWriter {
     public findFile(name: string): TrsdosDirEntry | undefined {
         const upperName = name.toUpperCase();
         return this.directory.files.find(dirEntry =>
-            !this.deleted.has(dirEntry) && dirEntry.getFilename("/").toUpperCase() === upperName);
+            !this.deleted.has(dirEntry) && this.currentName(dirEntry).toUpperCase() === upperName);
+    }
+
+    /**
+     * A file's name as of the changes so far: the name {@link renameFile} gave it if it has one,
+     * otherwise the name it had on the disk. Everything that compares names goes through this.
+     *
+     * @param dirEntry the file's primary entry.
+     * @return the name with a slash before any extension, such as "HELLO/BAS".
+     */
+    private currentName(dirEntry: TrsdosDirEntry): string {
+        return this.renamed.get(dirEntry) ?? dirEntry.getFilename("/");
     }
 
     /**
@@ -383,7 +407,7 @@ export class TrsdosWriter {
         }
 
         const upperName = name.toUpperCase();
-        const alreadyOnDisk = this.getFiles().some(dirEntry => dirEntry.getFilename("/").toUpperCase() === upperName) ||
+        const alreadyOnDisk = this.getFiles().some(dirEntry => this.currentName(dirEntry).toUpperCase() === upperName) ||
             this.added.some(addedFile => addedFile.name.toUpperCase() === upperName);
         if (alreadyOnDisk) {
             throw new TrsdosWriteError(`${name} is already on the disk`);
@@ -558,7 +582,7 @@ export class TrsdosWriter {
      */
     public deleteFile(dirEntry: TrsdosDirEntry): void {
         this.checkNotFlushed();
-        const name = dirEntry.getFilename("/");
+        const name = this.currentName(dirEntry);
         if (!this.directory.files.includes(dirEntry)) {
             throw new TrsdosWriteError(`${name} isn't a file in this directory`);
         }
@@ -588,12 +612,7 @@ export class TrsdosWriter {
         }
 
         // The primary entry and its chain of extended entries.
-        const chain: TrsdosDirEntry[] = [];
-        for (let entry: TrsdosDirEntry | undefined = dirEntry; entry !== undefined && !chain.includes(entry);
-             entry = entry.nextDirEntry) {
-
-            chain.push(entry);
-        }
+        const chain = TrsdosWriter.entryChain(dirEntry);
         for (const entry of chain) {
             const slot = this.slotsByEntry.get(entry);
             if (slot === undefined) {
@@ -604,6 +623,100 @@ export class TrsdosWriter {
 
         this.releaseGranules(dirEntry);
         this.deleted.add(dirEntry);
+    }
+
+    /**
+     * Rename a file: write the new name into its primary entry and update the HIT byte of that entry
+     * and of each extended entry, since the HIT byte is the hash of the name. Nothing else about the
+     * file changes: not its granules, its dates or its attributes. Nothing reaches the overlay until
+     * {@link flush}. If this throws, the writer is as it was before the call.
+     *
+     * Only TRSDOS 2.3 layouts are supported for now. BOOT/SYS and DIR/SYS can't be renamed. Renaming a
+     * file to its own name changes nothing. A file with extended entries can't be renamed under TRSDOS 2.x
+     * rules, whose extended entries have HIT bytes that we don't understand yet.
+     *
+     * @param dirEntry the file's primary entry, from {@link findFile} or the writer's directory.
+     * @param newFilename the new name, which must not belong to another file (case doesn't matter).
+     * @throws TrsdosWriteError if the file can't be renamed.
+     */
+    public renameFile(dirEntry: TrsdosDirEntry, newFilename: TrsdosFilename): void {
+        this.checkNotFlushed();
+        const name = this.currentName(dirEntry);
+        const newName = trsdosFilenameToString(newFilename);
+        if (!this.directory.files.includes(dirEntry)) {
+            throw new TrsdosWriteError(`${name} isn't a file in this directory`);
+        }
+        if (this.deleted.has(dirEntry)) {
+            throw new TrsdosWriteError(`${name} has been deleted`);
+        }
+        if (!this.slotsByEntry.has(dirEntry)) {
+            throw new TrsdosWriteError(`${name} is a system file that TRSDOS 1.3 doesn't list in its directory, ` +
+                `so it can't be renamed`);
+        }
+        if (PROTECTED_RAW_FILENAMES.includes(dirEntry.rawFilename)) {
+            throw new TrsdosWriteError(`${name} can't be renamed: the DOS needs it where it is`);
+        }
+
+        switch (this.trsdos.version) {
+            case TrsdosVersion.V2_3:
+                break;
+
+            case TrsdosVersion.V1_3:
+                throw new TrsdosWriteError("Renaming files isn't supported yet on TRSDOS 1.3 disks");
+
+            case TrsdosVersion.V2_7:
+                throw new TrsdosWriteError("Renaming files isn't supported yet on TRSDOS 2.7 disks");
+
+            default:
+                assertNever(this.trsdos.version);
+        }
+
+        // The name must be free. The file's own name doesn't count, so that a change of case works.
+        const upperNewName = newName.toUpperCase();
+        const inUse = this.getFiles().some(other =>
+                other !== dirEntry && this.currentName(other).toUpperCase() === upperNewName) ||
+            this.added.some(addedFile => addedFile.name.toUpperCase() === upperNewName);
+        if (inUse) {
+            throw new TrsdosWriteError(`${newName} is already on the disk`);
+        }
+
+        const chain = TrsdosWriter.entryChain(dirEntry);
+        if (chain.length > 1 && this.ruleSet === TrsdosRuleSet.TRSDOS_2) {
+            // TRSDOS 2.x's FXDEs don't carry their primary's hash in the HIT, and we don't know what
+            // they carry. See "An FXDE" in FLOPPY_FORMATS.md.
+            throw new TrsdosWriteError(`Can't rename ${name}: it has extended directory entries, and ` +
+                `TRSDOS 2.x's HIT bytes for those aren't understood yet`);
+        }
+        const slots: TrsdosDirSlot[] = [];
+        for (const entry of chain) {
+            const slot = this.slotsByEntry.get(entry);
+            if (slot === undefined) {
+                throw new TrsdosWriteError(`${name} has a directory entry that can't be found`);
+            }
+            slots.push(slot);
+        }
+
+        // Everything has been checked; now change the working copies. The name is in the primary
+        // entry only, but every entry's HIT byte is the hash of it.
+        const rawFilename = trsdosFilenameToRaw(newFilename);
+        const hash = hashForFilename(rawFilename);
+        const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slots[0].hitIndex);
+        const dirCopy = this.getDirSectorCopy(sectorPosition);
+        for (let i = 0; i < rawFilename.length; i++) {
+            const byte = rawFilename.charCodeAt(i);
+            if (dirCopy.bytes[offset + NAME_OFFSET + i] !== byte) {
+                dirCopy.bytes[offset + NAME_OFFSET + i] = byte;
+                dirCopy.dirty = true;
+            }
+        }
+        for (const slot of slots) {
+            if (this.hit.bytes[slot.hitIndex] !== hash) {
+                this.hit.bytes[slot.hitIndex] = hash;
+                this.hit.dirty = true;
+            }
+        }
+
+        this.renamed.set(dirEntry, newName);
     }
 
     /**
@@ -618,7 +731,7 @@ export class TrsdosWriter {
     /**
      * Write the changed sectors to the overlay, decode the overlay again, and verify the result:
      * it must have the same layout, hold the files it had before less the deleted ones and plus the
-     * added ones, read every remaining file exactly as before (except any file that includes the
+     * added ones, with the renamed ones under their new names, read every remaining file exactly as before (except any file that includes the
      * directory sectors), read every added file as the contents given, and have no layout or damage
      * problem it didn't have. With no changes, nothing is written and the
      * result is verified all the same.
@@ -666,6 +779,19 @@ export class TrsdosWriter {
         if (this.flushed) {
             throw new TrsdosWriteError("This writer has already been flushed; make a new one");
         }
+    }
+
+    /**
+     * A file's primary entry followed by its chain of extended entries, in order.
+     */
+    private static entryChain(dirEntry: TrsdosDirEntry): TrsdosDirEntry[] {
+        const chain: TrsdosDirEntry[] = [];
+        for (let entry: TrsdosDirEntry | undefined = dirEntry; entry !== undefined && !chain.includes(entry);
+             entry = entry.nextDirEntry) {
+
+            chain.push(entry);
+        }
+        return chain;
     }
 
     /**
@@ -773,7 +899,7 @@ export class TrsdosWriter {
 
     /**
      * Compare the disk decoded after the change with the disk as it was, and throw if the
-     * difference isn't exactly the files we deleted and added.
+     * difference isn't exactly the files we deleted, added and renamed.
      */
     private verify(newTrsdos: Trsdos): void {
         // The layout.
@@ -789,11 +915,12 @@ export class TrsdosWriter {
             }
         }
 
-        // The files. The expected ones are the original ones, in order, less the deleted, and the added.
+        // The files. The expected ones are the original ones, in order, less the deleted, under their
+        // new names if renamed, and the added.
         const expectedEntries = this.directory.files.filter(dirEntry => !this.deleted.has(dirEntry));
         const newEntries = newTrsdos.getDirEntries(true);
         const expectedNames = [
-            ...expectedEntries.map(dirEntry => dirEntry.getFilename("/")),
+            ...expectedEntries.map(dirEntry => this.currentName(dirEntry)),
             ...this.added.map(addedFile => addedFile.name),
         ];
         const newNames = newEntries.map(dirEntry => dirEntry.getFilename("/"));
@@ -822,7 +949,7 @@ export class TrsdosWriter {
             newEntriesByName.set(name, [...newEntriesByName.get(name) ?? [], newEntry]);
         }
         for (const expectedEntry of expectedEntries) {
-            const name = expectedEntry.getFilename("/");
+            const name = this.currentName(expectedEntry);
             const newEntry = newEntriesByName.get(name)?.shift();
             if (this.coversDirectory(expectedEntry)) {
                 continue;
