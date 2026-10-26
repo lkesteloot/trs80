@@ -15,13 +15,10 @@ import {
 import {
     identifyTrsdosRuleSet,
     ruleSetForDosName,
-    type TrsdosRuleSet,
+    TrsdosRuleSet,
     trsdosRuleSetLayout,
     trsdosRuleSetToString,
 } from "./TrsdosRuleSet.js";
-
-// The raw name of the directory's own file, as the directory stores it (8 + 3 characters).
-const DIR_SYS_RAW_FILENAME = "DIR     SYS";
 
 // The sector count of a granule in the NEWDOS/80 candidates, which try any granules per lump.
 const NEWDOS80_SECTORS_PER_GRANULE = 5;
@@ -345,6 +342,40 @@ export function sidesAreUnproven(version: TrsdosVersion, allocationSides: number
 }
 
 /**
+ * Whether the disk's own GAT settles the number of allocation sides. The LDOS line (LDOS 5 and
+ * TRSDOS 6 / LS-DOS 6) records whether the disk is double-sided in GAT byte 0xCD, and that bit
+ * matched the allocation sides on every such disk checked (see "GAT bytes 0xCB-0xCD" in
+ * FLOPPY_FORMATS.md). Other DOSes leave it zero or wrong, so it counts for nothing there. Goes by
+ * the DOS the disk names, not by a rule set the user chose. (Exported for tests.)
+ *
+ * @param trsdos the decoded file system.
+ */
+export function gatProvesSides(trsdos: Trsdos): boolean {
+    const ruleSet = identifyTrsdosRuleSet(trsdos).ruleSet;
+    let gatIsReliable: boolean;
+    switch (ruleSet) {
+        case undefined:
+        case TrsdosRuleSet.TRSDOS_2:
+        case TrsdosRuleSet.TRSDOS_1_3:
+        case TrsdosRuleSet.DOSPLUS:
+            gatIsReliable = false;
+            break;
+        case TrsdosRuleSet.LDOS_5:
+        case TrsdosRuleSet.TRSDOS_6:
+            gatIsReliable = true;
+            break;
+        default:
+            assertNever(ruleSet);
+    }
+    if (!gatIsReliable) {
+        return false;
+    }
+
+    const gatInfo = trsdos.getGatInfo();
+    return typeof gatInfo !== "string" && gatInfo.sideCount === trsdos.allocationSides;
+}
+
+/**
  * The directory sizes, in granules, that the decoder's generators try for a layout, apart from the
  * one a NEWDOS/80 HIT may ask for beyond its lump. If this has more than one entry, the size the
  * decoder chose is a choice among them. (Exported for tests.)
@@ -394,30 +425,7 @@ export function directorySizesTried(version: TrsdosVersion, allocationSides: num
  * @param trsdos the decoded file system.
  */
 export function dirSysCoversDirectory(trsdos: Trsdos): boolean {
-    const dirSys = trsdos.getDirEntries(true).find(dirEntry => dirEntry.rawFilename === DIR_SYS_RAW_FILENAME);
-    if (dirSys === undefined) {
-        return false;
-    }
-
-    // Granules counted from the start of the disk.
-    const claimed = new Set<number>();
-    for (const extent of trsdos.getFileExtents(dirSys)) {
-        const start = extent.cylinderNumber*trsdos.granulesPerLump + extent.granuleOffset;
-        for (let granule = start; granule < start + extent.granuleCount; granule++) {
-            claimed.add(granule);
-        }
-    }
-
-    const dirStart = trsdos.dirLumpNumber*trsdos.granulesPerLump;
-    if (claimed.size !== trsdos.granulesPerDir) {
-        return false;
-    }
-    for (let granule = dirStart; granule < dirStart + trsdos.granulesPerDir; granule++) {
-        if (!claimed.has(granule)) {
-            return false;
-        }
-    }
-    return true;
+    return trsdos.dirSysCoversDirectory();
 }
 
 /**
@@ -574,7 +582,8 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRul
     // The sides and the directory size describe a layout that we can write, so there's no point
     // in asking about them for a layout that we can't.
     if (unsupported === undefined) {
-        if (sidesAreUnproven(trsdos.version, trsdos.allocationSides, trsdos.geometry.sideCount)) {
+        if (sidesAreUnproven(trsdos.version, trsdos.allocationSides, trsdos.geometry.sideCount) &&
+            !gatProvesSides(trsdos)) {
             blockers.push({
                 kind: TrsdosWriteBlockerKind.SIDES_UNPROVEN,
                 message: "The image has two sides, but nothing on the disk shows whether the DOS uses the second, " +

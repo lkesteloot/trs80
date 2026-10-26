@@ -228,6 +228,8 @@ export function hashTrsdosPassword(password: string): number {
     return (hi << 8) | lo;
 }
 
+// The raw name of the directory's own file, as the directory stores it (8 + 3 characters).
+const DIR_SYS_RAW_FILENAME = "DIR     SYS";
 // DEC of DIR/SYS's fixed directory slot in the 2.3 family.
 const DIR_SYS_HIT_INDEX = 0x01;
 // What old Model I disks store in that HIT slot instead of DIR/SYS's real hash (0xC4).
@@ -1709,6 +1711,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      */
     public readonly gatPassesStrictCheck: boolean;
     /**
+     * Whether DIR/SYS's extents cover exactly this candidate's directory granules, which is the
+     * disk's own record of how big the directory is. See {@link dirSysCoversDirectory}.
+     */
+    public readonly dirSysConfirmsSize: boolean;
+    /**
      * Whether the GAT says this is an LDOS 5.3 or LS-DOS 6.3 disk, whose directory entries
      * can hold a time stamp in place of the access password. NEWDOS 3.0 also writes 0x53 there, but
      * its entries fail the checks in decodeDirEntry().
@@ -1764,6 +1771,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.evaluation = this.evaluate();
         this.gatPassesStrictCheck = typeof gatInfo !== "string" &&
             gatInfo.hasValidHighBits(this.granulesPerLump, this.lumpCount, this.version);
+        this.dirSysConfirmsSize = this.evaluation.score >= 0 && this.dirSysCoversDirectory();
         this.nameAndVersion = this.evaluation.score >= 0 ? this.decodeNameAndVersion() : UNKNOWN_DOS;
         this.protectionNames = trsdosProtectionNamesFor(this.version, this.nameAndVersion);
     }
@@ -1807,6 +1815,15 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // allocated in every lump without any file using them. Fewer granules per lump sort first.
         if (this.granulesPerLump !== other.granulesPerLump) {
             return this.granulesPerLump - other.granulesPerLump;
+        }
+
+        // DIR/SYS is the file that holds the directory, so its extents say how big the directory is.
+        // That settles it where the layouts below can't be told apart by their hashes: on a
+        // two-sided disk, the hashes of a directory that stops at the end of side 0 and one that
+        // runs through side 1 are the same when side 1 holds no files, and only DIR/SYS's extent
+        // says which the DOS made (see "Cylinders, sides, and allocation" in FLOPPY_FORMATS.md).
+        if (this.dirSysConfirmsSize !== other.dirSysConfirmsSize) {
+            return this.dirSysConfirmsSize ? -1 : 1;
         }
 
         // As with sides, for the directory: if the rest of its lump adds nothing, the directory doesn't
@@ -2030,6 +2047,37 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         const reason = `${hashHits} hash hits, ${hashMisses} hash misses, ${badExtents} bad extents, ${shortFiles} short files`;
 
         return { score, reason };
+    }
+
+    /**
+     * Whether DIR/SYS's entry exists and its extents cover exactly this candidate's directory
+     * granules, which proves the directory's size from the disk rather than from a guess.
+     */
+    public dirSysCoversDirectory(): boolean {
+        const dirSys = this.getDirEntries(true).find(dirEntry => dirEntry.rawFilename === DIR_SYS_RAW_FILENAME);
+        if (dirSys === undefined) {
+            return false;
+        }
+
+        // Granules counted from the start of the disk.
+        const claimed = new Set<number>();
+        for (const extent of this.getFileExtents(dirSys)) {
+            const start = extent.cylinderNumber*this.granulesPerLump + extent.granuleOffset;
+            for (let granule = start; granule < start + extent.granuleCount; granule++) {
+                claimed.add(granule);
+            }
+        }
+
+        const dirStart = this.dirLumpNumber*this.granulesPerLump;
+        if (claimed.size !== this.granulesPerDir) {
+            return false;
+        }
+        for (let granule = dirStart; granule < dirStart + this.granulesPerDir; granule++) {
+            if (!claimed.has(granule)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -17,7 +17,7 @@ import {
 } from "./TrsdosFormat.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
-import {evaluateTrsdosWriteGate, TrsdosWriteAccess, TrsdosWriteBlockerKind} from "./TrsdosWriteGate.js";
+import {evaluateTrsdosWriteGate, TrsdosWriteAccess} from "./TrsdosWriteGate.js";
 import {TrsdosWriter} from "./TrsdosWriter.js";
 
 /**
@@ -174,6 +174,10 @@ describe("formatTrsdosDataDisk", () => {
             expect(trsdos.lumpsAreCylinders).to.eql(true);
             expect(trsdos.allocationSides).to.eql(options.sides);
             expect(trsdos.granulesPerLump).to.eql(granulesPerCylinder);
+            // The directory is the whole cylinder, both sides, as DIR/SYS's extent says.
+            expect(trsdos.granulesPerDir).to.eql(granulesPerCylinder);
+            // TRSDOS 1.3 has no DIR/SYS.
+            expect(trsdos.dirSysConfirmsSize).to.eql(version !== TrsdosVersion.V1_3);
             expect(trsdos.getDirEntries(false)).to.eql([]);
 
             // Nothing is wrong with the disk, though TRSDOS 1.3 has a note about its boot granule.
@@ -195,20 +199,15 @@ describe("formatTrsdosDataDisk", () => {
         it(`is writable, and takes and gives up a file: ${describeConfig(config)}`, () => {
             const disk = format(options);
 
-            // The DOS is known from the GAT, and so is the rule set. On two sides the decoder reads the
-            // directory as the first side's granules only, as it does on disks the DOS formatted, and
-            // the gate then wants the user's say-so about the directory's size; nothing else is wrong.
-            const gate = evaluateTrsdosWriteGate(decode(disk));
+            // The DOS is known from the GAT, and so is the rule set. On two sides the directory is
+            // the whole cylinder, which DIR/SYS's extent proves, so nothing is left to guess.
+            const blankTrsdos = decode(disk);
+            const gate = evaluateTrsdosWriteGate(blankTrsdos);
             expect(gate.ruleSet).to.eql(ruleSet);
-            if (options.sides === 1) {
-                expect(gate.access).to.eql(TrsdosWriteAccess.WRITABLE);
-                expect(gate.blockers).to.eql([]);
-                const explicitGate = evaluateTrsdosWriteGate(decode(disk), ruleSet);
-                expect(explicitGate.access).to.eql(TrsdosWriteAccess.WRITABLE);
-            } else {
-                expect(gate.blockers.map(blocker => blocker.kind))
-                    .to.eql([TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN]);
-            }
+            expect(gate.access).to.eql(TrsdosWriteAccess.WRITABLE);
+            expect(gate.blockers).to.eql([]);
+            const explicitGate = evaluateTrsdosWriteGate(blankTrsdos, ruleSet);
+            expect(explicitGate.access).to.eql(TrsdosWriteAccess.WRITABLE);
 
             // The writer doesn't write the TRSDOS 1.3 layout yet. Adding a file to an 80-cylinder disk
             // is slow, so only the largest disk of the DOS that writes the most (LS-DOS 6.3) does it.
@@ -249,7 +248,7 @@ describe("formatTrsdosDataDisk", () => {
             }
             expect(granuleMap.getFreeGranuleCount()).to.eql(
                 options.cylinders*granulesPerCylinder - 1 - granulesPerCylinder);
-        });
+        }, 30_000);
     }
 
     it("writes the GAT's fields", () => {

@@ -625,6 +625,14 @@ On a double-sided disk:
   and code files are CMD programs. So the decoder assumes one side unless
   something proves two.
 
+  On the LDOS line the GAT's own record settles it either way (see "GAT bytes
+  0xCB-0xCD"): in the whole collection the decoder never reads an LDOS 5, TRSDOS 6 or
+  LS-DOS disk as one side when the GAT's side bit says two, and on the 11 two-sided images
+  it reads as one side the bit says one (`willus/fractl5.dmk` among them). So the write
+  gate takes a one-side reading as proven when the DOS is of that line and the bit agrees
+  (`gatProvesSides()` in `TrsdosWriteGate.ts`). Other DOSes' bit isn't reliable, so they
+  stay unproven.
+
   Reading one side as NEWDOS/80-style lumps can mimic two: on the TRSDOS 6
   double-sided disks (the TRSLink issues), six 5-sector granules per lump on
   one side reach the same directory sectors as six 6-sector granules on two,
@@ -652,6 +660,19 @@ On a double-sided disk:
   `ldos-5.3-dsdd-80-tracks.dmk` has a two-sided directory with no entries on
   side 1 yet. (The Cornsoft disks also show a 3-granule DIR/SYS, but only because
   they don't use side 1 at all; see above.)
+
+  Because the hashes tie, the decoder's size comes from DIR/SYS: among candidates that
+  tie on the score, the one whose directory granules are exactly the granules of DIR/SYS's
+  extents sorts first (`Trsdos.dirSysConfirmsSize`), ahead of the old rule that a
+  directory which doesn't fill its lump wins. That puts a blank two-sided LDOS 5.3,
+  TRSDOS 6.2 or LS-DOS 6.3 disk (whether `formatTrsdosDataDisk()` made it or the DOS did)
+  on the whole cylinder, and DOSPLUS on side 0. Across the whole collection this changed
+  the directory size of 33 disks and nothing else: no allocation side, directory cylinder,
+  file count or check result. 13 are LDOS-line disks (two-sided, so DIR/SYS says the whole
+  cylinder), one is MultiDOS 1.71S, and 19 are NEWDOS/80-style (2 to 6 granules, where the
+  smallest size had won the tie). On all 19 the new size equals the HIT's own, from byte 0x1F
+  and its highest column in use, so the disk's two records of the directory's size agree
+  with each other.
 - A GAT byte covers a whole cylinder. Double-sided LDOS at 18 sectors per track
   has 6 granules per cylinder, 3 per side, so a free byte reads 0xC0.
   Single-sided 1.3 reads 0x3F.

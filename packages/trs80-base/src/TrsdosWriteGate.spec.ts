@@ -4,6 +4,7 @@ import {Density, FloppyDisk, type FloppyDiskGeometry, SectorData, SectorPosition
 import {type Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
 import {decodeTrsdos, Trsdos, TrsdosVersion} from "./Trsdos.js";
 import {TrsdosFindingKind} from "./TrsdosCheck.js";
+import {formatTrsdosDataDisk, TrsdosFormatDos} from "./TrsdosFormat.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
 import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile} from "./TrsdosTestDisk.js";
 import {
@@ -11,6 +12,7 @@ import {
     dirSysCoversDirectory,
     evaluateDosRules,
     evaluateTrsdosWriteGate,
+    gatProvesSides,
     sidesAreUnproven,
     TrsdosWriteAccess,
     trsdosWriteAccessForBlockerKinds,
@@ -369,6 +371,45 @@ describe("sidesAreUnproven", () => {
     });
 });
 
+describe("gatProvesSides", () => {
+    /**
+     * Format a two-sided LDOS 5.3 data disk and decode it.
+     */
+    function decodeTwoSidedLdos(): Trsdos {
+        const disk = formatTrsdosDataDisk({dos: TrsdosFormatDos.LDOS_5_3, cylinders: 35, sides: 2, density: Density.DOUBLE});
+        if (typeof disk === "string") {
+            throw new Error(disk);
+        }
+        const trsdos = decodeTrsdos(disk);
+        if (trsdos === undefined) {
+            throw new Error("Disk didn't decode as TRSDOS");
+        }
+        return trsdos;
+    }
+
+    it("is true when an LDOS-line GAT says the sides that the decoder used", () => {
+        const trsdos = decodeTwoSidedLdos();
+        expect(trsdos.allocationSides).to.equal(2);
+        expect(gatProvesSides(trsdos)).to.equal(true);
+    });
+
+    it("is false when the decoder used other sides than the GAT says", () => {
+        const trsdos = decodeTwoSidedLdos();
+        const oneSide = new Trsdos(trsdos.disk, trsdos.geometry, TrsdosVersion.V2_3, 1, 3, trsdos.sectorsPerGranule,
+            trsdos.dirLumpNumber, 3, 0);
+        expect(gatProvesSides(oneSide)).to.equal(false);
+    });
+
+    it("is false for a DOS whose GAT bit isn't reliable", () => {
+        expect(gatProvesSides(withName(decodeTwoSidedLdos(), "DOSPLUS 3.4"))).to.equal(false);
+        expect(gatProvesSides(withName(decodeTwoSidedLdos(), "TRSDOS 2.x"))).to.equal(false);
+    });
+
+    it("is false when the disk doesn't name its DOS", () => {
+        expect(gatProvesSides(withName(decodeTwoSidedLdos(), "Unknown DOS"))).to.equal(false);
+    });
+});
+
 describe("directorySizesTried", () => {
     it("has one size for a single-sided single-density disk", () => {
         expect(directorySizesTried(TrsdosVersion.V2_3, 1, 2, 5, false)).to.eql([2]);
@@ -394,6 +435,21 @@ describe("directorySizesTried", () => {
 });
 
 describe("dirSysCoversDirectory", () => {
+    it("is what picks a whole-cylinder directory on a two-sided LDOS disk", () => {
+        const disk = formatTrsdosDataDisk({dos: TrsdosFormatDos.LSDOS_6_3, cylinders: 35, sides: 2, density: Density.DOUBLE});
+        if (typeof disk === "string") {
+            throw new Error(disk);
+        }
+        // Its side-0 directory has the same hashes, so only DIR/SYS's six granules tell them apart.
+        const trsdos = decodeTrsdos(disk)!;
+        expect(trsdos.granulesPerDir).to.equal(6);
+        expect(dirSysCoversDirectory(trsdos)).to.equal(true);
+        const sideZero = new Trsdos(trsdos.disk, trsdos.geometry, TrsdosVersion.V2_3, 2, 6, trsdos.sectorsPerGranule,
+            trsdos.dirLumpNumber, 3, 0);
+        expect(dirSysCoversDirectory(sideZero)).to.equal(false);
+        expect(sideZero.compareTo(trsdos)).to.be.greaterThan(0);
+    });
+
     it("is true when DIR/SYS holds exactly the directory's granules", () => {
         expect(dirSysCoversDirectory(decode())).to.equal(true);
     });

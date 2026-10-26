@@ -5,7 +5,7 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 25, 2026. "Where things stand" at the end has the regression results.
+Last updated October 26, 2026. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -20,9 +20,12 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       "Allocation sides are not media sides" in `FLOPPY_FORMATS.md`). So a double-sided disk with
       nothing on side 1 reads as single-sided when its GAT is full or fails the
       strict check. Reading is unaffected, but writing would never use side 1.
-      When writing arrives, the LDOS line's media block and 0xCD bit 5 can
-      settle it: they say one side on `willus/fractl5.dmk`, and two on
-      `ldos-5.3-dsdd-80-tracks.dmk`.
+      The write gate now takes a one-side reading of a two-sided image as proven on the
+      LDOS line when the GAT's 0xCD bit 5 says one side (`gatProvesSides()`), and no
+      LDOS-line disk in the suite is read as one side against a GAT that says two. What's
+      left is the other DOSes, whose 0xCD isn't reliable (DOSPLUS, MultiDOS, NEWDOS/80,
+      RapiDOS, VTOS, TRSDOS 2.x), and the media block (next item) as a second opinion for
+      TRSDOS 6 and LS-DOS. 12 two-sided images remain `SIDES_UNPROVEN` for those reasons.
 - [ ] **Read the GAT's media block** (0xF5-0xFF, "\x03LSI" or "\x03631" then
       seven Drive Control Table bytes; see "What the TRSDOS 6 manuals add" in
       `FLOPPY_FORMATS.md`). It gives density, sides, sectors per track, granules
@@ -36,11 +39,14 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       side-0 directory on double-sided disks (DOSPLUS) and a whole cylinder
       (LDOS); the NEWDOS/80 generator tries every size from 2 granules to the lump,
       plus one larger size if the HIT asks for it (byte 0x1F, or its highest
-      column in use; see "HIT sector" in `FLOPPY_FORMATS.md`). Ties go to the
-      smaller one, once fewer granules per lump haven't decided (that rule fixed
-      `m2-lsdos-blank.dmk`, which used to show a 15-sector DIR/SYS). Reading the
-      size would be firmer: DIR/SYS's own extent where there is one, or byte 0x1F
-      alone, though `peter/TRS-80 Format [Set 1]` lists files past what 0x1F says.
+      column in use; see "HIT sector" in `FLOPPY_FORMATS.md`). Among candidates that tie on the
+      score, the one whose directory is exactly DIR/SYS's extent sorts first
+      (`Trsdos.dirSysConfirmsSize`), so two-sided LDOS-line disks read as a whole-cylinder
+      directory and the gate's `DIRECTORY_SIZE_UNPROVEN` no longer fires on any disk in the
+      suite. What's left: a disk without DIR/SYS in its directory, or whose DIR/SYS disagrees
+      with the HIT, still falls back to "ties go to the smaller one" (which fixed
+      `m2-lsdos-blank.dmk`'s 15-sector DIR/SYS before), and `peter/TRS-80 Format [Set 1]` lists
+      files past what 0x1F says, so the HIT alone isn't firm either.
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
       on its pseudo-density disks; several non-NEWDOS/80 disks (`BUSINESS`, `COMREF`,
@@ -573,3 +579,11 @@ NEWDOS+ and Percom's TRSDOS 2.x; MicroDOS's resident; NEWDOS/80's whole version)
 and LNW80 CP/M left 30, and finding MultiDOS's residents outside its files (and
 its backwards banners) left 5. Of the suite's 1,599 disks, 1,566 decode, 44,861 of 45,189
 files clean; nothing changed but names, except the four LNW disks, which now decode.
+
+October 26, 2026: the TRSDOS-family write gate read two-sided LDOS-line disks as "directory size
+unproven" because the side-0 directory and the whole-cylinder one tie on hashes. The decoder now
+prefers the directory that DIR/SYS's extent names, and the gate accepts the LDOS line's GAT side
+bit for a one-side reading. Of the suite's 1,339 TRSDOS-family floppies the gate passes 647 (up from
+630), allows repairs only on 72 (from 69), and leaves 620 read-only (from 640); `info --json`
+doesn't report the gate, so these come from a throwaway script that decodes every disk. 33
+disks changed directory size and nothing else (13 LDOS-line, 19 NEWDOS/80-style, 1 MultiDOS).
