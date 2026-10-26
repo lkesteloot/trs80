@@ -16,6 +16,7 @@ import {selectInputFiles} from "../InputFile.js";
 import {expandInputPatterns, fileNameMatchesPattern, pluralizeWithCount, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
+import {TRIM_COMMAND} from "./DiskTrim.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {importHostFile} from "./DiskImport.js";
 import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
@@ -1128,6 +1129,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     CHECK_COMMAND,
     CREATE_COMMAND,
     FORMAT_COMMAND,
+    TRIM_COMMAND,
     SAVE_COMMAND,
     QUIT_COMMAND,
     ABORT_COMMAND,

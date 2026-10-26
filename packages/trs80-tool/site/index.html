@@ -617,6 +617,29 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         Like everything else it changes the disk in memory, and nothing is saved until the end.</p></td>
                 </tr>
                 <tr>
+                    <td><code>trim</code></td>
+                    <td><p>Drop tracks that the disk doesn’t use from the image, which wastes space and confuses
+                        other tools: an 80-cylinder image of a 40-cylinder disk, or a blank second side. It works on
+                        DMK, JV1 and JV3 images, rebuilding the image without those tracks, and checks that the result
+                        decodes as the same file system with every file reading the same; if not, nothing changes.
+                        With no options it drops the cylinders past the ones the file system uses (the ones that the
+                        GAT marks as beyond the disk’s end), and any cylinders at the end with no readable sectors,
+                        and says what it dropped. Some DOSes, such as TRSDOS 1.3, don’t mark their end, so only the
+                        unreadable cylinders go. If there’s nothing to drop it says so and changes nothing.</p>
+                        <p><code>--cylinders N</code> keeps cylinders 0 to N-1. It refuses if a file or the directory
+                        has data on a dropped cylinder (naming them and the cylinders the file system covers), or if
+                        the dropped cylinders are free space that the file system expects to have, unless you give
+                        <code>--force</code>. On a disk with no file system, it refuses if a dropped track holds data
+                        that isn’t filler (each sector the same byte, or the same two bytes alternating), unless
+                        <code>--force</code>.</p>
+                        <p><code>--side 0</code> drops side 1. It refuses if the file system allocates on both sides,
+                        or, with no file system, if side 1 holds data that isn’t filler (unless <code>--force</code>).
+                        A single-sided image has nothing to drop. <code>--force</code> also lets <code>trim</code> work
+                        on an image marked write-protected.</p>
+                        <p>Like everything else, <code>trim</code> changes the disk in memory and nothing is saved
+                        until the end, so <code>--dry-run</code> and <code>-o</code> work.</p></td>
+                </tr>
+                <tr>
                     <td><code>save</code></td>
                     <td>Save the changes now and carry on. Useful in the prompt; it says so if there’s nothing to save.</td>
                 </tr>

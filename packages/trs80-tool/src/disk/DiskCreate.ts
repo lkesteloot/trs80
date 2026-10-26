@@ -96,7 +96,7 @@ function makeFormatOptionSpecs(dosDescription: string, forceDescription: string)
  * @return the number, or undefined if the option wasn't given.
  * @throws ToolError if the value isn't a whole number.
  */
-function parseCountOption(options: DiskOptionValues, name: string): number | undefined {
+export function parseCountOption(options: DiskOptionValues, name: string): number | undefined {
     const text = options.getString(name);
     if (text === undefined) {
         return undefined;
