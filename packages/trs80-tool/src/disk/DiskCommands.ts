@@ -17,6 +17,7 @@ import {expandInputPatterns, fileNameMatchesPattern, pluralizeWithCount, ToolErr
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {TRIM_COMMAND} from "./DiskTrim.js";
+import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {importHostFile} from "./DiskImport.js";
 import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
@@ -37,6 +38,13 @@ export interface DiskCommand {
      * it out for the commands that work on a disk.
      */
     worksWithoutDisk?: boolean;
+
+    /**
+     * Whether the command works on the undo history itself (as "undo", "redo" and "revert" do), so that
+     * it isn't itself something to undo. Leave it out for every other command: any change that they make
+     * to the disk is recorded so that "undo" can take it back.
+     */
+    managesHistory?: boolean;
 
     /**
      * Run the command.
@@ -1130,11 +1138,23 @@ export const DISK_COMMANDS: DiskCommand[] = [
     CREATE_COMMAND,
     FORMAT_COMMAND,
     TRIM_COMMAND,
+    UNDO_COMMAND,
+    REDO_COMMAND,
+    REVERT_COMMAND,
     SAVE_COMMAND,
     QUIT_COMMAND,
     ABORT_COMMAND,
     HELP_COMMAND,
 ];
+
+/**
+ * The text of a command as the user typed it, such as "add hello.bas --binary", for saying which
+ * command "undo" undid. Arguments with spaces in them are put in double quotes.
+ */
+function commandLineText(command: ParsedDiskCommand): string {
+    const words = [command.name, ...command.args, ...command.options.toWords()];
+    return words.map(word => word === "" || /\s/.test(word) ? JSON.stringify(word) : word).join(" ");
+}
 
 /**
  * Run parsed commands on the session, in order. The first command to fail stops the rest.
@@ -1143,6 +1163,8 @@ export const DISK_COMMANDS: DiskCommand[] = [
  * @param session the open disk.
  * @param commands the commands to run.
  * @param globalOptions the options that apply to the whole run.
+ * Each command that changes the disk can be taken back with the "undo" command.
+ *
  * @returns whether a command ended the session (such as "quit"), in which case the commands after
  * it did not run and the caller should stop reading more.
  * @throws ToolError if a command fails.
@@ -1158,7 +1180,13 @@ export function runDiskCommands(session: DiskSession, commands: ParsedDiskComman
         if (diskCommand.worksWithoutDisk !== true) {
             session.requireDisk();
         }
-        diskCommand.run(session, command, globalOptions);
+        if (diskCommand.managesHistory === true) {
+            diskCommand.run(session, command, globalOptions);
+        } else {
+            // Any change the command makes to the disk can be undone. This is done here, around every command,
+            // so that a new command can't forget to make its change undoable.
+            session.runUndoable(commandLineText(command), () => diskCommand.run(session, command, globalOptions));
+        }
         if (diskCommand.endsSession) {
             return true;
         }

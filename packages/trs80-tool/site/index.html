@@ -640,6 +640,25 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         until the end, so <code>--dry-run</code> and <code>-o</code> work.</p></td>
                 </tr>
                 <tr>
+                    <td><code>undo</code></td>
+                    <td><p>Take back the most recent change to the disk (an <code>add</code>, <code>rm</code>,
+                        <code>label</code>, <code>create</code>, <code>format</code>, <code>trim</code> and so on),
+                        restoring the disk exactly as it was, including its image format, and say which command it undid.
+                        It can be repeated to go further back, up to the last 100 changes. If undoing takes the disk back
+                        to what was last saved then there are no changes to save. It says so if there’s nothing to undo.
+                        It works in a chain too: <code>rm HELLO.BAS : undo</code>.</p></td>
+                </tr>
+                <tr>
+                    <td><code>redo</code></td>
+                    <td>Do again the change that <code>undo</code> took back. Making a new change after an
+                        <code>undo</code> forgets what could have been redone.</td>
+                </tr>
+                <tr>
+                    <td><code>revert</code></td>
+                    <td>Go back to the disk as it was when last saved (or as it was opened, if it hasn’t been saved), in one
+                        step. It counts as a change, so <code>undo</code> takes the revert back.</td>
+                </tr>
+                <tr>
                     <td><code>save</code></td>
                     <td>Save the changes now and carry on. Useful in the prompt; it says so if there’s nothing to save.</td>
                 </tr>

@@ -75,6 +75,21 @@ export class DiskOptionValues {
         const value = this.values.get(name);
         return typeof value === "string" ? value : undefined;
     }
+
+    /**
+     * The options as words, in the order they were first given, such as ["--force", "--out-dir", "x"],
+     * for showing the command that was run. The words are not quoted.
+     */
+    public toWords(): string[] {
+        const words: string[] = [];
+        for (const [name, value] of this.values) {
+            words.push(name);
+            if (value !== true) {
+                words.push(value);
+            }
+        }
+        return words;
+    }
 }
 
 /**

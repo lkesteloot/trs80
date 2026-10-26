@@ -100,6 +100,54 @@ export interface DiskSessionOptions {
 }
 
 /**
+ * The most undo states to keep. Older ones are dropped.
+ */
+export const MAX_UNDO_STATES = 100;
+
+/**
+ * The most bytes of disk images to keep in the undo and redo stacks together (not counting the one most
+ * recent state, which is always kept). Large images, such as HFE ones, would otherwise use a lot of memory.
+ */
+export const MAX_UNDO_BYTES = 64*1024*1024;
+
+/**
+ * The file name extension that makes decodeTrs80File() use the decoder that produced each kind of floppy,
+ * keyed by the floppy's class name.
+ */
+const FLOPPY_CLASS_EXTENSIONS: { [className: string]: string } = {
+    Jv1FloppyDisk: ".jv1",
+    Jv3FloppyDisk: ".jv3",
+    DmkFloppyDisk: ".dmk",
+    ScpFloppyDisk: ".scp",
+    HfeFloppyDisk: ".hfe",
+    ImdFloppyDisk: ".imd",
+};
+
+/**
+ * Everything needed to put a session back the way it was: the image (or the lack of one), and which
+ * version of the disk it is, for working out whether the disk differs from what was last saved.
+ */
+interface DiskState {
+    /** A private copy of the floppy's bytes, or undefined if the session had no disk. */
+    binary: Uint8Array | undefined;
+    /** The file name extension that selects the decoder for the binary, or undefined if there's no disk. */
+    extension: string | undefined;
+    /** The revision number of this version of the disk. */
+    revision: number;
+}
+
+/**
+ * A step in the undo or redo history: a state to go back to, and the command that changed the disk
+ * between that state and the one on the other side of it.
+ */
+interface DiskHistoryEntry {
+    /** The command line that made the change, such as "add hello.bas". */
+    label: string;
+    /** The state to restore. */
+    state: DiskState;
+}
+
+/**
  * The open disk that every "disk" command works on. Commands change the in-memory floppy, and the
  * session writes the result once at the end (or when the user says "save"), so a chain of commands
  * either all takes effect or none of it does.
@@ -132,6 +180,20 @@ export class DiskSession {
     private readonly force: boolean;
     /** Whether requireWritable() has already shown the warning about forcing. */
     private forceWarningShown = false;
+    /** How many times the floppy has been written or replaced, so that a command can tell if it changed anything. */
+    private modificationCount = 0;
+    /** The revision number of the current version of the disk. Every change makes a new number. */
+    private currentRevision = 0;
+    /** The highest revision number given out. */
+    private lastRevision = 0;
+    /** The revision that is on disk (or was when the session opened), so that hasChanges() survives undo. */
+    private savedRevision = 0;
+    /** The disk as last saved or as opened, which {@link revert} goes back to. */
+    private savedState: DiskState;
+    /** The states that {@link undo} goes back to, oldest first. */
+    private undoStack: DiskHistoryEntry[] = [];
+    /** The states that {@link redo} goes forward to, most recently undone last. */
+    private redoStack: DiskHistoryEntry[] = [];
 
     /**
      * Use DiskSession.open() instead.
@@ -149,6 +211,7 @@ export class DiskSession {
         if (floppy !== undefined) {
             this.watchFloppy(floppy);
         }
+        this.savedState = this.captureState();
     }
 
     /**
@@ -158,6 +221,7 @@ export class DiskSession {
         floppy.onWrite.subscribe(() => {
             if (floppy === this.currentFloppy) {
                 this.changed = true;
+                this.modificationCount++;
             }
         });
     }
@@ -261,6 +325,7 @@ export class DiskSession {
         this.writeGate = null;
         this.forceWarningShown = false;
         this.changed = true;
+        this.modificationCount++;
         this.watchFloppy(floppy);
     }
 
@@ -298,7 +363,7 @@ export class DiskSession {
         } catch (e: any) {
             throw new ToolError("Can't save \"" + this.savePathname + "\": " + (e.message ?? String(e)));
         }
-        this.changed = false;
+        this.markSaved();
 
         return this.savePathname;
     }
@@ -321,11 +386,21 @@ export class DiskSession {
             }
         } else if (this.dryRun) {
             console.log("Not saved (--dry-run): " + this.savePathname + " would have changed.");
-            this.changed = false;
+            this.markSaved();
         } else {
             const savedPathname = this.save();
             console.log("Saved " + savedPathname + ".");
         }
+    }
+
+    /**
+     * Note that the current disk is the one that is saved (or, with --dry-run, that would have been): there
+     * are no changes now, and {@link revert} goes back to this disk. The undo and redo history is kept.
+     */
+    private markSaved(): void {
+        this.changed = false;
+        this.savedRevision = this.currentRevision;
+        this.savedState = this.captureState();
     }
 
     /**
@@ -339,6 +414,167 @@ export class DiskSession {
         this.changed = false;
 
         return discardedPathname;
+    }
+
+    /**
+     * Capture the current disk, with a private copy of its bytes.
+     */
+    private captureState(): DiskState {
+        const floppy = this.currentFloppy;
+        return {
+            // Not binary.slice(): the binary can be a Node Buffer, whose slice() shares memory with the original.
+            binary: floppy === undefined ? undefined : new Uint8Array(floppy.binary),
+            extension: floppy === undefined ? undefined : DiskSession.extensionForFloppy(floppy),
+            revision: this.currentRevision,
+        };
+    }
+
+    /**
+     * The file name extension that makes {@link decodeTrs80File} choose the decoder that makes this kind of floppy.
+     *
+     * @throws Error if the floppy is of a kind that the session doesn't know (a bug).
+     */
+    private static extensionForFloppy(floppy: FloppyDisk): string {
+        const extension = FLOPPY_CLASS_EXTENSIONS[floppy.className];
+        if (extension === undefined) {
+            throw new Error("Unknown kind of floppy: " + floppy.className);
+        }
+        return extension;
+    }
+
+    /**
+     * Put the session back to a captured state: decode its image again (from a copy, since the floppy writes
+     * into its own bytes), as {@link open} does for a file, and start the caches over. Whether the disk
+     * counts as changed depends on whether it is the saved version.
+     */
+    private restoreState(state: DiskState): void {
+        if (state.binary === undefined || state.extension === undefined) {
+            this.currentFloppy = undefined;
+            this.currentFileSystem = undefined;
+        } else {
+            // The extension sends the bytes to the decoder that made this kind of floppy in the first place.
+            const trs80File = decodeTrs80File(new Uint8Array(state.binary), { filename: "state" + state.extension });
+            if (trs80File.error !== undefined || !isFloppy(trs80File)) {
+                throw new Error("Can't restore the disk: " + (trs80File.error ?? "it didn't decode as a floppy"));
+            }
+            this.currentFloppy = trs80File;
+            this.currentFileSystem = decodeFloppyFileSystem(trs80File);
+            this.watchFloppy(trs80File);
+        }
+        this.granuleMap = null;
+        this.writeGate = null;
+        this.currentRevision = state.revision;
+        this.changed = state.revision !== this.savedRevision;
+    }
+
+    /**
+     * Run a command that may change the disk, noting a way to undo it. If the command changes the disk (even
+     * if it then fails, since the disk is left however it got to) then the state from before it is put on the
+     * undo stack and the redo stack is cleared. If it changes nothing then nothing is recorded.
+     *
+     * @param label the command line, to say what {@link undo} undid, such as "add hello.bas".
+     * @param run runs the command.
+     * @throws whatever run() throws.
+     */
+    public runUndoable(label: string, run: () => void): void {
+        const before = this.captureState();
+        const modificationCountBefore = this.modificationCount;
+        try {
+            run();
+        } finally {
+            const modified = this.modificationCount !== modificationCountBefore;
+            if (modified) {
+                this.pushUndoState(label, before);
+            }
+        }
+    }
+
+    /**
+     * Record that the disk was just changed from the given state, giving the new disk a revision number.
+     */
+    private pushUndoState(label: string, before: DiskState): void {
+        this.undoStack.push({ label, state: before });
+        this.redoStack = [];
+        this.currentRevision = ++this.lastRevision;
+        this.trimUndoHistory();
+    }
+
+    /**
+     * Drop the oldest undo states while there are too many, or while they hold too many bytes in total.
+     * The newest state is always kept.
+     */
+    private trimUndoHistory(): void {
+        while (this.undoStack.length > MAX_UNDO_STATES ||
+            (this.undoStack.length > 1 && this.historyByteCount() > MAX_UNDO_BYTES)) {
+
+            this.undoStack.shift();
+        }
+    }
+
+    /**
+     * The number of bytes of disk images in the undo and redo stacks.
+     */
+    private historyByteCount(): number {
+        let byteCount = 0;
+        for (const entry of this.undoStack) {
+            byteCount += entry.state.binary?.length ?? 0;
+        }
+        for (const entry of this.redoStack) {
+            byteCount += entry.state.binary?.length ?? 0;
+        }
+
+        return byteCount;
+    }
+
+    /**
+     * Undo the most recent change to the disk, restoring it as it was before. The change can be redone.
+     *
+     * @returns the command line of the change that was undone, or undefined if there is nothing to undo.
+     */
+    public undo(): string | undefined {
+        const entry = this.undoStack.pop();
+        if (entry === undefined) {
+            return undefined;
+        }
+
+        this.redoStack.push({ label: entry.label, state: this.captureState() });
+        this.restoreState(entry.state);
+
+        return entry.label;
+    }
+
+    /**
+     * Redo the change that was most recently undone.
+     *
+     * @returns the command line of the change that was redone, or undefined if there is nothing to redo.
+     */
+    public redo(): string | undefined {
+        const entry = this.redoStack.pop();
+        if (entry === undefined) {
+            return undefined;
+        }
+
+        this.undoStack.push({ label: entry.label, state: this.captureState() });
+        this.restoreState(entry.state);
+
+        return entry.label;
+    }
+
+    /**
+     * Put the disk back the way it was when it was last saved (or when the session opened, if it hasn't
+     * been saved). This is a change like any other, so it can be undone, and it clears the redo stack.
+     *
+     * @returns whether anything was reverted: false if the disk is already as last saved.
+     */
+    public revert(): boolean {
+        if (this.currentRevision === this.savedRevision) {
+            return false;
+        }
+
+        this.pushUndoState("revert", this.captureState());
+        this.restoreState(this.savedState);
+
+        return true;
     }
 
     /**
