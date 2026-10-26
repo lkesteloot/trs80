@@ -64,26 +64,38 @@ function colorSpan(span: HexdumpSpan): string {
 }
 
 /**
- * Hex dump a binary array. Addresses, bytes, and annotations are colored.
+ * Make the lines of a hex dump of a binary array. Addresses, bytes, and annotations are colored.
  * Outside the annotation being explained, bytes are dimmed and addresses are
  * a dim version of their color. Without color, those bytes are hidden.
+ *
+ * @param binary the bytes to dump.
+ * @param collapse whether to collapse consecutive identical lines.
+ * @param annotations the annotations that explain parts of the binary.
+ * @return the lines, without line terminators.
+ */
+export function hexdumpLines(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]): string[] {
+    const hexdump = new ConsoleHexdumpGenerator(binary, collapse, annotations);
+    return Array.from(hexdump.generate(), line => line.map(span => {
+        const outside = span.classes.indexOf("outside-annotation") >= 0;
+        if (!outside) {
+            return colorSpan(span);
+        } else if (!isColorEnabled()) {
+            // Hide altogether.
+            return "".padEnd(span.text.length, " ");
+        } else if (span.classes.indexOf("address") >= 0) {
+            return colors.muted(colors.address(span.text));
+        } else {
+            return colors.muted(span.text);
+        }
+    }).join(""));
+}
+
+/**
+ * Hex dump a binary array to the console (see hexdumpLines()).
  */
 export function hexdumpBinary(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]): void {
-    const hexdump = new ConsoleHexdumpGenerator(binary, collapse, annotations);
-    for (const line of hexdump.generate()) {
-        console.log(line.map(span => {
-            const outside = span.classes.indexOf("outside-annotation") >= 0;
-            if (!outside) {
-                return colorSpan(span);
-            } else if (!isColorEnabled()) {
-                // Hide altogether.
-                return "".padEnd(span.text.length, " ");
-            } else if (span.classes.indexOf("address") >= 0) {
-                return colors.muted(colors.address(span.text));
-            } else {
-                return colors.muted(span.text);
-            }
-        }).join(""));
+    for (const line of hexdumpLines(binary, collapse, annotations)) {
+        console.log(line);
     }
 }
 

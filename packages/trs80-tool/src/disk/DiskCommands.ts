@@ -22,6 +22,7 @@ import {REPAIR_COMMAND} from "./DiskRepair.js";
 import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {importHostFile} from "./DiskImport.js";
+import {LIST_COMMAND} from "./DiskList.js";
 import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
 
 /**
@@ -1131,6 +1132,7 @@ const HELP_COMMAND: DiskCommand = {
 export const DISK_COMMANDS: DiskCommand[] = [
     DIR_COMMAND,
     EXTRACT_COMMAND,
+    LIST_COMMAND,
     ADD_COMMAND,
     RM_COMMAND,
     MV_COMMAND,

@@ -458,6 +458,20 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         one file that the name matches to that path. Also called <code>get</code>.</td>
                 </tr>
                 <tr>
+                    <td><code>list NAME</code></td>
+                    <td>Show a file’s contents: a BASIC program as a listing, a text file as text (with
+                        your computer’s line endings), and anything else, such as a program, as an annotated hex
+                        dump. A file counts as text if it has no NUL bytes and nearly all of its bytes are printable
+                        characters or line endings; trailing Ctrl-Z and NUL padding is ignored.
+                        <code>--hex</code> shows a hex dump whatever the file is, and <code>--raw</code> writes the
+                        file’s bytes unchanged to standard output, with no pager, for piping.
+                        If the name has wildcards and matches several files, each is shown under a
+                        <code>==&gt; NAME &lt;==</code> line. System files need <code>--system</code>.
+                        Output goes through the pager when it’s a terminal (see <code>--no-pager</code>).
+                        It works on any disk we can read, including a read-only one. Also
+                        called <code>type</code> and <code>cat</code>.</td>
+                </tr>
+                <tr>
                     <td><code>add HOSTFILE...</code></td>
                     <td><p>Copy files from your computer onto the disk, converting them as needed. A <code>.bas</code>
                         file of BASIC text is tokenized (<code>Tokenized hello.bas.</code>), or with

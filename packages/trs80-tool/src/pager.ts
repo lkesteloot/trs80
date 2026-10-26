@@ -1,4 +1,4 @@
-import {ChildProcess, spawn} from "child_process";
+import {ChildProcess, spawn, spawnSync} from "child_process";
 
 // Sends our output to a pager, the way git does. The pager runs as a child process
 // that reads its stdin from a pipe and writes to our terminal. We replace the
@@ -197,4 +197,43 @@ export async function stopPager(): Promise<void> {
     restoreWrites();
     process.off("SIGINT", handleSigint);
     pager = undefined;
+}
+
+/**
+ * Show text in the pager and wait until the user quits it, for a command that runs synchronously
+ * and can't use startPager(), such as one of the "disk" command's. The pager gets the text in one
+ * piece, so this is for a modest amount of text. Nothing is shown if stdout isn't a terminal, if no pager is
+ * configured, if another pager (see startPager()) is already running, or if the pager can't be run, so
+ * that the caller can print the text itself.
+ *
+ * @param text the text to show, with line terminators.
+ * @return whether the pager showed the text.
+ */
+export function pageTextSync(text: string): boolean {
+    if (pager !== undefined || !process.stdout.isTTY) {
+        return false;
+    }
+    const command = getPagerCommand();
+    if (command === undefined) {
+        return false;
+    }
+
+    // Same defaults as startPager().
+    const env = {
+        ...process.env,
+        LESS: process.env.LESS ?? "FRX",
+        LV: process.env.LV ?? "-c",
+    };
+    const result = spawnSync(command, {
+        shell: true,
+        input: text,
+        stdio: ["pipe", "inherit", "inherit"],
+        env,
+    });
+
+    // A shell that can't find the command exits with 127. An EPIPE error just means that the user quit
+    // the pager before it read everything.
+    const couldntRun = result.status === 127 ||
+        (result.error !== undefined && (result.error as NodeJS.ErrnoException).code !== "EPIPE");
+    return !couldntRun;
 }
