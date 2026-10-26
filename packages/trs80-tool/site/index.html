@@ -396,7 +396,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
             </div>
-            <p>Most commands only read the disk; <code>rm</code> changes it. Commands that change the disk do
+            <p>Most commands only read the disk; <code>add</code> and <code>rm</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command, all or nothing: if any
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
             one step, so an interrupted write can’t leave half a disk.</p>
@@ -451,6 +451,27 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         <code>--lowercase</code>, <code>--mark-damaged</code>).
                         <code>extract "*"</code> copies them all. With <code>--as PATH</code>, write the
                         one file that the name matches to that path. Also called <code>get</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>add HOSTFILE...</code></td>
+                    <td><p>Copy files from your computer onto the disk, byte for byte (BASIC and text files
+                        aren’t converted). The host names may have wildcards. Each file’s TRSDOS name is made
+                        from its host name, upper-cased, with other characters dropped and the name cut to
+                        8 letters and a 3-letter extension, and the command says when that changed it
+                        (<code>hello-world.bas will be HELLOWOR/BAS.</code>); <code>--as NAME</code> gives
+                        the name of the one host file instead. <code>--system</code> and
+                        <code>--invisible</code> set those attributes. Nothing is added unless every file
+                        can be: a name that is already on the disk, two files with the same TRSDOS name,
+                        or too little room is an error. (To replace a file, <code>rm</code> it first in the
+                        same chain: <code>rm HELLO/BAS : add hello.bas</code>.) A file that would need more
+                        than four fragments of free space can’t be added yet. It prints
+                        <code>Added HELLO/BAS (1,234 bytes).</code> for each file. Also called
+                        <code>import</code> and <code>put</code>.</p>
+                        <p>Files get no date unless you give <code>--date YYYY-MM-DD</code>, and only LDOS
+                        and TRSDOS 6 / LS-DOS 6 disks keep one: TRSDOS 2.x and DOSPLUS 3 disks ignore it, with a
+                        warning. Those disks hold the years 1980 to 1987, or 1980 to 2011 on an LDOS 5.3 or
+                        LS-DOS 6.3 disk (which also stores the time of day), and a year outside that is an
+                        error. With no date, the entry is marked as having none.</p></td>
                 </tr>
                 <tr>
                     <td><code>rm NAME...</code></td>

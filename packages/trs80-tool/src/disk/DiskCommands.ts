@@ -1,12 +1,16 @@
+import fs from "fs";
+import path from "path";
 import {
-    type TrsdosDirEntry, TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString,
+    parseTrsdosFilename, type TrsdosDirEntry, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost,
+    trsdosFilenameToString, trsdosFindingKindSeverity, trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
+import {colors} from "../colors.js";
 import {printDirListing} from "../dir.js";
 import {extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
-import {fileNameMatchesPattern, ToolError} from "../utils.js";
+import {expandInputPatterns, fileNameMatchesPattern, pluralizeWithCount, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
@@ -220,6 +224,161 @@ const RM_COMMAND: DiskCommand = {
 
         for (const name of removedNames) {
             console.log("Removed " + name + ".");
+        }
+    },
+};
+
+/**
+ * Parse the value of "add --date", which must be YYYY-MM-DD.
+ *
+ * @param text what the user gave.
+ * @return the date at local midnight.
+ * @throws ToolError if it isn't a real calendar date in that form.
+ */
+function parseAddDate(text: string): Date {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+    if (match !== null) {
+        const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+        const date = new Date(year, month - 1, day);
+        // Reject days that roll over, such as February 30.
+        if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+            return date;
+        }
+    }
+    throw new ToolError("Invalid --date \"" + text + "\": use YYYY-MM-DD, such as 1983-05-01");
+}
+
+/**
+ * A host file that the "add" command will put on the disk.
+ */
+interface AddSource {
+    /** The host pathname, as the user gave it (after wildcards). */
+    pathname: string;
+    /** The TRSDOS name it will have. */
+    filename: TrsdosFilename;
+    /** The file's bytes. */
+    contents: Uint8Array;
+}
+
+/**
+ * The "add" command: copy files from the host onto the disk.
+ */
+const ADD_COMMAND: DiskCommand = {
+    spec: {
+        name: "add",
+        aliases: ["import", "put"],
+        usage: "HOSTFILE... [--as NAME] [--system] [--invisible] [--date YYYY-MM-DD]",
+        summary: "copy files from the host onto the disk",
+        minArgs: 1,
+        maxArgs: Infinity,
+        options: [
+            {
+                name: "--as",
+                valueName: "NAME",
+                description: "the TRSDOS name for the one host file (default: made from the host name)",
+            },
+            {
+                name: "--system",
+                valueName: undefined,
+                description: "make the files system files",
+            },
+            {
+                name: "--invisible",
+                valueName: undefined,
+                description: "hide the files from directory listings",
+            },
+            {
+                name: "--date",
+                valueName: "YYYY-MM-DD",
+                description: "record this date on the files, on DOSes that store dates (default: none)",
+            },
+        ],
+    },
+
+    endsSession: false,
+
+    /**
+     * Read the host files and choose their TRSDOS names, then add them all in one change, so that
+     * either every file is added or none is. The bytes are stored as they are. Then say which
+     * files were added, and warn once if the DOS couldn't store the date.
+     */
+    run(session, command) {
+        const asText = command.options.getString("--as");
+        const dateText = command.options.getString("--date");
+        const date = dateText === undefined ? undefined : parseAddDate(dateText);
+
+        const hostPathnames = expandInputPatterns(command.args);
+        if (asText !== undefined && hostPathnames.length !== 1) {
+            throw new ToolError("--as names one file, but " + pluralizeWithCount(hostPathnames.length, "host file") +
+                " " + (hostPathnames.length === 1 ? "was" : "were") + " given");
+        }
+
+        // Read everything and choose the names before changing anything.
+        const sources: AddSource[] = [];
+        for (const pathname of hostPathnames) {
+            const stat = fs.statSync(pathname, {throwIfNoEntry: false});
+            if (stat === undefined) {
+                throw new ToolError("Can't read \"" + pathname + "\": no such file");
+            }
+            if (!stat.isFile()) {
+                throw new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
+            }
+            let contents: Uint8Array;
+            try {
+                contents = fs.readFileSync(pathname);
+            } catch (e: any) {
+                throw new ToolError("Can't read \"" + pathname + "\": " + e.message);
+            }
+
+            let filename: TrsdosFilename;
+            if (asText !== undefined) {
+                const parsed = parseTrsdosFilename(asText);
+                if (typeof parsed === "string") {
+                    throw new ToolError(parsed);
+                }
+                filename = parsed;
+            } else {
+                const hostName = path.basename(pathname);
+                const converted = trsdosFilenameFromHost(hostName);
+                if (typeof converted === "string") {
+                    throw new ToolError(converted);
+                }
+                filename = converted.filename;
+                if (converted.changed) {
+                    console.log(hostName + " will be " + trsdosFilenameToString(filename) + ".");
+                }
+            }
+
+            const duplicate = sources.find(source =>
+                trsdosFilenameToString(source.filename) === trsdosFilenameToString(filename));
+            if (duplicate !== undefined) {
+                throw new ToolError("\"" + duplicate.pathname + "\" and \"" + pathname + "\" would both be " +
+                    trsdosFilenameToString(filename) + " on the disk");
+            }
+            sources.push({pathname, filename, contents});
+        }
+
+        const warnings = new Set<string>();
+        const addedLines: string[] = [];
+        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
+            for (const source of sources) {
+                const result = writer.addFile(source.filename, source.contents, {
+                    system: command.options.has("--system"),
+                    invisible: command.options.has("--invisible"),
+                    date,
+                });
+                addedLines.push("Added " + result.name + " (" + pluralizeWithCount(result.size, "byte") + ").");
+                if (result.warning !== undefined) {
+                    warnings.add(result.warning);
+                }
+            }
+        });
+
+        for (const line of addedLines) {
+            console.log(line);
+        }
+        for (const warning of warnings) {
+            console.log(colors.warning(warning + "."));
         }
     },
 };
@@ -464,6 +623,7 @@ const HELP_COMMAND: DiskCommand = {
 export const DISK_COMMANDS: DiskCommand[] = [
     DIR_COMMAND,
     EXTRACT_COMMAND,
+    ADD_COMMAND,
     RM_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
