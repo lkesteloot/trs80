@@ -15,6 +15,7 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {bytesToText, type DosBanner, findDosBanner} from "./DiskUtils.js";
+import type {AllocatedExtent} from "./TrsdosAllocator.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -1084,7 +1085,7 @@ export class TrsdosDirEntry implements FloppyDirEntry {
  * @param hasTimeStamps whether the disk is an LDOS 5.3 or LS-DOS 6.3 disk, whose entries can
  * hold a time stamp in place of the access password.
  */
-function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, version: TrsdosVersion,
+export function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, version: TrsdosVersion,
                         hitHash: number | undefined, hasTimeStamps: boolean): TrsdosDirEntry | undefined | string {
 
     let flags = binary[0];
@@ -1220,6 +1221,157 @@ function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, version: T
 
     return new TrsdosDirEntry(version, flags, day, month, year, hour, minute, lastSectorSize, lrl, filename,
         updatePassword, accessPassword, sectorCount, prevDec, nextDec, extents);
+}
+
+/**
+ * The time of day and year that LDOS 5.3 and LS-DOS 6.3 keep in directory bytes 18-19 in place of
+ * the access password. See "Time stamps (LDOS 5.3 and LS-DOS 6.3)" in FLOPPY_FORMATS.md.
+ */
+export interface Trsdos23TimeStamp {
+    /**
+     * The hour, 0 to 23.
+     */
+    hour: number;
+
+    /**
+     * The minute, 0 to 59.
+     */
+    minute: number;
+
+    /**
+     * The year, 1980 to 2011. Byte 2 of the entry must hold the year's low three bits.
+     */
+    year: number;
+}
+
+/**
+ * The fields of a primary directory entry in the TRSDOS 2.3 family, as {@link encodeTrsdos23DirEntry}
+ * writes them. Each is the raw value that goes in the entry, so that the caller (which knows
+ * the DOS's rules) decides what the bytes mean. See "Directory entries (2.3 family)" in FLOPPY_FORMATS.md.
+ */
+export interface Trsdos23DirEntryFields {
+    /**
+     * Byte 0: the in-use, system and invisible bits and the protection level.
+     */
+    flags: number;
+
+    /**
+     * Byte 1: on the LDOS line the date flags and the month; zero elsewhere.
+     */
+    byte1: number;
+
+    /**
+     * Byte 2: on the LDOS line the day and the low three bits of the year; zero elsewhere.
+     */
+    byte2: number;
+
+    /**
+     * Byte 3: the offset of the end of file within the last sector (0 when it ends on a sector boundary).
+     */
+    eofOffset: number;
+
+    /**
+     * Byte 4: the logical record length, where 256 is stored as 0.
+     */
+    lrl: number;
+
+    /**
+     * Bytes 5-15: the name and extension, space padded, 11 characters.
+     */
+    rawFilename: string;
+
+    /**
+     * Bytes 16-17: the update (owner) password hash.
+     */
+    updatePassword: number;
+
+    /**
+     * Bytes 18-19: the access (user) password hash. Ignored if {@link timeStamp} is given.
+     */
+    accessPassword: number;
+
+    /**
+     * Bytes 18-19 as a time stamp, in place of the access password, or undefined to write the access password.
+     */
+    timeStamp?: Trsdos23TimeStamp | undefined;
+
+    /**
+     * Bytes 20-21: the number of sectors, counting a partly filled last sector.
+     */
+    sectorCount: number;
+
+    /**
+     * Bytes 22-29: up to four extents.
+     */
+    extents: AllocatedExtent[];
+
+    /**
+     * Bytes 30-31: the DEC of the extended entry that continues the file, or undefined for none.
+     */
+    nextDec: number | undefined;
+}
+
+/**
+ * Build the 32 bytes of a primary directory entry in the TRSDOS 2.3 family, the inverse of what
+ * {@link decodeDirEntry} reads. Unused extents are 0xFF, and so is the link when there's none. The
+ * fields aren't interpreted, only checked to fit their bytes.
+ *
+ * @param fields the entry's fields.
+ * @return the entry's bytes.
+ * @throws Error if a field doesn't fit, such as more than four extents.
+ */
+export function encodeTrsdos23DirEntry(fields: Trsdos23DirEntryFields): Uint8Array {
+    if (fields.rawFilename.length !== 11) {
+        throw new Error(`The raw file name "${fields.rawFilename}" isn't 11 characters`);
+    }
+    if (fields.extents.length > 4) {
+        throw new Error(`A directory entry holds 4 extents, not ${fields.extents.length}`);
+    }
+    if (fields.sectorCount < 0 || fields.sectorCount > 0xFFFF) {
+        throw new Error(`The sector count ${fields.sectorCount} doesn't fit in 16 bits`);
+    }
+
+    const binary = new Uint8Array(32);
+    binary[0] = fields.flags;
+    binary[1] = fields.byte1;
+    binary[2] = fields.byte2;
+    binary[3] = fields.eofOffset;
+    binary[4] = fields.lrl & 0xFF;
+    for (let i = 0; i < 11; i++) {
+        binary[5 + i] = fields.rawFilename.charCodeAt(i);
+    }
+    binary[16] = fields.updatePassword & 0xFF;
+    binary[17] = fields.updatePassword >> 8;
+    if (fields.timeStamp === undefined) {
+        binary[18] = fields.accessPassword & 0xFF;
+        binary[19] = fields.accessPassword >> 8;
+    } else {
+        // Big endian, unlike the password.
+        const {hour, minute, year} = fields.timeStamp;
+        const stamp = (hour << 11) | (minute << 5) | ((year - 1980) & 0x1F);
+        binary[18] = stamp >> 8;
+        binary[19] = stamp & 0xFF;
+    }
+    binary[20] = fields.sectorCount & 0xFF;
+    binary[21] = fields.sectorCount >> 8;
+
+    binary.fill(0xFF, 22, 32);
+    fields.extents.forEach((extent, i) => {
+        if (extent.granuleCount < 1 || extent.granuleCount > 32 || extent.granuleOffset < 0 ||
+            extent.granuleOffset > 7 || extent.lump < 0 || extent.lump > 0xFD) {
+
+            throw new Error(`Extent ${i} (lump ${extent.lump}, granule ${extent.granuleOffset}, ` +
+                `count ${extent.granuleCount}) doesn't fit in a directory entry`);
+        }
+        binary[22 + 2*i] = extent.lump;
+        binary[23 + 2*i] = (extent.granuleOffset << 5) | (extent.granuleCount - 1);
+    });
+    if (fields.nextDec !== undefined) {
+        binary[30] = 0xFE;
+        binary[31] = fields.nextDec;
+    }
+
+    return binary;
 }
 
 /**
@@ -2424,6 +2576,25 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             });
         }
 
+        return sectorPositions;
+    }
+
+    /**
+     * The positions of the sectors that some extents cover, in order, as the extents of a file
+     * would be read. Unlike {@link getFileSectorPositions}, which stops at the file's size, this
+     * lists every sector of every granule, so that a writer can find where to put a new file's data.
+     * It doesn't change how files are decoded.
+     *
+     * @param extents the extents, in the form that {@link allocateGranules} gives.
+     */
+    public getExtentSectorPositions(extents: AllocatedExtent[]): SectorPosition[] {
+        const sectorPositions: SectorPosition[] = [];
+        for (const extent of extents) {
+            const sectorCount = extent.granuleCount*this.sectorsPerGranule;
+            for (let i = 0; i < sectorCount; i++) {
+                sectorPositions.push(this.logicalToPhysical(extent.lump, extent.granuleOffset, i));
+            }
+        }
         return sectorPositions;
     }
 

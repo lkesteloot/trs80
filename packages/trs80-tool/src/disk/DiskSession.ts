@@ -376,7 +376,12 @@ export class DiskSession {
                 throw new ToolError("Can't change this disk: it doesn't decode the same way when it is prepared for writing.");
             }
 
-            const writer = new TrsdosWriter(trsdos);
+            // requireWritable() has already refused a disk with no rule set.
+            const ruleSet = this.getWriteGate()?.ruleSet;
+            if (ruleSet === undefined) {
+                throw new ToolError("Can't change this disk: no DOS rules apply to it.");
+            }
+            const writer = new TrsdosWriter(trsdos, ruleSet);
             change(writer);
             if (writer.hasChanges()) {
                 writer.flush();

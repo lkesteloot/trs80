@@ -1,14 +1,65 @@
 import {assertNever} from "z80-base";
 import type {SectorPosition} from "./FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
-import {decodeTrsdos, type Trsdos, type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosVersion} from "./Trsdos.js";
+import {
+    decodeTrsdos, encodeTrsdos23DirEntry, hashForFilename, TRSDOS_BLANK_PASSWORD_HASH, type Trsdos,
+    type Trsdos23TimeStamp, type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosVersion,
+} from "./Trsdos.js";
+import {allocateGranules, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
 import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
+import {chooseDirSlots} from "./TrsdosDirSlots.js";
+import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
+import {TrsdosRuleSet, trsdosRuleSetToString} from "./TrsdosRuleSet.js";
 
 /**
  * The directory entry flag that says the entry is in use. Clearing it deletes the entry.
  */
 const FLAG_IN_USE = 0x10;
+
+/**
+ * The directory entry flag for a system file.
+ */
+const FLAG_SYSTEM = 0x40;
+
+/**
+ * The directory entry flag for an invisible file.
+ */
+const FLAG_INVISIBLE = 0x08;
+
+/**
+ * Byte 1 of an LDOS-line entry: the bit that says the file changed since the last backup, which the
+ * DOS sets when it writes a file. See "Directory entries (2.3 family)" in FLOPPY_FORMATS.md.
+ */
+const BYTE1_MODIFIED = 0x40;
+
+/**
+ * Byte 1 of an LDOS-line entry: the bit that says the system date wasn't maintained when the file
+ * was written, so the date in the entry (if any) isn't to be trusted.
+ */
+const BYTE1_DATE_NOT_SET = 0x10;
+
+/**
+ * The most extents that one primary directory entry holds.
+ */
+const EXTENTS_PER_ENTRY = 4;
+
+/**
+ * The size of the sectors that the writer can fill with file data.
+ */
+const SECTOR_SIZE = 256;
+
+/**
+ * The years that the LDOS line's directory dates hold without a time stamp: byte 2 has three bits for
+ * the year, from 1980.
+ */
+const FIRST_YEAR = 1980;
+const LAST_YEAR_WITHOUT_TIME_STAMP = 1987;
+
+/**
+ * The last year that an LDOS 5.3 or LS-DOS 6.3 time stamp holds (five bits for the year, from 1980).
+ */
+const LAST_YEAR_WITH_TIME_STAMP = 2011;
 
 /**
  * The raw names of the files that can't be deleted, because the DOS needs them where they are.
@@ -28,6 +79,78 @@ export class TrsdosWriteError extends Error {
         super(message);
         this.name = "TrsdosWriteError";
     }
+}
+
+/**
+ * What to do differently when adding a file.
+ */
+export interface TrsdosAddOptions {
+    /**
+     * Whether to make it a system file.
+     */
+    system?: boolean | undefined;
+
+    /**
+     * Whether to hide it from directory listings.
+     */
+    invisible?: boolean | undefined;
+
+    /**
+     * The date to record in the file's directory entry, in local time, or undefined to record none.
+     * Only the LDOS line of DOSes has file dates; on others the date is ignored and the result says so.
+     */
+    date?: Date | undefined;
+}
+
+/**
+ * What {@link TrsdosWriter.addFile} did.
+ */
+export interface TrsdosAddResult {
+    /**
+     * The file's name with a slash before any extension, such as "HELLO/BAS".
+     */
+    name: string;
+
+    /**
+     * The file's size in bytes.
+     */
+    size: number;
+
+    /**
+     * A message for the user about something the writer did not do as asked, such as that the DOS
+     * doesn't store dates, or undefined if it did everything.
+     */
+    warning: string | undefined;
+}
+
+/**
+ * A file that {@link TrsdosWriter.addFile} has added, kept for the final verification.
+ */
+interface AddedFile {
+    /**
+     * The name with a slash before any extension, in the case the file was added with.
+     */
+    name: string;
+
+    /**
+     * The contents the file must read back as.
+     */
+    contents: Uint8Array;
+}
+
+/**
+ * A sector of new file data waiting to be written to the overlay by {@link TrsdosWriter.flush}.
+ */
+interface PendingSector {
+    /**
+     * Where the sector goes.
+     */
+    sectorPosition: SectorPosition;
+
+    /**
+     * The sector's data.
+     */
+    bytes: Uint8Array;
 }
 
 /**
@@ -66,7 +189,7 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /**
- * Makes changes to a TRSDOS floppy: the writer's core and its first operation, deleting a file.
+ * Makes changes to a TRSDOS floppy: the writer's core and its operations, deleting and adding files.
  *
  * The writer reads the GAT, the HIT and the directory sectors it changes into memory, makes every
  * change there, and writes back only the sectors that changed, into a {@link SectorOverlay} (so
@@ -136,6 +259,29 @@ export class TrsdosWriter {
     private readonly deleted = new Set<TrsdosDirEntry>();
 
     /**
+     * The rules the disk is written under, which decide what the DOS puts in a new directory entry
+     * and which slots are reserved.
+     */
+    private readonly ruleSet: TrsdosRuleSet;
+
+    /**
+     * Whether each granule is free to be given to a new file, by linear index (lump*granulesPerLump +
+     * granule), as of the changes so far: the granules that deleting files freed are free, and those
+     * that adding files took are not.
+     */
+    private readonly freeGranules: boolean[];
+
+    /**
+     * The files that {@link addFile} has added.
+     */
+    private readonly added: AddedFile[] = [];
+
+    /**
+     * The data sectors of the added files, waiting to be written by {@link flush}.
+     */
+    private readonly pendingSectors: PendingSector[] = [];
+
+    /**
      * Whether {@link flush} has succeeded.
      */
     private flushed = false;
@@ -145,14 +291,16 @@ export class TrsdosWriter {
      * problems for the final comparison.
      *
      * @param trsdos the file system, whose disk must be a {@link SectorOverlay}.
+     * @param ruleSet the rules the disk is written under, from the write gate.
      * @throws TrsdosWriteError if the disk isn't an overlay, or the GAT or HIT can't be read.
      */
-    constructor(trsdos: Trsdos) {
+    constructor(trsdos: Trsdos, ruleSet: TrsdosRuleSet) {
         if (!(trsdos.disk instanceof SectorOverlay)) {
             throw new TrsdosWriteError("The disk must be a SectorOverlay to be written");
         }
         this.trsdos = trsdos;
         this.overlay = trsdos.disk;
+        this.ruleSet = ruleSet;
 
         this.directory = trsdos.getDirectory();
         for (const slot of this.directory.slots) {
@@ -164,6 +312,7 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(granuleMap);
         }
         this.granuleMap = granuleMap;
+        this.freeGranules = freeGranuleFlags(granuleMap);
 
         this.gat = this.copySector(trsdos.getGatPosition(), "GAT");
         this.hit = this.copySector(trsdos.getHitPosition(), "HIT");
@@ -193,6 +342,183 @@ export class TrsdosWriter {
         const upperName = name.toUpperCase();
         return this.directory.files.find(dirEntry =>
             !this.deleted.has(dirEntry) && dirEntry.getFilename("/").toUpperCase() === upperName);
+    }
+
+    /**
+     * Add a file: choose its granules and a directory slot, and fill in a primary directory entry,
+     * the HIT byte and the GAT bits, the way the DOS's own rules would (see {@link TrsdosRuleSet}).
+     * The file's data reaches the overlay at {@link flush}, with the rest. A file in a granule
+     * freed by {@link deleteFile} reuses it. If this throws, the writer is as it was before the call.
+     *
+     * Only TRSDOS 2.3 layouts are supported for now, and only files that fit in one directory
+     * entry's four extents.
+     *
+     * @param filename the file's name, which must not be on the disk already (case doesn't matter).
+     * @param contents the file's bytes, which are stored as they are.
+     * @param options the attributes and date.
+     * @return what was added, and a warning if something asked for couldn't be done.
+     * @throws TrsdosWriteError if the file can't be added.
+     */
+    public addFile(filename: TrsdosFilename, contents: Uint8Array, options: TrsdosAddOptions = {}): TrsdosAddResult {
+        this.checkNotFlushed();
+        const trsdos = this.trsdos;
+        const name = trsdosFilenameToString(filename);
+        const rawFilename = trsdosFilenameToRaw(filename);
+
+        switch (trsdos.version) {
+            case TrsdosVersion.V2_3:
+                break;
+
+            case TrsdosVersion.V1_3:
+                throw new TrsdosWriteError("Adding files isn't supported yet on TRSDOS 1.3 disks");
+
+            case TrsdosVersion.V2_7:
+                throw new TrsdosWriteError("Adding files isn't supported yet on TRSDOS 2.7 disks");
+
+            default:
+                assertNever(trsdos.version);
+        }
+        if (trsdos.geometry.modalDataSectorSize !== SECTOR_SIZE) {
+            throw new TrsdosWriteError(`Adding files isn't supported on disks with ${trsdos.geometry.modalDataSectorSize}-byte sectors`);
+        }
+
+        const upperName = name.toUpperCase();
+        const alreadyOnDisk = this.getFiles().some(dirEntry => dirEntry.getFilename("/").toUpperCase() === upperName) ||
+            this.added.some(addedFile => addedFile.name.toUpperCase() === upperName);
+        if (alreadyOnDisk) {
+            throw new TrsdosWriteError(`${name} is already on the disk`);
+        }
+
+        // The attributes and the date, by the DOS's rules.
+        const datePart = this.makeDateFields(options.date);
+        const flags = FLAG_IN_USE | (options.system === true ? FLAG_SYSTEM : 0) |
+            (options.invisible === true ? FLAG_INVISIBLE : 0);
+
+        // Granules.
+        const size = contents.length;
+        const sectorCount = Math.ceil(size/SECTOR_SIZE);
+        if (sectorCount > 0xFFFF) {
+            throw new TrsdosWriteError(`${name} is too big: a file can have at most 65,535 sectors`);
+        }
+        const neededGranules = Math.ceil(sectorCount/trsdos.sectorsPerGranule);
+        // Ask for any number of extents, so that we can say what the problem is.
+        const extents = allocateGranules(this.freeGranules, trsdos.granulesPerLump, neededGranules,
+            maxGranulesPerExtent(trsdos.version), Infinity);
+        if (typeof extents === "string") {
+            throw new TrsdosWriteError(`Can't add ${name}: ${extents.charAt(0).toLowerCase()}${extents.substring(1)}`);
+        }
+        if (extents.length > EXTENTS_PER_ENTRY) {
+            throw new TrsdosWriteError(`Can't add ${name}: the free space is too fragmented, since it needs ` +
+                `${extents.length} extents and one directory entry holds ${EXTENTS_PER_ENTRY}; files that need ` +
+                `extended directory entries aren't supported yet`);
+        }
+        if (extents.some(extent => extent.lump > 0xFD)) {
+            throw new TrsdosWriteError(`Can't add ${name}: it would need a lump that a directory entry can't hold`);
+        }
+
+        // The directory slot.
+        const decs = chooseDirSlots(trsdos, this.ruleSet, this.hit.bytes, 1);
+        if (typeof decs === "string") {
+            throw new TrsdosWriteError(`Can't add ${name}: ${decs.charAt(0).toLowerCase()}${decs.substring(1)}`);
+        }
+        const dec = decs[0];
+
+        // The directory entry.
+        const entryBytes = encodeTrsdos23DirEntry({
+            flags,
+            byte1: datePart.byte1,
+            byte2: datePart.byte2,
+            eofOffset: size % SECTOR_SIZE,
+            lrl: 0,
+            rawFilename,
+            updatePassword: TRSDOS_BLANK_PASSWORD_HASH,
+            accessPassword: TRSDOS_BLANK_PASSWORD_HASH,
+            timeStamp: datePart.timeStamp,
+            sectorCount,
+            extents,
+            nextDec: undefined,
+        });
+
+        // Everything has been checked; now change the working copies.
+        const {sectorPosition, offset} = trsdos.getDirEntryLocation(dec);
+        const dirCopy = this.getDirSectorCopy(sectorPosition);
+        dirCopy.bytes.set(entryBytes, offset);
+        dirCopy.dirty = true;
+        this.hit.bytes[dec] = hashForFilename(rawFilename);
+        this.hit.dirty = true;
+
+        for (const extent of extents) {
+            const start = extent.lump*trsdos.granulesPerLump + extent.granuleOffset;
+            for (let index = start; index < start + extent.granuleCount; index++) {
+                this.freeGranules[index] = false;
+                this.gat.bytes[Math.floor(index/trsdos.granulesPerLump)] |= 1 << (index % trsdos.granulesPerLump);
+            }
+        }
+        if (extents.length > 0) {
+            this.gat.dirty = true;
+        }
+
+        const sectorPositions = trsdos.getExtentSectorPositions(extents);
+        sectorPositions.forEach((position, i) => {
+            const bytes = new Uint8Array(SECTOR_SIZE);
+            bytes.set(contents.subarray(i*SECTOR_SIZE, (i + 1)*SECTOR_SIZE));
+            this.pendingSectors.push({sectorPosition: position, bytes});
+        });
+
+        this.added.push({name, contents: new Uint8Array(contents)});
+        return {name, size, warning: datePart.warning};
+    }
+
+    /**
+     * Work out the date-related bytes of a new directory entry under the writer's rule set.
+     *
+     * @param date the date the caller wants stored, or undefined.
+     * @return byte 1 and byte 2 of the entry, the time stamp if bytes 18-19 get one, and a warning if the
+     * date can't be stored.
+     * @throws TrsdosWriteError if the date can't be stored in this DOS's entries.
+     */
+    private makeDateFields(date: Date | undefined): {
+        byte1: number, byte2: number, timeStamp: Trsdos23TimeStamp | undefined, warning: string | undefined,
+    } {
+
+        switch (this.ruleSet) {
+            case TrsdosRuleSet.TRSDOS_2:
+            case TrsdosRuleSet.DOSPLUS: {
+                // Only the LDOS line has file dates, so bytes 1 and 2 stay zero.
+                const warning = date === undefined ? undefined :
+                    `${trsdosRuleSetToString(this.ruleSet)} disks don't store file dates, so the date was ignored`;
+                return {byte1: 0, byte2: 0, timeStamp: undefined, warning};
+            }
+
+            case TrsdosRuleSet.LDOS_5:
+            case TrsdosRuleSet.TRSDOS_6: {
+                if (date === undefined) {
+                    // No date: month 0 says the date was not set, and bit 4 says the system date wasn't
+                    // maintained (LDOS 5.1 manual, PDF page 211).
+                    return {byte1: BYTE1_MODIFIED | BYTE1_DATE_NOT_SET, byte2: 0, timeStamp: undefined, warning: undefined};
+                }
+
+                const year = date.getFullYear();
+                const hasTimeStamps = this.trsdos.hasTimeStamps;
+                const lastYear = hasTimeStamps ? LAST_YEAR_WITH_TIME_STAMP : LAST_YEAR_WITHOUT_TIME_STAMP;
+                if (Number.isNaN(year) || year < FIRST_YEAR || year > lastYear) {
+                    throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
+                        `${Number.isNaN(year) ? "of that date" : year}; give a date from ${FIRST_YEAR} to ${lastYear}, or none`);
+                }
+
+                const byte1 = BYTE1_MODIFIED | (date.getMonth() + 1);
+                const byte2 = (date.getDate() << 3) | ((year - FIRST_YEAR) & 0x07);
+                const timeStamp = hasTimeStamps ?
+                    {hour: date.getHours(), minute: date.getMinutes(), year} : undefined;
+                return {byte1, byte2, timeStamp, warning: undefined};
+            }
+
+            case TrsdosRuleSet.TRSDOS_1_3:
+                throw new TrsdosWriteError("Adding files isn't supported yet on TRSDOS 1.3 disks");
+
+            default:
+                assertNever(this.ruleSet);
+        }
     }
 
     /**
@@ -251,7 +577,7 @@ export class TrsdosWriter {
             this.clearDirEntry(slot);
         }
 
-        this.freeGranules(dirEntry);
+        this.releaseGranules(dirEntry);
         this.deleted.add(dirEntry);
     }
 
@@ -260,14 +586,16 @@ export class TrsdosWriter {
      * that put a byte back to what it was.
      */
     public hasChanges(): boolean {
-        return this.gat.dirty || this.hit.dirty || [...this.dirSectors.values()].some(copy => copy.dirty);
+        return this.gat.dirty || this.hit.dirty || [...this.dirSectors.values()].some(copy => copy.dirty) ||
+            this.pendingSectors.length > 0;
     }
 
     /**
      * Write the changed sectors to the overlay, decode the overlay again, and verify the result:
-     * it must have the same layout, hold the files it had before less the deleted ones, read every
-     * remaining file exactly as before (except any file that includes the directory sectors), and
-     * have no layout or damage problem it didn't have. With no changes, nothing is written and the
+     * it must have the same layout, hold the files it had before less the deleted ones and plus the
+     * added ones, read every remaining file exactly as before (except any file that includes the
+     * directory sectors), read every added file as the contents given, and have no layout or damage
+     * problem it didn't have. With no changes, nothing is written and the
      * result is verified all the same.
      *
      * @return the file system decoded from the changed overlay.
@@ -277,6 +605,14 @@ export class TrsdosWriter {
     public flush(): Trsdos {
         this.checkNotFlushed();
 
+        // The new files' data first, then the metadata that points to it.
+        for (const pending of this.pendingSectors) {
+            try {
+                this.overlay.writeSector(pending.sectorPosition, pending.bytes);
+            } catch (e) {
+                throw new TrsdosWriteError(e instanceof Error ? e.message : String(e));
+            }
+        }
         const copies = [this.gat, this.hit, ...this.dirSectors.values()];
         for (const copy of copies) {
             if (copy.dirty) {
@@ -322,16 +658,24 @@ export class TrsdosWriter {
     }
 
     /**
-     * Delete one directory entry in memory: clear its in-use bit and its HIT byte.
+     * The working copy of a directory sector, made the first time it's asked for.
      */
-    private clearDirEntry(slot: TrsdosDirSlot): void {
-        const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slot.hitIndex);
+    private getDirSectorCopy(sectorPosition: SectorPosition): SectorCopy {
         const key = sectorPosition.key();
         let copy = this.dirSectors.get(key);
         if (copy === undefined) {
             copy = this.copySector(sectorPosition, "directory");
             this.dirSectors.set(key, copy);
         }
+        return copy;
+    }
+
+    /**
+     * Delete one directory entry in memory: clear its in-use bit and its HIT byte.
+     */
+    private clearDirEntry(slot: TrsdosDirSlot): void {
+        const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slot.hitIndex);
+        const copy = this.getDirSectorCopy(sectorPosition);
 
         const flags = copy.bytes[offset];
         const newFlags = flags & ~FLAG_IN_USE;
@@ -347,11 +691,11 @@ export class TrsdosWriter {
     }
 
     /**
-     * Free, in the GAT in memory, the granules that a file's extents cover and that nothing else
+     * Free, in the GAT in memory and in {@link freeGranules}, the granules that a file's extents cover and that nothing else
      * needs: no other file that's still on the disk claims it, it isn't in the directory, and it
      * isn't locked out.
      */
-    private freeGranules(dirEntry: TrsdosDirEntry): void {
+    private releaseGranules(dirEntry: TrsdosDirEntry): void {
         const trsdos = this.trsdos;
         const granulesPerLump = trsdos.granulesPerLump;
         const granuleCount = trsdos.lumpCount*granulesPerLump;
@@ -365,6 +709,9 @@ export class TrsdosWriter {
                 if (stillClaimed || granule.inDirectory || granule.lockedOut) {
                     continue;
                 }
+
+                // Free for the next file to be added, as well as in the GAT.
+                this.freeGranules[index] = true;
 
                 const lump = Math.floor(index/granulesPerLump);
                 const bit = 1 << (index % granulesPerLump);
@@ -401,7 +748,7 @@ export class TrsdosWriter {
 
     /**
      * Compare the disk decoded after the change with the disk as it was, and throw if the
-     * difference isn't exactly the files we deleted.
+     * difference isn't exactly the files we deleted and added.
      */
     private verify(newTrsdos: Trsdos): void {
         // The layout.
@@ -417,10 +764,13 @@ export class TrsdosWriter {
             }
         }
 
-        // The files. The expected ones are the original ones, in order, less the deleted.
+        // The files. The expected ones are the original ones, in order, less the deleted, and the added.
         const expectedEntries = this.directory.files.filter(dirEntry => !this.deleted.has(dirEntry));
         const newEntries = newTrsdos.getDirEntries(true);
-        const expectedNames = expectedEntries.map(dirEntry => dirEntry.getFilename("/"));
+        const expectedNames = [
+            ...expectedEntries.map(dirEntry => dirEntry.getFilename("/")),
+            ...this.added.map(addedFile => addedFile.name),
+        ];
         const newNames = newEntries.map(dirEntry => dirEntry.getFilename("/"));
         for (const name of expectedNames) {
             if (!newNames.includes(name)) {
@@ -457,6 +807,14 @@ export class TrsdosWriter {
                 !bytesEqual(originalBinary, newTrsdos.readFile(newEntry))) {
 
                 throw new TrsdosWriteError(`After the change, ${name} reads differently`);
+            }
+        }
+
+        // Each added file must read back as given. Its name is unique among the others.
+        for (const addedFile of this.added) {
+            const newEntry = newEntriesByName.get(addedFile.name)?.shift();
+            if (newEntry === undefined || !bytesEqual(addedFile.contents, newTrsdos.readFile(newEntry))) {
+                throw new TrsdosWriteError(`After the change, ${addedFile.name} reads differently from what was added`);
             }
         }
 
