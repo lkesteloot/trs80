@@ -396,7 +396,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
             </div>
-            <p>Most commands only read the disk; <code>add</code>, <code>rm</code> and <code>mv</code> change it. Commands that change the disk do
+            <p>Most commands only read the disk; <code>add</code>, <code>rm</code>, <code>mv</code> and <code>attr</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command, all or nothing: if any
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
             one step, so an interrupted write can’t leave half a disk.</p>
@@ -503,6 +503,30 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         renamed at all. Only the name changes, not the file’s contents, dates or attributes.
                         It prints <code>Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>ren</code>,
                         <code>rename</code>, and <code>move</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>attr PATTERN...</code></td>
+                    <td><p>Change the attributes of files, or with no attribute options show them. The patterns
+                        may have wildcards, as in <code>dir</code>; every pattern must match a file, or nothing
+                        is changed. System files match only if you give <code>--include-system</code>. The
+                        attributes are <code>--invisible</code> or <code>--visible</code> (whether directory
+                        listings show the file), <code>--system</code> or <code>--no-system</code>
+                        (<code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t change), <code>--protect LEVEL</code>,
+                        <code>--password PW</code> (the update, or owner, password, which allows full access)
+                        and <code>--access-password PW</code> (which allows access up to the protection level);
+                        an empty password removes the password. A password is up to 8 letters and digits, starting
+                        with a letter. <code>--date YYYY-MM-DD</code> or <code>--no-date</code> sets or removes the
+                        date, on the DOSes that store one (see <code>add</code>) and as an error elsewhere.
+                        It prints <code>Changed HELLO/BAS: invisible, protection READ.</code> for each file.
+                        Also called <code>attrib</code>.</p>
+                        <p>The protection level is a name or a number from 0 to 7, in any case. The names
+                        are the disk’s DOS’s: <code>FULL</code> (0), <code>KILL</code> (1), <code>RENAME</code> (2),
+                        <code>WRITE</code> (4), <code>READ</code> (5), <code>EXEC</code> (6), and
+                        <code>NO_ACCESS</code> (7) on TRSDOS 2.x, LDOS 5, and the other DOSes of that family, but
+                        <code>REMOVE</code> (1), <code>WRITE</code> (3), and <code>UPDATE</code> (4) on TRSDOS 6 and
+                        LS-DOS 6. An unknown name lists the ones that fit the disk. LDOS 5.3 and LS-DOS 6.3 disks
+                        keep a time stamp where the access password would go, so they have no access password
+                        to set, and system files there have no dates.</p></td>
                 </tr>
                 <tr>
                     <td><code>info</code></td>

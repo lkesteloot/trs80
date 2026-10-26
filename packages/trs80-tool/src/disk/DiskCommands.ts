@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
 import {
-    parseTrsdosFilename, type TrsdosDirEntry, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost,
-    trsdosFilenameToString, trsdosFindingKindSeverity, trsdosRuleSetToString,
+    parseTrsdosFilename, parseTrsdosProtectionLevel, TRSDOS_BLANK_PASSWORD_HASH, Trsdos, type TrsdosAttributeChanges,
+    type TrsdosDirEntry, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost, trsdosFilenameToString,
+    trsdosFindingKindSeverity, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString, type TrsdosProtectionNames,
+    trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
@@ -163,6 +165,41 @@ const EXTRACT_COMMAND: DiskCommand = {
 };
 
 /**
+ * Choose the files that the patterns select, for the commands that take TRS-80 name patterns.
+ *
+ * @param allEntries the primary entries of the files on the disk, in directory order.
+ * @param patterns the name patterns the user gave. Each must match a file.
+ * @param includeSystemFiles whether system files can match.
+ * @param systemOptionName the option that allows system files, to tell the user about if a pattern matches only them.
+ * @return the files that any pattern matches, once each, in directory order.
+ * @throws ToolError if a pattern matches no file.
+ */
+function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[], includeSystemFiles: boolean,
+                          systemOptionName: string): TrsdosDirEntry[] {
+
+    const candidates = allEntries.filter(dirEntry => includeSystemFiles || !dirEntry.isSystemFile());
+    const selected = new Set<TrsdosDirEntry>();
+    for (const pattern of patterns) {
+        let matched = false;
+        for (const dirEntry of candidates) {
+            if (fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern)) {
+                selected.add(dirEntry);
+                matched = true;
+            }
+        }
+        if (!matched) {
+            // Say so if the pattern would have matched a system file.
+            const matchesSystemFile = allEntries.some(dirEntry =>
+                dirEntry.isSystemFile() && fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern));
+            throw new ToolError("No file on the disk matches \"" + pattern + "\"" +
+                (matchesSystemFile ? ", but a system file does (use " + systemOptionName + ")" : ""));
+        }
+    }
+
+    return candidates.filter(dirEntry => selected.has(dirEntry));
+}
+
+/**
  * The "rm" command: remove files from the disk.
  */
 const RM_COMMAND: DiskCommand = {
@@ -194,32 +231,12 @@ const RM_COMMAND: DiskCommand = {
         const removedNames: string[] = [];
 
         session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
-            // Check every pattern before removing anything.
-            const candidates = writer.getFiles().filter(dirEntry => includeSystemFiles || !dirEntry.isSystemFile());
-            const toRemove = new Set<TrsdosDirEntry>();
-            for (const pattern of command.args) {
-                let matched = false;
-                for (const dirEntry of candidates) {
-                    if (fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern)) {
-                        toRemove.add(dirEntry);
-                        matched = true;
-                    }
-                }
-                if (!matched) {
-                    // Say so if the pattern would have matched a system file.
-                    const matchesSystemFile = writer.getFiles().some(dirEntry =>
-                        dirEntry.isSystemFile() && fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern));
-                    throw new ToolError("No file on the disk matches \"" + pattern + "\"" +
-                        (matchesSystemFile ? ", but a system file does (use --system)" : ""));
-                }
-            }
-
-            // In directory order, so the report is stable.
-            for (const dirEntry of candidates) {
-                if (toRemove.has(dirEntry)) {
-                    writer.deleteFile(dirEntry);
-                    removedNames.push(dirEntry.getFilename("/"));
-                }
+            // Check every pattern before removing anything. The files come in directory order, so the
+            // report is stable.
+            const toRemove = selectDirEntries(writer.getFiles(), command.args, includeSystemFiles, "--system");
+            for (const dirEntry of toRemove) {
+                writer.deleteFile(dirEntry);
+                removedNames.push(dirEntry.getFilename("/"));
             }
         });
 
@@ -284,6 +301,233 @@ const MV_COMMAND: DiskCommand = {
         });
 
         console.log("Renamed " + shownOldName + " to " + newName + ".");
+    },
+};
+
+/**
+ * Format a date as YYYY-MM-DD, which is how the user gives one.
+ */
+function formatYmd(date: Date): string {
+    return date.getFullYear().toString().padStart(4, "0") + "-" +
+        (date.getMonth() + 1).toString().padStart(2, "0") + "-" + date.getDate().toString().padStart(2, "0");
+}
+
+/**
+ * Check that at most one of two mutually exclusive options was given.
+ *
+ * @param options the command's options.
+ * @param first the long name of one option, such as "--invisible".
+ * @param second the long name of the other.
+ * @throws ToolError if both were given.
+ */
+function requireNotBoth(options: DiskOptionValues, first: string, second: string): void {
+    if (options.has(first) && options.has(second)) {
+        throw new ToolError("Use either " + first + " or " + second + ", not both");
+    }
+}
+
+/**
+ * Find the protection level that the user named for a disk, by the names its DOS uses.
+ *
+ * @param text the value of --protect.
+ * @param names which DOS's names the disk uses.
+ * @throws ToolError if the text isn't a level, listing the ones that are.
+ */
+function parseProtectLevel(text: string, names: TrsdosProtectionNames): TrsdosProtectionLevel {
+    const level = parseTrsdosProtectionLevel(text, names);
+    if (level === undefined) {
+        const valid = trsdosProtectionLevels(names).map(l => trsdosProtectionLevelToString(l, names) + " (" + l + ")");
+        throw new ToolError("Invalid --protect \"" + text + "\": use one of " + valid.join(", ") + " (or a number 0 to 7)");
+    }
+    return level;
+}
+
+/**
+ * Describe what an "attr" command asked for, such as "invisible, protection READ, update password set".
+ */
+function describeChanges(changes: TrsdosAttributeChanges, names: TrsdosProtectionNames): string {
+    const parts: string[] = [];
+    if (changes.invisible !== undefined) {
+        parts.push(changes.invisible ? "invisible" : "visible");
+    }
+    if (changes.system !== undefined) {
+        parts.push(changes.system ? "system" : "user file");
+    }
+    if (changes.protectionLevel !== undefined) {
+        parts.push("protection " + trsdosProtectionLevelToString(changes.protectionLevel, names));
+    }
+    if (changes.updatePassword !== undefined) {
+        parts.push(changes.updatePassword === "" ? "update password removed" : "update password set");
+    }
+    if (changes.accessPassword !== undefined) {
+        parts.push(changes.accessPassword === "" ? "access password removed" : "access password set");
+    }
+    if (changes.date === null) {
+        parts.push("no date");
+    } else if (changes.date !== undefined) {
+        parts.push("date " + formatYmd(changes.date));
+    }
+    return parts.join(", ");
+}
+
+/**
+ * Describe a file's attributes for "attr" without changing anything, such as
+ * "HELLO/BAS: protection READ, invisible, update password, date 01/05/1983".
+ */
+function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtectionNames): string {
+    const parts = ["protection " + trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), names)];
+    if (dirEntry.isHidden()) {
+        parts.push("invisible");
+    }
+    if (dirEntry.isSystemFile()) {
+        parts.push("system");
+    }
+    if (dirEntry.updatePassword !== undefined && dirEntry.updatePassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+        parts.push("update password");
+    }
+    if (dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+        parts.push("access password");
+    }
+    // A month of zero means the date was never set (or the DOS has no dates), whatever the year bits say.
+    if (dirEntry.month !== 0) {
+        parts.push("date " + dirEntry.getFullDateString().trim());
+    }
+    return dirEntry.getFilename("/") + ": " + parts.join(", ");
+}
+
+/**
+ * The "attr" command: change or show the attributes of files on the disk.
+ */
+const ATTR_COMMAND: DiskCommand = {
+    spec: {
+        name: "attr",
+        aliases: ["attrib"],
+        usage: "PATTERN... [--invisible | --visible] [--system | --no-system] [--protect LEVEL] " +
+            "[--password PW] [--access-password PW] [--date YYYY-MM-DD | --no-date] [--include-system]",
+        summary: "change the attributes of files on the disk",
+        minArgs: 1,
+        maxArgs: Infinity,
+        options: [
+            {
+                name: "--invisible",
+                valueName: undefined,
+                description: "hide the files from directory listings",
+            },
+            {
+                name: "--visible",
+                valueName: undefined,
+                description: "show the files in directory listings",
+            },
+            {
+                name: "--system",
+                valueName: undefined,
+                description: "make the files system files (BOOT/SYS and DIR/SYS can't change)",
+            },
+            {
+                name: "--no-system",
+                valueName: undefined,
+                description: "make the files user files",
+            },
+            {
+                name: "--protect",
+                valueName: "LEVEL",
+                description: "set the protection level, by the names the disk's DOS uses (such as READ or EXEC) or 0-7",
+            },
+            {
+                name: "--password",
+                valueName: "PW",
+                description: "set the update (owner) password, up to 8 letters and digits; \"\" for none",
+            },
+            {
+                name: "--access-password",
+                valueName: "PW",
+                description: "set the access (user) password; \"\" for none (not on LDOS 5.3 and LS-DOS 6.3 disks)",
+            },
+            {
+                name: "--date",
+                valueName: "YYYY-MM-DD",
+                description: "set the date, on DOSes that store dates",
+            },
+            {
+                name: "--no-date",
+                valueName: undefined,
+                description: "remove the date",
+            },
+            {
+                name: "--include-system",
+                valueName: undefined,
+                description: "let the patterns match system files",
+            },
+        ],
+    },
+
+    endsSession: false,
+
+    /**
+     * Change the attributes that the options name on the files that the patterns select, in one change, so
+     * that either every file changes or none does, and say what changed. Every pattern must match a file.
+     * With no attribute options, show the selected files' attributes and change nothing.
+     */
+    run(session, command) {
+        const options = command.options;
+        requireNotBoth(options, "--invisible", "--visible");
+        requireNotBoth(options, "--system", "--no-system");
+        requireNotBoth(options, "--date", "--no-date");
+
+        const changes: TrsdosAttributeChanges = {};
+        if (options.has("--invisible") || options.has("--visible")) {
+            changes.invisible = options.has("--invisible");
+        }
+        if (options.has("--system") || options.has("--no-system")) {
+            changes.system = options.has("--system");
+        }
+        const protectText = options.getString("--protect");
+        changes.updatePassword = options.getString("--password");
+        changes.accessPassword = options.getString("--access-password");
+        const dateText = options.getString("--date");
+        if (dateText !== undefined) {
+            changes.date = parseAddDate(dateText);
+        } else if (options.has("--no-date")) {
+            changes.date = null;
+        }
+        const includeSystemFiles = options.has("--include-system");
+
+        const changing = protectText !== undefined || Object.values(changes).some(value => value !== undefined);
+        if (!changing) {
+            // Just show the attributes.
+            const trsdos = session.fileSystem;
+            if (!(trsdos instanceof Trsdos)) {
+                throw new ToolError("Can't show attributes: " + (trsdos === undefined ?
+                    "can't find a DOS directory on \"" + session.pathname + "\"" :
+                    trsdos.nameAndVersion + " disks aren't TRSDOS-family"));
+            }
+            const selected = selectDirEntries(trsdos.getDirEntries(true), command.args, includeSystemFiles,
+                "--include-system");
+            for (const dirEntry of selected) {
+                console.log(describeAttributes(dirEntry, trsdos.protectionNames));
+            }
+            return;
+        }
+
+        const changedLines: string[] = [];
+        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
+            // The level's name depends on the disk, so it's parsed here. Everything is checked before
+            // the first file changes.
+            const names = writer.trsdos.protectionNames;
+            if (protectText !== undefined) {
+                changes.protectionLevel = parseProtectLevel(protectText, names);
+            }
+            const changeText = describeChanges(changes, names);
+            const selected = selectDirEntries(writer.getFiles(), command.args, includeSystemFiles, "--include-system");
+            for (const dirEntry of selected) {
+                writer.setAttributes(dirEntry, changes);
+                changedLines.push("Changed " + dirEntry.getFilename("/") + ": " + changeText + ".");
+            }
+        });
+
+        for (const line of changedLines) {
+            console.log(line);
+        }
     },
 };
 
@@ -705,6 +949,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     ADD_COMMAND,
     RM_COMMAND,
     MV_COMMAND,
+    ATTR_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
     CHECK_COMMAND,
