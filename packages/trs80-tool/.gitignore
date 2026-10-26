@@ -1,3 +1,4 @@
 /binaries
 /data
 src/build.ts
+src/disk/Templates.ts
