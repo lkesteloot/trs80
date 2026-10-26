@@ -57,6 +57,51 @@ export function loadFile(filename: string): Uint8Array | string {
 }
 
 /**
+ * Write a file so that an interrupted write can't leave half a file: write the bytes to a new file in
+ * the same directory (so that the rename can't cross file systems), then rename it over the target.
+ * If the target exists, the new file gets its permission bits, and if the target is a symbolic link
+ * then the file it points to is replaced and the link stays. If anything fails, the new file is removed.
+ *
+ * @param pathname the file to create or replace.
+ * @param binary the bytes to write.
+ * @throws the file system's error if the write or the rename fails, after removing the new file.
+ */
+export function writeFileAtomically(pathname: string, binary: Uint8Array): void {
+    // Replace the file that a symbolic link points to, rather than the link.
+    let targetPathname = pathname;
+    let mode: number | undefined = undefined;
+    try {
+        targetPathname = fs.realpathSync(pathname);
+        mode = fs.statSync(targetPathname).mode & 0o7777;
+    } catch (e) {
+        // The target doesn't exist yet, so it gets the default permissions.
+    }
+
+    const {dir, base} = path.parse(targetPathname);
+    const tempPathname = path.join(dir, "." + base + ".tmp-" + process.pid);
+    try {
+        const fd = fs.openSync(tempPathname, "w");
+        try {
+            fs.writeSync(fd, binary);
+            fs.fsyncSync(fd);
+        } finally {
+            fs.closeSync(fd);
+        }
+        if (mode !== undefined) {
+            fs.chmodSync(tempPathname, mode);
+        }
+        fs.renameSync(tempPathname, targetPathname);
+    } catch (e) {
+        try {
+            fs.rmSync(tempPathname, { force: true });
+        } catch (e2) {
+            // Nothing more we can do; report the original error.
+        }
+        throw e;
+    }
+}
+
+/**
  * Synchronously read a TRS-80 file, or return an error string.
  *
  * TODO: This pattern appears several times in this file.

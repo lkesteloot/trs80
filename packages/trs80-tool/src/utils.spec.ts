@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import {afterAll, beforeAll, describe, expect, it} from "vitest";
+import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 import {
     expandInputPattern, expandInputPatterns, fileNameMatchesPattern, ToolError, wordsAfterSubcommand,
+    writeFileAtomically,
 } from "./utils.js";
 
 describe("fileNameMatchesPattern", () => {
@@ -198,5 +199,53 @@ describe("wordsAfterSubcommand", () => {
     it("returns undefined without a subcommand", () => {
         expect(after()).to.equal(undefined);
         expect(after("--no-pager")).to.equal(undefined);
+    });
+});
+
+describe("writeFileAtomically", () => {
+    let dir = "";
+
+    beforeEach(() => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), "trs80-tool-atomic-"));
+    });
+
+    afterEach(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("writes the content of a new file", () => {
+        const pathname = path.join(dir, "new.bin");
+        writeFileAtomically(pathname, new Uint8Array([1, 2, 3]));
+        expect(Array.from(fs.readFileSync(pathname))).to.eql([1, 2, 3]);
+        expect(fs.readdirSync(dir)).to.eql(["new.bin"]);
+    });
+
+    it("replaces an existing file, keeping its mode", () => {
+        const pathname = path.join(dir, "old.bin");
+        fs.writeFileSync(pathname, "old content that is longer");
+        fs.chmodSync(pathname, 0o640);
+        writeFileAtomically(pathname, new Uint8Array([9, 8]));
+        expect(Array.from(fs.readFileSync(pathname))).to.eql([9, 8]);
+        // Windows doesn't have these permission bits.
+        if (process.platform !== "win32") {
+            expect(fs.statSync(pathname).mode & 0o777).to.equal(0o640);
+        }
+        expect(fs.readdirSync(dir)).to.eql(["old.bin"]);
+    });
+
+    it("leaves no temporary file and keeps the target when the rename fails", () => {
+        // A directory can't be replaced by a file.
+        const pathname = path.join(dir, "target");
+        fs.mkdirSync(pathname);
+        fs.writeFileSync(path.join(pathname, "inside"), "x");
+        expect(() => writeFileAtomically(pathname, new Uint8Array([1]))).to.throw();
+        expect(fs.readdirSync(dir)).to.eql(["target"]);
+        expect(fs.readFileSync(path.join(pathname, "inside"), "utf8")).to.equal("x");
+    });
+
+    it("fails without leaving anything when the directory doesn't exist", () => {
+        const pathname = path.join(dir, "missing", "file.bin");
+        expect(() => writeFileAtomically(pathname, new Uint8Array([1]))).to.throw();
+        expect(fs.readdirSync(dir)).to.eql([]);
     });
 });

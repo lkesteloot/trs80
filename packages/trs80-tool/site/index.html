@@ -396,8 +396,22 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
             </div>
-            <p>The commands so far only read the disk. Writing to disk images will come in later
-            releases, through the same command.</p>
+            <p>The commands so far only read the disk; commands that change it will come in later
+            releases. They’ll change the disk in memory, and the image is written once, after the last
+            command, all or nothing: if any command in the chain or any line of a script fails, nothing
+            is saved. The image is replaced in one step, so an interrupted write can’t leave half a disk.</p>
+            <table class="flags">
+                <tr>
+                    <td><code>-o FILE</code>, <code>--output FILE</code></td>
+                    <td>Save the changes to <code>FILE</code> instead of replacing the image. Put it before the
+                        first command.</td>
+                </tr>
+                <tr>
+                    <td><code>--dry-run</code></td>
+                    <td>Write nothing, and say whether the disk would have changed. This overrides
+                        <code>--output</code>. Put it before the first command.</td>
+                </tr>
+            </table>
             <table class="flags">
                 <tr>
                     <td><code>dir [NAME...]</code></td>
@@ -432,6 +446,18 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         extents past the end of the disk, HIT bytes that don’t match names,
                         and damaged files. It also says whether the disk would be safe to write,
                         and if not, why not.</td>
+                </tr>
+                <tr>
+                    <td><code>save</code></td>
+                    <td>Save the changes now and carry on. Useful in the prompt; it says so if there’s nothing to save.</td>
+                </tr>
+                <tr>
+                    <td><code>quit</code></td>
+                    <td>Save the changes, if any, and leave the prompt. Also called <code>exit</code>; Ctrl-D does the same.</td>
+                </tr>
+                <tr>
+                    <td><code>abort</code></td>
+                    <td>Leave the prompt, discarding any changes. Ctrl-C does the same.</td>
                 </tr>
                 <tr>
                     <td><code>help [COMMAND]</code></td>

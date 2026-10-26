@@ -100,7 +100,8 @@ async function readStdinLines(): Promise<string[]> {
 }
 
 /**
- * Read commands from standard input, one line each, and run them with no prompt.
+ * Read commands from standard input, one line each, and run them with no prompt. The changes
+ * are saved at the end, all or nothing.
  *
  * @param session the open disk.
  * @param globalOptions the options from the real command line.
@@ -109,15 +110,20 @@ async function readStdinLines(): Promise<string[]> {
 async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskOptionValues): Promise<void> {
     const lines = await readStdinLines();
     runDiskScript(lines, line => runDiskLine(session, line, globalOptions));
+
+    // Only reached if every line worked. A "quit" has already saved, and an "abort" saves nothing.
+    session.saveAndReport(false);
 }
 
 /**
- * Run the interactive shell on a terminal until the user quits (or presses Ctrl-D), or aborts
- * (or presses Ctrl-C). Errors are shown and the shell carries on.
+ * Run the interactive shell on a terminal until the user quits (or presses Ctrl-D), which saves
+ * the changes, or aborts (or presses Ctrl-C), which discards them. Errors are shown and the shell
+ * carries on, including a failure to save with "save" or "quit".
  *
  * @param session the open disk.
  * @param globalOptions the options from the real command line.
- * @returns a promise that resolves when the shell is over.
+ * @returns a promise that resolves when the shell is over, or rejects with the ToolError if
+ * the final save (after Ctrl-D) fails.
  */
 function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOptionValues): Promise<void> {
     console.log(session.describe());
@@ -145,13 +151,23 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
         completer,
     });
 
-    return new Promise<void>(resolve => {
-        // Later, quitting will save changes and aborting (including Ctrl-C) will discard them.
+    return new Promise<void>((resolve, reject) => {
         rl.on("SIGINT", () => {
+            const discardedPathname = session.abort();
+            if (discardedPathname !== undefined) {
+                console.log("Discarded the changes to " + discardedPathname + ".");
+            }
             rl.close();
         });
         rl.on("close", () => {
-            resolve();
+            // The "quit" command has already saved, and "abort" and Ctrl-C make this do nothing. This
+            // is for Ctrl-D, which quits.
+            try {
+                session.saveAndReport(false);
+                resolve();
+            } catch (e) {
+                reject(e);
+            }
         });
         rl.on("line", line => {
             let ended = false;

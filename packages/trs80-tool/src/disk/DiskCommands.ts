@@ -31,9 +31,21 @@ export interface DiskCommand {
 }
 
 /**
- * The options that apply to the whole run, given before the first command. None yet.
+ * The options that apply to the whole run, given before the first command.
  */
-export const DISK_GLOBAL_OPTIONS: DiskOptionSpec[] = [];
+export const DISK_GLOBAL_OPTIONS: DiskOptionSpec[] = [
+    {
+        name: "--output",
+        shortName: "-o",
+        valueName: "FILE",
+        description: "save changes to FILE instead of replacing the image",
+    },
+    {
+        name: "--dry-run",
+        valueName: undefined,
+        description: "write nothing, and say whether the disk would have changed (overrides --output)",
+    },
+];
 
 /**
  * The "dir" command: list the files on the disk, optionally only those matching patterns.
@@ -274,10 +286,11 @@ const QUIT_COMMAND: DiskCommand = {
     endsSession: true,
 
     /**
-     * Do nothing: the runner stops after a command that ends the session.
+     * Save the changes, if any. If that fails then the error is reported as usual and the session
+     * doesn't end, so the shell is still there to try again or to abort.
      */
-    run() {
-        // Nothing to save yet.
+    run(session) {
+        session.saveAndReport(false);
     },
 };
 
@@ -298,10 +311,37 @@ const ABORT_COMMAND: DiskCommand = {
     endsSession: true,
 
     /**
-     * Do nothing: the runner stops after a command that ends the session.
+     * Discard the changes, if any, so that nothing is saved at the end.
      */
-    run() {
-        // Nothing to discard yet.
+    run(session) {
+        const discardedPathname = session.abort();
+        if (discardedPathname !== undefined) {
+            console.log("Discarded the changes to " + discardedPathname + ".");
+        }
+    },
+};
+
+/**
+ * The "save" command: write the changes to the disk image now, and carry on.
+ */
+const SAVE_COMMAND: DiskCommand = {
+    spec: {
+        name: "save",
+        aliases: [],
+        usage: "",
+        summary: "save the changes and carry on",
+        minArgs: 0,
+        maxArgs: 0,
+        options: [],
+    },
+
+    endsSession: false,
+
+    /**
+     * Save the changes, saying so if there weren't any.
+     */
+    run(session) {
+        session.saveAndReport(true);
     },
 };
 
@@ -344,6 +384,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     INFO_COMMAND,
     FREE_COMMAND,
     CHECK_COMMAND,
+    SAVE_COMMAND,
     QUIT_COMMAND,
     ABORT_COMMAND,
     HELP_COMMAND,

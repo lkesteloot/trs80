@@ -5,7 +5,7 @@ import {
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {floppyInputFiles, InputFile} from "../InputFile.js";
-import {pluralizeWithCount, ToolError} from "../utils.js";
+import {pluralizeWithCount, ToolError, writeFileAtomically} from "../utils.js";
 
 /**
  * The free space on a TRSDOS-family disk in whole KB, rounded down, such as "23 KB free".
@@ -15,8 +15,19 @@ function freeKilobytesText(granuleMap: TrsdosGranuleMap): string {
 }
 
 /**
- * The open disk that every "disk" command works on. For now it's read-only; later it will
- * hold in-memory changes and save them.
+ * How a session saves its changes. These come from the global options of the "disk" command.
+ */
+export interface DiskSessionOptions {
+    /** Where to save changes instead of the image (--output), or undefined to replace the image. */
+    outputPathname?: string | undefined;
+    /** Whether to never write anything, which wins over outputPathname (--dry-run). */
+    dryRun?: boolean | undefined;
+}
+
+/**
+ * The open disk that every "disk" command works on. Commands change the in-memory floppy, and the
+ * session writes the result once at the end (or when the user says "save"), so a chain of commands
+ * either all takes effect or none of it does.
  */
 export class DiskSession {
     /** The host pathname of the image. */
@@ -29,14 +40,29 @@ export class DiskSession {
     private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
     /** Cache for getWriteGate(), null until the first call (undefined is a valid result). */
     private writeGate: TrsdosWriteGate | undefined | null = null;
+    /** Where the next save goes: the image, or the --output file (and then wherever the last save went). */
+    private savePathname: string;
+    /** Whether saving is pretended (--dry-run). */
+    private readonly dryRun: boolean;
+    /** Whether the floppy has been written since the last save. */
+    private changed = false;
+    /** Whether abort() was called, so that nothing is saved. */
+    private aborted = false;
 
     /**
      * Use DiskSession.open() instead.
      */
-    private constructor(pathname: string, floppy: FloppyDisk, fileSystem: KnownFloppyFileSystem | undefined) {
+    private constructor(pathname: string, floppy: FloppyDisk, fileSystem: KnownFloppyFileSystem | undefined,
+                        options: DiskSessionOptions) {
+
         this.pathname = pathname;
         this.floppy = floppy;
         this.fileSystem = fileSystem;
+        this.savePathname = options.outputPathname ?? pathname;
+        this.dryRun = options.dryRun ?? false;
+        floppy.onWrite.subscribe(() => {
+            this.changed = true;
+        });
     }
 
     /**
@@ -44,9 +70,10 @@ export class DiskSession {
      * since commands that work on the image itself don't need one.
      *
      * @param pathname the host pathname of the image.
+     * @param options where and whether to save changes.
      * @throws ToolError if the file can't be read, isn't a TRS-80 file we can decode, or isn't a floppy.
      */
-    public static open(pathname: string): DiskSession {
+    public static open(pathname: string, options: DiskSessionOptions = {}): DiskSession {
         let binary: Uint8Array;
         try {
             binary = fs.readFileSync(pathname);
@@ -65,7 +92,76 @@ export class DiskSession {
             throw new ToolError("Can't open \"" + pathname + "\": it's not a floppy image");
         }
 
-        return new DiskSession(pathname, trs80File, decodeFloppyFileSystem(trs80File));
+        return new DiskSession(pathname, trs80File, decodeFloppyFileSystem(trs80File), options);
+    }
+
+    /**
+     * Whether the floppy has been changed since it was opened or last saved.
+     */
+    public hasChanges(): boolean {
+        return this.changed;
+    }
+
+    /**
+     * Write the floppy's bytes to where the changes go (the image, or the --output file), if there are changes.
+     * The write replaces the whole file at once, so a failure leaves the old file. After this, later saves go
+     * to the same file. With --dry-run this writes nothing and the changes stay pending.
+     *
+     * @returns the pathname written, or undefined if nothing was written because there were no changes
+     * (or because of --dry-run).
+     * @throws ToolError if the file can't be written.
+     */
+    public save(): string | undefined {
+        if (!this.changed || this.dryRun) {
+            return undefined;
+        }
+
+        try {
+            writeFileAtomically(this.savePathname, this.floppy.binary);
+        } catch (e: any) {
+            throw new ToolError("Can't save \"" + this.savePathname + "\": " + (e.message ?? String(e)));
+        }
+        this.changed = false;
+
+        return this.savePathname;
+    }
+
+    /**
+     * Save the changes and say so, or with --dry-run say what would have been saved (and forget the changes).
+     * Does nothing after abort().
+     *
+     * @param announceNoChanges whether to say so when there's nothing to save, as the "save" command does.
+     * @throws ToolError if the file can't be written.
+     */
+    public saveAndReport(announceNoChanges: boolean): void {
+        if (this.aborted) {
+            return;
+        }
+
+        if (!this.changed) {
+            if (announceNoChanges) {
+                console.log("No changes to save.");
+            }
+        } else if (this.dryRun) {
+            console.log("Not saved (--dry-run): " + this.savePathname + " would have changed.");
+            this.changed = false;
+        } else {
+            const savedPathname = this.save();
+            console.log("Saved " + savedPathname + ".");
+        }
+    }
+
+    /**
+     * Give up on the changes: nothing is saved from now on, including at the end of the run.
+     *
+     * @returns the pathname whose changes were discarded, or undefined if there were none.
+     */
+    public abort(): string | undefined {
+        const discardedPathname = this.changed ? this.savePathname : undefined;
+        this.aborted = true;
+        this.changed = false;
+
+        return discardedPathname;
     }
 
     /**
