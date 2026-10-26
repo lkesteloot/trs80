@@ -21,6 +21,7 @@ export * from "./TrsdosCheck.js";
 export * from "./TrsdosDirSlots.js";
 export * from "./TrsdosGranuleMap.js";
 export * from "./TrsdosRuleSet.js";
+export * from "./TrsdosTestDisk.js";
 export * from "./TrsdosWriteGate.js";
 export * from "./TrsdosWriter.js";
 export * from "./Cpm.js";

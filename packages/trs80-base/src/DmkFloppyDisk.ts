@@ -429,7 +429,11 @@ class DmkTrack {
  */
 export class DmkFloppyDisk extends FloppyDisk {
     public readonly className = "DmkFloppyDisk";
-    public readonly writeProtected: boolean;
+    /**
+     * Whether the image's header says the disk is write-protected. A tool that has been told to
+     * write anyway (trs80-tool's --force) clears this in memory; the header byte in the binary stays.
+     */
+    public writeProtected: boolean;
     public readonly trackCount: number;
     public readonly trackLength: number;
     public readonly flags: number;
@@ -680,6 +684,10 @@ export class DmkFloppyDisk extends FloppyDisk {
         }
 
         return true;
+    }
+
+    public override clearImageWriteProtected(): void {
+        this.writeProtected = false;
     }
 
     public isWriteProtected(): boolean {

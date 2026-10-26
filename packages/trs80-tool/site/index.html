@@ -396,10 +396,16 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
             </div>
-            <p>The commands so far only read the disk; commands that change it will come in later
-            releases. They’ll change the disk in memory, and the image is written once, after the last
-            command, all or nothing: if any command in the chain or any line of a script fails, nothing
-            is saved. The image is replaced in one step, so an interrupted write can’t leave half a disk.</p>
+            <p>Most commands only read the disk; <code>rm</code> changes it. Commands that change the disk do
+            so in memory, and the image is written once, after the last command, all or nothing: if any
+            command in the chain or any line of a script fails, nothing is saved. The image is replaced in
+            one step, so an interrupted write can’t leave half a disk.</p>
+            <p>Only some disks can be changed: floppies of the TRSDOS family whose DOS is TRSDOS 2.x,
+            LDOS 5, TRSDOS 6 / LS-DOS 6, or DOSPLUS 3, as long as <code>check</code> finds no problem with the
+            file system. (TRSDOS 1.3 disks can’t be changed yet.) Every change is checked before it is kept:
+            the tool decodes the changed disk again and refuses the change unless the layout and every other file
+            are exactly as they were. <code>--dos</code> and <code>--force</code> below can relax the
+            requirements on the disk when the tool is unsure.</p>
             <table class="flags">
                 <tr>
                     <td><code>-o FILE</code>, <code>--output FILE</code></td>
@@ -417,16 +423,16 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         override what it says. The names are <code>trsdos-2</code>, <code>trsdos-1.3</code>,
                         <code>ldos-5</code>, <code>trsdos-6</code> (also <code>ldos-6</code> and
                         <code>ls-dos-6</code>), and <code>dosplus</code>; <code>help dos</code> lists them. It
-                        doesn’t change how the disk is read, and it only applies to TRSDOS-family disks. Nothing
-                        writes yet, so for now it only changes what <code>info</code> and <code>check</code> say
-                        about whether the disk is writable. Put it before the first command.</td>
+                        doesn’t change how the disk is read, and it only applies to TRSDOS-family disks. It also
+                        changes what <code>info</code> and <code>check</code> say about whether the disk is
+                        writable. Put it before the first command.</td>
                 </tr>
                 <tr>
                     <td><code>--force</code></td>
                     <td>Write even where the disk looks doubtful (a layout that had to be guessed, a damaged file
                         system), after printing a warning. It can’t override a problem with no safe way
                         around, such as a disk whose DOS can’t be identified, which <code>--dos</code> settles.
-                        Nothing writes yet, so for now it has no effect. Put it before the first command.</td>
+                        Put it before the first command.</td>
                 </tr>
             </table>
             <table class="flags">
@@ -445,6 +451,15 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         <code>--lowercase</code>, <code>--mark-damaged</code>).
                         <code>extract "*"</code> copies them all. With <code>--as PATH</code>, write the
                         one file that the name matches to that path. Also called <code>get</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>rm NAME...</code></td>
+                    <td>Remove files from the disk, freeing the space they used. The names may have wildcards,
+                        as in <code>dir</code>; every name must match a file, or nothing is removed.
+                        System files are skipped unless you give <code>--system</code>, and
+                        <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be removed at all. It prints
+                        <code>Removed HELLO/BAS.</code> for each file. Also called <code>del</code>,
+                        <code>delete</code>, <code>kill</code>, and <code>remove</code>.</td>
                 </tr>
                 <tr>
                     <td><code>info</code></td>
@@ -778,8 +793,9 @@ C CRC error (ID or data).
 
             <h2 id="limitations">Limitations</h2>
             <ul>
-                <li>The tool can only read floppy disks and hard disks; writing is currently
-                    not supported.</li>
+                <li>The tool reads floppy disks and hard disks. The only change it can make is removing files
+                    from a floppy with <a href="#disk"><code>disk</code></a> <code>rm</code>, and only on the
+                    TRSDOS-family DOSes listed there.</li>
                 <li>Hard disks can’t be mounted in the emulator (<a href="#run"><code>run</code></a>
                     and <a href="#mcp"><code>mcp</code></a>), and the
                     <a href="#sectors"><code>sectors</code></a> command shows only floppies.</li>

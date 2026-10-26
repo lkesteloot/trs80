@@ -1,7 +1,8 @@
 /**
  * A builder for small synthetic TRSDOS 2.3 disks, for tests. There are no TRSDOS disk images in
  * the repo, so tests that need a real decode make one here: a JV1 image with a GAT, HIT, directory
- * and files, laid out as FLOPPY_FORMATS.md describes the 2.3 family. Not exported from the package.
+ * and files, laid out as FLOPPY_FORMATS.md describes the 2.3 family. It's exported from the package
+ * only so that tests in this repo (trs80-tool's, for instance) can build disks; it isn't for real use.
  */
 
 import {BYTES_PER_SECTOR} from "./FloppyDisk.js";

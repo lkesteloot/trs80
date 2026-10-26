@@ -1,7 +1,8 @@
 import fs from "fs";
 import {
-    decodeFloppyFileSystem, decodeTrs80File, evaluateTrsdosWriteGate, FloppyDisk, isFloppy, isHardDisk, type KnownFloppyFileSystem, Trsdos,
-    TrsdosGranuleMap, type TrsdosRuleSet, TrsdosWriteAccess, type TrsdosWriteGate,
+    decodeFloppyFileSystem, decodeTrs80File, decodeTrsdos, evaluateTrsdosWriteGate, FloppyDisk, isFloppy,
+    isHardDisk, type KnownFloppyFileSystem, SectorOverlay, Trsdos, TrsdosGranuleMap, type TrsdosRuleSet, TrsdosWriteAccess,
+    TrsdosWriteError, type TrsdosWriteGate, TrsdosWriter,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
@@ -108,8 +109,8 @@ export class DiskSession {
     public readonly pathname: string;
     /** The decoded floppy. */
     public readonly floppy: FloppyDisk;
-    /** The DOS on the floppy, or undefined if we didn't recognize one. */
-    public readonly fileSystem: KnownFloppyFileSystem | undefined;
+    /** The DOS on the floppy, or undefined if we didn't recognize one. Decoded again after each change. */
+    private currentFileSystem: KnownFloppyFileSystem | undefined;
     /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
     private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
     /** Cache for getWriteGate(), null until the first call (undefined is a valid result). */
@@ -137,7 +138,7 @@ export class DiskSession {
 
         this.pathname = pathname;
         this.floppy = floppy;
-        this.fileSystem = fileSystem;
+        this.currentFileSystem = fileSystem;
         this.savePathname = options.outputPathname ?? pathname;
         this.dryRun = options.dryRun ?? false;
         this.ruleSet = options.ruleSet;
@@ -181,6 +182,14 @@ export class DiskSession {
         }
 
         return new DiskSession(pathname, trs80File, fileSystem, options);
+    }
+
+    /**
+     * The DOS on the floppy, or undefined if we didn't recognize one. After a change to the
+     * disk this is a new object, so don't hold on to the old one.
+     */
+    public get fileSystem(): KnownFloppyFileSystem | undefined {
+        return this.currentFileSystem;
     }
 
     /**
@@ -336,6 +345,91 @@ export class DiskSession {
             console.log(colors.warning(decision.warning));
             this.forceWarningShown = true;
         }
+    }
+
+    /**
+     * Change the disk's TRSDOS-family file system. The change is made through a {@link TrsdosWriter} on a
+     * {@link SectorOverlay}, so it is all or nothing: the writer verifies the result, and only then are the
+     * changed sectors written to the in-memory floppy, which counts as a change to be saved. Afterwards the
+     * file system is decoded again, so {@link fileSystem} and the caches reflect the new disk.
+     *
+     * @param purpose why the command wants to write, which decides whether the disk's state allows it.
+     * @param change makes the changes with the writer. If it makes none then nothing is written.
+     * @throws ToolError if the disk can't be written, or the writer refuses or can't verify the change, in
+     * which case the disk is unchanged.
+     */
+    public changeTrsdos(purpose: DiskWritePurpose, change: (writer: TrsdosWriter) => void): void {
+        this.requireWritable(purpose);
+        this.clearWriteProtection();
+
+        const sessionTrsdos = this.currentFileSystem;
+        if (!(sessionTrsdos instanceof Trsdos)) {
+            // requireWritable() has already refused anything that isn't TRSDOS-family.
+            throw new ToolError("Writing " + (sessionTrsdos?.nameAndVersion ?? "this") + " disks isn't supported.");
+        }
+
+        const overlay = new SectorOverlay(this.floppy);
+        let committed = false;
+        try {
+            const trsdos = decodeTrsdos(overlay);
+            if (trsdos === undefined || !DiskSession.sameLayout(sessionTrsdos, trsdos)) {
+                throw new ToolError("Can't change this disk: it doesn't decode the same way when it is prepared for writing.");
+            }
+
+            const writer = new TrsdosWriter(trsdos);
+            change(writer);
+            if (writer.hasChanges()) {
+                writer.flush();
+                overlay.commit();
+                committed = true;
+            }
+        } catch (e) {
+            overlay.discard();
+            if (e instanceof TrsdosWriteError) {
+                throw new ToolError(e.message);
+            }
+            throw e;
+        }
+
+        if (committed) {
+            this.currentFileSystem = decodeFloppyFileSystem(this.floppy);
+            this.granuleMap = null;
+            this.writeGate = null;
+            if (!(this.currentFileSystem instanceof Trsdos)) {
+                // The writer verified the change, so this shouldn't happen. But the floppy in memory
+                // has already changed, so make sure that nothing saves it.
+                this.abort();
+                throw new ToolError("After the change, the disk's file system isn't recognized, so nothing " +
+                    "will be saved.");
+            }
+        }
+    }
+
+    /**
+     * Let the floppy be written. The gate lets a write-protected image through only with --force, and
+     * then it's the user's call, so clear the write-protect state in memory. The image's own flag stays
+     * in its header, so the saved image is still marked write-protected. Formats that can't be written at
+     * all stay write-protected, and the write fails with that message.
+     */
+    private clearWriteProtection(): void {
+        this.floppy.setMountedWriteProtected(false);
+        this.floppy.clearImageWriteProtected();
+    }
+
+    /**
+     * Whether two decodings of the same disk have the same layout, using the fields that
+     * {@link TrsdosWriter} checks after a change.
+     */
+    private static sameLayout(a: Trsdos, b: Trsdos): boolean {
+        return a.version === b.version &&
+            a.allocationSides === b.allocationSides &&
+            a.granulesPerLump === b.granulesPerLump &&
+            a.sectorsPerGranule === b.sectorsPerGranule &&
+            a.dirLumpNumber === b.dirLumpNumber &&
+            a.granulesPerDir === b.granulesPerDir &&
+            a.firstDataCylinder === b.firstDataCylinder &&
+            a.hitIgnored === b.hitIgnored &&
+            a.lumpCount === b.lumpCount;
     }
 
     /**

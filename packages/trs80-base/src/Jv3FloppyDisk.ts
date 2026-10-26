@@ -246,7 +246,11 @@ class Jv3SectorInfo {
 export class Jv3FloppyDisk extends FloppyDisk {
     public readonly className = "Jv3FloppyDisk";
     private readonly sectorInfos: Jv3SectorInfo[];
-    public readonly writeProtected: boolean;
+    /**
+     * Whether the image's header says the disk is write-protected. A tool that has been told to
+     * write anyway (trs80-tool's --force) clears this in memory; the header byte in the binary stays.
+     */
+    public writeProtected: boolean;
     // Rebuilt when a track is formatted.
     private geometry: FloppyDiskGeometry;
     // From sector position key string to our sector info.
@@ -269,6 +273,10 @@ export class Jv3FloppyDisk extends FloppyDisk {
 
     public getGeometry(): FloppyDiskGeometry {
         return this.geometry;
+    }
+
+    public override clearImageWriteProtected(): void {
+        this.writeProtected = false;
     }
 
     public isWriteProtected(): boolean {

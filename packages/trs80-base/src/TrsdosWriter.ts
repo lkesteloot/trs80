@@ -175,6 +175,14 @@ export class TrsdosWriter {
     }
 
     /**
+     * The files in the writer's directory that it hasn't deleted: the primary entries, including system
+     * files, in directory order.
+     */
+    public getFiles(): TrsdosDirEntry[] {
+        return this.directory.files.filter(dirEntry => !this.deleted.has(dirEntry));
+    }
+
+    /**
      * Find a file by name in the writer's directory, ignoring files it has deleted.
      *
      * @param name the name with a slash before the extension, as {@link TrsdosDirEntry.getFilename}

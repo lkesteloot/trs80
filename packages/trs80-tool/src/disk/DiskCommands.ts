@@ -1,12 +1,14 @@
-import {TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString} from "trs80-base";
+import {
+    type TrsdosDirEntry, TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString,
+} from "trs80-base";
 import {assertNever} from "z80-base";
 import {printDirListing} from "../dir.js";
 import {extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
-import {ToolError} from "../utils.js";
+import {fileNameMatchesPattern, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, ParsedDiskCommand} from "./DiskCommandParser.js";
-import {DiskSession} from "./DiskSession.js";
+import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
 
 /**
@@ -151,6 +153,73 @@ const EXTRACT_COMMAND: DiskCommand = {
         } else {
             extractInputFiles(allFiles, session.pathname, outDir ?? ".", command.args, false,
                 command.options.has("--mark-damaged"), command.options.has("--lowercase"));
+        }
+    },
+};
+
+/**
+ * The "rm" command: remove files from the disk.
+ */
+const RM_COMMAND: DiskCommand = {
+    spec: {
+        name: "rm",
+        aliases: ["del", "delete", "kill", "remove"],
+        usage: "NAME... [--system]",
+        summary: "remove files from the disk",
+        minArgs: 1,
+        maxArgs: Infinity,
+        options: [
+            {
+                name: "--system",
+                valueName: undefined,
+                description: "allow removing system files (BOOT/SYS and DIR/SYS can't be removed)",
+            },
+        ],
+    },
+
+    endsSession: false,
+
+    /**
+     * Remove the files that the names and patterns select, freeing their space. Every pattern must
+     * match a file or nothing is removed, and a file that several patterns match is removed once.
+     * Then say which files were removed.
+     */
+    run(session, command) {
+        const includeSystemFiles = command.options.has("--system");
+        const removedNames: string[] = [];
+
+        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
+            // Check every pattern before removing anything.
+            const candidates = writer.getFiles().filter(dirEntry => includeSystemFiles || !dirEntry.isSystemFile());
+            const toRemove = new Set<TrsdosDirEntry>();
+            for (const pattern of command.args) {
+                let matched = false;
+                for (const dirEntry of candidates) {
+                    if (fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern)) {
+                        toRemove.add(dirEntry);
+                        matched = true;
+                    }
+                }
+                if (!matched) {
+                    // Say so if the pattern would have matched a system file.
+                    const matchesSystemFile = writer.getFiles().some(dirEntry =>
+                        dirEntry.isSystemFile() && fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern));
+                    throw new ToolError("No file on the disk matches \"" + pattern + "\"" +
+                        (matchesSystemFile ? ", but a system file does (use --system)" : ""));
+                }
+            }
+
+            // In directory order, so the report is stable.
+            for (const dirEntry of candidates) {
+                if (toRemove.has(dirEntry)) {
+                    writer.deleteFile(dirEntry);
+                    removedNames.push(dirEntry.getFilename("/"));
+                }
+            }
+        });
+
+        for (const name of removedNames) {
+            console.log("Removed " + name + ".");
         }
     },
 };
@@ -395,6 +464,7 @@ const HELP_COMMAND: DiskCommand = {
 export const DISK_COMMANDS: DiskCommand[] = [
     DIR_COMMAND,
     EXTRACT_COMMAND,
+    RM_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
     CHECK_COMMAND,

@@ -877,6 +877,15 @@ export abstract class FloppyDisk extends AbstractTrs80File implements DiskVolume
     }
 
     /**
+     * Forget, in memory, that the image's own header says it's write-protected, for a caller that has
+     * been told to write anyway. The header byte in the binary is untouched, so the saved image keeps its
+     * flag. This does nothing for formats with no such flag; see {@link setMountedWriteProtected} for the
+     * other kind of protection.
+     */
+    public clearImageWriteProtected(): void {
+    }
+
+    /**
      * This can return true to mean that this file format does not
      * support writing at all (the writeSector() method is not implemented),
      * that it's implemented but the file is virtually write-protected,
