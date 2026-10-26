@@ -406,8 +406,8 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
             one step, so an interrupted write can’t leave half a disk.</p>
             <p>Only some disks can be changed: floppies of the TRSDOS family whose DOS is TRSDOS 2.x,
-            LDOS 5, TRSDOS 6 / LS-DOS 6, or DOSPLUS 3, as long as <code>check</code> finds no problem with the
-            file system. (TRSDOS 1.3 disks can’t be changed yet.) Every change is checked before it is kept:
+            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, or DOSPLUS 3, as long as <code>check</code> finds no problem with the
+            file system. Every change is checked before it is kept:
             the tool decodes the changed disk again and refuses the change unless the layout and every other file
             are exactly as they were. <code>--dos</code> and <code>--force</code> below can relax the
             requirements on the disk when the tool is unsure.</p>
@@ -493,8 +493,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         written to free space first and the old copy freed afterward, so the new copy never
                         lands on the old one’s sectors; only if it wouldn’t fit that way does it take over the
                         old copy’s space, and the command warns when that happens. As with every change, nothing
-                        is saved unless every file can be added or replaced. (Replacing doesn’t work on TRSDOS 1.3
-                        disks yet.)</p>
+                        is saved unless every file can be added or replaced.</p>
                         <p>Files get no date unless you give <code>--date YYYY-MM-DD</code>, and only LDOS
                         and TRSDOS 6 / LS-DOS 6 disks keep one: TRSDOS 2.x and DOSPLUS 3 disks ignore it, with a
                         warning. Those disks hold the years 1980 to 1987, or 1980 to 2011 on an LDOS 5.3 or
@@ -604,7 +603,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         <code>--date YYYY-MM-DD</code> (default today, as <code>FORMAT</code> does).</p>
                         <p>The disk gets a boot sector of our own, which only prints a message and halts, so it is a
                         data disk and not a system disk. The DOS and this tool still recognize it by its other
-                        sectors. TRSDOS 1.3 disks can be made, but files can’t be added to them yet.</p></td>
+                        sectors.</p></td>
                 </tr>
                 <tr>
                     <td><code>format</code></td>
