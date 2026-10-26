@@ -1312,6 +1312,26 @@ export interface Trsdos23DirEntryFields {
 }
 
 /**
+ * Write up to four extents into bytes 22-29 of a 2.3-family directory entry, as the decoder reads them.
+ *
+ * @param binary the entry's 32 bytes.
+ * @param extents the extents, at most four.
+ * @throws Error if an extent doesn't fit its two bytes.
+ */
+function writeTrsdos23Extents(binary: Uint8Array, extents: AllocatedExtent[]): void {
+    extents.forEach((extent, i) => {
+        if (extent.granuleCount < 1 || extent.granuleCount > 32 || extent.granuleOffset < 0 ||
+            extent.granuleOffset > 7 || extent.lump < 0 || extent.lump > 0xFD) {
+
+            throw new Error(`Extent ${i} (lump ${extent.lump}, granule ${extent.granuleOffset}, ` +
+                `count ${extent.granuleCount}) doesn't fit in a directory entry`);
+        }
+        binary[22 + 2*i] = extent.lump;
+        binary[23 + 2*i] = (extent.granuleOffset << 5) | (extent.granuleCount - 1);
+    });
+}
+
+/**
  * Build the 32 bytes of a primary directory entry in the TRSDOS 2.3 family, the inverse of what
  * {@link decodeDirEntry} reads. Unused extents are 0xFF, and so is the link when there's none. The
  * fields aren't interpreted, only checked to fit their bytes.
@@ -1356,16 +1376,68 @@ export function encodeTrsdos23DirEntry(fields: Trsdos23DirEntryFields): Uint8Arr
     binary[21] = fields.sectorCount >> 8;
 
     binary.fill(0xFF, 22, 32);
-    fields.extents.forEach((extent, i) => {
-        if (extent.granuleCount < 1 || extent.granuleCount > 32 || extent.granuleOffset < 0 ||
-            extent.granuleOffset > 7 || extent.lump < 0 || extent.lump > 0xFD) {
+    writeTrsdos23Extents(binary, fields.extents);
+    if (fields.nextDec !== undefined) {
+        binary[30] = 0xFE;
+        binary[31] = fields.nextDec;
+    }
 
-            throw new Error(`Extent ${i} (lump ${extent.lump}, granule ${extent.granuleOffset}, ` +
-                `count ${extent.granuleCount}) doesn't fit in a directory entry`);
-        }
-        binary[22 + 2*i] = extent.lump;
-        binary[23 + 2*i] = (extent.granuleOffset << 5) | (extent.granuleCount - 1);
-    });
+    return binary;
+}
+
+/**
+ * Byte 0 of an extended directory entry (FXDE) in the TRSDOS 2.3 family: the extended-entry bit
+ * (bit 7) and the in-use bit (bit 4), and nothing else. See "Directory entries (2.3 family)" in
+ * FLOPPY_FORMATS.md.
+ */
+export const TRSDOS_23_EXTENDED_ENTRY_FLAGS = 0x90;
+
+/**
+ * The fields of an extended directory entry (FXDE) in the TRSDOS 2.3 family, as
+ * {@link encodeTrsdos23ExtendedDirEntry} writes them.
+ */
+export interface Trsdos23ExtendedDirEntryFields {
+    /**
+     * Byte 1: the DEC of the entry before this one in the file's chain: the primary entry for the
+     * first FXDE, and the previous FXDE for the later ones.
+     */
+    prevDec: number;
+
+    /**
+     * Bytes 22-29: up to four more extents of the file.
+     */
+    extents: AllocatedExtent[];
+
+    /**
+     * Bytes 30-31: the DEC of the next FXDE in the chain, or undefined for the last.
+     */
+    nextDec: number | undefined;
+}
+
+/**
+ * Build the 32 bytes of an extended directory entry (FXDE) in the TRSDOS 2.3 family, the inverse of
+ * what {@link decodeDirEntry} reads for an entry with bit 7 set. Every byte the FXDE doesn't use
+ * (2-21) is zero, which is what LDOS 5 and DOSPLUS write ("Directory entries (2.3 family)" in
+ * FLOPPY_FORMATS.md). Unused extents are 0xFF, and so is the link when there's none.
+ *
+ * @param fields the entry's fields.
+ * @return the entry's bytes.
+ * @throws Error if a field doesn't fit, such as more than four extents.
+ */
+export function encodeTrsdos23ExtendedDirEntry(fields: Trsdos23ExtendedDirEntryFields): Uint8Array {
+    if (fields.extents.length > 4) {
+        throw new Error(`A directory entry holds 4 extents, not ${fields.extents.length}`);
+    }
+    if (fields.prevDec < 0 || fields.prevDec > 0xFF) {
+        throw new Error(`The previous DEC ${fields.prevDec} doesn't fit in a byte`);
+    }
+
+    const binary = new Uint8Array(32);
+    binary[0] = TRSDOS_23_EXTENDED_ENTRY_FLAGS;
+    binary[1] = fields.prevDec;
+
+    binary.fill(0xFF, 22, 32);
+    writeTrsdos23Extents(binary, fields.extents);
     if (fields.nextDec !== undefined) {
         binary[30] = 0xFE;
         binary[31] = fields.nextDec;

@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {
-    decodeDirEntry, decodeTrsdos, encodeTrsdos23DirEntry, TRSDOS_BLANK_PASSWORD_HASH, TrsdosDirEntry, TrsdosVersion,
+    decodeDirEntry, decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, TRSDOS_BLANK_PASSWORD_HASH, TrsdosDirEntry, TrsdosVersion,
     type Trsdos23DirEntryFields,
 } from "./Trsdos.js";
 import {makeTrsdos23TestDisk} from "./TrsdosTestDisk.js";
@@ -155,5 +155,63 @@ describe("encodeTrsdos23DirEntry", () => {
         expect(() => encodeTrsdos23DirEntry({...fields, sectorCount: 0x10000})).to.throw("16 bits");
         expect(() => encodeTrsdos23DirEntry({...fields, extents: [{...extent, granuleCount: 33}]})).to.throw("doesn't fit");
         expect(() => encodeTrsdos23DirEntry({...fields, extents: [{...extent, lump: 0xFE}]})).to.throw("doesn't fit");
+    });
+});
+
+describe("encodeTrsdos23ExtendedDirEntry", () => {
+    // The geometry is only used to read the entry back.
+    const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]));
+    if (trsdos === undefined) {
+        throw new Error("Test disk didn't decode as TRSDOS");
+    }
+
+    /**
+     * Decode the bytes as a 2.3-family entry, failing the test if they don't decode.
+     */
+    function decode(binary: Uint8Array): TrsdosDirEntry {
+        const dirEntry = decodeDirEntry(binary, trsdos!.geometry, TrsdosVersion.V2_3, undefined, false);
+        if (dirEntry === undefined || typeof dirEntry === "string") {
+            throw new Error("Entry didn't decode: " + dirEntry);
+        }
+        return dirEntry;
+    }
+
+    it("round-trips the extents and both links", () => {
+        const binary = encodeTrsdos23ExtendedDirEntry({
+            prevDec: 0x42,
+            extents: [{lump: 3, granuleOffset: 1, granuleCount: 32}, {lump: 20, granuleOffset: 0, granuleCount: 1}],
+            nextDec: 0x62,
+        });
+        const dirEntry = decode(binary);
+
+        expect(binary.length).to.eql(32);
+        expect(binary[0]).to.eql(0x90);
+        expect(binary[1]).to.eql(0x42);
+        expect(binary.subarray(2, 22)).to.eql(new Uint8Array(20));
+        expect(dirEntry.isExtendedEntry()).to.eql(true);
+        expect(dirEntry.prevDec).to.eql(0x42);
+        expect(dirEntry.nextDec).to.eql(0x62);
+        expect(dirEntry.extents.map(e => [e.cylinderNumber, e.granuleOffset, e.granuleCount])).to.eql([
+            [3, 1, 32], [20, 0, 1],
+        ]);
+    });
+
+    it("writes 0xFF for unused extents and for no link", () => {
+        const binary = encodeTrsdos23ExtendedDirEntry({
+            prevDec: 0x22, extents: [{lump: 5, granuleOffset: 0, granuleCount: 2}], nextDec: undefined,
+        });
+
+        expect(Array.from(binary.subarray(22))).to.eql([5, 1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+        expect(decode(binary).nextDec).to.be.undefined;
+    });
+
+    it("rejects more than four extents and a bad extent", () => {
+        const extent = {lump: 5, granuleOffset: 0, granuleCount: 2};
+        expect(() => encodeTrsdos23ExtendedDirEntry({
+            prevDec: 0x22, extents: [extent, extent, extent, extent, extent], nextDec: undefined,
+        })).to.throw("holds 4 extents");
+        expect(() => encodeTrsdos23ExtendedDirEntry({
+            prevDec: 0x22, extents: [{lump: 5, granuleOffset: 8, granuleCount: 2}], nextDec: undefined,
+        })).to.throw("doesn't fit");
     });
 });

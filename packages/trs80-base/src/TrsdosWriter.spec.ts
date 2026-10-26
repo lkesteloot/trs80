@@ -1,7 +1,10 @@
 import {describe, expect, it} from "vitest";
 import {type FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
-import {decodeTrsdos, TRSDOS_BLANK_PASSWORD_HASH, hashForFilename, type Trsdos} from "./Trsdos.js";
+import {
+    decodeTrsdos, TRSDOS_BLANK_PASSWORD_HASH, hashForFilename, type Trsdos,
+    type TrsdosDirEntry,
+} from "./Trsdos.js";
 import {checkTrsdos} from "./TrsdosCheck.js";
 import {reservedDecs} from "./TrsdosDirSlots.js";
 import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
@@ -349,6 +352,51 @@ function usedExcept(freeLumps: number[]): TestGranule[] {
     return used;
 }
 
+/**
+ * Granules to mark used so that the free granules are scattered: granule 0 of every lump (other
+ * than the directory's) is free and granule 1 is used, so no two free granules touch and a file
+ * needs one extent per granule.
+ */
+function scatteredUsed(): TestGranule[] {
+    const used: TestGranule[] = [{lump: 0, granule: 1}];
+    for (let lump = 1; lump < 35; lump++) {
+        if (lump !== 17) {
+            used.push({lump, granule: 1});
+        }
+    }
+    return used;
+}
+
+/**
+ * One directory entry of a file's chain, as it is on the overlay.
+ */
+interface ChainEntry {
+    dec: number;
+    bytes: Uint8Array;
+}
+
+/**
+ * The DEC and 32 bytes of each directory entry of a file on the overlay: the primary entry, then
+ * its extended entries in chain order.
+ */
+function chainBytes(overlay: SectorOverlay, trsdos: Trsdos, fileName: string): ChainEntry[] {
+    // Use one directory, since each call makes new entry objects.
+    const directory = trsdos.getDirectory();
+    const slots = directory.slots;
+    const chain: ChainEntry[] = [];
+    for (let dirEntry: TrsdosDirEntry | undefined = directory.files.find(file => file.getFilename("/") === fileName);
+         dirEntry !== undefined; dirEntry = dirEntry.nextDirEntry) {
+
+        const slot = slots.find(candidate => candidate.dirEntry === dirEntry);
+        if (slot === undefined) {
+            throw new Error("No slot in the chain of " + fileName);
+        }
+        const {sectorPosition, offset} = trsdos.getDirEntryLocation(slot.hitIndex);
+        chain.push({dec: slot.hitIndex, bytes: readBytes(overlay, sectorPosition).slice(offset, offset + 32)});
+    }
+    return chain;
+}
+
 describe("TrsdosWriter.addFile", () => {
     it("adds a small file and fills in every structure", () => {
         const {disk, overlay, trsdos, writer} = makeFixture([HELLO, WORLD]);
@@ -646,26 +694,136 @@ describe("TrsdosWriter.addFile", () => {
         expect([entry[18], entry[19]]).to.eql([0x96, 0x42]);
     });
 
-    it("refuses a file that needs more than four extents, and changes nothing", () => {
-        // Granule 0 of every lump is free and granule 1 is used, so no two free granules touch.
-        const used: TestGranule[] = [{lump: 0, granule: 1}];
-        for (let lump = 1; lump < 35; lump++) {
-            if (lump !== 17) {
-                used.push({lump, granule: 1});
-            }
+    it("uses no extended entry for a file of four extents", () => {
+        const {overlay, trsdos, writer} = makeFixture([], {gatUsed: scatteredUsed()});
+        const used = trsdos.getHitInfo();
+        if (typeof used === "string") {
+            throw new Error(used);
         }
-        const {overlay, writer} = makeFixture([], {gatUsed: used});
+        const hitCountBefore = used.hit.filter(hash => hash !== 0).length;
 
-        expect(() => writer.addFile(name("FRAG/DAT"), makeContents(5*1280)))
-            .to.throw(TrsdosWriteError, "extended directory entries aren't supported yet");
-        expect(writer.hasChanges()).to.eql(false);
-        expect(overlay.hasChanges()).to.eql(false);
-
-        // Four extents fit.
         writer.addFile(name("FOUR/DAT"), makeContents(4*1280));
         const newTrsdos = writer.flush();
-        expect(getFile(newTrsdos, "FOUR/DAT").extents.length).to.eql(4);
-        expect(newTrsdos.readFile(getFile(newTrsdos, "FOUR/DAT"))).to.eql(makeContents(4*1280));
+
+        const four = getFile(newTrsdos, "FOUR/DAT");
+        expect([...newTrsdos.getFileExtents(four)].length).to.eql(4);
+        expect(four.nextDec).to.be.undefined;
+        expect(newTrsdos.readFile(four)).to.eql(makeContents(4*1280));
+        const newHit = newTrsdos.getHitInfo();
+        if (typeof newHit === "string") {
+            throw new Error(newHit);
+        }
+        expect(newHit.hit.filter(hash => hash !== 0).length).to.eql(hitCountBefore + 1);
+        expect(chainBytes(overlay, newTrsdos, "FOUR/DAT").length).to.eql(1);
+    });
+
+    it("adds a file of five extents with one extended entry", () => {
+        const {overlay, trsdos, writer} = makeFixture([HELLO], {gatUsed: scatteredUsed()}, TrsdosRuleSet.LDOS_5);
+        const checkBefore = checkTrsdos(trsdos).findings.map(finding => finding.message);
+        const contents = makeContents(5*1280 - 100, 4);
+
+        writer.addFile(name("FRAG/DAT"), contents);
+        const newTrsdos = writer.flush();
+
+        const frag = getFile(newTrsdos, "FRAG/DAT");
+        expect(newTrsdos.readFile(frag)).to.eql(contents);
+        const fragExtents = [...newTrsdos.getFileExtents(frag)];
+        expect(fragExtents.length).to.eql(5);
+        const lumps = fragExtents.map(extent => extent.cylinderNumber);
+        expect(lumps).to.eql([...lumps].sort((x, y) => x - y));
+        expect(checkTrsdos(newTrsdos).findings.map(finding => finding.message)).to.eql(checkBefore);
+
+        // The primary entry holds four extents and links to the extended entry, which holds the fifth.
+        const chain = chainBytes(overlay, newTrsdos, "FRAG/DAT");
+        expect(chain.length).to.eql(2);
+        const [primary, fxde] = chain;
+        expect(primary.bytes[0] & 0x80).to.eql(0);
+        expect(primary.bytes[30]).to.eql(0xFE);
+        expect(primary.bytes[31]).to.eql(fxde.dec);
+        expect(fxde.bytes[0]).to.eql(0x90);
+        expect(fxde.bytes[1]).to.eql(primary.dec);
+        expect(fxde.bytes.subarray(2, 22)).to.eql(new Uint8Array(20));
+        expect(fxde.bytes[24]).to.eql(0xFF);
+        expect([fxde.bytes[30], fxde.bytes[31]]).to.eql([0xFF, 0xFF]);
+
+        // Both entries have the primary's hash in the HIT, and the entries are in the first free slots:
+        // entry 2 of directory sectors 1 and 2, since HELLO has entry 2 of sector 0 and the DOS's search
+        // takes entry 2 of every sector before entry 3 of any.
+        const hit = readBytes(overlay, newTrsdos.getHitPosition());
+        const hash = hashForFilename("FRAG    DAT");
+        expect(hit[primary.dec]).to.eql(hash);
+        expect(hit[fxde.dec]).to.eql(hash);
+        expect([primary.dec, fxde.dec]).to.eql([(2 << 5) | 1, (2 << 5) | 2]);
+    });
+
+    it("adds a file of nine extents with a chain of two extended entries, and deletes it cleanly", () => {
+        const {disk, overlay, trsdos, writer} = makeFixture([HELLO], {gatUsed: scatteredUsed()}, TrsdosRuleSet.LDOS_5);
+        const checkBefore = checkTrsdos(trsdos).findings.map(finding => finding.message);
+        const oldGat = readBytes(disk, trsdos.getGatPosition()).slice();
+        const oldHit = readBytes(disk, trsdos.getHitPosition()).slice();
+        const contents = makeContents(9*1280, 5);
+
+        writer.addFile(name("NINE/DAT"), contents);
+        const newTrsdos = writer.flush();
+        expect(newTrsdos.readFile(getFile(newTrsdos, "NINE/DAT"))).to.eql(contents);
+        expect([...newTrsdos.getFileExtents(getFile(newTrsdos, "NINE/DAT"))].length).to.eql(9);
+        expect(checkTrsdos(newTrsdos).findings.map(finding => finding.message)).to.eql(checkBefore);
+
+        const chain = chainBytes(overlay, newTrsdos, "NINE/DAT");
+        expect(chain.length).to.eql(3);
+        const [primary, first, second] = chain;
+        expect([primary.bytes[30], primary.bytes[31]]).to.eql([0xFE, first.dec]);
+        // Each extended entry points back to the entry before it, whether the primary or an extended one.
+        expect(first.bytes[1]).to.eql(primary.dec);
+        expect([first.bytes[30], first.bytes[31]]).to.eql([0xFE, second.dec]);
+        expect(second.bytes[1]).to.eql(first.dec);
+        expect([second.bytes[30], second.bytes[31]]).to.eql([0xFF, 0xFF]);
+        expect(first.bytes[0]).to.eql(0x90);
+        expect(second.bytes[0]).to.eql(0x90);
+        // The ninth extent is the only one in the last entry.
+        expect(second.bytes[22]).to.not.eql(0xFF);
+        expect(second.bytes[24]).to.eql(0xFF);
+
+        // A new writer deletes the file, which frees every granule and clears every entry.
+        const deleter = new TrsdosWriter(newTrsdos, TrsdosRuleSet.TRSDOS_2);
+        deleter.deleteFile(writerFile(deleter, "NINE/DAT"));
+        const afterDelete = deleter.flush();
+        expect(afterDelete.findFile("NINE/DAT")).to.be.undefined;
+        expect(readBytes(overlay, afterDelete.getGatPosition())).to.eql(oldGat);
+        const hit = readBytes(overlay, afterDelete.getHitPosition());
+        expect(hit).to.eql(oldHit);
+        for (const entry of chain) {
+            const {sectorPosition, offset} = afterDelete.getDirEntryLocation(entry.dec);
+            expect(readBytes(overlay, sectorPosition)[offset] & 0x10).to.eql(0);
+        }
+        expect(checkTrsdos(afterDelete).findings.map(finding => finding.message)).to.eql(checkBefore);
+    });
+
+    it("reports a full directory when the data fits but the extended entries don't, and changes nothing", () => {
+        const {overlay, writer} = makeFixture([], {gatUsed: scatteredUsed()}, TrsdosRuleSet.LDOS_5);
+        // Leave only two free slots.
+        for (let i = 0; i < 46; i++) {
+            writer.addFile(name("F" + i), new Uint8Array(0));
+        }
+        const filled = writer.flush();
+
+        const second = new TrsdosWriter(filled, TrsdosRuleSet.LDOS_5);
+        expect(() => second.addFile(name("NINE/DAT"), makeContents(9*1280)))
+            .to.throw(TrsdosWriteError, "the directory is full: the file needs 3 entries and there are 2 free");
+        expect(second.hasChanges()).to.eql(false);
+
+        // The same file fits in the free slots with fewer extents, so only the entries ran out.
+        second.addFile(name("FIVE/DAT"), makeContents(5*1280));
+        const newTrsdos = second.flush();
+        expect(newTrsdos.readFile(getFile(newTrsdos, "FIVE/DAT"))).to.eql(makeContents(5*1280));
+        expect(chainBytes(overlay, newTrsdos, "FIVE/DAT").length).to.eql(2);
+    });
+
+    it("refuses a file that would need an extended entry under TRSDOS 2.x's rules", () => {
+        const {writer} = makeFixture([], {gatUsed: scatteredUsed()});
+        expect(() => writer.addFile(name("FIVE/DAT"), makeContents(5*1280)))
+            .to.throw(TrsdosWriteError, "writing TRSDOS 2.x's extended directory entries isn't supported yet");
+        expect(writer.hasChanges()).to.eql(false);
     });
 
     it("refuses to add after the writer has flushed", () => {

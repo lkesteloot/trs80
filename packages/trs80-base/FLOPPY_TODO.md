@@ -57,6 +57,12 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
 ## Gaps independent of the switch
 
+- [ ] **TRSDOS 2.x's extended entries (FXDEs) have an unknown HIT byte.** On
+      LDOS, TRSDOS 6 and DOSPLUS disks an FXDE's HIT byte is its primary's name
+      hash, but not on the TRSDOS 2.x disks that have FXDEs (see "An FXDE" in
+      FLOPPY_FORMATS.md). Until it's known, `TrsdosWriter.addFile()` refuses a
+      file that would need one under TRSDOS 2.x rules. *TRSDOS 2.3 Decoded* or
+      letting TRSDOS 2.3 write a fragmented file in the emulator would settle it.
 - [ ] **Stray sector IDs inflate `TrackGeometry`'s range.** Its first/last
       sector numbers include stray IDs (copy protection writes a few sectors
       numbered far outside the track's numbering, e.g. 124-126 on a 0-9 track,

@@ -2,10 +2,10 @@ import {assertNever} from "z80-base";
 import type {SectorPosition} from "./FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
-    decodeTrsdos, encodeTrsdos23DirEntry, hashForFilename, TRSDOS_BLANK_PASSWORD_HASH, type Trsdos,
+    decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, hashForFilename, TRSDOS_BLANK_PASSWORD_HASH, type Trsdos,
     type Trsdos23TimeStamp, type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosVersion,
 } from "./Trsdos.js";
-import {allocateGranules, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
+import {allocateGranules, type AllocatedExtent, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
 import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
@@ -350,8 +350,8 @@ export class TrsdosWriter {
      * The file's data reaches the overlay at {@link flush}, with the rest. A file in a granule
      * freed by {@link deleteFile} reuses it. If this throws, the writer is as it was before the call.
      *
-     * Only TRSDOS 2.3 layouts are supported for now, and only files that fit in one directory
-     * entry's four extents.
+     * Only TRSDOS 2.3 layouts are supported for now. A file with more than four extents gets extended
+     * directory entries (FXDEs), each holding four more, chained from the primary entry.
      *
      * @param filename the file's name, which must not be on the disk already (case doesn't matter).
      * @param contents the file's bytes, which are stored as they are.
@@ -401,50 +401,75 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(`${name} is too big: a file can have at most 65,535 sectors`);
         }
         const neededGranules = Math.ceil(sectorCount/trsdos.sectorsPerGranule);
-        // Ask for any number of extents, so that we can say what the problem is.
+        // Ask for any number of extents: the directory slots below decide whether they fit, and
+        // the allocator's choice doesn't depend on the limit.
         const extents = allocateGranules(this.freeGranules, trsdos.granulesPerLump, neededGranules,
             maxGranulesPerExtent(trsdos.version), Infinity);
         if (typeof extents === "string") {
             throw new TrsdosWriteError(`Can't add ${name}: ${extents.charAt(0).toLowerCase()}${extents.substring(1)}`);
         }
-        if (extents.length > EXTENTS_PER_ENTRY) {
-            throw new TrsdosWriteError(`Can't add ${name}: the free space is too fragmented, since it needs ` +
-                `${extents.length} extents and one directory entry holds ${EXTENTS_PER_ENTRY}; files that need ` +
-                `extended directory entries aren't supported yet`);
-        }
         if (extents.some(extent => extent.lump > 0xFD)) {
             throw new TrsdosWriteError(`Can't add ${name}: it would need a lump that a directory entry can't hold`);
         }
 
-        // The directory slot.
-        const decs = chooseDirSlots(trsdos, this.ruleSet, this.hit.bytes, 1);
-        if (typeof decs === "string") {
-            throw new TrsdosWriteError(`Can't add ${name}: ${decs.charAt(0).toLowerCase()}${decs.substring(1)}`);
+        // The directory slots: one for the primary entry, and one for each extended entry (FXDE) that
+        // holds the extents past the first four. Asking for them all at once reports a full directory
+        // before anything changes.
+        const extentGroups: AllocatedExtent[][] = [];
+        for (let i = 0; i < Math.max(extents.length, 1); i += EXTENTS_PER_ENTRY) {
+            extentGroups.push(extents.slice(i, i + EXTENTS_PER_ENTRY));
         }
-        const dec = decs[0];
+        const extendedEntriesUnderstood = this.ruleSet !== TrsdosRuleSet.TRSDOS_2;
+        if (extentGroups.length > 1 && !extendedEntriesUnderstood) {
+            // TRSDOS 2.x's FXDEs don't carry their primary's hash in the HIT, and we don't know what
+            // they carry. See "An FXDE" in FLOPPY_FORMATS.md.
+            throw new TrsdosWriteError(`Can't add ${name}: the free space is fragmented, so it needs ` +
+                `${extents.length} extents, and writing TRSDOS 2.x's extended directory entries isn't ` +
+                `supported yet`);
+        }
+        const decs = chooseDirSlots(trsdos, this.ruleSet, this.hit.bytes, extentGroups.length);
+        if (typeof decs === "string") {
+            const reason = `${decs.charAt(0).toLowerCase()}${decs.substring(1)}`;
+            const fragmentation = extentGroups.length > 1 ?
+                `the free space is fragmented, so it needs ${extents.length} extents; ` : "";
+            throw new TrsdosWriteError(`Can't add ${name}: ${fragmentation}${reason}`);
+        }
+        const hash = hashForFilename(rawFilename);
 
-        // The directory entry.
-        const entryBytes = encodeTrsdos23DirEntry({
-            flags,
-            byte1: datePart.byte1,
-            byte2: datePart.byte2,
-            eofOffset: size % SECTOR_SIZE,
-            lrl: 0,
-            rawFilename,
-            updatePassword: TRSDOS_BLANK_PASSWORD_HASH,
-            accessPassword: TRSDOS_BLANK_PASSWORD_HASH,
-            timeStamp: datePart.timeStamp,
-            sectorCount,
-            extents,
-            nextDec: undefined,
+        // The directory entries: the primary, then the chain of FXDEs. Each FXDE points back to the
+        // entry before it, and each entry points ahead to the next.
+        const entries = extentGroups.map((group, i) => {
+            const nextDec = i + 1 < decs.length ? decs[i + 1] : undefined;
+            if (i === 0) {
+                return encodeTrsdos23DirEntry({
+                    flags,
+                    byte1: datePart.byte1,
+                    byte2: datePart.byte2,
+                    eofOffset: size % SECTOR_SIZE,
+                    lrl: 0,
+                    rawFilename,
+                    updatePassword: TRSDOS_BLANK_PASSWORD_HASH,
+                    accessPassword: TRSDOS_BLANK_PASSWORD_HASH,
+                    timeStamp: datePart.timeStamp,
+                    sectorCount,
+                    extents: group,
+                    nextDec,
+                });
+            } else {
+                return encodeTrsdos23ExtendedDirEntry({prevDec: decs[i - 1], extents: group, nextDec});
+            }
         });
 
         // Everything has been checked; now change the working copies.
-        const {sectorPosition, offset} = trsdos.getDirEntryLocation(dec);
-        const dirCopy = this.getDirSectorCopy(sectorPosition);
-        dirCopy.bytes.set(entryBytes, offset);
-        dirCopy.dirty = true;
-        this.hit.bytes[dec] = hashForFilename(rawFilename);
+        entries.forEach((entryBytes, i) => {
+            const {sectorPosition, offset} = trsdos.getDirEntryLocation(decs[i]);
+            const dirCopy = this.getDirSectorCopy(sectorPosition);
+            dirCopy.bytes.set(entryBytes, offset);
+            dirCopy.dirty = true;
+
+            // An FXDE's HIT byte is its primary entry's hash (see "The HIT" in FLOPPY_FORMATS.md).
+            this.hit.bytes[decs[i]] = hash;
+        });
         this.hit.dirty = true;
 
         for (const extent of extents) {

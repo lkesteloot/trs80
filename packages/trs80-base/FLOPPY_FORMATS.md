@@ -1124,7 +1124,26 @@ Where they differ:
   lump numbers to 0-191, the most the GAT can hold. The NEWDOS/80 manual says
   outright that the count is the number of granules less one, which settles the
   handbook's contradiction (see "NEWDOS/80 lumps").
-- **An FXDE** uses only bytes 0, 1 and 22-31 (bits 7 and 4 of byte 0 set).
+- **An FXDE** uses only bytes 0, 1 and 22-31 (bits 7 and 4 of byte 0 set). Measured
+  over the 19 FXDEs on the LDOS 5 and DOSPLUS disks in the collection (all of whose
+  HIT bytes decode), every one has byte 0 = 0x90 exactly (no protection, system or
+  invisible bits), bytes 2-21 all zero (no copy of
+  the primary's name, date, passwords or sector count), and a HIT byte equal to its
+  primary's name hash. The chain runs primary, FXDE 1, FXDE 2, and so on, and
+  **byte 1 is the DEC of the entry just before it in the chain**: the primary for the
+  first FXDE, the previous FXDE for later ones (`ira/no-extract/DiskMan v0.04L
+  (1983)(Kim Watt)[M3][with Kim Watt Library].dmk` has a seven-FXDE chain whose
+  links 2 to 7 point at the FXDE before). Bytes 30-31 are `FE nn` to the next FXDE,
+  or `FF FF` on the last. The slots aren't tied to the
+  primary's: an FXDE is usually later in the DEC order but can be earlier, and can
+  be in another directory sector. The four TRSDOS 2.x FXDEs that decode with a HIT
+  (`peter/Crush Crumble & Chomp (1981)(Automated Simulations)[M1][Original].dmk`
+  and its two siblings, and `peter/Athletics Tracking System (19xx)(A Tetley)[M1][Disk 1 of 3][Drive 0][Error in CREATE file].dmk`) agree on byte 0,
+  bytes 2-21 and byte 1, but their HIT bytes (0x93 and 0x34) aren't the primary's
+  hash (0x6a and 0x7b), and we don't know the rule. (The one TRSDOS 6 FXDE, in
+  `peter/Bobby Lee (100).dmk`, has the same bytes but no usable HIT.) `TrsdosWriter` writes the
+  LDOS 5 and DOSPLUS form under LDOS 5, TRSDOS 6 and DOSPLUS rules, and refuses a
+  file that would need an FXDE under TRSDOS 2.x rules until that HIT byte is understood.
 - **Bit 7 on a primary entry.** Four Sunburst disks for the Model III (`Thinking
   Skills`, `Teasers by Tobbs`, and both copies of `WhatsIt Corporation`) use a
   MultiDOS whose system files are dated 08/82 and 01/83 (`DOSRES/sys`, `INTERP/sys`,
