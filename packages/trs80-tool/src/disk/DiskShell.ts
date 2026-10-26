@@ -7,7 +7,7 @@ import {DiskOptionValues, parseDiskCommandLine, splitCommandLine} from "./DiskCo
 import {DiskSession, type DiskShellTerminal} from "./DiskSession.js";
 
 /**
- * The prompt of the interactive shell.
+ * The text of the prompt of the interactive shell, before it's colored.
  */
 const PROMPT = ">";
 
@@ -118,8 +118,9 @@ async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskO
 
 /**
  * Run the interactive shell on a terminal until the user quits (or presses Ctrl-D), which saves
- * the changes, or aborts (or presses Ctrl-C), which discards them. Errors are shown and the shell
- * carries on, including a failure to save with "save" or "quit".
+ * the changes, or aborts (or presses Ctrl-C at an empty prompt), which discards them. Ctrl-C with text on
+ * the line instead throws the text away and shows a fresh prompt, as shells do. Errors are shown and the
+ * shell carries on, including a failure to save with "save" or "quit".
  *
  * A command can take the terminal for itself (as "boot" does, to run the emulator) through
  * {@link DiskSession.shellTerminal}: the shell closes its readline interface for that time and makes a
@@ -158,6 +159,8 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
         let released = false;
         // Whether a command has ended the session, so that lines waiting to run are dropped.
         let sessionEnded = false;
+        // Whether a command is running, as opposed to the shell waiting for a line.
+        let commandRunning = false;
         // Ends when every line received so far has been run.
         let lineQueue: Promise<void> = Promise.resolve();
         let rl!: readline.Interface;
@@ -171,6 +174,7 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
             }
 
             let ended = false;
+            commandRunning = true;
             try {
                 ended = await runDiskLine(session, line, globalOptions);
             } catch (e) {
@@ -180,6 +184,8 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
                     // A bug, but losing the session would be worse.
                     console.log(colorError(e instanceof Error ? e.stack ?? e.message : String(e)));
                 }
+            } finally {
+                commandRunning = false;
             }
 
             if (ended) {
@@ -191,13 +197,29 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
         };
 
         /**
+         * Throw away the text typed at the prompt and show a fresh, empty prompt below it, after a "^C", as zsh
+         * does. Readline has no call that does this without redrawing over the old line, so this closes the
+         * interface and makes a new one, as a command that takes the terminal does.
+         */
+        const abandonLine = (): void => {
+            // Move to the end of the line, so that the ^C goes after all of the text.
+            rl.write(null, {ctrl: true, name: "e"});
+            process.stdout.write("^C\n");
+            released = true;
+            rl.close();
+            released = false;
+            startReading();
+            rl.prompt();
+        };
+
+        /**
          * Make a readline interface on the terminal, and start reading lines.
          */
         const startReading = (): void => {
             rl = readline.createInterface({
                 input: process.stdin,
                 output: process.stdout,
-                prompt: PROMPT,
+                prompt: colors.prompt(PROMPT),
                 completer,
                 history,
             });
@@ -205,6 +227,13 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
                 history = newHistory.slice();
             });
             rl.on("SIGINT", () => {
+                // Text on the line, and the shell waiting for it: only start the line over.
+                const lineIsEmpty = rl.line.length === 0;
+                if (!lineIsEmpty && !commandRunning) {
+                    abandonLine();
+                    return;
+                }
+
                 const discardedPathname = session.abort();
                 if (discardedPathname !== undefined) {
                     console.log("Discarded the changes to " + discardedPathname + ".");
