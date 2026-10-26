@@ -13,6 +13,7 @@ import {selectInputFiles} from "../InputFile.js";
 import {expandInputPatterns, fileNameMatchesPattern, pluralizeWithCount, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
+import {importHostFile} from "./DiskImport.js";
 import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
 
 /**
@@ -256,8 +257,10 @@ interface AddSource {
     pathname: string;
     /** The TRSDOS name it will have. */
     filename: TrsdosFilename;
-    /** The file's bytes. */
+    /** The bytes to store, after conversion. */
     contents: Uint8Array;
+    /** What the conversion did, to report if the file is added. */
+    messages: string[];
 }
 
 /**
@@ -267,8 +270,8 @@ const ADD_COMMAND: DiskCommand = {
     spec: {
         name: "add",
         aliases: ["import", "put"],
-        usage: "HOSTFILE... [--as NAME] [--system] [--invisible] [--date YYYY-MM-DD]",
-        summary: "copy files from the host onto the disk",
+        usage: "HOSTFILE... [--as NAME] [--ascii | --binary] [--system] [--invisible] [--date YYYY-MM-DD]",
+        summary: "copy files from the host onto the disk, converting BASIC, system programs, and text",
         minArgs: 1,
         maxArgs: Infinity,
         options: [
@@ -276,6 +279,16 @@ const ADD_COMMAND: DiskCommand = {
                 name: "--as",
                 valueName: "NAME",
                 description: "the TRSDOS name for the one host file (default: made from the host name)",
+            },
+            {
+                name: "--ascii",
+                valueName: undefined,
+                description: "keep BASIC programs as text with CR line endings, instead of tokenizing them",
+            },
+            {
+                name: "--binary",
+                valueName: undefined,
+                description: "copy every file exactly as it is, with no conversion",
             },
             {
                 name: "--system",
@@ -298,14 +311,16 @@ const ADD_COMMAND: DiskCommand = {
     endsSession: false,
 
     /**
-     * Read the host files and choose their TRSDOS names, then add them all in one change, so that
-     * either every file is added or none is. The bytes are stored as they are. Then say which
-     * files were added, and warn once if the DOS couldn't store the date.
+     * Read the host files, convert them for the disk (see importHostFile()), and choose their TRSDOS
+     * names, then add them all in one change, so that either every file is added or none is.
+     * Then say what was converted and which files were added, and warn once if the DOS couldn't store the date.
      */
     run(session, command) {
         const asText = command.options.getString("--as");
         const dateText = command.options.getString("--date");
         const date = dateText === undefined ? undefined : parseAddDate(dateText);
+
+        const importOptions = {ascii: command.options.has("--ascii"), binary: command.options.has("--binary")};
 
         const hostPathnames = expandInputPatterns(command.args);
         if (asText !== undefined && hostPathnames.length !== 1) {
@@ -330,6 +345,9 @@ const ADD_COMMAND: DiskCommand = {
                 throw new ToolError("Can't read \"" + pathname + "\": " + e.message);
             }
 
+            // Convert before choosing the name, since the conversion can change the extension.
+            const imported = importHostFile(pathname, contents, importOptions);
+
             let filename: TrsdosFilename;
             if (asText !== undefined) {
                 const parsed = parseTrsdosFilename(asText);
@@ -339,7 +357,9 @@ const ADD_COMMAND: DiskCommand = {
                 filename = parsed;
             } else {
                 const hostName = path.basename(pathname);
-                const converted = trsdosFilenameFromHost(hostName);
+                const nameToConvert = imported.extension === undefined ? hostName :
+                    path.parse(hostName).name + "." + imported.extension;
+                const converted = trsdosFilenameFromHost(nameToConvert);
                 if (typeof converted === "string") {
                     throw new ToolError(converted);
                 }
@@ -355,13 +375,14 @@ const ADD_COMMAND: DiskCommand = {
                 throw new ToolError("\"" + duplicate.pathname + "\" and \"" + pathname + "\" would both be " +
                     trsdosFilenameToString(filename) + " on the disk");
             }
-            sources.push({pathname, filename, contents});
+            sources.push({pathname, filename, contents: imported.contents, messages: imported.messages});
         }
 
         const warnings = new Set<string>();
         const addedLines: string[] = [];
         session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
             for (const source of sources) {
+                addedLines.push(...source.messages);
                 const result = writer.addFile(source.filename, source.contents, {
                     system: command.options.has("--system"),
                     invisible: command.options.has("--invisible"),

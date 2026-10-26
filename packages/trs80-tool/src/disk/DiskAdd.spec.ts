@@ -1,7 +1,11 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile} from "trs80-base";
+import {
+    CassetteSpeed, decodeTrs80File, encodeSystemProgram, makeTrsdos23TestDisk, parseBasicText, SystemProgramBuilder,
+    type TestDiskOptions, type TestFile,
+} from "trs80-base";
+import {binaryAsCasFile} from "trs80-cassette";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
@@ -92,7 +96,7 @@ describe("disk add", () => {
         const freeBefore = freeGranules(imagePathname);
         const worldBytes = fileBytes(imagePathname, "WORLD.BAS");
 
-        const lines = await runDisk("add", hostPathname);
+        const lines = await runDisk("add", hostPathname, "--binary");
         expect(lines).to.eql(["Added PROG/BAS (1,234 bytes).", "Saved " + imagePathname + "."]);
 
         expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "WORLD.BAS", "PROG.BAS"]);
@@ -155,7 +159,7 @@ describe("disk add", () => {
         makeImage([HELLO]);
         const hostPathname = makeHostFile("hello-world.bas", 50);
 
-        const lines = await runDisk("add", hostPathname);
+        const lines = await runDisk("add", hostPathname, "--binary");
         expect(lines).to.eql([
             "hello-world.bas will be HELLOWOR/BAS.", "Added HELLOWOR/BAS (50 bytes).", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname)).to.include("HELLOWOR.BAS");
@@ -197,7 +201,7 @@ describe("disk add", () => {
         makeImage([HELLO, WORLD]);
         const hostPathname = makeHostFile("hello.bas", 3000);
 
-        const lines = await runDisk("rm", "HELLO/BAS", ":", "add", hostPathname);
+        const lines = await runDisk("rm", "HELLO/BAS", ":", "add", hostPathname, "--binary");
         expect(lines).to.eql(["Removed HELLO/BAS.", "Added HELLO/BAS (3,000 bytes).", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "WORLD.BAS"]);
         expect(fileBytes(imagePathname, "HELLO.BAS")).to.eql(new Uint8Array(fs.readFileSync(hostPathname)));
@@ -275,5 +279,93 @@ describe("disk add", () => {
 
         const lines = await runDisk("add", hostPathname, ":", "dir");
         expect(lines.slice(1).join("\n")).to.include("A.TXT");
+    });
+    /**
+     * A small system program that loads a few bytes at 0x5000 and starts there.
+     */
+    function makeSystemProgramBytes(): Uint8Array {
+        const builder = new SystemProgramBuilder();
+        builder.addBytes(0x5000, [0x3E, 0x2A, 0xC9]);
+        return encodeSystemProgram("GAME", builder.getChunks(), 0x5000);
+    }
+
+    it("tokenizes a BASIC text file, and the disk holds a BASIC program", async () => {
+        makeImage([HELLO]);
+        const hostPathname = path.join(dir, "greet.bas");
+        fs.writeFileSync(hostPathname, "10 PRINT \"HI\"\r\n20 GOTO 10\r\n");
+
+        const lines = await runDisk("add", hostPathname);
+        expect(lines).to.eql(["Tokenized greet.bas.", "Added GREET/BAS (" +
+            (parseBasicText("10 PRINT \"HI\"\n20 GOTO 10") as Uint8Array).length + " bytes).", "Saved " + imagePathname + "."]);
+
+        const stored = fileBytes(imagePathname, "GREET.BAS");
+        const program = decodeTrs80File(stored);
+        expect(program.className).to.equal("BasicProgram");
+        if (program.className === "BasicProgram") {
+            expect(program.error).to.equal(undefined);
+            expect(program.asAscii()).to.equal("10 PRINT \"HI\"\n20 GOTO 10\n");
+        }
+    });
+
+    it("keeps a BASIC text file as text with --ascii", async () => {
+        makeImage([HELLO]);
+        const hostPathname = path.join(dir, "greet.bas");
+        fs.writeFileSync(hostPathname, "10 PRINT \"HI\"\n20 GOTO 10\n");
+
+        await runDisk("add", hostPathname, "--ascii");
+        expect(new TextDecoder().decode(fileBytes(imagePathname, "GREET.BAS"))).to.equal("10 PRINT \"HI\"\r20 GOTO 10\r");
+    });
+
+    it("refuses a BASIC file with a syntax error, and changes nothing", async () => {
+        makeImage([HELLO]);
+        const before = fs.readFileSync(imagePathname);
+        const hostPathname = path.join(dir, "bad.bas");
+        fs.writeFileSync(hostPathname, "10 PRINT 1\nHELLO\n");
+
+        await expect(runDisk("add", hostPathname)).rejects.toThrow(/bad\.bas at line 2.*--ascii.*--binary/);
+        expect(fs.readFileSync(imagePathname)).to.eql(before);
+    });
+
+    it("converts a .3bn file to a CMD program named with the CMD extension", async () => {
+        makeImage([HELLO]);
+        const hostPathname = path.join(dir, "game.3bn");
+        fs.writeFileSync(hostPathname, makeSystemProgramBytes());
+
+        const lines = await runDisk("add", hostPathname);
+        expect(lines[0]).to.equal("Converted game.3bn to a CMD program.");
+        expect(lines[1]).to.match(/^Added GAME\/CMD \(/);
+        const stored = decodeTrs80File(fileBytes(imagePathname, "GAME.CMD"), {filename: "GAME.CMD"});
+        expect(stored.className).to.equal("CmdProgram");
+    });
+
+    it("converts a .cas file with a system program, and --as overrides the extension", async () => {
+        makeImage([HELLO]);
+        const hostPathname = path.join(dir, "game.cas");
+        fs.writeFileSync(hostPathname, binaryAsCasFile(makeSystemProgramBytes(), CassetteSpeed.LOW));
+
+        await runDisk("add", hostPathname, "--as", "play/cmd");
+        expect(fileNames(imagePathname)).to.include("PLAY.CMD");
+    });
+
+    it("converts the line endings of a text file, and copies everything with --binary", async () => {
+        makeImage([HELLO]);
+        const notes = path.join(dir, "notes.txt");
+        fs.writeFileSync(notes, "one\r\ntwo\nthree");
+
+        const lines = await runDisk("add", notes);
+        expect(lines[0]).to.equal("Converted line endings of notes.txt.");
+        expect(new TextDecoder().decode(fileBytes(imagePathname, "NOTES.TXT"))).to.equal("one\rtwo\rthree");
+
+        const other = path.join(dir, "other.txt");
+        fs.writeFileSync(other, "a\nb\n");
+        await runDisk("add", other, "--binary");
+        expect(new TextDecoder().decode(fileBytes(imagePathname, "OTHER.TXT"))).to.equal("a\nb\n");
+    });
+
+    it("refuses --ascii together with --binary", async () => {
+        makeImage([HELLO]);
+        const hostPathname = makeHostFile("a.dat", 5);
+
+        await expect(runDisk("add", hostPathname, "--ascii", "--binary")).rejects.toThrow("not both");
     });
 });

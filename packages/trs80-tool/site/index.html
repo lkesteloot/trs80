@@ -454,8 +454,20 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                 </tr>
                 <tr>
                     <td><code>add HOSTFILE...</code></td>
-                    <td><p>Copy files from your computer onto the disk, byte for byte (BASIC and text files
-                        aren’t converted). The host names may have wildcards. Each file’s TRSDOS name is made
+                    <td><p>Copy files from your computer onto the disk, converting them as needed. A <code>.bas</code>
+                        file of BASIC text is tokenized (<code>Tokenized hello.bas.</code>), or with
+                        <code>--ascii</code> kept as text with CR line endings (Disk BASIC loads those too);
+                        tokenized BASIC is copied as it is, and text that isn’t BASIC is an error that names the
+                        line. A <code>.3bn</code> system program, or a <code>.cas</code> that holds one, becomes a
+                        CMD program that the DOS can run, named with the extension <code>CMD</code>
+                        (<code>game.3bn</code> becomes <code>GAME/CMD</code>); a <code>.cas</code> that holds
+                        a BASIC program becomes tokenized BASIC, and one with several programs is refused
+                        (use <code>extract</code> on it first). The LF and CRLF line endings of
+                        <code>.txt</code>, <code>.asm</code>, <code>.jcl</code>, <code>.doc</code>, <code>.hlp</code>,
+                        <code>.lst</code>, <code>.fix</code>, and <code>.src</code> files become CR
+                        (<code>Converted line endings of notes.txt.</code>). Every other file is copied byte for
+                        byte, and <code>--binary</code> copies every file that way, with no conversion at all.
+                        (<code>--ascii</code> and <code>--binary</code> can’t be used together.) The host names may have wildcards. Each file’s TRSDOS name is made
                         from its host name, upper-cased, with other characters dropped and the name cut to
                         8 letters and a 3-letter extension, and the command says when that changed it
                         (<code>hello-world.bas will be HELLOWOR/BAS.</code>); <code>--as NAME</code> gives
