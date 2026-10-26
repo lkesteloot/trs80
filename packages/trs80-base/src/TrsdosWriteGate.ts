@@ -1,6 +1,8 @@
 import {assertNever} from "z80-base";
 import {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {FloppyDisk} from "./FloppyDisk.js";
+import {HfeFloppyDisk} from "./HfeFloppyDisk.js";
+import {ImdFloppyDisk} from "./ImdFloppyDisk.js";
 import {Jv1FloppyDisk, JV1_DIRECTORY_CYLINDER} from "./Jv1FloppyDisk.js";
 import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {type Trsdos, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
@@ -277,13 +279,14 @@ export function writeProtectionMessage(disk: FloppyDisk): string | undefined {
 
     // These are the formats that can be written. Their images can carry a write-protect flag.
     const imageFlagSet = (disk instanceof DmkFloppyDisk && disk.writeProtected) ||
-        (disk instanceof Jv3FloppyDisk && disk.writeProtected);
+        (disk instanceof Jv3FloppyDisk && disk.writeProtected) ||
+        (disk instanceof HfeFloppyDisk && disk.writeProtected);
     if (imageFlagSet) {
         return "The image's write-protect flag is set.";
     }
 
     const formatCanBeWritten = disk instanceof DmkFloppyDisk || disk instanceof Jv1FloppyDisk ||
-        disk instanceof Jv3FloppyDisk;
+        disk instanceof Jv3FloppyDisk || disk instanceof HfeFloppyDisk || disk instanceof ImdFloppyDisk;
     if (formatCanBeWritten) {
         return "The image is mounted write-protected.";
     }

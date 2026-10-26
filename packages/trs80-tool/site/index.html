@@ -126,11 +126,11 @@
 
                 <dt><strong><code>.HFE</code></strong></dt>
                 <dd>HxC Floppy Emulator floppy disk format, also used by Gotek drives.
-                    Version 1 only, read-only.</dd>
+                    Version 1 only. Sectors can be written, but disks can’t be formatted.</dd>
 
                 <dt><strong><code>.IMD</code></strong></dt>
                 <dd>ImageDisk floppy disk format, from Dave Dunfield’s ImageDisk program.
-                    Common for Model II and other 8-inch disks. Read-only.</dd>
+                    Common for Model II and other 8-inch disks. Sectors can be written, but disks can’t be formatted.</dd>
 
                 <dt><strong><code>.HDV</code></strong></dt>
                 <dd>A hard disk image, used by xtrs, sdltrs, and the FreHD hard drive emulator.
@@ -759,7 +759,7 @@ C CRC error (ID or data).
                     <td><code>--writable</code></td>
                     <td>Let the emulator write to floppies, and save the changes to their
                         files. A floppy stays write-protected, with a warning, if its file is
-                        read-only or its image (DMK or JV3) is marked write-protected.</td>
+                        read-only or its image (DMK, JV3, or HFE) is marked write-protected.</td>
                 </tr>
                 <tr>
                     <td><code>--printer FILE</code></td>
