@@ -412,7 +412,8 @@ describe("boot", () => {
         });
         const lines = await run(session, "boot --write-protected");
         expect(protectedWhenRun).to.equal(true);
-        expect(lines[0]).to.contain("write-protected");
+        expect(lines[1]).to.contain("write-protected");
+        expect(lines.join("\n")).not.to.contain("marked write-protected");
         expect(session.hasChanges()).to.equal(false);
 
         // The mount doesn't outlast the boot: the session's own commands can write again.
@@ -433,7 +434,7 @@ describe("boot", () => {
         });
         const lines = await run(session, "boot");
         expect(protectedWhenRun).to.equal(true);
-        expect(lines[0]).to.contain("marked write-protected");
+        expect(lines[2]).to.contain("marked write-protected");
     });
 
     it("is writable by default", async () => {
@@ -444,7 +445,27 @@ describe("boot", () => {
         });
         const lines = await run(session, "boot");
         expect(protectedWhenRun).to.equal(false);
-        expect(lines[0]).to.contain("writable");
+        expect(lines[1]).to.contain("writable");
+    });
+
+    it("says in short lines what Ctrl-C does, depending on whether the disk shell is running", async () => {
+        const session = await makeSession("trsdos-2.3", "--system");
+        fakeTerminal(async () => {});
+        const outside = await run(session, "boot");
+        expect(outside.slice(0, 3)).to.eql([
+            outside[0],
+            "The disk is single density and writable.",
+            "Ctrl-C stops it.",
+        ]);
+        expect(outside[0]).to.match(/^Booting on a Model 1 \(TRSDOS 2\.\S* is a Model I DOS\)\.$/);
+
+        const events: string[] = [];
+        session.shellTerminal = { release: () => events.push("release"), reacquire: () => events.push("reacquire") };
+        const inShell = await run(session, "boot");
+        expect(inShell[2]).to.equal("Ctrl-C returns to the disk shell.");
+        for (const line of [...outside, ...inShell]) {
+            expect(line.length).to.be.lessThan(90);
+        }
     });
 
     it("hands the shell's terminal back and forth around the machine, even when it fails", async () => {

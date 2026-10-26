@@ -148,7 +148,7 @@ export const BOOT_COMMAND: DiskCommand = {
         name: "boot",
         aliases: ["run"],
         usage: "[--model 1|3|4] [--write-protected]",
-        summary: "boot the disk in the emulator, in the terminal; Ctrl-C returns here",
+        summary: "boot the disk in the emulator, in the terminal; Ctrl-C returns to the disk shell",
         minArgs: 0,
         maxArgs: 0,
         options: [
@@ -209,15 +209,18 @@ export const BOOT_COMMAND: DiskCommand = {
         floppy.setMountedWriteProtected(writeProtected);
         const mountedWriteProtected = floppy.isWriteProtected();
 
-        console.log("Booting on a Model " + choice.model + " (" + choice.reason + "), " +
-            densityToString(floppy.getGeometry().modalDataDensity) + " density, " +
-            (mountedWriteProtected ? "write-protected" : "writable") +
-            (mountedWriteProtected && !writeProtected ? " (the image is marked write-protected, or its format " +
-                "can't be written)" : "") + ". Ctrl-C returns here.");
+        const shellTerminal = session.shellTerminal;
+        // Short lines, since the reason can be long.
+        console.log("Booting on a Model " + choice.model + " (" + choice.reason + ").");
+        console.log("The disk is " + densityToString(floppy.getGeometry().modalDataDensity) + " density and " +
+            (mountedWriteProtected ? "write-protected" : "writable") + ".");
+        if (mountedWriteProtected && !writeProtected) {
+            console.log("The image is marked write-protected, or its format can't be written.");
+        }
+        console.log(shellTerminal === undefined ? "Ctrl-C stops it." : "Ctrl-C returns to the disk shell.");
 
         let writeCount = 0;
         const unsubscribe = floppy.onWrite.subscribe(() => writeCount++);
-        const shellTerminal = session.shellTerminal;
         shellTerminal?.release();
         try {
             await bootEnvironment.runMachine(config, floppy);
