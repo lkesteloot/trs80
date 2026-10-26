@@ -2,8 +2,8 @@ import {describe, expect, it} from "vitest";
 import {type FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
-    decodeTrsdos, TRSDOS_BLANK_PASSWORD_HASH, hashForFilename, type Trsdos,
-    type TrsdosDirEntry,
+    decodeTrsdos, TRSDOS_BLANK_PASSWORD_HASH, hashForFilename, hashTrsdosPassword, type Trsdos,
+    type TrsdosDirEntry, TrsdosProtectionLevel,
 } from "./Trsdos.js";
 import {checkTrsdos} from "./TrsdosCheck.js";
 import {reservedDecs} from "./TrsdosDirSlots.js";
@@ -999,5 +999,367 @@ describe("TrsdosWriter.renameFile", () => {
         const hello = writerFile(writer, "HELLO/BAS");
         writer.deleteFile(hello);
         expect(() => writer.renameFile(hello, name("LATE"))).to.throw(TrsdosWriteError, "has been deleted");
+    });
+});
+
+describe("TrsdosWriter.setAttributes", () => {
+    /**
+     * Make a fixture with HELLO/BAS and WORLD/TXT, and find the location of HELLO/BAS's entry.
+     */
+    function makeHelloFixture(ruleSet = TrsdosRuleSet.TRSDOS_2, osVersion: number | undefined = undefined) {
+        const fixture = makeFixture([HELLO, WORLD], {}, ruleSet, osVersion);
+        const slot = fixture.trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "HELLO/BAS");
+        if (slot === undefined) {
+            throw new Error("No slot");
+        }
+        const location = fixture.trsdos.getDirEntryLocation(slot.hitIndex);
+        const oldDirSector = readBytes(fixture.overlay, location.sectorPosition).slice();
+        const oldHit = readBytes(fixture.overlay, fixture.trsdos.getHitPosition()).slice();
+        const oldGat = readBytes(fixture.overlay, fixture.trsdos.getGatPosition()).slice();
+        return {...fixture, location, oldDirSector, oldHit, oldGat};
+    }
+
+    it("makes a file invisible by changing only bit 3 of byte 0", () => {
+        const {overlay, trsdos, writer, location, oldDirSector, oldHit, oldGat} = makeHelloFixture();
+        const oldFlags = oldDirSector[location.offset];
+
+        writer.setAttributes(writerFile(writer, "hello/bas"), {invisible: true});
+        expect(writer.hasChanges()).to.eql(true);
+        const newTrsdos = writer.flush();
+
+        const expectedDirSector = oldDirSector.slice();
+        expectedDirSector[location.offset] = oldFlags | 0x08;
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(expectedDirSector);
+        expect(readBytes(overlay, trsdos.getHitPosition())).to.eql(oldHit);
+        expect(readBytes(overlay, trsdos.getGatPosition())).to.eql(oldGat);
+        expect(getFile(newTrsdos, "HELLO/BAS").isHidden()).to.eql(true);
+        expect(getFile(newTrsdos, "WORLD/TXT").isHidden()).to.eql(false);
+
+        // And back again.
+        const writer2 = new TrsdosWriter(newTrsdos, TrsdosRuleSet.TRSDOS_2);
+        writer2.setAttributes(writerFile(writer2, "HELLO/BAS"), {invisible: false});
+        const newerTrsdos = writer2.flush();
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(oldDirSector);
+        expect(getFile(newerTrsdos, "HELLO/BAS").isHidden()).to.eql(false);
+    });
+
+    it("sets and clears the system flag by changing only bit 6 of byte 0", () => {
+        const {overlay, writer, location, oldDirSector} = makeHelloFixture();
+
+        writer.setAttributes(writerFile(writer, "HELLO/BAS"), {system: true});
+        const newTrsdos = writer.flush();
+
+        const expectedDirSector = oldDirSector.slice();
+        expectedDirSector[location.offset] |= 0x40;
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(expectedDirSector);
+        expect(getFile(newTrsdos, "HELLO/BAS").isSystemFile()).to.eql(true);
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["WORLD/TXT"]);
+    });
+
+    it("sets the protection level in the low three bits and leaves the other flags", () => {
+        const {overlay, writer, location, oldDirSector} = makeHelloFixture();
+        const oldFlags = oldDirSector[location.offset];
+
+        writer.setAttributes(writerFile(writer, "HELLO/BAS"), {protectionLevel: TrsdosProtectionLevel.READ});
+        const newTrsdos = writer.flush();
+
+        const expectedDirSector = oldDirSector.slice();
+        expectedDirSector[location.offset] = (oldFlags & ~0x07) | 5;
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(expectedDirSector);
+        expect(getFile(newTrsdos, "HELLO/BAS").getProtectionLevel()).to.eql(TrsdosProtectionLevel.READ);
+    });
+
+    it("writes the password hashes into bytes 16-19", () => {
+        const {overlay, writer, location, oldDirSector} = makeHelloFixture();
+
+        writer.setAttributes(writerFile(writer, "HELLO/BAS"), {updatePassword: "secret", accessPassword: "Open1"});
+        const newTrsdos = writer.flush();
+
+        const update = hashTrsdosPassword("SECRET");
+        const access = hashTrsdosPassword("OPEN1");
+        const expectedDirSector = oldDirSector.slice();
+        expectedDirSector.set([update & 0xFF, update >> 8, access & 0xFF, access >> 8], location.offset + 16);
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(expectedDirSector);
+        const hello = getFile(newTrsdos, "HELLO/BAS");
+        expect(hello.updatePassword).to.eql(update);
+        expect(hello.accessPassword).to.eql(access);
+        expect(getFile(newTrsdos, "WORLD/TXT").updatePassword).to.eql(TRSDOS_BLANK_PASSWORD_HASH);
+
+        // An empty password removes it again.
+        const writer2 = new TrsdosWriter(newTrsdos, TrsdosRuleSet.TRSDOS_2);
+        writer2.setAttributes(writerFile(writer2, "HELLO/BAS"), {updatePassword: "", accessPassword: ""});
+        const newerTrsdos = writer2.flush();
+        expect(getFile(newerTrsdos, "HELLO/BAS").updatePassword).to.eql(TRSDOS_BLANK_PASSWORD_HASH);
+        expect(getFile(newerTrsdos, "HELLO/BAS").accessPassword).to.eql(TRSDOS_BLANK_PASSWORD_HASH);
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(oldDirSector);
+    });
+
+    it("refuses a password the DOS wouldn't accept, and changes nothing", () => {
+        const {writer} = makeHelloFixture();
+        const hello = writerFile(writer, "HELLO/BAS");
+
+        expect(() => writer.setAttributes(hello, {invisible: true, updatePassword: "1ABC"}))
+            .to.throw(TrsdosWriteError, "Invalid password \"1ABC\"");
+        expect(() => writer.setAttributes(hello, {accessPassword: "TOOLONGPW"})).to.throw(TrsdosWriteError, "up to 8 letters");
+        expect(() => writer.setAttributes(hello, {updatePassword: "A B"})).to.throw(TrsdosWriteError, "Invalid password");
+        expect(writer.hasChanges()).to.eql(false);
+        writer.flush();
+    });
+
+    it("refuses a protection level that isn't 0 to 7", () => {
+        const {writer} = makeHelloFixture();
+        const hello = writerFile(writer, "HELLO/BAS");
+        expect(() => writer.setAttributes(hello, {protectionLevel: 8 as TrsdosProtectionLevel}))
+            .to.throw(TrsdosWriteError, "isn't a protection level");
+        expect(() => writer.setAttributes(hello, {protectionLevel: 1.5 as TrsdosProtectionLevel}))
+            .to.throw(TrsdosWriteError, "isn't a protection level");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("accumulates several calls on one file", () => {
+        const {writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5);
+        const hello = writerFile(writer, "HELLO/BAS");
+
+        writer.setAttributes(hello, {invisible: true});
+        writer.setAttributes(hello, {protectionLevel: TrsdosProtectionLevel.EXEC, date: new Date(1984, 2, 9)});
+        writer.setAttributes(hello, {updatePassword: "BOSS"});
+        const newTrsdos = writer.flush();
+
+        const newHello = getFile(newTrsdos, "HELLO/BAS");
+        expect(newHello.isHidden()).to.eql(true);
+        expect(newHello.getProtectionLevel()).to.eql(TrsdosProtectionLevel.EXEC);
+        expect(newHello.getDate()).to.eql(new Date(1984, 2, 9));
+        expect(newHello.updatePassword).to.eql(hashTrsdosPassword("BOSS"));
+    });
+
+    it("leaves the writer as it was when a later part of the call is refused", () => {
+        const {writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5);
+        const hello = writerFile(writer, "HELLO/BAS");
+
+        writer.setAttributes(hello, {invisible: true});
+        expect(() => writer.setAttributes(hello, {protectionLevel: TrsdosProtectionLevel.READ, date: new Date(2026, 0, 1)}))
+            .to.throw(TrsdosWriteError, "can't store the year 2026");
+        const newTrsdos = writer.flush();
+
+        // The first call took effect, and nothing from the refused one did.
+        expect(getFile(newTrsdos, "HELLO/BAS").isHidden()).to.eql(true);
+        expect(getFile(newTrsdos, "HELLO/BAS").getProtectionLevel()).to.eql(TrsdosProtectionLevel.FULL);
+    });
+
+    it("makes no change when nothing differs", () => {
+        const {overlay, writer} = makeHelloFixture();
+        const hello = writerFile(writer, "HELLO/BAS");
+
+        writer.setAttributes(hello, {});
+        writer.setAttributes(hello, {invisible: false, system: false, protectionLevel: TrsdosProtectionLevel.FULL,
+            updatePassword: "", accessPassword: ""});
+        expect(writer.hasChanges()).to.eql(false);
+        writer.flush();
+        expect(overlay.getChangedPositions()).to.eql([]);
+    });
+
+    it("stores a date on LDOS 5, keeping byte 1's other bits", () => {
+        const {overlay, writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5);
+        const oldEntry = entryBytes(overlay, writer.trsdos, "HELLO/BAS");
+
+        writer.setAttributes(writerFile(writer, "HELLO/BAS"), {date: new Date(1983, 4, 1)});
+        const newTrsdos = writer.flush();
+
+        const entry = entryBytes(overlay, newTrsdos, "HELLO/BAS");
+        // The test disk's byte 1 has no bits set, so the modified bit stays clear.
+        expect(entry[1]).to.eql(5);
+        expect(entry[2]).to.eql((1 << 3) | 3);
+        // Nothing else in the entry changed.
+        const expectedEntry = oldEntry.slice();
+        expectedEntry[1] = entry[1];
+        expectedEntry[2] = entry[2];
+        expect(entry).to.eql(expectedEntry);
+        expect(getFile(newTrsdos, "HELLO/BAS").getDate()).to.eql(new Date(1983, 4, 1));
+    });
+
+    it("keeps the modified, created and open bits of byte 1 when it changes the date", () => {
+        const {overlay, trsdos} = makeHelloFixture(TrsdosRuleSet.TRSDOS_6);
+        // Give the entry all three bits and a month by patching the overlay, then make a new writer.
+        const slot = trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "HELLO/BAS");
+        if (slot === undefined) {
+            throw new Error("No slot");
+        }
+        const {sectorPosition, offset} = trsdos.getDirEntryLocation(slot.hitIndex);
+        const sector = readBytes(overlay, sectorPosition).slice();
+        sector[offset + 1] = 0xE0 | 0x03;
+        overlay.writeSector(sectorPosition, sector);
+        const patched = decodeTrsdos(overlay);
+        if (patched === undefined) {
+            throw new Error("Didn't decode");
+        }
+        const patchedWriter = new TrsdosWriter(patched, TrsdosRuleSet.TRSDOS_6);
+
+        patchedWriter.setAttributes(writerFile(patchedWriter, "HELLO/BAS"), {date: new Date(1982, 10, 20)});
+        const newTrsdos = patchedWriter.flush();
+
+        expect(entryBytes(overlay, newTrsdos, "HELLO/BAS")[1]).to.eql(0xE0 | 11);
+
+        // Clearing the date keeps them too, and marks the date as not set.
+        const clearWriter = new TrsdosWriter(newTrsdos, TrsdosRuleSet.TRSDOS_6);
+        clearWriter.setAttributes(writerFile(clearWriter, "HELLO/BAS"), {date: null});
+        const clearedTrsdos = clearWriter.flush();
+        expect(entryBytes(overlay, clearedTrsdos, "HELLO/BAS")[1]).to.eql(0xE0 | 0x10);
+    });
+
+    it("refuses a date on TRSDOS 2.x and DOSPLUS, even to clear it", () => {
+        for (const ruleSet of [TrsdosRuleSet.TRSDOS_2, TrsdosRuleSet.DOSPLUS]) {
+            const {writer} = makeHelloFixture(ruleSet);
+            const hello = writerFile(writer, "HELLO/BAS");
+            expect(() => writer.setAttributes(hello, {date: new Date(1983, 4, 1)}))
+                .to.throw(TrsdosWriteError, "disks don't store file dates");
+            expect(() => writer.setAttributes(hello, {date: null})).to.throw(TrsdosWriteError, "disks don't store file dates");
+            expect(writer.hasChanges()).to.eql(false);
+        }
+    });
+
+    it("clears the date on LDOS 5", () => {
+        const {overlay, writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5);
+        writer.setAttributes(writerFile(writer, "HELLO/BAS"), {date: new Date(1983, 4, 1)});
+        const datedTrsdos = writer.flush();
+
+        const writer2 = new TrsdosWriter(datedTrsdos, TrsdosRuleSet.LDOS_5);
+        writer2.setAttributes(writerFile(writer2, "HELLO/BAS"), {date: null});
+        const newTrsdos = writer2.flush();
+
+        const entry = entryBytes(overlay, newTrsdos, "HELLO/BAS");
+        expect(entry[1]).to.eql(0x10);
+        expect(entry[2]).to.eql(0);
+        expect(getFile(newTrsdos, "HELLO/BAS").month).to.eql(0);
+    });
+
+    it("refuses a year an LDOS 5 entry can't hold", () => {
+        const {writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5);
+        expect(() => writer.setAttributes(writerFile(writer, "HELLO/BAS"), {date: new Date(1990, 0, 1)}))
+            .to.throw(TrsdosWriteError, "can't store the year 1990");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("refuses an access password on a disk with time stamps", () => {
+        const {trsdos, writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5, 0x53);
+        expect(trsdos.hasTimeStamps).to.eql(true);
+        const hello = writerFile(writer, "HELLO/BAS");
+
+        expect(() => writer.setAttributes(hello, {accessPassword: "OPEN"}))
+            .to.throw(TrsdosWriteError, "keep a time stamp where the access password would go");
+        // The update password is fine.
+        writer.setAttributes(hello, {updatePassword: "BOSS"});
+        const newTrsdos = writer.flush();
+        expect(getFile(newTrsdos, "HELLO/BAS").updatePassword).to.eql(hashTrsdosPassword("BOSS"));
+    });
+
+    it("sets and clears a time stamp on an LDOS 5.3 disk", () => {
+        const {overlay, writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5, 0x53);
+        writer.setAttributes(writerFile(writer, "HELLO/BAS"), {date: new Date(2005, 10, 20, 14, 35)});
+        const stampedTrsdos = writer.flush();
+
+        const entry = entryBytes(overlay, stampedTrsdos, "HELLO/BAS");
+        const stamp = (14 << 11) | (35 << 5) | (2005 - 1980);
+        expect([entry[18], entry[19]]).to.eql([stamp >> 8, stamp & 0xFF]);
+        const stamped = getFile(stampedTrsdos, "HELLO/BAS");
+        expect(stamped.getDate()).to.eql(new Date(2005, 10, 20, 14, 35));
+        expect(stamped.accessPassword).to.be.undefined;
+
+        // Changing another attribute leaves the stamp alone.
+        const writer2 = new TrsdosWriter(stampedTrsdos, TrsdosRuleSet.LDOS_5);
+        writer2.setAttributes(writerFile(writer2, "HELLO/BAS"), {protectionLevel: TrsdosProtectionLevel.READ});
+        const readTrsdos = writer2.flush();
+        expect(entryBytes(overlay, readTrsdos, "HELLO/BAS").slice(18, 20)).to.eql(entry.slice(18, 20));
+
+        // Clearing the date puts back the blank access password.
+        const writer3 = new TrsdosWriter(readTrsdos, TrsdosRuleSet.LDOS_5);
+        writer3.setAttributes(writerFile(writer3, "HELLO/BAS"), {date: null});
+        const clearedTrsdos = writer3.flush();
+        const clearedEntry = entryBytes(overlay, clearedTrsdos, "HELLO/BAS");
+        expect([clearedEntry[18], clearedEntry[19]]).to.eql([0x96, 0x42]);
+        expect(getFile(clearedTrsdos, "HELLO/BAS").accessPassword).to.eql(TRSDOS_BLANK_PASSWORD_HASH);
+        expect(getFile(clearedTrsdos, "HELLO/BAS").month).to.eql(0);
+    });
+
+    it("refuses to date a system file on a disk with time stamps", () => {
+        const {writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5, 0x53);
+        const hello = writerFile(writer, "HELLO/BAS");
+        const world = writerFile(writer, "WORLD/TXT");
+
+        expect(() => writer.setAttributes(hello, {system: true, date: new Date(2005, 10, 20)}))
+            .to.throw(TrsdosWriteError, "system files have no dates on this disk");
+        expect(() => writer.setAttributes(writerFile(writer, "BOOT/SYS"), {date: new Date(2005, 10, 20)}))
+            .to.throw(TrsdosWriteError, "system files have no dates on this disk");
+        expect(writer.hasChanges()).to.eql(false);
+
+        // Making a file a system file there is fine, and the writer's check allows for how the decoder then reads it.
+        writer.setAttributes(world, {system: true});
+        writer.flush();
+    });
+
+    it("refuses to change BOOT/SYS and DIR/SYS between system and user file, but changes their other attributes", () => {
+        const {writer} = makeHelloFixture();
+        const boot = writerFile(writer, "BOOT/SYS");
+        const dir = writerFile(writer, "DIR/SYS");
+
+        expect(() => writer.setAttributes(boot, {system: false})).to.throw(TrsdosWriteError, "BOOT/SYS can't become a user file");
+        expect(() => writer.setAttributes(dir, {system: false})).to.throw(TrsdosWriteError, "DIR/SYS can't become a user file");
+        expect(writer.hasChanges()).to.eql(false);
+
+        // Saying it stays a system file is fine.
+        writer.setAttributes(boot, {system: true});
+        expect(writer.hasChanges()).to.eql(false);
+        writer.setAttributes(boot, {updatePassword: "SECRET"});
+        const newTrsdos = writer.flush();
+        expect(getFile(newTrsdos, "BOOT/SYS").updatePassword).to.eql(hashTrsdosPassword("SECRET"));
+    });
+
+    it("refuses under TRSDOS 1.3 rules", () => {
+        const {writer} = makeHelloFixture(TrsdosRuleSet.TRSDOS_1_3);
+        expect(() => writer.setAttributes(writerFile(writer, "HELLO/BAS"), {invisible: true}))
+            .to.throw(TrsdosWriteError, "TRSDOS 1.3");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("works together with a rename and a delete in one writer", () => {
+        const {writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5);
+        writer.addFile(name("EXTRA/DAT"), makeContents(100));
+
+        writer.renameFile(writerFile(writer, "HELLO/BAS"), name("GREET/BAS"));
+        writer.setAttributes(writerFile(writer, "GREET/BAS"), {invisible: true, updatePassword: "BOSS"});
+        writer.setAttributes(writerFile(writer, "WORLD/TXT"), {protectionLevel: TrsdosProtectionLevel.EXEC});
+        writer.deleteFile(writerFile(writer, "WORLD/TXT"));
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.have.members(["GREET/BAS", "EXTRA/DAT"]);
+        const greet = getFile(newTrsdos, "GREET/BAS");
+        expect(greet.isHidden()).to.eql(true);
+        expect(greet.updatePassword).to.eql(hashTrsdosPassword("BOSS"));
+    });
+
+    it("refuses a deleted file, a flushed writer, and a file from another directory", () => {
+        const {trsdos, writer} = makeHelloFixture();
+        const hello = writerFile(writer, "HELLO/BAS");
+        const strangerEntry = getFile(trsdos, "WORLD/TXT");
+
+        expect(() => writer.setAttributes(strangerEntry, {invisible: true})).to.throw(TrsdosWriteError, "isn't a file in this directory");
+        writer.deleteFile(hello);
+        expect(() => writer.setAttributes(hello, {invisible: true})).to.throw(TrsdosWriteError, "has been deleted");
+        writer.flush();
+        expect(() => writer.setAttributes(hello, {invisible: true})).to.throw(TrsdosWriteError, "already been flushed");
+    });
+
+    it("leaves the extended entries of a file alone", () => {
+        const lumps = [3, 4, 5, 6, 7, 9];
+        const extents = lumps.map(lump => ({lump, granuleOffset: 0, granuleCount: 2}));
+        const {overlay, trsdos, writer} = makeFixture([{name: "BIG/DAT", extents}, WORLD], {}, TrsdosRuleSet.LDOS_5);
+        const bigBytes = trsdos.readFile(getFile(trsdos, "BIG/DAT"));
+        const oldFxde = entryBytesAt(overlay, trsdos, testUserSlotDec(1));
+
+        writer.setAttributes(writerFile(writer, "BIG/DAT"), {invisible: true, protectionLevel: TrsdosProtectionLevel.READ});
+        const newTrsdos = writer.flush();
+
+        expect(entryBytesAt(overlay, trsdos, testUserSlotDec(1))).to.eql(oldFxde);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "BIG/DAT"))).to.eql(bigBytes);
+        expect(getFile(newTrsdos, "BIG/DAT").isHidden()).to.eql(true);
     });
 });

@@ -1,9 +1,10 @@
-import {assertNever} from "z80-base";
+import {assertNever, toHexByte, word} from "z80-base";
 import type {SectorPosition} from "./FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
-    decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, hashForFilename, TRSDOS_BLANK_PASSWORD_HASH, type Trsdos,
-    type Trsdos23TimeStamp, type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosVersion,
+    decodeDirEntry, decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, hashForFilename,
+    hashTrsdosPassword, TRSDOS_BLANK_PASSWORD_HASH, type Trsdos, type Trsdos23TimeStamp, trsdos23TimeStampToWord,
+    type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
 import {allocateGranules, type AllocatedExtent, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
 import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
@@ -38,6 +39,18 @@ const BYTE1_MODIFIED = 0x40;
  * was written, so the date in the entry (if any) isn't to be trusted.
  */
 const BYTE1_DATE_NOT_SET = 0x10;
+
+/**
+ * The bits of a directory entry's byte 0 that hold the protection level.
+ */
+const PROTECTION_LEVEL_MASK = 0x07;
+
+/**
+ * Byte 1 of an LDOS-line entry: the bits that {@link TrsdosWriter.setAttributes} keeps when it changes the
+ * date, which are the bit that says the file was CREATEd (bit 7), the modified bit (bit 6), and the bit
+ * that says the file is open (bit 5). The rest of the byte is the date-not-set bit and the month.
+ */
+const BYTE1_KEPT_BITS = 0xE0;
 
 /**
  * The offset in a directory entry of the 11 bytes of the file's name and extension.
@@ -129,6 +142,99 @@ export interface TrsdosAddResult {
 }
 
 /**
+ * What {@link TrsdosWriter.setAttributes} changes. A field that's undefined is left as it is.
+ */
+export interface TrsdosAttributeChanges {
+    /**
+     * Whether to hide the file from directory listings.
+     */
+    invisible?: boolean | undefined;
+
+    /**
+     * Whether to make the file a system file. BOOT/SYS and DIR/SYS can't change.
+     */
+    system?: boolean | undefined;
+
+    /**
+     * The protection level, which is what the file's access password lets a user do.
+     */
+    protectionLevel?: TrsdosProtectionLevel | undefined;
+
+    /**
+     * The update (owner) password, which always allows full access; empty for none.
+     */
+    updatePassword?: string | undefined;
+
+    /**
+     * The access (user) password, which allows access up to the protection level; empty for none. Disks
+     * with time stamps (LDOS 5.3 and LS-DOS 6.3) don't have it.
+     */
+    accessPassword?: string | undefined;
+
+    /**
+     * The date to record, in local time, or null to record none. Only the LDOS line of DOSes has file dates.
+     */
+    date?: Date | null | undefined;
+}
+
+/**
+ * The date fields of a directory entry as the decoder reads them.
+ */
+interface ExpectedDate {
+    /**
+     * The month, 0 for none.
+     */
+    month: number;
+
+    /**
+     * The day, 0 for none.
+     */
+    day: number;
+
+    /**
+     * The year, or undefined if the decoder reads none.
+     */
+    year: number | undefined;
+
+    /**
+     * The hour, or undefined if the entry has no time stamp.
+     */
+    hour: number | undefined;
+
+    /**
+     * The minute, or undefined if the entry has no time stamp.
+     */
+    minute: number | undefined;
+}
+
+/**
+ * What the decoded primary entry of a file must read as after {@link TrsdosWriter.setAttributes}
+ * has changed it, kept for the final verification.
+ */
+interface AttributeExpectation {
+    /**
+     * Byte 0, of which the low seven bits are compared.
+     */
+    flags: number;
+
+    /**
+     * The update password hash.
+     */
+    updatePassword: number | undefined;
+
+    /**
+     * The access password hash as the decoder reads it, which is undefined when the entry holds a time
+     * stamp. Null if we don't know how the decoder will read it, so it isn't checked.
+     */
+    accessPassword: number | undefined | null;
+
+    /**
+     * The date fields, or null if we don't know how the decoder will read them, so they aren't checked.
+     */
+    date: ExpectedDate | null;
+}
+
+/**
  * A file that {@link TrsdosWriter.addFile} has added, kept for the final verification.
  */
 interface AddedFile {
@@ -195,7 +301,7 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
 
 /**
  * Makes changes to a TRSDOS floppy: the writer's core and its operations, deleting, adding
- * and renaming files.
+ * and renaming files and changing their attributes.
  *
  * The writer reads the GAT, the HIT and the directory sectors it changes into memory, makes every
  * change there, and writes back only the sectors that changed, into a {@link SectorOverlay} (so
@@ -269,6 +375,11 @@ export class TrsdosWriter {
      * extension, such as "HELLO/BAS". Use {@link currentName} to read a name.
      */
     private readonly renamed = new Map<TrsdosDirEntry, string>();
+
+    /**
+     * What each primary entry that {@link setAttributes} has changed must read as afterwards.
+     */
+    private readonly attributeExpectations = new Map<TrsdosDirEntry, AttributeExpectation>();
 
     /**
      * The rules the disk is written under, which decide what the DOS puts in a new directory entry
@@ -720,6 +831,216 @@ export class TrsdosWriter {
     }
 
     /**
+     * Change a file's attributes: the invisible and system flags, the protection level, the update and access
+     * passwords, and the date. Only what's given changes, and only in the file's primary entry (extended
+     * entries have no attributes). Nothing reaches the overlay until {@link flush}. If this throws, the writer is
+     * as it was before the call.
+     *
+     * Only TRSDOS 2.3 layouts are supported for now, and not under TRSDOS 1.3 rules. BOOT/SYS and DIR/SYS can't
+     * change between system and user file, but their other attributes can change.
+     *
+     * Dates are only stored by the LDOS line. A date on another DOS is an error here, unlike in
+     * {@link addFile}, since a date is all that the caller asked for. Changing the date keeps the entry's other
+     * flag bits in byte 1, including the "modified since backup" bit: the file's contents didn't change, so
+     * it doesn't need backing up again. On LDOS 5.3 and LS-DOS 6.3 disks the time stamp takes the place of the access
+     * password, so those disks can't have an access password set, can't date a system file (whose dates the
+     * decoder ignores), and keep a password that is there rather than overwrite it with a time stamp. Clearing the date
+     * there puts back the blank access password.
+     *
+     * @param dirEntry the file's primary entry, from {@link findFile} or the writer's directory.
+     * @param changes what to change.
+     * @throws TrsdosWriteError if the attributes can't be changed.
+     */
+    public setAttributes(dirEntry: TrsdosDirEntry, changes: TrsdosAttributeChanges): void {
+        this.checkNotFlushed();
+        const trsdos = this.trsdos;
+        const name = this.currentName(dirEntry);
+        if (!this.directory.files.includes(dirEntry)) {
+            throw new TrsdosWriteError(`${name} isn't a file in this directory`);
+        }
+        if (this.deleted.has(dirEntry)) {
+            throw new TrsdosWriteError(`${name} has been deleted`);
+        }
+        const slot = this.slotsByEntry.get(dirEntry);
+        if (slot === undefined) {
+            throw new TrsdosWriteError(`${name} is a system file that TRSDOS 1.3 doesn't list in its directory, ` +
+                `so its attributes can't be changed`);
+        }
+
+        switch (trsdos.version) {
+            case TrsdosVersion.V2_3:
+                break;
+
+            case TrsdosVersion.V1_3:
+                throw new TrsdosWriteError("Changing attributes isn't supported yet on TRSDOS 1.3 disks");
+
+            case TrsdosVersion.V2_7:
+                throw new TrsdosWriteError("Changing attributes isn't supported yet on TRSDOS 2.7 disks");
+
+            default:
+                assertNever(trsdos.version);
+        }
+        switch (this.ruleSet) {
+            case TrsdosRuleSet.TRSDOS_2:
+            case TrsdosRuleSet.LDOS_5:
+            case TrsdosRuleSet.TRSDOS_6:
+            case TrsdosRuleSet.DOSPLUS:
+                break;
+
+            case TrsdosRuleSet.TRSDOS_1_3:
+                throw new TrsdosWriteError("Changing attributes isn't supported yet on TRSDOS 1.3 disks");
+
+            default:
+                assertNever(this.ruleSet);
+        }
+
+        // Work on a copy of the entry, so that a refusal leaves the writer as it was.
+        const {sectorPosition, offset} = trsdos.getDirEntryLocation(slot.hitIndex);
+        const dirCopy = this.getDirSectorCopy(sectorPosition);
+        const entryLength = trsdos.dirEntryLength;
+        const bytes = dirCopy.bytes.slice(offset, offset + entryLength);
+        const current = decodeDirEntry(bytes, trsdos.geometry, trsdos.version, this.hit.bytes[slot.hitIndex],
+            trsdos.hasTimeStamps);
+        if (current === undefined || typeof current === "string") {
+            throw new TrsdosWriteError(`${name} has a directory entry that can't be read`);
+        }
+        // A copy, so that a refusal below leaves the expectation as it was.
+        const expected: AttributeExpectation = {...this.attributeExpectations.get(dirEntry) ?? {
+            flags: current.flags,
+            updatePassword: current.updatePassword,
+            accessPassword: current.accessPassword,
+            date: {month: current.month, day: current.day, year: current.year, hour: current.hour, minute: current.minute},
+        }};
+
+        // Byte 0.
+        let flags = bytes[0];
+        if (changes.invisible !== undefined) {
+            flags = changes.invisible ? flags | FLAG_INVISIBLE : flags & ~FLAG_INVISIBLE;
+        }
+        const wasSystem = (flags & FLAG_SYSTEM) !== 0;
+        if (changes.system !== undefined && changes.system !== wasSystem) {
+            if (PROTECTED_RAW_FILENAMES.includes(dirEntry.rawFilename)) {
+                throw new TrsdosWriteError(`${name} can't become ${wasSystem ? "a user" : "a system"} file: ` +
+                    `the DOS needs it as it is`);
+            }
+            flags = changes.system ? flags | FLAG_SYSTEM : flags & ~FLAG_SYSTEM;
+        }
+        const isSystem = (flags & FLAG_SYSTEM) !== 0;
+        if (changes.protectionLevel !== undefined) {
+            const level: number = changes.protectionLevel;
+            if (!Number.isInteger(level) || level < TrsdosProtectionLevel.FULL || level > TrsdosProtectionLevel.NO_ACCESS) {
+                throw new TrsdosWriteError(`${level} isn't a protection level; use 0 to 7`);
+            }
+            flags = (flags & ~PROTECTION_LEVEL_MASK) | level;
+        }
+        bytes[0] = flags;
+        expected.flags = flags;
+
+        // The passwords, bytes 16-19.
+        if (changes.updatePassword !== undefined) {
+            const hash = TrsdosWriter.hashPassword(changes.updatePassword);
+            bytes[16] = hash & 0xFF;
+            bytes[17] = hash >> 8;
+        }
+        expected.updatePassword = word(bytes[17], bytes[16]);
+        if (changes.accessPassword !== undefined) {
+            if (trsdos.hasTimeStamps) {
+                throw new TrsdosWriteError(`Can't set the access password of ${name}: entries on this disk keep ` +
+                    `a time stamp where the access password would go`);
+            }
+            const hash = TrsdosWriter.hashPassword(changes.accessPassword);
+            bytes[18] = hash & 0xFF;
+            bytes[19] = hash >> 8;
+            expected.accessPassword = hash;
+        }
+
+        // The date, bytes 1-2, and the time stamp in bytes 18-19 if the disk has them.
+        if (changes.date !== undefined) {
+            switch (this.ruleSet) {
+                case TrsdosRuleSet.TRSDOS_2:
+                case TrsdosRuleSet.DOSPLUS:
+                    throw new TrsdosWriteError(`Can't set the date of ${name}: ` +
+                        `${trsdosRuleSetToString(this.ruleSet)} disks don't store file dates`);
+
+                case TrsdosRuleSet.LDOS_5:
+                case TrsdosRuleSet.TRSDOS_6:
+                    break;
+
+                default:
+                    // TRSDOS 1.3 rules were refused above.
+                    assertNever(this.ruleSet);
+            }
+
+            const date = changes.date;
+            const datePart = this.makeDateFields(date === null ? undefined : date);
+            if (trsdos.hasTimeStamps) {
+                if (isSystem) {
+                    throw new TrsdosWriteError(`Can't set the date of ${name}: system files have no dates on this disk`);
+                }
+                if (datePart.timeStamp !== undefined) {
+                    if (current.accessPassword !== undefined && current.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+                        throw new TrsdosWriteError(`Can't set the date of ${name}: its access password bytes hold ` +
+                            `something other than a time stamp, which the time stamp would replace`);
+                    }
+                    const stamp = trsdos23TimeStampToWord(datePart.timeStamp);
+                    if (stamp === TRSDOS_BLANK_PASSWORD_HASH) {
+                        throw new TrsdosWriteError(`Can't set the date of ${name} to that time: its time stamp ` +
+                            `would read as a blank access password`);
+                    }
+                    bytes[18] = stamp >> 8;
+                    bytes[19] = stamp & 0xFF;
+                    expected.accessPassword = undefined;
+                } else if (current.accessPassword === undefined) {
+                    // Take the time stamp out, leaving the old style of entry with no password.
+                    bytes[18] = TRSDOS_BLANK_PASSWORD_HASH & 0xFF;
+                    bytes[19] = TRSDOS_BLANK_PASSWORD_HASH >> 8;
+                    expected.accessPassword = TRSDOS_BLANK_PASSWORD_HASH;
+                }
+            }
+            bytes[1] = (bytes[1] & BYTE1_KEPT_BITS) | (datePart.byte1 & ~BYTE1_KEPT_BITS & 0xFF);
+            bytes[2] = datePart.byte2;
+            expected.date = date === null ?
+                {month: 0, day: 0, year: FIRST_YEAR, hour: undefined, minute: undefined} :
+                {
+                    month: date.getMonth() + 1,
+                    day: date.getDate(),
+                    year: date.getFullYear(),
+                    hour: datePart.timeStamp === undefined ? undefined : date.getHours(),
+                    minute: datePart.timeStamp === undefined ? undefined : date.getMinutes(),
+                };
+        }
+        if (trsdos.hasTimeStamps && isSystem !== wasSystem) {
+            // The decoder reads bytes 18-19 and the year differently for system files, so we
+            // can't say what it will make of them.
+            expected.accessPassword = null;
+            expected.date = null;
+        }
+
+        // Everything has been checked; now change the working copy.
+        for (let i = 0; i < entryLength; i++) {
+            if (dirCopy.bytes[offset + i] !== bytes[i]) {
+                dirCopy.bytes[offset + i] = bytes[i];
+                dirCopy.dirty = true;
+            }
+        }
+        this.attributeExpectations.set(dirEntry, expected);
+    }
+
+    /**
+     * Hash a password for a directory entry, turning the hash function's error into a write error.
+     *
+     * @param password the password, or empty for none.
+     * @throws TrsdosWriteError if the DOS wouldn't accept the password.
+     */
+    private static hashPassword(password: string): number {
+        try {
+            return hashTrsdosPassword(password);
+        } catch (e) {
+            throw new TrsdosWriteError(e instanceof Error ? e.message : String(e));
+        }
+    }
+
+    /**
      * Whether anything has been changed in memory since the writer was made, not counting changes
      * that put a byte back to what it was.
      */
@@ -732,8 +1053,8 @@ export class TrsdosWriter {
      * Write the changed sectors to the overlay, decode the overlay again, and verify the result:
      * it must have the same layout, hold the files it had before less the deleted ones and plus the
      * added ones, with the renamed ones under their new names, read every remaining file exactly as before (except any file that includes the
-     * directory sectors), read every added file as the contents given, and have no layout or damage
-     * problem it didn't have. With no changes, nothing is written and the
+     * directory sectors), read every added file as the contents given, show the attributes
+     * that {@link setAttributes} set, and have no layout or damage problem it didn't have. With no changes, nothing is written and the
      * result is verified all the same.
      *
      * @return the file system decoded from the changed overlay.
@@ -898,8 +1219,34 @@ export class TrsdosWriter {
     }
 
     /**
+     * Throw if a file's entry, decoded after the change, doesn't read as {@link setAttributes} meant.
+     *
+     * @param name the file's name.
+     * @param expected what the entry must read as.
+     * @param newEntry the entry as decoded after the change.
+     */
+    private static verifyAttributes(name: string, expected: AttributeExpectation, newEntry: TrsdosDirEntry): void {
+        if ((newEntry.flags & 0x7F) !== (expected.flags & 0x7F)) {
+            throw new TrsdosWriteError(`After the change, the attributes of ${name} read as 0x${toHexByte(newEntry.flags & 0x7F)} ` +
+                `instead of 0x${toHexByte(expected.flags & 0x7F)}`);
+        }
+        if (newEntry.updatePassword !== expected.updatePassword) {
+            throw new TrsdosWriteError(`After the change, the update password of ${name} reads differently`);
+        }
+        if (expected.accessPassword !== null && newEntry.accessPassword !== expected.accessPassword) {
+            throw new TrsdosWriteError(`After the change, the access password of ${name} reads differently`);
+        }
+        const date = expected.date;
+        if (date !== null && (newEntry.month !== date.month || newEntry.day !== date.day ||
+            newEntry.year !== date.year || newEntry.hour !== date.hour || newEntry.minute !== date.minute)) {
+
+            throw new TrsdosWriteError(`After the change, the date of ${name} reads differently`);
+        }
+    }
+
+    /**
      * Compare the disk decoded after the change with the disk as it was, and throw if the
-     * difference isn't exactly the files we deleted, added and renamed.
+     * difference isn't exactly the files we deleted, added, renamed and changed the attributes of.
      */
     private verify(newTrsdos: Trsdos): void {
         // The layout.
@@ -951,6 +1298,10 @@ export class TrsdosWriter {
         for (const expectedEntry of expectedEntries) {
             const name = this.currentName(expectedEntry);
             const newEntry = newEntriesByName.get(name)?.shift();
+            const attributes = this.attributeExpectations.get(expectedEntry);
+            if (attributes !== undefined && newEntry !== undefined) {
+                TrsdosWriter.verifyAttributes(name, attributes, newEntry);
+            }
             if (this.coversDirectory(expectedEntry)) {
                 continue;
             }
