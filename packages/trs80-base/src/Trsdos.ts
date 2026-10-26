@@ -2455,23 +2455,6 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // Clip to size. In principle this is cheap because it's a view.
         return binary.subarray(0, firstDirEntry.getSize());
     }
-
-    /**
-     * Write the binary for a file on the diskette.
-     *
-     * @param binary the bytes to write to the file.
-     * @param filename TRSDOS filename, with a slash for the extension ("FOO/CMD").
-     * @return a string if an error occurred.
-     */
-    public writeFile(binary: Uint8Array, filename: string): string | undefined {
-        const entry = this.findFile(filename);
-        if (entry !== undefined) {
-            return `The file "${filename}" already exists; delete it first`;
-        }
-
-        // TODO actually write the file.
-        return "Writing files isn't implemented";
-    }
 }
 
 // Sectors on a Model II double-density track under LS-DOS and DOSPLUS II.
