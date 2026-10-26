@@ -2560,6 +2560,62 @@ beside `fd_image*.cpp`.
 - Tandy and LSI's LS-DOS 6.3 hard disk drivers and formatter, in Pete's Model II
   archive (github.com/pski/model2archive, `Other/I_III_4/MAD Soft/LS-DOS 6.3.x
   Source Code/LS-DOS-6.3.0-tree/trshard/`): `trshd6.asm`, `hdwd6a.asm`,
+## Track layouts by DOS
+
+What each DOS's FORMAT writes, as `TrackLayout.ts` reproduces it. Measured on the
+blank disks in `simple/trs80gp/formatted/` (made by trs80gp's emulated DOSes: the
+DMKs `m1-ldos`, `m3-ldos`, `m3-trsdos`, `m4-lsdos`, `m4-trsdos`, all one-sided) and
+on the real-hardware HFE images in `telanoc/`, which add two-sided disks. Only
+one-sided blanks exist for the Model III and 4 DOSes, so every two-sided fact comes
+from the HFEs. Sector size is 256 (size code 1) everywhere, and the fresh-sector data
+address mark is 0xFB. No layout writes an index address mark. All lengths are bytes.
+
+| Layout | Density | Sectors | Interleave (cylinder 0) | Filler | Lead gap | ID sync | Gap 2 | Data sync | Gap 3 | ID to ID |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TRSDOS 2.3, Model I | FM | 10, from 0 | 0 5 1 6 2 7 3 8 4 9 | `E5` | 14 FF | 6 | 12 FF | 6 | 12 FF | 302 |
+| LDOS 5.3 / LS-DOS 6.3 | FM | 10, from 0 | 0 5 1 6 2 7 3 8 4 9 | `E5` | 14 FF | 6 | 12 FF | 6 | 14 FF | 304 |
+| LDOS 5.3, Models I and III | MFM | 18, from 0 | 3:1: 0 6 12 1 7 13 2 8 14 3 9 15 4 10 16 5 11 17 | `6D B6` | 32 4E | 12 | 22 4E | 12 | 24 4E | 342 |
+| LS-DOS 6.3 / TRSDOS 6.2, Model 4 | MFM | 18, from 0 | 2:1: 0 9 1 10 2 11 3 12 4 13 5 14 6 15 7 16 8 17 | `6D B6` | 32 4E | 12 | 22 4E | 12 | 24 4E | 342 |
+| TRSDOS 1.3, Model III | MFM | 18, from 1 | 1 4 7 10 13 16 2 5 8 11 14 17 3 6 9 12 15 18 | `E5` ending in `(c) 1980 Tandy  ` | 64 4E | 8 | 22 4E | 12 | 24 4E | 338 |
+
+The MFM sync (three A1 before every mark) follows the ID sync and data sync zeros;
+"ID to ID" counts it. After the last sector the track is gap bytes to the end.
+
+- **Interleave generator.** One rule gives every order above: sector k (counting from
+  the first) goes in position k × step, or the next free position. The steps are 2
+  (TRSDOS 2.3, LDOS and LS-DOS single density, LS-DOS double density), 3 (LDOS double
+  density) and 6 (TRSDOS 1.3).
+- **Skew.** TRSDOS 2.3 and TRSDOS 1.3 start every track at their first listed sector.
+  LDOS and LS-DOS rotate the start of each cylinder along the interleave: on a
+  one-sided disk by 7 positions per cylinder in single density, 13 in LDOS double
+  density, and 10 in LS-DOS double density (matching the `S5TBL`, `D5TBL` skews in
+  FLOPPY_WRITING.md's reading of the LS-DOS source). On a **two-sided** disk it is one
+  more per cylinder (8, 14, 11), and side 1 starts one position after side 0 of the
+  same cylinder. Checked on all tracks of two-sided LDOS single density (Model I), LDOS
+  double density (Models I and III) and LS-DOS (Model 4), where the generator matches
+  every track. So the Model I's LDOS 3:1 double-density order and skew of 13 (read
+  from FORMAT's code) are confirmed, and Model I and III LDOS double density are the
+  same layout.
+- **Lead gap.** The trs80gp DMKs are one byte shorter (13 FF, 31 4E, 63 4E) than the
+  HFEs and the LS-DOS FORMAT table (14, 32, 64): the first byte after the index is
+  lost in those images. The layouts use the longer values; everything else (the gaps
+  between sectors, so every ID-to-ID distance) matches the blanks exactly.
+- **What isn't format.** Boot and system sectors, the directory (data address mark
+  0xF8, filler 0x00 on LDOS), and a sector the DOS has rewritten (its sync before the
+  data mark is often one zero short) all differ from a fresh format. TRSDOS 2.3's HFE
+  is a system disk, so its filler is read only from the sectors no file uses.
+- **Variants that don't match.** `telanoc/model4/m4_ld63_ds_dd_{40,80}_blank` (LS-DOS
+  6.3, real hardware) has the same order and skew as above but an IBM-style track: 80
+  4E, 12 00, three C2, an index mark FC, 50 4E, then the sectors with a 12-byte 4E gap
+  3 (330 bytes ID to ID, first A1 158 bytes from the start). trs80gp's LS-DOS blank
+  and FORMAT's table have the 342 layout, which the code uses. Two other system disks
+  were not made by a plain FORMAT: `m3_ld53_ss_dd_40_system` is LDOS 3:1 with the start
+  moving back 3 positions each cylinder, and `m4_ld63_ss_dd_40_system` is the LDOS 3:1
+  order on every cylinder after the first, starting at the same sector.
+- **Unmeasured.** TRSDOS 2.3's lead gap (14 FF then six zeros before the first ID,
+  from the HFE), and everything about two-sided TRSDOS 1.3 and 2.3 disks. The Model I
+  LDOS system disk's cylinder 0 is single density on a double-density disk.
+
   `hdform6.asm` and others. They show the WD1010 ports and how the DCT's head
   offset and DBLBIT are used.
 
