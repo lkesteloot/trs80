@@ -28,7 +28,7 @@ function removeHello(writer: TrsdosWriter): void {
     writer.deleteFile(dirEntry);
 }
 
-describe("disk rm", () => {
+describe("disk kill", () => {
     let dir = "";
     let imagePathname = "";
 
@@ -96,7 +96,7 @@ describe("disk rm", () => {
         const notesBytes = fileBytes(imagePathname, "NOTES.TXT");
         const freeBefore = freeGranules(imagePathname);
 
-        const lines = await runDisk("rm", "HELLO/BAS");
+        const lines = await runDisk("kill", "HELLO/BAS");
         expect(lines).to.eql(["Removed HELLO/BAS.", "Saved " + imagePathname + "."]);
 
         expect(fileNames(imagePathname)).to.eql(["WORLD.BAS", "NOTES.TXT"]);
@@ -107,17 +107,17 @@ describe("disk rm", () => {
 
     it("matches wildcards and lowercase names with a dot, and removes a file once", async () => {
         makeImage([HELLO, WORLD, NOTES]);
-        const lines = await runDisk("rm", "*.bas", "hello.bas");
+        const lines = await runDisk("kill", "*.bas", "hello.bas");
         expect(lines).to.eql(["Removed HELLO/BAS.", "Removed WORLD/BAS.", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname)).to.eql(["NOTES.TXT"]);
 
         makeImage([HELLO, WORLD, NOTES]);
-        await runDisk("rm", "hello.bas");
+        await runDisk("kill", "hello.bas");
         expect(fileNames(imagePathname)).to.eql(["WORLD.BAS", "NOTES.TXT"]);
     });
 
     it("works under its other names", async () => {
-        for (const alias of ["del", "delete", "kill", "remove"]) {
+        for (const alias of ["rm", "del", "delete", "remove"]) {
             makeImage([HELLO, WORLD]);
             await runDisk(alias, "HELLO/BAS");
             expect(fileNames(imagePathname)).to.eql(["WORLD.BAS"]);
@@ -130,7 +130,7 @@ describe("disk rm", () => {
 
         let error: unknown = undefined;
         try {
-            await runDisk("rm", "HELLO/BAS", "NOSUCH/BAS");
+            await runDisk("kill", "HELLO/BAS", "NOSUCH/BAS");
         } catch (e) {
             error = e;
         }
@@ -154,16 +154,16 @@ describe("disk rm", () => {
         makeImage([HELLO, SYSTEM]);
         const before = fs.readFileSync(imagePathname);
 
-        await expect(runDisk("rm", "KERNEL/S*")).rejects.toThrow(
+        await expect(runDisk("kill", "KERNEL/S*")).rejects.toThrow(
             "No file on the disk matches \"KERNEL/S*\" (wildcards don't match system files, so name the file)");
         expect(fs.readFileSync(imagePathname)).to.eql(before);
 
         // The "*" pattern doesn't reach it either.
-        await runDisk("rm", "*");
+        await runDisk("kill", "*");
         expect(fileNames(imagePathname, true)).to.have.members(["BOOT.SYS", "DIR.SYS", "KERNEL.SYS"]);
 
         makeImage([HELLO, SYSTEM]);
-        const lines = await runDisk("rm", "KERNEL/SYS");
+        const lines = await runDisk("kill", "KERNEL/SYS");
         expect(lines).to.eql(["Removed KERNEL/SYS.", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname, true)).to.have.members(["HELLO.BAS", "BOOT.SYS", "DIR.SYS"]);
     });
@@ -172,8 +172,8 @@ describe("disk rm", () => {
         makeImage([HELLO]);
         const before = fs.readFileSync(imagePathname);
 
-        await expect(runDisk("rm", "BOOT/SYS")).rejects.toThrow(/can't be deleted/);
-        await expect(runDisk("rm", "DIR/SYS")).rejects.toThrow(/can't be deleted/);
+        await expect(runDisk("kill", "BOOT/SYS")).rejects.toThrow(/can't be deleted/);
+        await expect(runDisk("kill", "DIR/SYS")).rejects.toThrow(/can't be deleted/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });
 
@@ -181,7 +181,7 @@ describe("disk rm", () => {
         makeImage([HELLO, WORLD]);
         const before = fs.readFileSync(imagePathname);
 
-        await expect(runDisk("rm", "HELLO/BAS", ":", "rm", "NOSUCH")).rejects.toThrow(ToolError);
+        await expect(runDisk("kill", "HELLO/BAS", ":", "rm", "NOSUCH")).rejects.toThrow(ToolError);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
         expect(fileNames(imagePathname)).to.eql(["HELLO.BAS", "WORLD.BAS"]);
     });
@@ -189,7 +189,7 @@ describe("disk rm", () => {
     it("sees the removal in later commands of the chain", async () => {
         makeImage([HELLO, WORLD]);
         const freeBefore = freeGranules(imagePathname);
-        const lines = await runDisk("rm", "HELLO/BAS", ":", "dir", ":", "free");
+        const lines = await runDisk("kill", "HELLO/BAS", ":", "dir", ":", "free");
         expect(lines.slice(0, 1)).to.eql(["Removed HELLO/BAS."]);
         const laterText = lines.slice(1).join("\n");
         expect(laterText).to.not.include("HELLO");
@@ -224,7 +224,7 @@ describe("disk rm", () => {
         makeImage([HELLO, WORLD], { gatFree: [{lump: 5, granule: 0}] });
         const before = fs.readFileSync(imagePathname);
 
-        await expect(runDisk("rm", "HELLO/BAS")).rejects.toThrow(/Can't write to this disk.*--force/);
+        await expect(runDisk("kill", "HELLO/BAS")).rejects.toThrow(/Can't write to this disk.*--force/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
 
         const lines = await runDisk("--force", "rm", "HELLO/BAS");
@@ -256,6 +256,6 @@ describe("disk rm", () => {
     it("refuses a file system that isn't TRSDOS-family", async () => {
         // Blank: no file system.
         fs.writeFileSync(imagePathname, new Uint8Array(35*10*256));
-        await expect(runDisk("rm", "HELLO/BAS")).rejects.toThrow(ToolError);
+        await expect(runDisk("kill", "HELLO/BAS")).rejects.toThrow(ToolError);
     });
 });

@@ -45,7 +45,7 @@ export interface DiskHelpList {
 export type DiskHelpSection = string | DiskHelpList;
 
 /**
- * Describes one disk command, such as "dir" or "rm". The parser and the help are both made from this
+ * Describes one disk command, such as "dir" or "kill". The parser and the help are both made from this
  * by Commander (see DiskCommander.ts).
  */
 export interface DiskCommandSpec {
@@ -154,7 +154,7 @@ export interface ParsedDiskCommandLine {
 const COMMAND_SEPARATOR = ":";
 
 /**
- * Parse the value of a --date option (of "add", "attr", "label", "create"), which must be YYYY-MM-DD.
+ * Parse the value of a --date option (of "add", "attrib", "label", "create"), which must be YYYY-MM-DD.
  *
  * @param text what the user gave.
  * @return the date at local midnight.

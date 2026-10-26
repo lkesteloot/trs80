@@ -207,12 +207,12 @@ function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[]): Trs
 }
 
 /**
- * The "rm" command: remove files from the disk.
+ * The "kill" command (as TRSDOS calls it): remove files from the disk.
  */
-const RM_COMMAND: DiskCommand = {
+const KILL_COMMAND: DiskCommand = {
     spec: {
-        name: "rm",
-        aliases: ["del", "delete", "kill", "remove"],
+        name: "kill",
+        aliases: ["rm", "del", "delete", "remove"],
         args: "<NAME...>",
         summary: "remove files from the disk (BOOT/SYS and DIR/SYS can't be removed)",
         options: [],
@@ -248,12 +248,12 @@ const RM_COMMAND: DiskCommand = {
 };
 
 /**
- * The "mv" command: rename a file on the disk.
+ * The "rename" command (as TRSDOS calls it): rename a file on the disk.
  */
-const MV_COMMAND: DiskCommand = {
+const RENAME_COMMAND: DiskCommand = {
     spec: {
-        name: "mv",
-        aliases: ["ren", "rename", "move"],
+        name: "rename",
+        aliases: ["mv", "ren", "move"],
         args: "<OLDNAME> <NEWNAME>",
         summary: "rename a file on the disk (BOOT/SYS and DIR/SYS can't be renamed)",
         options: [],
@@ -333,7 +333,7 @@ function parseProtectLevel(text: string, names: TrsdosProtectionNames): TrsdosPr
 }
 
 /**
- * Describe what an "attr" command asked for, such as "invisible, protection READ, update password set".
+ * Describe what an "attrib" command asked for, such as "invisible, protection READ, update password set".
  */
 function describeChanges(changes: TrsdosAttributeChanges, names: TrsdosProtectionNames): string {
     const parts: string[] = [];
@@ -361,7 +361,7 @@ function describeChanges(changes: TrsdosAttributeChanges, names: TrsdosProtectio
 }
 
 /**
- * Describe a file's attributes for "attr" without changing anything, such as
+ * Describe a file's attributes for "attrib" without changing anything, such as
  * "HELLO/BAS: protection READ, invisible, update password, date 01/05/1983".
  */
 function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtectionNames): string {
@@ -386,12 +386,12 @@ function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtectionNam
 }
 
 /**
- * The "attr" command: change or show the attributes of files on the disk.
+ * The "attrib" command (as LDOS and TRSDOS 6 call it): change or show the attributes of files on the disk.
  */
-const ATTR_COMMAND: DiskCommand = {
+const ATTRIB_COMMAND: DiskCommand = {
     spec: {
-        name: "attr",
-        aliases: ["attrib"],
+        name: "attrib",
+        aliases: ["attr"],
         args: "<PATTERN...>",
         summary: "change the attributes of files on the disk",
         options: [
@@ -1066,9 +1066,9 @@ export const DISK_COMMANDS: DiskCommand[] = [
     EXTRACT_COMMAND,
     LIST_COMMAND,
     ADD_COMMAND,
-    RM_COMMAND,
-    MV_COMMAND,
-    ATTR_COMMAND,
+    KILL_COMMAND,
+    RENAME_COMMAND,
+    ATTRIB_COMMAND,
     LABEL_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,

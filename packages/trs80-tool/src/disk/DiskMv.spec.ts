@@ -13,7 +13,7 @@ const SYSTEM: TestFile = {
     name: "KERNEL/SYS", extents: [{lump: 8, granuleOffset: 0, granuleCount: 2}], size: 500, system: true,
 };
 
-describe("disk mv", () => {
+describe("disk rename", () => {
     let dir = "";
     let imagePathname = "";
 
@@ -83,7 +83,7 @@ describe("disk mv", () => {
         const helloBytes = fileBytes(imagePathname, "HELLO.BAS");
         const worldBytes = fileBytes(imagePathname, "WORLD.BAS");
 
-        const lines = await runDisk("mv", "HELLO/BAS", "GREET/TXT");
+        const lines = await runDisk("rename", "HELLO/BAS", "GREET/TXT");
         expect(lines).to.eql(["Renamed HELLO/BAS to GREET/TXT.", "Saved " + imagePathname + "."]);
 
         expect(fileNames(imagePathname)).to.have.members(["GREET.TXT", "WORLD.BAS"]);
@@ -93,7 +93,7 @@ describe("disk mv", () => {
 
     it("ignores case and takes either separator", async () => {
         makeImage([HELLO, WORLD]);
-        const lines = await runDisk("mv", "hello.bas", "greet/txt");
+        const lines = await runDisk("rename", "hello.bas", "greet/txt");
         expect(lines[0]).to.equal("Renamed HELLO/BAS to GREET/TXT.");
         expect(fileNames(imagePathname)).to.have.members(["GREET.TXT", "WORLD.BAS"]);
     });
@@ -102,7 +102,7 @@ describe("disk mv", () => {
         makeImage([HELLO, WORLD]);
         const before = fs.readFileSync(imagePathname);
 
-        const error = await runDiskExpectingError("mv", "HELLO/BAS", "world.bas");
+        const error = await runDiskExpectingError("rename", "HELLO/BAS", "world.bas");
         expect(error.message).to.equal("WORLD/BAS is already on the disk");
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });
@@ -111,21 +111,21 @@ describe("disk mv", () => {
         makeImage([HELLO, WORLD]);
         const before = fs.readFileSync(imagePathname);
 
-        const error = await runDiskExpectingError("mv", "nosuch.bas", "GREET");
+        const error = await runDiskExpectingError("rename", "nosuch.bas", "GREET");
         expect(error.message).to.equal("No file on the disk is called NOSUCH/BAS");
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });
 
     it("refuses a name that isn't a TRSDOS name", async () => {
         makeImage([HELLO]);
-        const error = await runDiskExpectingError("mv", "HELLO/BAS", "1BAD");
+        const error = await runDiskExpectingError("rename", "HELLO/BAS", "1BAD");
         expect(error.message).to.include("isn't a TRSDOS file name");
-        await expect(runDisk("mv", "HE*", "GREET")).rejects.toThrow(ToolError);
+        await expect(runDisk("rename", "HE*", "GREET")).rejects.toThrow(ToolError);
     });
 
     it("renames a system file by name", async () => {
         makeImage([HELLO, SYSTEM]);
-        const lines = await runDisk("mv", "KERNEL/SYS", "CORE/SYS");
+        const lines = await runDisk("rename", "KERNEL/SYS", "CORE/SYS");
         expect(lines).to.eql(["Renamed KERNEL/SYS to CORE/SYS.", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname, true)).to.have.members(["HELLO.BAS", "BOOT.SYS", "DIR.SYS", "CORE.SYS"]);
     });
@@ -134,15 +134,15 @@ describe("disk mv", () => {
         makeImage([HELLO]);
         const before = fs.readFileSync(imagePathname);
 
-        const bootError = await runDiskExpectingError("mv", "BOOT/SYS", "OTHER/SYS");
+        const bootError = await runDiskExpectingError("rename", "BOOT/SYS", "OTHER/SYS");
         expect(bootError.message).to.match(/can't be renamed/);
-        const dirError = await runDiskExpectingError("mv", "DIR/SYS", "OTHER/SYS");
+        const dirError = await runDiskExpectingError("rename", "DIR/SYS", "OTHER/SYS");
         expect(dirError.message).to.match(/can't be renamed/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });
 
     it("works under its other names", async () => {
-        for (const alias of ["ren", "rename", "move"]) {
+        for (const alias of ["mv", "ren", "move"]) {
             makeImage([HELLO, WORLD]);
             await runDisk(alias, "HELLO/BAS", "GREET/BAS");
             expect(fileNames(imagePathname)).to.have.members(["GREET.BAS", "WORLD.BAS"]);
@@ -153,7 +153,7 @@ describe("disk mv", () => {
         makeImage([HELLO, WORLD]);
         const helloBytes = fileBytes(imagePathname, "HELLO.BAS");
 
-        const lines = await runDisk("mv", "HELLO/BAS", "B/BAS", ":", "mv", "B/BAS", "C/BAS");
+        const lines = await runDisk("rename", "HELLO/BAS", "B/BAS", ":", "mv", "B/BAS", "C/BAS");
         expect(lines).to.eql(["Renamed HELLO/BAS to B/BAS.", "Renamed B/BAS to C/BAS.", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname)).to.have.members(["C.BAS", "WORLD.BAS"]);
         expect(fileBytes(imagePathname, "C.BAS")).to.eql(helloBytes);
@@ -161,7 +161,7 @@ describe("disk mv", () => {
 
     it("shows the renamed file in a later dir in the chain", async () => {
         makeImage([HELLO, WORLD]);
-        const lines = await runDisk("mv", "HELLO/BAS", "GREET/BAS", ":", "dir");
+        const lines = await runDisk("rename", "HELLO/BAS", "GREET/BAS", ":", "dir");
         const laterText = lines.slice(1).join("\n");
         expect(laterText).to.include("GREET");
         expect(laterText).to.not.include("HELLO");
@@ -169,7 +169,7 @@ describe("disk mv", () => {
 
     it("needs exactly two names", async () => {
         makeImage([HELLO]);
-        await expect(runDisk("mv", "HELLO/BAS")).rejects.toThrow(ToolError);
-        await expect(runDisk("mv", "HELLO/BAS", "A", "B")).rejects.toThrow(ToolError);
+        await expect(runDisk("rename", "HELLO/BAS")).rejects.toThrow(ToolError);
+        await expect(runDisk("rename", "HELLO/BAS", "A", "B")).rejects.toThrow(ToolError);
     });
 });

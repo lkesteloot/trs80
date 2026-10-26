@@ -400,7 +400,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
             can then work on it in the same run.</p>
             <div><pre><code>% trs80-tool disk games.dmk create ldos-5.3 : add *.bas</code></pre>
             </div>
-            <p>Most commands only read the disk; <code>add</code>, <code>rm</code>, <code>mv</code>, <code>attr</code>, <code>label</code>,
+            <p>Most commands only read the disk; <code>add</code>, <code>kill</code>, <code>rename</code>, <code>attrib</code>, <code>label</code>,
             <code>create</code> and <code>format</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command, all or nothing: if any
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
@@ -515,25 +515,25 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         error. With no date, the entry is marked as having none.</p></td>
                 </tr>
                 <tr>
-                    <td><code>rm NAME...</code></td>
+                    <td><code>kill NAME...</code></td>
                     <td>Remove files from the disk, freeing the space they used. The names may have wildcards,
                         as in <code>dir</code>; every name must match a file, or nothing is removed.
                         A wildcard never matches a system file; to remove one, give its name.
                         <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be removed at all. It prints
-                        <code>Removed HELLO/BAS.</code> for each file. Also called <code>del</code>,
-                        <code>delete</code>, <code>kill</code>, and <code>remove</code>.</td>
+                        <code>Removed HELLO/BAS.</code> for each file. Also called <code>rm</code>,
+                        <code>del</code>, <code>delete</code>, and <code>remove</code>.</td>
                 </tr>
                 <tr>
-                    <td><code>mv OLDNAME NEWNAME</code></td>
+                    <td><code>rename OLDNAME NEWNAME</code></td>
                     <td>Rename a file on the disk. Both names are single TRSDOS names, with no wildcards, and
                         either <code>/</code> or <code>.</code> may come before the extension. The new name
                         must not belong to another file. System files can be renamed, but
                         <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be. Only the name changes, not the file’s contents, dates or attributes.
-                        It prints <code>Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>ren</code>,
-                        <code>rename</code>, and <code>move</code>.</td>
+                        It prints <code>Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>mv</code>,
+                        <code>ren</code>, and <code>move</code>.</td>
                 </tr>
                 <tr>
-                    <td><code>attr PATTERN...</code></td>
+                    <td><code>attrib PATTERN...</code></td>
                     <td><p>Change the attributes of files, or with no attribute options show them. The patterns
                         may have wildcards, as in <code>dir</code>; every pattern must match a file, or nothing
                         is changed. A wildcard never matches a system file; to change one, give its name. The
@@ -546,7 +546,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         with a letter. <code>--date YYYY-MM-DD</code> or <code>--no-date</code> sets or removes the
                         date, on the DOSes that store one (see <code>add</code>) and as an error elsewhere.
                         It prints <code>Changed HELLO/BAS: invisible, protection READ.</code> for each file.
-                        Also called <code>attrib</code>.</p>
+                        Also called <code>attr</code>.</p>
                         <p>The protection level is a name or a number from 0 to 7, in any case. The names
                         are the disk’s DOS’s: <code>FULL</code> (0), <code>KILL</code> (1), <code>RENAME</code> (2),
                         <code>WRITE</code> (4), <code>READ</code> (5), <code>EXEC</code> (6), and
@@ -710,12 +710,12 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                 </tr>
                 <tr>
                     <td><code>undo</code></td>
-                    <td><p>Take back the most recent change to the disk (an <code>add</code>, <code>rm</code>,
+                    <td><p>Take back the most recent change to the disk (an <code>add</code>, <code>kill</code>,
                         <code>label</code>, <code>create</code>, <code>format</code>, <code>trim</code> and so on),
                         restoring the disk exactly as it was, including its image format, and say which command it undid.
                         It can be repeated to go further back, up to the last 100 changes. If undoing takes the disk back
                         to what was last saved then there are no changes to save. It says so if there’s nothing to undo.
-                        It works in a chain too: <code>rm HELLO.BAS : undo</code>.</p></td>
+                        It works in a chain too: <code>kill HELLO.BAS : undo</code>.</p></td>
                 </tr>
                 <tr>
                     <td><code>redo</code></td>
@@ -1041,9 +1041,9 @@ C CRC error (ID or data).
 
             <h2 id="limitations">Limitations</h2>
             <ul>
-                <li>The tool reads floppy disks and hard disks. The only change it can make is removing files
-                    from a floppy with <a href="#disk"><code>disk</code></a> <code>rm</code>, and only on the
-                    TRSDOS-family DOSes listed there.</li>
+                <li>The tool reads floppy disks and hard disks. It changes only floppies, with
+                    <a href="#disk"><code>disk</code></a>, and writes files only on the TRSDOS-family DOSes
+                    listed there.</li>
                 <li>Hard disks can’t be mounted in the emulator (<a href="#run"><code>run</code></a>
                     and <a href="#mcp"><code>mcp</code></a>), and the
                     <a href="#sectors"><code>sectors</code></a> command shows only floppies.</li>
