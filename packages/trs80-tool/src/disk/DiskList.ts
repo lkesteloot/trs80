@@ -134,20 +134,22 @@ function chooseListKind(inFile: InputFile, forceHex: boolean): { kind: ListKind,
 }
 
 /**
- * Whether two byte arrays have the same bytes.
+ * Whether the first byte array is the start of the second (or all of it).
  */
-function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
-    return a.length === b.length && a.every((byte, i) => byte === b[i]);
+function isPrefix(prefix: Uint8Array, bytes: Uint8Array): boolean {
+    return prefix.length <= bytes.length && prefix.every((byte, i) => byte === bytes[i]);
 }
 
 /**
  * The lines of an annotated hex dump of a file, as the top-level "hexdump" command makes (it decodes the file
- * with disassembly, so system programs are annotated with their code). The annotations are left out for a
- * file whose decoded binary isn't the bytes on the disk, as with a text file of Basic that the decoder tokenized.
+ * with disassembly, so system programs are annotated with their code). The decoded binary can be the start of
+ * the file, as with a program padded to a whole sector after its end, and the annotations then cover that start.
+ * They're left out for a file whose decoded binary isn't the bytes on the disk at all, as with a text file of
+ * Basic that the decoder tokenized.
  */
 function hexLines(inFile: InputFile): string[] {
     const decoded = decodeTrs80File(inFile.binary, { filename: inFile.filename, disassemble: true });
-    const annotations = sameBytes(decoded.binary, inFile.binary) ? decoded.annotations : [];
+    const annotations = isPrefix(decoded.binary, inFile.binary) ? decoded.annotations : [];
     return hexdumpLines(inFile.binary, true, annotations);
 }
 

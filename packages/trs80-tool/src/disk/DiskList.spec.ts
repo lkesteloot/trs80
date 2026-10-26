@@ -143,6 +143,17 @@ describe("disk list", () => {
         expect(lines.join("\n")).to.contain("E5 E5 E5");
     });
 
+    it("annotates a program padded past its end", async () => {
+        makeImage([]);
+        // A load block of one byte (RET) at 0x7000 and the transfer address, then zeros to a whole sector.
+        const program = new Uint8Array(256);
+        program.set([0x01, 0x03, 0x00, 0x70, 0xC9, 0x02, 0x02, 0x00, 0x70]);
+        await runDisk("add", makeHostFile("prog.cmd", program), "--binary");
+        const text = (await runDisk("list", "PROG/CMD")).join("\n");
+        expect(text).to.contain("Load address (0x7000)");
+        expect(text).to.contain("Jump address (0x7000)");
+    });
+
     it("dumps in hex with --hex whatever the file is", async () => {
         await makeMixedImage();
         const lines = await runDisk("list", "NOTES/TXT", "--hex");
