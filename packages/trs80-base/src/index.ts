@@ -15,6 +15,7 @@ export * from "./HdvHardDisk.js";
 export * from "./HardDiskPartition.js";
 export * from "./LdosHardDisk.js";
 export * from "./Trsdos.js";
+export * from "./TrsdosGranuleMap.js";
 export * from "./Cpm.js";
 export * from "./MicroDos.js";
 export * from "./ModelIITrsdos.js";

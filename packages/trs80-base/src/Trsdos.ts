@@ -2233,9 +2233,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Generate the extents of a file, following its chain of extended directory entries.
+     * Generate the extents of a file, in order, given its primary directory entry. This follows the
+     * chain of extended directory entries, without revisiting any (a corrupt directory can have
+     * entries that point to each other).
      */
-    private *getFileExtents(firstDirEntry: TrsdosDirEntry): Generator<TrsdosExtent> {
+    public *getFileExtents(firstDirEntry: TrsdosDirEntry): Generator<TrsdosExtent> {
         // Corrupt directories can have entries that point to each other, so don't revisit any.
         const visitedDirEntries = new Set<TrsdosDirEntry>();
         let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
