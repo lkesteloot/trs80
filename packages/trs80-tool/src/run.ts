@@ -447,6 +447,20 @@ class NopScreen extends Trs80Screen {
 }
 
 /**
+ * Press and release a key that came from the terminal. A terminal sends characters, not key presses and
+ * releases, so each one is a press and a release, and each waits until the machine reads the key's row.
+ * Otherwise a DOS that scans the keyboard only on its timer interrupt can miss the release between two
+ * presses of the same key, and a doubled letter ("LL") comes out single.
+ *
+ * @param keyboard the machine's keyboard.
+ * @param keyName the key, as {@link Keyboard.keyEvent} takes it.
+ */
+export function pressTerminalKey(keyboard: Keyboard, keyName: string): void {
+    keyboard.keyEvent(keyName, true, true);
+    keyboard.keyEvent(keyName, false, true);
+}
+
+/**
  * Keyboard implementation for a TTY. Puts the TTY into raw mode, until {@link dispose} is called.
  */
 class TtyKeyboard extends Keyboard {
@@ -548,8 +562,7 @@ class TtyKeyboard extends Keyboard {
             }
 
             if (keyName !== undefined) {
-                this.keyEvent(keyName, true);
-                this.keyEvent(keyName, false);
+                pressTerminalKey(this, keyName);
             }
         }
     }

@@ -5,9 +5,10 @@ import {
     Density, type FloppyDisk, type KnownFloppyFileSystem, SectorData, SectorPosition, Trsdos, TrsdosVersion,
 } from "trs80-base";
 import {
-    CassettePlayer, Config, Keyboard, ModelType, model1ScreenCodeToModel3, SilentSoundPlayer, Trs80, Trs80Screen,
+    BasicLevel, CassettePlayer, Config, Keyboard, ModelType, model1ScreenCodeToModel3, SilentSoundPlayer, Trs80, Trs80Screen,
 } from "trs80-emulator";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {pressTerminalKey} from "../run.js";
 import {ToolError} from "../utils.js";
 import {BOOT_COMMAND, type BootEnvironment, bootEnvironment, chooseBootModel} from "./DiskBoot.js";
 import {disk} from "./disk.js";
@@ -105,6 +106,27 @@ class TestMachine {
             }
         }
         return false;
+    }
+
+    /**
+     * Type each character of the text as the terminal's keyboard sends it, and run until the machine has
+     * taken all of it.
+     */
+    typeAtTerminal(text: string): void {
+        for (const ch of text) {
+            pressTerminalKey(this.keyboard, ch === "\n" ? "Enter" : ch);
+        }
+        this.runUntilKeysTaken();
+    }
+
+    /**
+     * Run until the keyboard's queue is empty, up to 30 emulated seconds.
+     */
+    runUntilKeysTaken(): void {
+        const limit = this.trs80.tStateCount + 30*this.trs80.clockHz;
+        while (this.keyboard.keyQueue.length > 0 && this.trs80.tStateCount < limit) {
+            this.trs80.step();
+        }
     }
 
     /**
@@ -457,5 +479,18 @@ describe("boot", () => {
         expect(lines.join("\n")).to.match(/TEST2/);
         // The chain saved the change.
         expect(DiskSession.open(imagePathname).getInputFiles(false).map(f => f.filename)).to.not.contain("TEST1.CMD");
+    }, 60_000);
+
+    it("doesn't drop doubled letters typed at the terminal on a Model I", async () => {
+        const session = await makeSession("--dos", "trsdos-2.3", "--system");
+        const config = Config.makeDefault().edit()
+            .withModelType(ModelType.MODEL1)
+            .withBasicLevel(BasicLevel.LEVEL2)
+            .build();
+        const machine = new TestMachine(config, session.floppy);
+        expect(machine.runUntilScreen("DOS READY", 20), machine.screen.text()).to.equal(true);
+        machine.typeAtTerminal("LLLLOOOO");
+        machine.runCycles(machine.trs80.clockHz/2);
+        expect(machine.screen.text()).to.contain("LLLLOOOO");
     }, 60_000);
 });
