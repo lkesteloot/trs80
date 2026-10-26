@@ -125,6 +125,7 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
     if (readOnlyReason !== undefined) {
         console.log(colors.warning("Read-only: " + readOnlyReason));
     }
+    console.log("Type \"help\" for a list of commands, and \"quit\" to leave.");
 
     const commandNames = DISK_COMMANDS.map(c => c.spec.name);
     const completer = (line: string): [string[], string] => {
