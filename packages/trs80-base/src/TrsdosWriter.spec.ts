@@ -1674,3 +1674,318 @@ describe("TrsdosWriter.setDiskInfo", () => {
         writer.flush();
     });
 });
+
+describe("TrsdosWriter.replaceFile", () => {
+    /**
+     * Run a change on a disk with a writer, flush it, and return a new writer on the result.
+     *
+     * @param fixture the fixture to change.
+     * @param ruleSet the rules for the new writer.
+     * @param change makes the change with the fixture's writer.
+     */
+    function changeAndReopen(fixture: Fixture, ruleSet: TrsdosRuleSet, change: (writer: TrsdosWriter) => void): TrsdosWriter {
+        change(fixture.writer);
+        return new TrsdosWriter(fixture.writer.flush(), ruleSet);
+    }
+
+    /**
+     * The DEC of a file's primary entry.
+     */
+    function primaryDec(trsdos: Trsdos, fileName: string): number {
+        const slot = trsdos.getDirectory().slots.find(candidate => candidate.dirEntry.getFilename("/") === fileName);
+        if (slot === undefined) {
+            throw new Error("No slot for " + fileName);
+        }
+        return slot.hitIndex;
+    }
+
+    /**
+     * The granules a file's extents cover, as "lump:granule" strings.
+     */
+    function granulesOf(trsdos: Trsdos, fileName: string): string[] {
+        const granules: string[] = [];
+        for (const extent of trsdos.getFileExtents(getFile(trsdos, fileName))) {
+            for (let i = 0; i < extent.granuleCount; i++) {
+                granules.push(`${extent.cylinderNumber}:${extent.granuleOffset + i}`);
+            }
+        }
+        return granules;
+    }
+
+    it("replaces the contents, keeps the slot and the other files, and puts the new copy on new granules", () => {
+        const {overlay, trsdos, writer} = makeFixture([HELLO, WORLD]);
+        const worldBytes = trsdos.readFile(getFile(trsdos, "WORLD/TXT"));
+        const checkBefore = checkTrsdos(trsdos).findings.map(finding => finding.message);
+        const oldGranules = granulesOf(trsdos, "HELLO/BAS");
+        const dec = primaryDec(trsdos, "HELLO/BAS");
+        const contents = makeContents(3000, 9);
+
+        const result = writer.replaceFile(writerFile(writer, "hello/bas"), contents);
+        expect(result).to.eql({name: "HELLO/BAS", size: 3000, warning: undefined});
+        expect(writer.findFile("HELLO/BAS")).to.be.undefined;
+        expect(() => writer.addFile(name("HELLO/BAS"), contents)).to.throw(TrsdosWriteError, "already on the disk");
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.have.members(["HELLO/BAS", "WORLD/TXT"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "HELLO/BAS"))).to.eql(contents);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "WORLD/TXT"))).to.eql(worldBytes);
+        expect(checkTrsdos(newTrsdos).findings.map(finding => finding.message)).to.eql(checkBefore);
+
+        // The primary entry is in the same slot, and none of the new granules was the old copy's.
+        expect(primaryDec(newTrsdos, "HELLO/BAS")).to.eql(dec);
+        const newGranules = granulesOf(newTrsdos, "HELLO/BAS");
+        expect(newGranules.length).to.eql(3);
+        expect(newGranules.filter(granule => oldGranules.includes(granule))).to.eql([]);
+        expect(readBytes(overlay, newTrsdos.getHitPosition())[dec]).to.eql(hashForFilename("HELLO   BAS"));
+
+        // The old granules are free now, and the GAT has the new ones.
+        const gat = readBytes(overlay, newTrsdos.getGatPosition());
+        expect(gat[3]).to.eql(0xFC);
+        for (const granule of newGranules) {
+            const [lump, bit] = granule.split(":").map(Number);
+            expect(gat[lump] & (1 << bit)).to.not.eql(0);
+        }
+    });
+
+    it("keeps the attributes, passwords and record length, and the date on the LDOS line", () => {
+        const fixture = makeFixture([HELLO, WORLD], {}, TrsdosRuleSet.LDOS_5);
+        const writer = changeAndReopen(fixture, TrsdosRuleSet.LDOS_5, first => {
+            first.setAttributes(writerFile(first, "HELLO/BAS"), {
+                invisible: true, protectionLevel: TrsdosProtectionLevel.READ, updatePassword: "OWNER",
+                accessPassword: "USER", date: new Date(1984, 2, 15),
+            });
+        });
+        // Give it a record length, which nothing sets.
+        const trsdos = writer.trsdos;
+        const location = trsdos.getDirEntryLocation(primaryDec(trsdos, "HELLO/BAS"));
+        const patched = readBytes(fixture.overlay, location.sectorPosition).slice();
+        patched[location.offset + 4] = 80;
+        fixture.overlay.writeSector(location.sectorPosition, patched);
+        const writer2 = new TrsdosWriter(decodeTrsdos(fixture.overlay) as Trsdos, TrsdosRuleSet.LDOS_5);
+        const oldEntry = entryBytes(fixture.overlay, writer2.trsdos, "HELLO/BAS");
+
+        const result = writer2.replaceFile(writerFile(writer2, "HELLO/BAS"), makeContents(700));
+        expect(result.warning).to.be.undefined;
+        const newTrsdos = writer2.flush();
+
+        const entry = entryBytes(fixture.overlay, newTrsdos, "HELLO/BAS");
+        expect(entry[0]).to.eql(oldEntry[0]);
+        expect(entry[0] & 0x08).to.eql(0x08);
+        expect(entry[0] & 0x07).to.eql(TrsdosProtectionLevel.READ);
+        expect(entry[1]).to.eql(oldEntry[1] | 0x40);
+        expect(entry[2]).to.eql(oldEntry[2]);
+        expect(entry[3]).to.eql(700 % 256);
+        expect(entry[4]).to.eql(80);
+        expect(Array.from(entry.subarray(16, 20))).to.eql(Array.from(oldEntry.subarray(16, 20)));
+        const dirEntry = getFile(newTrsdos, "HELLO/BAS");
+        expect(dirEntry.getDate()).to.eql(new Date(1984, 2, 15));
+        expect(dirEntry.lrl).to.eql(80);
+        expect(dirEntry.updatePassword).to.eql(hashTrsdosPassword("OWNER"));
+        expect(dirEntry.accessPassword).to.eql(hashTrsdosPassword("USER"));
+        expect(dirEntry.sectorCount).to.eql(3);
+    });
+
+    it("replaces the date when one is given, and the flags the options give", () => {
+        const fixture = makeFixture([HELLO, WORLD], {}, TrsdosRuleSet.LDOS_5);
+        const writer = changeAndReopen(fixture, TrsdosRuleSet.LDOS_5, first => {
+            first.setAttributes(writerFile(first, "HELLO/BAS"), {invisible: true, date: new Date(1984, 2, 15)});
+        });
+
+        writer.replaceFile(writerFile(writer, "HELLO/BAS"), makeContents(10),
+            {date: new Date(1986, 11, 1), system: true, invisible: false});
+        const newTrsdos = writer.flush();
+
+        const dirEntry = getFile(newTrsdos, "HELLO/BAS");
+        expect(dirEntry.getDate()).to.eql(new Date(1986, 11, 1));
+        expect(dirEntry.isSystemFile()).to.eql(true);
+        const entry = entryBytes(fixture.overlay, newTrsdos, "HELLO/BAS");
+        expect(entry[0] & 0x08).to.eql(0);
+        expect(entry[1]).to.eql(0x40 | 12);
+    });
+
+    it("ignores a date on TRSDOS 2.x with a warning, and keeps the zero date bytes", () => {
+        const {overlay, writer} = makeFixture([HELLO]);
+
+        const result = writer.replaceFile(writerFile(writer, "HELLO/BAS"), makeContents(10), {date: new Date(1984, 2, 15)});
+        expect(result.warning).to.include("TRSDOS 2.x disks don't store file dates");
+        const newTrsdos = writer.flush();
+        const entry = entryBytes(overlay, newTrsdos, "HELLO/BAS");
+        expect([entry[1], entry[2]]).to.eql([0, 0]);
+    });
+
+    it("keeps and replaces the time stamp on an LDOS 5.3 disk", () => {
+        const fixture = makeFixture([HELLO, WORLD], {}, TrsdosRuleSet.LDOS_5, 0x53);
+        const writer = changeAndReopen(fixture, TrsdosRuleSet.LDOS_5, first => {
+            first.setAttributes(writerFile(first, "HELLO/BAS"), {date: new Date(2005, 10, 20, 14, 35)});
+        });
+        const oldEntry = entryBytes(fixture.overlay, writer.trsdos, "HELLO/BAS");
+
+        writer.replaceFile(writerFile(writer, "HELLO/BAS"), makeContents(10));
+        const writer2 = new TrsdosWriter(writer.flush(), TrsdosRuleSet.LDOS_5);
+        const kept = entryBytes(fixture.overlay, writer2.trsdos, "HELLO/BAS");
+        expect([kept[18], kept[19]]).to.eql([oldEntry[18], oldEntry[19]]);
+        expect(getFile(writer2.trsdos, "HELLO/BAS").getDate()).to.eql(new Date(2005, 10, 20, 14, 35));
+
+        writer2.replaceFile(writerFile(writer2, "HELLO/BAS"), makeContents(10), {date: new Date(2008, 0, 2, 3, 4)});
+        const newTrsdos = writer2.flush();
+        expect(getFile(newTrsdos, "HELLO/BAS").getDate()).to.eql(new Date(2008, 0, 2, 3, 4));
+    });
+
+    it("puts the new copy beside the old one when it fits, and frees the old copy", () => {
+        // Lump 3 (HELLO's) and lumps 20-21 have room.
+        const {overlay, writer} = makeFixture([HELLO], {gatUsed: usedExcept([3, 20, 21])});
+        const contents = makeContents(2560);
+
+        const result = writer.replaceFile(writerFile(writer, "HELLO/BAS"), contents);
+        expect(result.warning).to.be.undefined;
+        const newTrsdos = writer.flush();
+        expect(granulesOf(newTrsdos, "HELLO/BAS")).to.eql(["20:0", "20:1"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "HELLO/BAS"))).to.eql(contents);
+        expect(readBytes(overlay, newTrsdos.getGatPosition())[3]).to.eql(0xFC);
+    });
+
+    /**
+     * The number of free granules on a disk.
+     */
+    function freeGranuleCount(trsdos: Trsdos): number {
+        const granuleMap = TrsdosGranuleMap.make(trsdos);
+        if (typeof granuleMap === "string") {
+            throw new Error(granuleMap);
+        }
+        return granuleMap.granules.filter(granule => granule.isFree()).length;
+    }
+
+    it("falls back to the old copy's space when the new copy doesn't fit beside it, and warns", () => {
+        const {trsdos, writer} = makeFixture([HELLO, WORLD], {gatUsed: usedExcept([3])});
+        // One granule more than is free, which HELLO's two granules make room for.
+        const granuleCount = freeGranuleCount(trsdos) + 2;
+        const contents = makeContents(granuleCount*1280);
+
+        const result = writer.replaceFile(writerFile(writer, "HELLO/BAS"), contents);
+        expect(result.warning).to.include("HELLO/BAS didn't fit beside its old copy");
+        const newTrsdos = writer.flush();
+        expect(newTrsdos.readFile(getFile(newTrsdos, "HELLO/BAS"))).to.eql(contents);
+        expect(granulesOf(newTrsdos, "HELLO/BAS").length).to.eql(granuleCount);
+        expect(granulesOf(newTrsdos, "HELLO/BAS")).to.include("3:0");
+        expect(freeGranuleCount(newTrsdos)).to.eql(0);
+    });
+
+    it("refuses a file that doesn't fit even with the old copy's space, and changes nothing", () => {
+        const {trsdos, writer} = makeFixture([HELLO, WORLD], {gatUsed: usedExcept([3])});
+        const granuleCount = freeGranuleCount(trsdos) + 2;
+
+        expect(() => writer.replaceFile(writerFile(writer, "HELLO/BAS"), makeContents((granuleCount + 1)*1280)))
+            .to.throw(TrsdosWriteError, "Can't replace HELLO/BAS: not enough room");
+        expect(writer.hasChanges()).to.eql(false);
+        expect(writer.findFile("HELLO/BAS")).to.not.be.undefined;
+        // A file that does fit still works afterwards.
+        writer.replaceFile(writerFile(writer, "HELLO/BAS"), makeContents(granuleCount*1280));
+        writer.flush();
+    });
+
+    it("replaces a file that has an extended entry with a small one, and frees the extended entry", () => {
+        const lumps = [3, 4, 5, 6, 7, 9];
+        const extents = lumps.map(lump => ({lump, granuleOffset: 0, granuleCount: 2}));
+        const {overlay, trsdos, writer} = makeFixture([{name: "BIG/DAT", extents}, WORLD]);
+        const primary = testUserSlotDec(0);
+        const extended = testUserSlotDec(1);
+        const worldBytes = trsdos.readFile(getFile(trsdos, "WORLD/TXT"));
+        const contents = makeContents(100);
+
+        writer.replaceFile(writerFile(writer, "BIG/DAT"), contents);
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.readFile(getFile(newTrsdos, "BIG/DAT"))).to.eql(contents);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "WORLD/TXT"))).to.eql(worldBytes);
+        expect(primaryDec(newTrsdos, "BIG/DAT")).to.eql(primary);
+        expect(getFile(newTrsdos, "BIG/DAT").nextDec).to.be.undefined;
+        const hit = readBytes(overlay, newTrsdos.getHitPosition());
+        expect(hit[extended]).to.eql(0);
+        const location = newTrsdos.getDirEntryLocation(extended);
+        expect(readBytes(overlay, location.sectorPosition)[location.offset] & 0x10).to.eql(0);
+        const gat = readBytes(overlay, newTrsdos.getGatPosition());
+        for (const lump of lumps) {
+            expect(gat[lump]).to.eql(0xFC);
+        }
+    });
+
+    it("gives a small file's replacement an extended entry in the lowest free slot when it is fragmented", () => {
+        const {overlay, trsdos, writer} = makeFixture([HELLO], {gatUsed: scatteredUsed()}, TrsdosRuleSet.LDOS_5);
+        const checkBefore = checkTrsdos(trsdos).findings.map(finding => finding.message);
+        const dec = primaryDec(trsdos, "HELLO/BAS");
+        const contents = makeContents(5*1280 - 100, 4);
+
+        writer.replaceFile(writerFile(writer, "HELLO/BAS"), contents);
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.readFile(getFile(newTrsdos, "HELLO/BAS"))).to.eql(contents);
+        expect(checkTrsdos(newTrsdos).findings.map(finding => finding.message)).to.eql(checkBefore);
+        const chain = chainBytes(overlay, newTrsdos, "HELLO/BAS");
+        expect(chain.length).to.eql(2);
+        expect(chain[0].dec).to.eql(dec);
+        expect(chain[1].dec).to.eql((2 << 5) | 1);
+        expect(chain[1].bytes[1]).to.eql(dec);
+    });
+
+    it("uses the replaced file's new name after a rename", () => {
+        const {trsdos, writer} = makeFixture([HELLO, WORLD]);
+        const worldBytes = trsdos.readFile(getFile(trsdos, "WORLD/TXT"));
+        const hello = writerFile(writer, "HELLO/BAS");
+        const contents = makeContents(50);
+
+        writer.renameFile(hello, name("GREET/BAS"));
+        const result = writer.replaceFile(hello, contents);
+        expect(result.name).to.eql("GREET/BAS");
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.have.members(["GREET/BAS", "WORLD/TXT"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "GREET/BAS"))).to.eql(contents);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "WORLD/TXT"))).to.eql(worldBytes);
+    });
+
+    it("works after a change of attributes in the same writer, and with other changes", () => {
+        const {writer} = makeFixture([HELLO, WORLD], {}, TrsdosRuleSet.LDOS_5);
+        const hello = writerFile(writer, "HELLO/BAS");
+
+        writer.setAttributes(hello, {invisible: true});
+        writer.replaceFile(hello, makeContents(10));
+        writer.deleteFile(writerFile(writer, "WORLD/TXT"));
+        writer.addFile(name("NEW/DAT"), makeContents(20));
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.getDirEntries(true).map(d => d.getFilename("/"))).to.have.members(["HELLO/BAS", "NEW/DAT", "BOOT/SYS", "DIR/SYS"]);
+        expect(getFile(newTrsdos, "HELLO/BAS").isHidden()).to.eql(true);
+    });
+
+    it("refuses BOOT/SYS and DIR/SYS, a second replacement, and a flushed writer", () => {
+        const {writer} = makeFixture([HELLO]);
+
+        expect(() => writer.replaceFile(writerFile(writer, "BOOT/SYS"), makeContents(5)))
+            .to.throw(TrsdosWriteError, "BOOT/SYS can't be replaced");
+        expect(() => writer.replaceFile(writerFile(writer, "DIR/SYS"), makeContents(5)))
+            .to.throw(TrsdosWriteError, "DIR/SYS can't be replaced");
+        expect(writer.hasChanges()).to.eql(false);
+
+        const hello = writerFile(writer, "HELLO/BAS");
+        writer.replaceFile(hello, makeContents(5));
+        expect(() => writer.replaceFile(hello, makeContents(5))).to.throw(TrsdosWriteError, "has been deleted");
+        writer.flush();
+        expect(() => writer.replaceFile(hello, makeContents(5))).to.throw(TrsdosWriteError, "already been flushed");
+    });
+
+    it("refuses a file that was deleted in the same writer", () => {
+        const {writer} = makeFixture([HELLO]);
+        const hello = writerFile(writer, "HELLO/BAS");
+
+        writer.deleteFile(hello);
+        expect(() => writer.replaceFile(hello, makeContents(5))).to.throw(TrsdosWriteError, "has been deleted");
+    });
+
+    it("refuses under TRSDOS 1.3 rules", () => {
+        const {writer} = makeFixture([HELLO], {}, TrsdosRuleSet.TRSDOS_1_3);
+
+        expect(() => writer.replaceFile(writerFile(writer, "HELLO/BAS"), makeContents(5)))
+            .to.throw(TrsdosWriteError, "isn't supported yet on TRSDOS 1.3 disks");
+        expect(writer.hasChanges()).to.eql(false);
+    });
+});
