@@ -2518,7 +2518,8 @@ function generateTrsdos23CandidatesWithGranules(disk: DiskVolume, granulesPerTra
         const granulesPerLump = granulesPerTrack * allocationSides;
 
         // LDOS puts directory entries on both sides of the directory cylinder, DOSPLUS
-        // only on side 0.
+        // only on side 0. If you change the sizes tried, update directorySizesTried() in
+        // TrsdosWriteGate.ts.
         const granulesPerDirOptions = allocationSides === 1 ? [granulesPerLump] : [granulesPerTrack, granulesPerLump];
 
         for (const granulesPerDir of granulesPerDirOptions) {
@@ -2628,7 +2629,8 @@ function generateNewdos80Candidates(disk: DiskVolume, hitIgnored: boolean): Trsd
             // The directory needn't fill its lump (with GPL=6 it can be 3 granules), and reading
             // the rest of the lump as entries hits file data and rejects the candidate.
             // NEWDOS/80 records the size in HIT byte 0x1F, but trying every size is simpler, and
-            // compareTo() prefers a directory that doesn't fill its lump.
+            // compareTo() prefers a directory that doesn't fill its lump. If you change the sizes
+            // tried, update directorySizesTried() in TrsdosWriteGate.ts.
             for (let granulesPerDir = 2; granulesPerDir <= granulesPerLump; granulesPerDir++) {
                 for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
                     const candidate = new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,

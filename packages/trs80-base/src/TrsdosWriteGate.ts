@@ -1,0 +1,424 @@
+import {assertNever} from "z80-base";
+import {DmkFloppyDisk} from "./DmkFloppyDisk.js";
+import {FloppyDisk} from "./FloppyDisk.js";
+import {Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
+import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
+import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
+import {
+    checkTrsdos,
+    type TrsdosCheckResult,
+    TrsdosFindingSeverity,
+    trsdosFindingKindSeverity,
+} from "./TrsdosCheck.js";
+
+// The raw name of the directory's own file, as the directory stores it (8 + 3 characters).
+const DIR_SYS_RAW_FILENAME = "DIR     SYS";
+
+// The sector count of a granule in the NEWDOS/80 candidates, which try any granules per lump.
+const NEWDOS80_SECTORS_PER_GRANULE = 5;
+// The range of granules per lump that the NEWDOS/80 candidates try.
+const NEWDOS80_MIN_GRANULES_PER_LUMP = 2;
+const NEWDOS80_MAX_GRANULES_PER_LUMP = 8;
+
+/**
+ * How much we'll let a write tool do to a disk, by default (without the user forcing it).
+ */
+export enum TrsdosWriteAccess {
+    /**
+     * Any write is fine.
+     */
+    WRITABLE,
+
+    /**
+     * The layout is certain but the file system is damaged, so only a repair may write.
+     */
+    REPAIR_ONLY,
+
+    /**
+     * Nothing may write, not even a repair.
+     */
+    READ_ONLY,
+}
+
+/**
+ * A short lowercase name for an access level, such as "repair-only".
+ */
+export function trsdosWriteAccessToString(access: TrsdosWriteAccess): string {
+    switch (access) {
+        case TrsdosWriteAccess.WRITABLE:
+            return "writable";
+        case TrsdosWriteAccess.REPAIR_ONLY:
+            return "repair-only";
+        case TrsdosWriteAccess.READ_ONLY:
+            return "read-only";
+        default:
+            assertNever(access);
+    }
+}
+
+/**
+ * The reasons we might not let a tool write to a disk. They're declared in the order that
+ * {@link TrsdosWriteGate.blockers} lists them.
+ */
+export enum TrsdosWriteBlockerKind {
+    /**
+     * We have no writer for this layout: lumps that aren't cylinders (NEWDOS/80 style), the TRSDOS 2.7
+     * layout, or a volume that isn't a floppy (a hard disk partition).
+     */
+    UNSUPPORTED_LAYOUT,
+
+    /**
+     * The image says it's write-protected, or its format can't be written.
+     */
+    WRITE_PROTECTED,
+
+    /**
+     * A layout finding of {@link checkTrsdos}: we may have guessed the disk's layout wrong.
+     */
+    LAYOUT_DOUBT,
+
+    /**
+     * The image has two sides, but the decoder picked one allocation side only because nothing on
+     * the disk shows side 1 in use. See "One side unless proven otherwise" in FLOPPY_TODO.md.
+     */
+    SIDES_UNPROVEN,
+
+    /**
+     * The directory's size was chosen among candidates rather than read from the disk. See "Directory
+     * size is tried, not read" in FLOPPY_TODO.md.
+     */
+    DIRECTORY_SIZE_UNPROVEN,
+
+    /**
+     * The file system is damaged (the layout is fine). Only a repair should write.
+     */
+    DAMAGE,
+}
+
+/**
+ * A short lowercase name for a kind of blocker, such as "layout-doubt".
+ */
+export function trsdosWriteBlockerKindToString(kind: TrsdosWriteBlockerKind): string {
+    switch (kind) {
+        case TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT:
+            return "unsupported-layout";
+        case TrsdosWriteBlockerKind.WRITE_PROTECTED:
+            return "write-protected";
+        case TrsdosWriteBlockerKind.LAYOUT_DOUBT:
+            return "layout-doubt";
+        case TrsdosWriteBlockerKind.SIDES_UNPROVEN:
+            return "sides-unproven";
+        case TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN:
+            return "directory-size-unproven";
+        case TrsdosWriteBlockerKind.DAMAGE:
+            return "damage";
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * One reason that a disk isn't fully writable.
+ */
+export interface TrsdosWriteBlocker {
+    kind: TrsdosWriteBlockerKind;
+
+    /**
+     * One or two complete sentences for the user, saying why and, where something would help, what.
+     */
+    message: string;
+
+    /**
+     * Whether the user may override this blocker (with --force). False only where we have no writer
+     * at all, so there's nothing to force.
+     */
+    forceable: boolean;
+}
+
+/**
+ * The result of {@link evaluateTrsdosWriteGate}.
+ */
+export interface TrsdosWriteGate {
+    access: TrsdosWriteAccess;
+
+    /**
+     * Why the access isn't {@link TrsdosWriteAccess.WRITABLE}, in the order of the
+     * {@link TrsdosWriteBlockerKind} enum. Empty when the disk is writable.
+     */
+    blockers: TrsdosWriteBlocker[];
+
+    /**
+     * The check that the blockers were based on, so that callers needn't run it again.
+     */
+    check: TrsdosCheckResult;
+}
+
+/**
+ * The access level that a kind of blocker allows, if it were the only one.
+ */
+export function trsdosWriteBlockerKindAccess(kind: TrsdosWriteBlockerKind): TrsdosWriteAccess {
+    switch (kind) {
+        case TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT:
+        case TrsdosWriteBlockerKind.WRITE_PROTECTED:
+        case TrsdosWriteBlockerKind.LAYOUT_DOUBT:
+        case TrsdosWriteBlockerKind.SIDES_UNPROVEN:
+        case TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN:
+            return TrsdosWriteAccess.READ_ONLY;
+        case TrsdosWriteBlockerKind.DAMAGE:
+            return TrsdosWriteAccess.REPAIR_ONLY;
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * The access level for a set of blockers: the most restrictive one that any of them imposes, or
+ * writable if there are none.
+ */
+export function trsdosWriteAccessForBlockerKinds(kinds: TrsdosWriteBlockerKind[]): TrsdosWriteAccess {
+    let access = TrsdosWriteAccess.WRITABLE;
+    for (const kind of kinds) {
+        const kindAccess = trsdosWriteBlockerKindAccess(kind);
+        // The enum is declared from least to most restrictive.
+        if (kindAccess > access) {
+            access = kindAccess;
+        }
+    }
+    return access;
+}
+
+/**
+ * Why we have no writer for this file system's layout, or undefined if we do. (Exported for tests.)
+ *
+ * @param trsdos the decoded file system.
+ */
+export function unsupportedLayoutMessage(trsdos: Trsdos): string | undefined {
+    if (!(trsdos.disk instanceof FloppyDisk)) {
+        return "Writing to a hard disk partition isn't supported yet.";
+    }
+    if (!trsdos.lumpsAreCylinders) {
+        return "This disk allocates space in lumps that aren't whole cylinders (as NEWDOS/80 does), " +
+            "and writing that layout isn't supported yet.";
+    }
+    if (trsdos.version === TrsdosVersion.V2_7) {
+        return "Writing the TRSDOS 2.7 layout isn't supported yet.";
+    }
+    return undefined;
+}
+
+/**
+ * Why a floppy image can't be written, or undefined if it can. (Exported for tests.) This looks at
+ * the disk as it is, including any write-protect the user mounted it with.
+ *
+ * @param disk the floppy image.
+ */
+export function writeProtectionMessage(disk: FloppyDisk): string | undefined {
+    const writeProtected = disk.isWriteProtected();
+    if (!writeProtected) {
+        return undefined;
+    }
+
+    // These are the formats that can be written. Their images can carry a write-protect flag.
+    const imageFlagSet = (disk instanceof DmkFloppyDisk && disk.writeProtected) ||
+        (disk instanceof Jv3FloppyDisk && disk.writeProtected);
+    if (imageFlagSet) {
+        return "The image's write-protect flag is set.";
+    }
+
+    const formatCanBeWritten = disk instanceof DmkFloppyDisk || disk instanceof Jv1FloppyDisk ||
+        disk instanceof Jv3FloppyDisk;
+    if (formatCanBeWritten) {
+        return "The image is mounted write-protected.";
+    }
+
+    return `Writing ${floppyFormatName(disk)} images isn't supported yet.`;
+}
+
+/**
+ * The name of a floppy image's format, such as "HFE", taken from its description, which looks like
+ * "Floppy disk (HFE)".
+ */
+function floppyFormatName(disk: FloppyDisk): string {
+    const description = disk.getDescription();
+    const match = /\(([^)]+)\)\s*$/.exec(description);
+    return match === null ? description : match[1];
+}
+
+/**
+ * Whether the decoder chose one allocation side by default on an image that has two sides. The
+ * 2.3-family generator tries both and prefers one when nothing shows side 1 in use; two sides take
+ * evidence. TRSDOS 1.3 is only ever one side, which is the DOS's rule, not a choice. (Exported for tests.)
+ *
+ * @param version the DOS layout the decoder chose.
+ * @param allocationSides the number of sides the decoder allocates granules on.
+ * @param physicalSides the number of sides the image has.
+ */
+export function sidesAreUnproven(version: TrsdosVersion, allocationSides: number, physicalSides: number): boolean {
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            return physicalSides > 1 && allocationSides === 1;
+        case TrsdosVersion.V1_3:
+        case TrsdosVersion.V2_7:
+            // The DOS has one side.
+            return false;
+        default:
+            assertNever(version);
+    }
+}
+
+/**
+ * The directory sizes, in granules, that the decoder's generators try for a layout, apart from the
+ * one a NEWDOS/80 HIT may ask for beyond its lump. If this has more than one entry, the size the
+ * decoder chose is a choice among them. (Exported for tests.)
+ *
+ * The 2.3 generator tries the whole lump, and on two allocation sides also a side-0 directory
+ * (granules per track). The 1.3 and 2.7 generators try only the whole lump. The NEWDOS/80
+ * generator tries every size from 2 to the lump, for 5-sector granules and any granules per lump,
+ * which includes layouts that look just like the 2.3 family's when its lumps are cylinders. It
+ * skips cylinder 0 when that differs from the others, so such a layout has no NEWDOS/80 twin.
+ *
+ * @param version the DOS layout the decoder chose.
+ * @param allocationSides the number of sides the decoder allocates granules on.
+ * @param granulesPerLump the granules per lump of the chosen layout.
+ * @param sectorsPerGranule the sectors per granule of the chosen layout.
+ * @param cylinder0Differs whether the image's cylinder 0 differs from the other cylinders.
+ */
+export function directorySizesTried(version: TrsdosVersion, allocationSides: number, granulesPerLump: number,
+                                    sectorsPerGranule: number, cylinder0Differs: boolean): number[] {
+
+    const sizes = new Set<number>([granulesPerLump]);
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            if (allocationSides > 1) {
+                sizes.add(granulesPerLump/allocationSides);
+            }
+            if (sectorsPerGranule === NEWDOS80_SECTORS_PER_GRANULE && !cylinder0Differs &&
+                granulesPerLump >= NEWDOS80_MIN_GRANULES_PER_LUMP && granulesPerLump <= NEWDOS80_MAX_GRANULES_PER_LUMP) {
+
+                for (let size = 2; size <= granulesPerLump; size++) {
+                    sizes.add(size);
+                }
+            }
+            break;
+        case TrsdosVersion.V1_3:
+        case TrsdosVersion.V2_7:
+            break;
+        default:
+            assertNever(version);
+    }
+    return [...sizes].sort((a, b) => a - b);
+}
+
+/**
+ * Whether DIR/SYS's entry exists and its extents cover exactly the directory's granules, which
+ * proves the directory's size from the disk. (Exported for tests.)
+ *
+ * @param trsdos the decoded file system.
+ */
+export function dirSysCoversDirectory(trsdos: Trsdos): boolean {
+    const dirSys = trsdos.getDirEntries(true).find(dirEntry => dirEntry.rawFilename === DIR_SYS_RAW_FILENAME);
+    if (dirSys === undefined) {
+        return false;
+    }
+
+    // Granules counted from the start of the disk.
+    const claimed = new Set<number>();
+    for (const extent of trsdos.getFileExtents(dirSys)) {
+        const start = extent.cylinderNumber*trsdos.granulesPerLump + extent.granuleOffset;
+        for (let granule = start; granule < start + extent.granuleCount; granule++) {
+            claimed.add(granule);
+        }
+    }
+
+    const dirStart = trsdos.dirLumpNumber*trsdos.granulesPerLump;
+    if (claimed.size !== trsdos.granulesPerDir) {
+        return false;
+    }
+    for (let granule = dirStart; granule < dirStart + trsdos.granulesPerDir; granule++) {
+        if (!claimed.has(granule)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Pick the singular or plural form of "problem" for a count.
+ */
+function problems(count: number): string {
+    return count === 1 ? "1 problem" : count + " problems";
+}
+
+/**
+ * Decide whether a decoded TRSDOS-family floppy is safe to write, and if not, why. Writing on a
+ * wrong guess of the layout destroys the disk, so a disk with any doubt about its layout is
+ * read-only; a disk whose layout is sound but whose file system is damaged may be repaired but not
+ * otherwise written. Each reason is a blocker that a forced write could override, except
+ * where we have no writer. Reads the disk (the check does) and changes nothing.
+ *
+ * @param trsdos the decoded file system.
+ */
+export function evaluateTrsdosWriteGate(trsdos: Trsdos): TrsdosWriteGate {
+    const check = checkTrsdos(trsdos);
+    const blockers: TrsdosWriteBlocker[] = [];
+
+    const unsupported = unsupportedLayoutMessage(trsdos);
+    if (unsupported !== undefined) {
+        blockers.push({kind: TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT, message: unsupported, forceable: false});
+    }
+
+    if (trsdos.disk instanceof FloppyDisk) {
+        const protectionMessage = writeProtectionMessage(trsdos.disk);
+        if (protectionMessage !== undefined) {
+            blockers.push({kind: TrsdosWriteBlockerKind.WRITE_PROTECTED, message: protectionMessage, forceable: true});
+        }
+    }
+
+    for (const finding of check.findings) {
+        if (trsdosFindingKindSeverity(finding.kind) === TrsdosFindingSeverity.LAYOUT) {
+            blockers.push({kind: TrsdosWriteBlockerKind.LAYOUT_DOUBT, message: finding.message, forceable: true});
+        }
+    }
+
+    // The sides and the directory size describe a layout that we can write, so there's no point
+    // in asking about them for a layout that we can't.
+    if (unsupported === undefined) {
+        if (sidesAreUnproven(trsdos.version, trsdos.allocationSides, trsdos.geometry.sideCount)) {
+            blockers.push({
+                kind: TrsdosWriteBlockerKind.SIDES_UNPROVEN,
+                message: "The image has two sides, but nothing on the disk shows whether the DOS uses the second, " +
+                    "so how granules map to sectors is a guess.",
+                forceable: true,
+            });
+        }
+
+        const sizesTried = directorySizesTried(trsdos.version, trsdos.allocationSides, trsdos.granulesPerLump,
+            trsdos.sectorsPerGranule, trsdos.geometry.cylinder0Differs);
+        const directorySizeIsOnlyChoice = sizesTried.length <= 1;
+        if (!directorySizeIsOnlyChoice && !dirSysCoversDirectory(trsdos)) {
+            blockers.push({
+                kind: TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN,
+                message: "The directory's size isn't recorded on this disk, so a new entry could land in a " +
+                    "sector the DOS doesn't consider part of the directory.",
+                forceable: true,
+            });
+        }
+    }
+
+    const damageCount = check.findings.filter(finding =>
+        trsdosFindingKindSeverity(finding.kind) === TrsdosFindingSeverity.DAMAGE).length;
+    if (damageCount > 0) {
+        blockers.push({
+            kind: TrsdosWriteBlockerKind.DAMAGE,
+            message: `The file system is damaged (${problems(damageCount)}), so writing to it could make things worse. ` +
+                `The "check" command lists the problems.`,
+            forceable: true,
+        });
+    }
+
+    return {
+        access: trsdosWriteAccessForBlockerKinds(blockers.map(blocker => blocker.kind)),
+        blockers,
+        check,
+    };
+}
