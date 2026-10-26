@@ -7,10 +7,8 @@ export const UNDO_COMMAND: DiskCommand = {
     spec: {
         name: "undo",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "undo the most recent change to the disk",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -35,10 +33,8 @@ export const REDO_COMMAND: DiskCommand = {
     spec: {
         name: "redo",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "redo the change that was last undone",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -63,10 +59,8 @@ export const REVERT_COMMAND: DiskCommand = {
     spec: {
         name: "revert",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "go back to the disk as last saved (or as opened); \"undo\" takes it back",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 

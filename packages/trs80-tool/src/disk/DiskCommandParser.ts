@@ -1,4 +1,5 @@
-import {pluralize, ToolError} from "../utils.js";
+import {ToolError} from "../utils.js";
+import {commanderErrorToToolError, makeDiskCommand, makeDiskOptionParser} from "./DiskCommander.js";
 
 /**
  * Describes one option (such as "--out-dir DIR" or "--force") of a command or of the
@@ -16,25 +17,54 @@ export interface DiskOptionSpec {
 }
 
 /**
- * Describes one disk command, such as "dir" or "rm".
+ * One row of a list in help text: a term (such as a command's name) and what it means.
+ */
+export interface DiskHelpItem {
+    /** What the row is about, such as "dir" or "-o, --output <FILE>". */
+    term: string;
+    /** What it means. This is wrapped to the terminal's width. */
+    description: string;
+}
+
+/**
+ * A list in help text, such as the DOSes that "create" takes: a title, then a row for each item with
+ * the descriptions lined up.
+ */
+export interface DiskHelpList {
+    /** The heading above the list, such as "DOS is one of:". */
+    title: string;
+    /** Whether the terms are colored as commands or as options. */
+    style: "command" | "option";
+    /** The rows. */
+    items: DiskHelpItem[];
+}
+
+/**
+ * A part of help text: a paragraph, which is wrapped to the terminal's width, or a list.
+ */
+export type DiskHelpSection = string | DiskHelpList;
+
+/**
+ * Describes one disk command, such as "dir" or "rm". The parser and the help are both made from this
+ * by Commander (see DiskCommander.ts).
  */
 export interface DiskCommandSpec {
     /** The canonical name, such as "dir". */
     name: string;
-    /** Other names that mean the same thing, such as "ls". */
+    /** Other names that mean the same thing, such as "ls". They're named in the command's own help only. */
     aliases: string[];
-    /** The argument synopsis for help, such as "NAME... [--out-dir DIR]". */
-    usage: string;
-    /** One-line summary for help. */
+    /**
+     * The positional arguments, in Commander's syntax: "<NAME>" is required, "[NAME]" is optional, and
+     * "NAME..." takes the rest, as in "<NAME...>" or "<OLDNAME> <NEWNAME>". Empty for none. Help shows
+     * these in the usage line, after "[options]" if there are options.
+     */
+    args: string;
+    /** One-line summary for help, which is wrapped to the terminal's width. */
     summary: string;
-    /** Minimum number of positional arguments. */
-    minArgs: number;
-    /** Maximum number of positional arguments, or Infinity for no limit. */
-    maxArgs: number;
     /** The options this command accepts. */
     options: DiskOptionSpec[];
-    /** More lines for "help COMMAND", after the options and aliases, such as a list of choices. */
-    extraHelpLines?: string[] | undefined;
+    /** More help for "help COMMAND", after the options and aliases, such as a list of choices. */
+    extraHelp?: DiskHelpSection[] | undefined;
 }
 
 /**
@@ -144,79 +174,6 @@ export function parseAddDate(text: string): Date {
 }
 
 /**
- * Find the spec for an option word, by long or short name.
- *
- * @param word the name part of the option as typed, such as "--out-dir" or "-d".
- * @param specs the options to search.
- * @returns the matching spec, or undefined.
- */
-function findOptionSpec(word: string, specs: DiskOptionSpec[]): DiskOptionSpec | undefined {
-    return specs.find(spec => spec.name === word || spec.shortName === word);
-}
-
-/**
- * Whether a word is an option (as opposed to an argument): it starts with a dash and
- * is not a lone "-", which is conventionally stdin or stdout.
- */
-function looksLikeOption(word: string): boolean {
-    return word.startsWith("-") && word !== "-";
-}
-
-/**
- * Parse one option starting at words[index], which must look like an option and not be "--".
- * Understands "--name=value", "--name value", and "-o value".
- *
- * @param words the words being parsed.
- * @param index the index of the option word.
- * @param end the index one past the last word that may belong to this option.
- * @param specs the options that are allowed here.
- * @param values where to store the result.
- * @param context how to describe the place for an unknown option, such as "the \"rm\" command"
- * or "the global options".
- * @returns the index of the first word after the option and its value.
- */
-function parseOption(words: string[], index: number, end: number, specs: DiskOptionSpec[],
-                     values: DiskOptionValues, context: string): number {
-
-    const word = words[index];
-    let name = word;
-    let inlineValue: string | undefined = undefined;
-
-    // Only long options take "=value".
-    if (word.startsWith("--")) {
-        const equalsIndex = word.indexOf("=");
-        if (equalsIndex > 0) {
-            name = word.substring(0, equalsIndex);
-            inlineValue = word.substring(equalsIndex + 1);
-        }
-    }
-
-    const spec = findOptionSpec(name, specs);
-    if (spec === undefined) {
-        throw new ToolError("Unknown option \"" + name + "\" for " + context);
-    }
-
-    if (spec.valueName === undefined) {
-        if (inlineValue !== undefined) {
-            throw new ToolError("Option \"" + spec.name + "\" does not take a value");
-        }
-        values.set(spec.name, true);
-        return index + 1;
-    }
-
-    if (inlineValue !== undefined) {
-        values.set(spec.name, inlineValue);
-        return index + 1;
-    }
-
-    if (index + 1 >= end) {
-        throw new ToolError("Option \"" + word + "\" needs a value (" + spec.valueName + ")");
-    }
-    values.set(spec.name, words[index + 1]);
-    return index + 2;
-}
-
-/**
  * Find a command by name or alias, ignoring case.
  *
  * @param name the name as typed.
@@ -230,7 +187,7 @@ export function findDiskCommandSpec(name: string, commandSpecs: DiskCommandSpec[
 }
 
 /**
- * Parse the words of a single command (its name first, with no ":" in them).
+ * Parse the words of a single command (its name first, with no ":" in them) with Commander.
  *
  * @param words the words of the command, which is not empty.
  * @param commandSpecs all known commands.
@@ -244,42 +201,37 @@ function parseOneCommand(words: string[], commandSpecs: DiskCommandSpec[]): Pars
         throw new ToolError("Unknown command \"" + name + "\"");
     }
 
-    const args: string[] = [];
     const options = new DiskOptionValues();
-    let optionsEnded = false;
-    let i = 1;
-    while (i < words.length) {
-        const word = words[i];
-        if (optionsEnded || !looksLikeOption(word)) {
-            args.push(word);
-            i++;
-        } else if (word === "--") {
-            optionsEnded = true;
-            i++;
-        } else {
-            i = parseOption(words, i, words.length, spec.options, options,
-                "the \"" + name + "\" command");
-        }
+    const command = makeDiskCommand(spec, options);
+    try {
+        command.parse(words.slice(1), { from: "user" });
+    } catch (e) {
+        throw commanderErrorToToolError(e, spec.name);
     }
 
-    if (args.length < spec.minArgs) {
-        if (spec.minArgs === spec.maxArgs) {
-            throw new ToolError("\"" + name + "\" takes " + spec.minArgs + " " +
-                pluralize(spec.minArgs, "argument"));
-        }
-        throw new ToolError("\"" + name + "\" needs at least " + spec.minArgs + " " +
-            pluralize(spec.minArgs, "argument"));
-    }
-    if (args.length > spec.maxArgs) {
-        if (spec.maxArgs === 0) {
-            throw new ToolError("\"" + name + "\" takes no arguments");
-        }
-        throw new ToolError("\"" + name + "\" takes " +
-            (spec.minArgs === spec.maxArgs ? "" : "at most ") + spec.maxArgs + " " +
-            pluralize(spec.maxArgs, "argument"));
+    return { spec, name, args: command.args, options };
+}
+
+/**
+ * Take the options for the whole run off the front of the words, with Commander.
+ *
+ * @param words the words, which start with the global options (if any) and then the first command.
+ * @param globalOptionSpecs the options accepted.
+ * @returns the options given, and the words after them.
+ * @throws ToolError for an unknown option or one with no value.
+ */
+function parseGlobalOptions(words: string[], globalOptionSpecs: DiskOptionSpec[]):
+    { globalOptions: DiskOptionValues, rest: string[] } {
+
+    const globalOptions = new DiskOptionValues();
+    const command = makeDiskOptionParser(globalOptionSpecs, globalOptions);
+    try {
+        command.parse(words, { from: "user" });
+    } catch (e) {
+        throw commanderErrorToToolError(e, undefined);
     }
 
-    return { spec, name, args, options };
+    return { globalOptions, rest: command.args };
 }
 
 /**
@@ -289,11 +241,11 @@ function parseOneCommand(words: string[], commandSpecs: DiskCommandSpec[]): Pars
  * lone ":" word (like BASIC's statement separator). A ":" inside a word, such as
  * "HELLO/BAS:1", is not a separator. Command names and aliases are case-insensitive.
  *
+ * Each command's words are parsed by Commander, with the options and arguments in the command's spec.
  * Options may appear before, between, or after a command's arguments, in the forms
- * "--name=value", "--name value", and "-o value" (no "-ovalue" and no bundled short
- * flags). A word of just "-" is an argument. A lone "--" ends option parsing for the
- * rest of that command, so later words are arguments even if they start with a dash.
- * A ":" after "--" still separates commands, since a TRSDOS file can't be named ":"
+ * "--name=value", "--name value", and "-o value". A word of just "-" is an argument. A lone "--"
+ * ends option parsing for the rest of that command, so later words are arguments even if they start
+ * with a dash. A ":" after "--" still separates commands, since a TRSDOS file can't be named ":"
  * and it keeps scripts predictable.
  *
  * Empty commands, as in ": :" or a ":" at either end, are skipped. Having no commands at all
@@ -309,24 +261,19 @@ function parseOneCommand(words: string[], commandSpecs: DiskCommandSpec[]): Pars
 export function parseDiskCommandLine(words: string[], globalOptionSpecs: DiskOptionSpec[],
                                      commandSpecs: DiskCommandSpec[]): ParsedDiskCommandLine {
 
-    const globalOptions = new DiskOptionValues();
-
     // Global options come first, up to the first word that isn't an option.
-    let i = 0;
-    while (i < words.length && looksLikeOption(words[i])) {
-        i = parseOption(words, i, words.length, globalOptionSpecs, globalOptions, "the global options");
-    }
+    const { globalOptions, rest } = parseGlobalOptions(words, globalOptionSpecs);
 
     // Split the rest into commands at lone colons.
     const groups: string[][] = [];
-    if (i < words.length) {
+    if (rest.length > 0) {
         let group: string[] = [];
-        for (; i < words.length; i++) {
-            if (words[i] === COMMAND_SEPARATOR) {
+        for (const word of rest) {
+            if (word === COMMAND_SEPARATOR) {
                 groups.push(group);
                 group = [];
             } else {
-                group.push(words[i]);
+                group.push(word);
             }
         }
         groups.push(group);

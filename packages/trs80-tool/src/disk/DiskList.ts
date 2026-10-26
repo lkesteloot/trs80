@@ -247,10 +247,8 @@ export const LIST_COMMAND: DiskCommand = {
     spec: {
         name: "list",
         aliases: ["type", "cat"],
-        usage: "NAME [--hex] [--raw]",
+        args: "<NAME>",
         summary: "show a file's contents: BASIC programs as listings, text as text, anything else as a hex dump",
-        minArgs: 1,
-        maxArgs: 1,
         options: [
             {
                 name: "--hex",
@@ -263,7 +261,7 @@ export const LIST_COMMAND: DiskCommand = {
                 description: "write the file's bytes unchanged to standard output, with no pager, for piping",
             },
         ],
-        extraHelpLines: [
+        extraHelp: [
             "A pattern that matches several files shows each, under a header line with its name.",
             "A wildcard never matches a system file; to show one, give its name.",
             "Text is a file with no NUL bytes and almost all printable characters (CR, CRLF and LF end its lines).",

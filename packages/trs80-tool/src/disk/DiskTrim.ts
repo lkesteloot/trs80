@@ -463,10 +463,8 @@ export const TRIM_COMMAND: DiskCommand = {
     spec: {
         name: "trim",
         aliases: [],
-        usage: "[--cylinders N] [--side 0] [--force]",
+        args: "",
         summary: "drop the cylinders (or side 1) that the disk doesn't use from the image",
-        minArgs: 0,
-        maxArgs: 0,
         options: [
             {
                 name: "--cylinders",

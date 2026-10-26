@@ -4,7 +4,7 @@ import * as path from "path";
 import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 import {
     expandInputPattern, expandInputPatterns, fileNameMatchesPattern, ToolError, wordsAfterSubcommand,
-    writeFileAtomically,
+    wrapMessage, wrapText, writeFileAtomically,
 } from "./utils.js";
 
 describe("fileNameMatchesPattern", () => {
@@ -247,5 +247,48 @@ describe("writeFileAtomically", () => {
         const pathname = path.join(dir, "missing", "file.bin");
         expect(() => writeFileAtomically(pathname, new Uint8Array([1]))).to.throw();
         expect(fs.readdirSync(dir)).to.eql([]);
+    });
+});
+
+describe("wrapText", () => {
+    it("leaves short text alone", () => {
+        expect(wrapText("hello there", 20, 2)).to.eql(["hello there"]);
+    });
+
+    it("breaks at spaces and indents the continuation lines", () => {
+        expect(wrapText("one two three four", 10, 2)).to.eql(["one two", "  three", "  four"]);
+    });
+
+    it("breaks after hyphens unless told not to", () => {
+        expect(wrapText("a well-known-name here", 12, 0)).to.eql(["a well-", "known-name", "here"]);
+        expect(wrapText("a well-known-name here", 12, 0, false)).to.eql(["a", "well-known-n", "ame here"]);
+    });
+});
+
+describe("wrapMessage", () => {
+    it("wraps each line at its own width, keeping its indent for the lines it wraps into", () => {
+        const message = "The DOSes are some of these, as listed below:\n" +
+            "  trsdos-1.3  TRSDOS 1.3, which is for the Model III and no other model";
+        expect(wrapMessage(message, 40)).to.eql(
+            "The DOSes are some of these, as listed\n" +
+            "below:\n" +
+            "  trsdos-1.3  TRSDOS 1.3, which is for\n" +
+            "              the Model III and no other\n" +
+            "              model");
+    });
+
+    it("keeps the indent of a plain indented line", () => {
+        expect(wrapMessage("  one two three four five", 14)).to.eql("  one two\n  three four\n  five");
+    });
+
+    it("leaves lines that fit, and blank lines", () => {
+        expect(wrapMessage("short\n\nalso short", 40)).to.eql("short\n\nalso short");
+    });
+
+    it("wraps by the terminal's width by default, 80 when it's not a terminal", () => {
+        const long = "word ".repeat(30).trim();
+        for (const line of wrapMessage(long).split("\n")) {
+            expect(line.length).to.be.at.most(80);
+        }
     });
 });

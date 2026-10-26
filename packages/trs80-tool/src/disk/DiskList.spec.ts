@@ -221,7 +221,7 @@ describe("disk list", () => {
         await expect(runDisk("list", "KERNEL/S*")).rejects.toThrow(
             "No file on the disk matches \"KERNEL/S*\" (wildcards don't match system files, so name the file)");
         await expect(runDisk("list", "NOSUCH/*")).rejects.toThrow("No file on the disk matches \"NOSUCH/*\"");
-        await expect(runDisk("list", "KERNEL/SYS", "--system")).rejects.toThrow(/Unknown option "--system"/);
+        await expect(runDisk("list", "KERNEL/SYS", "--system")).rejects.toThrow(/^list: unknown option '--system'/);
     });
 
     it("doesn't change the disk", async () => {

@@ -9,7 +9,7 @@ import {connectXray} from "./xray.js";
 import {FloppyDisk, TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
-import { readTrs80File } from "./utils.js";
+import { readTrs80File, wrapText } from "./utils.js";
 import { word } from "z80-base";
 import {LogLevel, TRS80_FLOPPY_LOGGER, MAIN_SINK, makeBatchingSink } from "z80-logger";
 
@@ -19,42 +19,6 @@ const HEIGHT = TRS80_CHAR_HEIGHT;
 
 // Indent of the continuation lines of a wrapped log message.
 const LOG_WRAP_INDENT = 4;
-
-/**
- * Wrap text into lines of at most the given width, breaking at spaces or after hyphens where
- * possible, and indenting all but the first line. Words too long for a line are broken anywhere.
- *
- * @param text the text to wrap.
- * @param width the maximum length of each line, including its indent.
- * @param indent the number of spaces before each line after the first.
- * @return the lines, at least one.
- */
-function wrapText(text: string, width: number, indent: number): string[] {
-    const lines: string[] = [];
-    const indentText = " ".repeat(indent);
-    let rest = text;
-    let prefix = "";
-
-    // Too narrow to indent and still make progress.
-    if (width <= indent) {
-        return [text];
-    }
-
-    while (prefix.length + rest.length > width) {
-        const room = width - prefix.length;
-        // Break at the last space or after the last hyphen that fits, or anywhere if there's neither.
-        let breakIndex = Math.max(rest.lastIndexOf(" ", room), rest.lastIndexOf("-", room - 1) + 1);
-        if (breakIndex <= 0) {
-            breakIndex = room;
-        }
-        lines.push(prefix + rest.slice(0, breakIndex).trimEnd());
-        rest = rest.slice(breakIndex).trimStart();
-        prefix = indentText;
-    }
-    lines.push(prefix + rest);
-
-    return lines;
-}
 
 /**
  * Class to update a VT-100 screen.

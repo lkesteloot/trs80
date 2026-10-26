@@ -23,7 +23,7 @@ import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {importHostFile} from "./DiskImport.js";
 import {LIST_COMMAND} from "./DiskList.js";
-import {diskCommandHelpLines, diskHelpLines} from "./DiskHelp.js";
+import {printDiskHelp} from "./DiskHelp.js";
 
 /**
  * One command of the "disk" command: its syntax (for the parser and for help) and what it does.
@@ -96,10 +96,8 @@ const DIR_COMMAND: DiskCommand = {
     spec: {
         name: "dir",
         aliases: ["ls"],
-        usage: "[PATTERN...] [--system]",
+        args: "[PATTERN...]",
         summary: "list the files on the disk, optionally only those matching the TRS-80 name patterns",
-        minArgs: 0,
-        maxArgs: Infinity,
         options: [
             {
                 name: "--system",
@@ -134,10 +132,8 @@ const EXTRACT_COMMAND: DiskCommand = {
     spec: {
         name: "extract",
         aliases: ["get", "export"],
-        usage: "NAME... [--out-dir DIR] [--as HOSTPATH] [--lowercase] [--mark-damaged]",
+        args: "<NAME...>",
         summary: "copy files from the disk to the host (use \"*\" for all of them)",
-        minArgs: 1,
-        maxArgs: Infinity,
         options: [
             {
                 name: "--out-dir",
@@ -217,12 +213,10 @@ const RM_COMMAND: DiskCommand = {
     spec: {
         name: "rm",
         aliases: ["del", "delete", "kill", "remove"],
-        usage: "NAME...",
+        args: "<NAME...>",
         summary: "remove files from the disk (BOOT/SYS and DIR/SYS can't be removed)",
-        minArgs: 1,
-        maxArgs: Infinity,
         options: [],
-        extraHelpLines: [
+        extraHelp: [
             "A wildcard never matches a system file; to remove one, give its name.",
         ],
     },
@@ -260,10 +254,8 @@ const MV_COMMAND: DiskCommand = {
     spec: {
         name: "mv",
         aliases: ["ren", "rename", "move"],
-        usage: "OLDNAME NEWNAME",
+        args: "<OLDNAME> <NEWNAME>",
         summary: "rename a file on the disk (BOOT/SYS and DIR/SYS can't be renamed)",
-        minArgs: 2,
-        maxArgs: 2,
         options: [],
     },
 
@@ -400,11 +392,8 @@ const ATTR_COMMAND: DiskCommand = {
     spec: {
         name: "attr",
         aliases: ["attrib"],
-        usage: "PATTERN... [--invisible | --visible] [--system | --no-system] [--protect LEVEL] " +
-            "[--password PW] [--access-password PW] [--date YYYY-MM-DD | --no-date]",
+        args: "<PATTERN...>",
         summary: "change the attributes of files on the disk",
-        minArgs: 1,
-        maxArgs: Infinity,
         options: [
             {
                 name: "--invisible",
@@ -452,7 +441,7 @@ const ATTR_COMMAND: DiskCommand = {
                 description: "remove the date",
             },
         ],
-        extraHelpLines: [
+        extraHelp: [
             "A wildcard never matches a system file; to change one, give its name.",
         ],
     },
@@ -546,10 +535,8 @@ const ADD_COMMAND: DiskCommand = {
     spec: {
         name: "add",
         aliases: ["import", "put"],
-        usage: "HOSTFILE... [--as NAME] [--ascii | --binary] [--system] [--invisible] [--date YYYY-MM-DD] [--overwrite]",
+        args: "<HOSTFILE...>",
         summary: "copy files from the host onto the disk, converting BASIC, system programs, and text",
-        minArgs: 1,
-        maxArgs: Infinity,
         options: [
             {
                 name: "--as",
@@ -762,10 +749,8 @@ const LABEL_COMMAND: DiskCommand = {
     spec: {
         name: "label",
         aliases: [],
-        usage: "[--name NAME] [--date YYYY-MM-DD] [--password PW] [--auto COMMAND | --no-auto]",
+        args: "",
         summary: "show or change the disk's name, date, master password and AUTO command",
-        minArgs: 0,
-        maxArgs: 0,
         options: [
             {
                 name: "--name",
@@ -863,10 +848,8 @@ const INFO_COMMAND: DiskCommand = {
     spec: {
         name: "info",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "describe the disk image, its layout, and its file system",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -903,10 +886,8 @@ const FREE_COMMAND: DiskCommand = {
     spec: {
         name: "free",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "show the space available for new files",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -943,10 +924,8 @@ const CHECK_COMMAND: DiskCommand = {
     spec: {
         name: "check",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "check the file system for problems and say whether it's safe to write, changing nothing",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -991,10 +970,8 @@ const QUIT_COMMAND: DiskCommand = {
     spec: {
         name: "quit",
         aliases: ["exit"],
-        usage: "",
+        args: "",
         summary: "save the disk if it changed, and leave the shell",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -1017,10 +994,8 @@ const ABORT_COMMAND: DiskCommand = {
     spec: {
         name: "abort",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "leave the shell, discarding any changes",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -1045,10 +1020,8 @@ const SAVE_COMMAND: DiskCommand = {
     spec: {
         name: "save",
         aliases: [],
-        usage: "",
+        args: "",
         summary: "save the changes and carry on",
-        minArgs: 0,
-        maxArgs: 0,
         options: [],
     },
 
@@ -1069,10 +1042,8 @@ const HELP_COMMAND: DiskCommand = {
     spec: {
         name: "help",
         aliases: [],
-        usage: "[COMMAND]",
+        args: "[COMMAND]",
         summary: "list the commands, or describe one and name its aliases",
-        minArgs: 0,
-        maxArgs: 1,
         options: [],
     },
 
@@ -1080,16 +1051,10 @@ const HELP_COMMAND: DiskCommand = {
     worksWithoutDisk: true,
 
     /**
-     * Print the list of commands, or the help for the named one.
+     * Print the list of commands, or the help for the named one, wrapped to the terminal's width.
      */
     run(session, command) {
-        const specs = DISK_COMMANDS.map(c => c.spec);
-        const lines = command.args.length === 0 ?
-            diskHelpLines(specs, DISK_GLOBAL_OPTIONS) :
-            diskCommandHelpLines(command.args[0], specs);
-        for (const line of lines) {
-            console.log(line);
-        }
+        printDiskHelp(command.args[0], DISK_COMMANDS.map(c => c.spec), DISK_GLOBAL_OPTIONS);
     },
 };
 

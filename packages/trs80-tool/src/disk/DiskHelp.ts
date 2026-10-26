@@ -2,9 +2,15 @@ import {
     parseTrsdosFormatDos, parseTrsdosRuleSet, TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosCliName, TRSDOS_RULE_SETS,
     TrsdosRuleSet, trsdosRuleSetAliases, trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
+import {Command} from "commander";
 import {assertNever} from "z80-base";
+import {colors} from "../colors.js";
 import {ToolError} from "../utils.js";
-import {DiskCommandSpec, DiskOptionSpec, findDiskCommandSpec} from "./DiskCommandParser.js";
+import {CONSOLE_HELP_OUTPUT, configureDiskCommand, type DiskHelpOutput, makeDiskCommand, diskOptionTerm} from "./DiskCommander.js";
+import {
+    type DiskCommandSpec, type DiskHelpItem, type DiskHelpSection, type DiskOptionSpec, DiskOptionValues,
+    findDiskCommandSpec,
+} from "./DiskCommandParser.js";
 
 // The topic of "help" that lists the DOS names. A command of the same name takes precedence.
 const DOS_HELP_TOPIC = "dos";
@@ -65,13 +71,24 @@ function formatDosDescription(dos: TrsdosFormatDos): string {
 }
 
 /**
- * The list of the DOSes that "create" and "format" can make disks for, one per line: the name to type,
+ * The DOSes that "create" and "format" can make disks for, as rows of a list in help: the name to type,
  * then what it makes.
  */
+export function formatDosItems(): DiskHelpItem[] {
+    return TRSDOS_FORMAT_DOSES.map(dos => ({
+        term: trsdosFormatDosCliName(dos),
+        description: formatDosDescription(dos),
+    }));
+}
+
+/**
+ * The list of the DOSes that "create" and "format" can make disks for as lines of text, for an error
+ * message: the name to type, then what it makes.
+ */
 export function formatDosHelpLines(): string[] {
-    const names = TRSDOS_FORMAT_DOSES.map(trsdosFormatDosCliName);
-    const width = Math.max(... names.map(name => name.length));
-    return TRSDOS_FORMAT_DOSES.map((dos, i) => "  " + names[i].padEnd(width + 2) + formatDosDescription(dos));
+    const items = formatDosItems();
+    const width = Math.max(... items.map(item => item.term.length));
+    return items.map(item => "  " + item.term.padEnd(width + 2) + item.description);
 }
 
 /**
@@ -96,101 +113,142 @@ export function parseFormatDosName(name: string): TrsdosFormatDos {
  * The help for the DOS names that --dos takes: what it does, then each name with the DOS it means
  * and its aliases.
  */
-export function dosHelpLines(): string[] {
-    const lines: string[] = [];
-    lines.push("--dos NAME says which DOS's rules to write a TRSDOS-family disk by, for a disk that doesn't " +
-        "say which DOS wrote it or to override what it says. The names are:");
-
-    const names = TRSDOS_RULE_SETS.map(trsdosRuleSetCliName);
-    const width = Math.max(... names.map(name => name.length));
-    TRSDOS_RULE_SETS.forEach((ruleSet, i) => {
-        const aliases = trsdosRuleSetAliases(ruleSet);
-        const alsoText = aliases.length === 0 ? "" : " (also " + aliases.join(", ") + ")";
-        lines.push("  " + names[i].padEnd(width + 2) + trsdosRuleSetToString(ruleSet) + alsoText);
-    });
-
-    return lines;
+export function dosHelpSections(): DiskHelpSection[] {
+    return [
+        "--dos NAME says which DOS's rules to write a TRSDOS-family disk by, for a disk that doesn't " +
+        "say which DOS wrote it or to override what it says.",
+        {
+            title: "The names are:",
+            style: "command",
+            items: TRSDOS_RULE_SETS.map(ruleSet => {
+                const aliases = trsdosRuleSetAliases(ruleSet);
+                const alsoText = aliases.length === 0 ? "" : " (also " + aliases.join(", ") + ")";
+                return { term: trsdosRuleSetCliName(ruleSet), description: trsdosRuleSetToString(ruleSet) + alsoText };
+            }),
+        },
+    ];
 }
 
 /**
- * How an option is written in help, such as "--out-dir DIR" or "-o, --output FILE".
- */
-function optionSynopsis(option: DiskOptionSpec): string {
-    const names = option.shortName === undefined ? option.name : option.shortName + ", " + option.name;
-    return option.valueName === undefined ? names : names + " " + option.valueName;
-}
-
-/**
- * Lines that list options, one per line, with their descriptions lined up.
- *
- * @param options the options to list.
- * @param indent the text to put before each line.
- */
-function optionLines(options: DiskOptionSpec[], indent: string): string[] {
-    const synopses = options.map(optionSynopsis);
-    const width = Math.max(... synopses.map(synopsis => synopsis.length));
-    return options.map((option, i) => indent + synopses[i].padEnd(width + 2) + option.description);
-}
-
-/**
- * The help for the whole "disk" command: every command with its summary, the global options if
+ * The parts of the help for the whole "disk" command: every command with its summary, the global options if
  * there are any, and how to get help on one command. Aliases are left out, so that each
  * command appears once; "help COMMAND" names them.
  *
  * @param commandSpecs the commands, in the order to list them.
  * @param globalOptionSpecs the options that apply to the whole run.
  */
-export function diskHelpLines(commandSpecs: DiskCommandSpec[], globalOptionSpecs: DiskOptionSpec[]): string[] {
-    const lines: string[] = [];
+export function diskOverviewSections(commandSpecs: DiskCommandSpec[], globalOptionSpecs: DiskOptionSpec[]):
+    DiskHelpSection[] {
 
-    lines.push("Commands (separate several with a lone \":\"):");
-    const width = Math.max(... commandSpecs.map(spec => spec.name.length));
-    for (const spec of commandSpecs) {
-        lines.push("  " + spec.name.padEnd(width + 2) + spec.summary);
-    }
+    const sections: DiskHelpSection[] = [];
+
+    sections.push({
+        title: "Commands (separate several with a lone \":\"):",
+        style: "command",
+        items: commandSpecs.map(spec => ({ term: spec.name, description: spec.summary })),
+    });
 
     if (globalOptionSpecs.length > 0) {
-        lines.push("");
-        lines.push("Options for the whole run, before the first command:");
-        lines.push(... optionLines(globalOptionSpecs, "  "));
+        sections.push({
+            title: "Options for the whole run, before the first command:",
+            style: "option",
+            items: globalOptionSpecs.map(spec => ({ term: diskOptionTerm(spec), description: spec.description })),
+        });
     }
 
-    lines.push("");
-    lines.push("\"help COMMAND\" describes a command and its options; \"help dos\" lists the names for --dos.");
+    sections.push("\"help COMMAND\" describes a command and its options; \"help dos\" lists the names for --dos.");
 
-    return lines;
+    return sections;
 }
 
 /**
- * The help for one command: its usage, summary, options, and other names. The topic "dos" (unless a
- * command has that name) gives {@link dosHelpLines}.
+ * The parts of one command's help that come after what Commander makes from the spec (the usage, summary
+ * and options): the other names for the command, then the spec's extra help.
  *
- * @param name the command's name or one of its aliases, in any case.
+ * @param spec the command.
+ */
+export function commandHelpSections(spec: DiskCommandSpec): DiskHelpSection[] {
+    const sections: DiskHelpSection[] = [];
+    if (spec.aliases.length > 0) {
+        sections.push("Also called: " + spec.aliases.map(alias => colors.command(alias)).join(", "));
+    }
+    sections.push(... spec.extraHelp ?? []);
+
+    return sections;
+}
+
+/**
+ * Format parts of help text for a command's output: paragraphs wrapped to its width, and lists with a title
+ * and their descriptions lined up and wrapped, all as Commander formats its own lists, in its colors.
+ * The parts are separated by blank lines.
+ *
+ * @param command a command set up by {@link configureDiskCommand}, which says how wide and how colored the output is.
+ * @param sections the parts.
+ * @returns the text, with no newline at the end.
+ */
+export function renderHelpSections(command: Command, sections: DiskHelpSection[]): string {
+    const helper = command.createHelp();
+    const outputConfiguration = command.configureOutput();
+    // Commander's default says undefined when the output isn't a terminal, though its type doesn't allow for that.
+    const helpWidth: number | undefined = outputConfiguration.getOutHelpWidth?.();
+    helper.prepareContext({
+        error: false,
+        outputHasColors: outputConfiguration.getOutHasColors?.() ?? false,
+        ... (helpWidth === undefined ? {} : { helpWidth }),
+    });
+    const width = helper.helpWidth ?? 80;
+
+    const blocks = sections.map(section => {
+        if (typeof section === "string") {
+            return helper.boxWrap(section, width);
+        }
+
+        const terms = section.items.map(item => section.style === "command" ?
+            helper.styleSubcommandText(item.term) : helper.styleOptionTerm(item.term));
+        const termWidth = Math.max(... terms.map(term => helper.displayWidth(term)));
+        const rows = section.items.map((item, i) =>
+            helper.formatItem(terms[i], termWidth, helper.styleDescriptionText(item.description), helper));
+        return [helper.boxWrap(helper.styleTitle(section.title), width), ... rows].join("\n");
+    });
+
+    return blocks.join("\n\n");
+}
+
+/**
+ * Show the help for the whole "disk" command, for one command, or for the topic "dos", wrapped to
+ * the terminal's width and colored. The help for a command is its usage, summary, options, other
+ * names and extra help. The topic "dos" is {@link dosHelpSections}, unless a command has that name.
+ *
+ * @param topic the command's name or one of its aliases, in any case, or "dos"; or undefined for
+ * the list of commands.
  * @param commandSpecs all the commands.
+ * @param globalOptionSpecs the options that apply to the whole run.
+ * @param output where to show the help, the console by default.
  * @throws ToolError if there's no such command.
  */
-export function diskCommandHelpLines(name: string, commandSpecs: DiskCommandSpec[]): string[] {
-    const spec = findDiskCommandSpec(name, commandSpecs);
-    if (spec === undefined && name.toLowerCase() === DOS_HELP_TOPIC) {
-        return dosHelpLines();
+export function printDiskHelp(topic: string | undefined, commandSpecs: DiskCommandSpec[],
+                              globalOptionSpecs: DiskOptionSpec[], output: DiskHelpOutput = CONSOLE_HELP_OUTPUT): void {
+
+    if (topic === undefined) {
+        const carrier = configureDiskCommand(new Command(), output);
+        output.write(renderHelpSections(carrier, diskOverviewSections(commandSpecs, globalOptionSpecs)) + "\n");
+        return;
+    }
+
+    const spec = findDiskCommandSpec(topic, commandSpecs);
+    if (spec === undefined && topic.toLowerCase() === DOS_HELP_TOPIC) {
+        const carrier = configureDiskCommand(new Command(), output);
+        output.write(renderHelpSections(carrier, dosHelpSections()) + "\n");
+        return;
     }
     if (spec === undefined) {
-        throw new ToolError("Unknown command \"" + name + "\"");
+        throw new ToolError("Unknown command \"" + topic + "\"");
     }
 
-    const lines: string[] = [];
-    lines.push((spec.name + " " + spec.usage).trimEnd());
-    lines.push("  " + spec.summary);
-    if (spec.options.length > 0) {
-        lines.push("Options:");
-        lines.push(... optionLines(spec.options, "  "));
+    const command = makeDiskCommand(spec, new DiskOptionValues(), output);
+    const sections = commandHelpSections(spec);
+    if (sections.length > 0) {
+        command.addHelpText("after", ({ command }) => "\n" + renderHelpSections(command, sections));
     }
-    if (spec.aliases.length > 0) {
-        lines.push("Also called: " + spec.aliases.join(", "));
-    }
-    if (spec.extraHelpLines !== undefined) {
-        lines.push(... spec.extraHelpLines);
-    }
-
-    return lines;
+    command.outputHelp();
 }

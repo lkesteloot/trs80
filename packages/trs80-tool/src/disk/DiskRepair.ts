@@ -11,10 +11,8 @@ export const REPAIR_COMMAND: DiskCommand = {
     spec: {
         name: "repair",
         aliases: [],
-        usage: "[--free-unclaimed]",
+        args: "",
         summary: "fix the file system damage that check finds, where it can be fixed",
-        minArgs: 0,
-        maxArgs: 0,
         options: [
             {
                 name: "--free-unclaimed",

@@ -232,7 +232,7 @@ describe("disk create and format", () => {
 
     it("no longer takes --dos as an option", async () => {
         const error = await runDiskExpectingError("create", "--dos", "ldos-5.3");
-        expect(error.message).to.match(/Unknown option "--dos"/);
+        expect(error.message).to.match(/^create: unknown option '--dos'/);
     });
 
     it("refuses options the DOS can't do, and creates no file", async () => {
@@ -510,7 +510,7 @@ describe("disk create and format", () => {
                 }
             }
             const help = (await runDisk("help", "create")).join("\n");
-            expect(help).to.contain("create DOS [--cylinders N]");
+            expect(help).to.contain("Usage: create [options] [DOS]");
             expect(help).not.to.contain("other spellings");
             expect(help).not.to.contain("--dos");
         });

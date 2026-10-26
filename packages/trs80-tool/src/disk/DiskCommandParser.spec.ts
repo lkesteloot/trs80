@@ -1,4 +1,4 @@
-import {describe, expect, it} from "vitest";
+import {describe, expect, it, vi} from "vitest";
 import {DiskCommandSpec, DiskOptionSpec, parseDiskCommandLine, ParsedDiskCommandLine, splitCommandLine} from "./DiskCommandParser.js";
 import {ToolError} from "../utils.js";
 
@@ -9,25 +9,20 @@ const GLOBAL_OPTIONS: DiskOptionSpec[] = [
 
 const COMMANDS: DiskCommandSpec[] = [
     {
-        name: "dir", aliases: ["ls"], usage: "[PATTERN] [--system]", summary: "List files.",
-        minArgs: 0, maxArgs: 1,
+        name: "dir", aliases: ["ls"], args: "[PATTERN]", summary: "List files.",
         options: [{ name: "--system", valueName: undefined, description: "Include system files." }],
     },
     {
-        name: "rm", aliases: ["del", "kill"], usage: "NAME...", summary: "Remove files.",
-        minArgs: 1, maxArgs: Infinity, options: [],
+        name: "rm", aliases: ["del", "kill"], args: "<NAME...>", summary: "Remove files.", options: [],
     },
     {
-        name: "mv", aliases: [], usage: "OLD NEW", summary: "Rename a file.",
-        minArgs: 2, maxArgs: 2, options: [],
+        name: "mv", aliases: [], args: "<OLD> <NEW>", summary: "Rename a file.", options: [],
     },
     {
-        name: "free", aliases: [], usage: "", summary: "Show free space.",
-        minArgs: 0, maxArgs: 0, options: [],
+        name: "free", aliases: [], args: "", summary: "Show free space.", options: [],
     },
     {
-        name: "get", aliases: [], usage: "NAME... [--out-dir DIR]", summary: "Extract files.",
-        minArgs: 1, maxArgs: Infinity,
+        name: "get", aliases: [], args: "<NAME...>", summary: "Extract files.",
         options: [{ name: "--out-dir", shortName: "-d", valueName: "DIR", description: "Directory to write to." }],
     },
 ];
@@ -74,11 +69,11 @@ describe("parseDiskCommandLine", () => {
     });
 
     it("rejects an unknown global option", () => {
-        expect(() => parse("--bogus", "dir")).to.throw(ToolError, /Unknown option "--bogus"/);
+        expect(() => parse("--bogus", "dir")).to.throw(ToolError, /^Unknown option '--bogus'/);
     });
 
     it("does not treat a global option after the command as global", () => {
-        expect(() => parse("dir", "--force")).to.throw(ToolError, /Unknown option "--force" for the "dir" command/);
+        expect(() => parse("dir", "--force")).to.throw(ToolError, /^dir: unknown option '--force'/);
     });
 
     it("matches names and aliases ignoring case", () => {
@@ -135,21 +130,21 @@ describe("parseDiskCommandLine", () => {
     });
 
     it("rejects a value option at the end with no value", () => {
-        expect(() => parse("get", "A", "--out-dir")).to.throw(ToolError, /"--out-dir" needs a value/);
-        expect(() => parse("get", "A", "-d")).to.throw(ToolError, /"-d" needs a value/);
-        expect(() => parse("-o")).to.throw(ToolError, /"-o" needs a value/);
+        expect(() => parse("get", "A", "--out-dir")).to.throw(ToolError, /option '-d, --out-dir <DIR>' argument missing/);
+        expect(() => parse("get", "A", "-d")).to.throw(ToolError, /option '-d, --out-dir <DIR>' argument missing/);
+        expect(() => parse("-o")).to.throw(ToolError, /Option '-o, --output <FILE>' argument missing/);
         // The colon isn't a value.
-        expect(() => parse("get", "A", "-d", ":", "dir")).to.throw(ToolError, /"-d" needs a value/);
+        expect(() => parse("get", "A", "-d", ":", "dir")).to.throw(ToolError, /argument missing/);
     });
 
     it("rejects a value on a flag", () => {
-        expect(() => parse("dir", "--system=yes")).to.throw(ToolError, /"--system" does not take a value/);
-        expect(() => parse("--force=1")).to.throw(ToolError, /"--force" does not take a value/);
+        expect(() => parse("dir", "--system=yes")).to.throw(ToolError, /unknown option '--system=yes'/);
+        expect(() => parse("--force=1")).to.throw(ToolError, /^Unknown option '--force=1'/);
     });
 
     it("rejects an unknown command option, naming option and command", () => {
-        expect(() => parse("rm", "A", "--wat")).to.throw(ToolError, /Unknown option "--wat" for the "rm" command/);
-        expect(() => parse("DEL", "A", "--wat=3")).to.throw(ToolError, /Unknown option "--wat" for the "DEL" command/);
+        expect(() => parse("rm", "A", "--wat")).to.throw(ToolError, /^rm: unknown option '--wat'/);
+        expect(() => parse("DEL", "A", "--wat=3")).to.throw(ToolError, /^rm: unknown option '--wat=3'/);
     });
 
     it("ends option parsing at --", () => {
@@ -202,21 +197,36 @@ describe("parseDiskCommandLine", () => {
     });
 
     it("checks the minimum argument count", () => {
-        expect(() => parse("rm")).to.throw(ToolError, /"rm" needs at least 1 argument$/);
-        expect(() => parse("kill")).to.throw(ToolError, /"kill" needs at least 1 argument/);
-        expect(() => parse("mv", "A")).to.throw(ToolError, /"mv" takes 2 arguments/);
-        expect(() => parse("get", "-d", "out")).to.throw(ToolError, /"get" needs at least 1 argument/);
+        expect(() => parse("rm")).to.throw(ToolError, /^rm: missing required argument 'NAME'$/);
+        expect(() => parse("kill")).to.throw(ToolError, /^rm: missing required argument 'NAME'/);
+        expect(() => parse("mv", "A")).to.throw(ToolError, /^mv: missing required argument 'NEW'/);
+        expect(() => parse("get", "-d", "out")).to.throw(ToolError, /^get: missing required argument 'NAME'/);
     });
 
     it("checks the maximum argument count", () => {
-        expect(() => parse("free", "A")).to.throw(ToolError, /"free" takes no arguments/);
-        expect(() => parse("mv", "A", "B", "C")).to.throw(ToolError, /"mv" takes 2 arguments/);
-        expect(() => parse("LS", "A", "B")).to.throw(ToolError, /"LS" takes at most 1 argument$/);
+        expect(() => parse("free", "A")).to.throw(ToolError, /^free: too many arguments\. Expected 0 arguments but got 1: A\.$/);
+        expect(() => parse("mv", "A", "B", "C")).to.throw(ToolError, /^mv: too many arguments\. Expected 2 arguments but got 3/);
+        expect(() => parse("LS", "A", "B")).to.throw(ToolError, /^dir: too many arguments\. Expected 1 argument but got 2/);
     });
 
     it("counts arguments per command", () => {
-        expect(() => parse("rm", "A", ":", "rm")).to.throw(ToolError, /"rm" needs at least 1 argument/);
-        expect(() => parse("mv", "A", ":", "B")).to.throw(ToolError, /"mv" takes 2 arguments/);
+        expect(() => parse("rm", "A", ":", "rm")).to.throw(ToolError, /^rm: missing required argument/);
+        expect(() => parse("mv", "A", ":", "B")).to.throw(ToolError, /^mv: missing required argument/);
+    });
+
+    it("throws a ToolError, and does not exit, for any syntax error", () => {
+        const exit = vi.spyOn(process, "exit").mockImplementation((() => { throw new Error("exited"); }) as never);
+        const write = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+        try {
+            for (const words of [["rm", "--bogus"], ["rm"], ["free", "A"], ["--bogus"], ["-o"], ["bogus"]]) {
+                expect(() => parse(...words)).to.throw(ToolError);
+            }
+            expect(exit).not.toHaveBeenCalled();
+            expect(write).not.toHaveBeenCalled();
+        } finally {
+            exit.mockRestore();
+            write.mockRestore();
+        }
     });
 
     it("skips empty commands", () => {

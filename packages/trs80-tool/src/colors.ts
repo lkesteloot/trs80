@@ -40,6 +40,8 @@ export const colors = {
     data: chalk.green,
     /** A note that explains nearby data, like a hex dump's annotations. */
     annotation: chalk.magenta,
+    /** The name of a command or an option, in help text. */
+    command: chalk.cyan,
     /** The prompt of the REPL and of the disk shell. */
     prompt: chalk.yellowBright,
     /** The frame drawn around the emulated screen by the "run" command. */

@@ -8,7 +8,7 @@ import {colors} from "../colors.js";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {DiskOptionSpec, DiskOptionValues, parseAddDate, type ParsedDiskCommand} from "./DiskCommandParser.js";
-import {formatDosHelpLines, parseFormatDosName} from "./DiskHelp.js";
+import {formatDosHelpLines, formatDosItems, parseFormatDosName} from "./DiskHelp.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {
     describeSystemDiskTemplate, findSystemDiskTemplate, getDataDiskBootSectors, loadSystemDiskTemplate,
@@ -347,12 +347,9 @@ export const CREATE_COMMAND: DiskCommand = {
     spec: {
         name: "create",
         aliases: [],
-        usage: "DOS [--cylinders N] [--sides 1|2] [--density single|double] [--model 1|3|4] " +
-            "[--name NAME] [--date YYYY-MM-DD] [--system [--minimal]] [--force]",
+        args: "[DOS]",
         summary: "make a new, blank, formatted data disk for a DOS, or a bootable system disk",
-        // The DOS is required, but a missing one is reported by run(), which lists the choices.
-        minArgs: 0,
-        maxArgs: 1,
+        // The DOS is required, but it's optional here so that run() can report a missing one by listing the choices.
         options: [
             ... makeFormatOptionSpecs("replace the disk that the image already has, in memory"),
             {
@@ -367,10 +364,9 @@ export const CREATE_COMMAND: DiskCommand = {
                 description: "with --system, remove the files that aren't system files, leaving the DOS's own",
             },
         ],
-        extraHelpLines: [
-            "DOS is one of:",
-            ... formatDosHelpLines(),
-            "With --system the disk is a copy of the DOS's own (TRSDOS 2.3, TRSDOS 1.3, LDOS 5.3.1, TRSDOS 6.2.1,",
+        extraHelp: [
+            { title: "DOS is one of:", style: "command", items: formatDosItems() },
+            "With --system the disk is a copy of the DOS's own (TRSDOS 2.3, TRSDOS 1.3, LDOS 5.3.1, TRSDOS 6.2.1, " +
             "or LS-DOS 6.3.1), which fixes its shape: --cylinders, --sides and --density must match it.",
         ],
     },
@@ -488,15 +484,15 @@ export const FORMAT_COMMAND: DiskCommand = {
     spec: {
         name: "format",
         aliases: [],
-        usage: "[DOS] [--cylinders N] [--sides 1|2] [--density single|double] [--model 1|3|4] " +
-            "[--name NAME] [--date YYYY-MM-DD] [--force]",
+        args: "[DOS]",
         summary: "erase the disk and format it as an empty data disk",
-        minArgs: 0,
-        maxArgs: 1,
         options: makeFormatOptionSpecs("erase a disk that has files"),
-        extraHelpLines: [
-            "DOS is as for create (default: the disk's own DOS, if it's one of those):",
-            ... formatDosHelpLines(),
+        extraHelp: [
+            {
+                title: "DOS is as for create (default: the disk's own DOS, if it's one of those):",
+                style: "command",
+                items: formatDosItems(),
+            },
         ],
     },
 

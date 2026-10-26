@@ -1,7 +1,7 @@
 import readline from "readline";
 import {colors} from "../colors.js";
 import {colorError} from "../lscolors.js";
-import {ToolError} from "../utils.js";
+import {ToolError, wrapMessage} from "../utils.js";
 import {DISK_COMMANDS, runDiskCommands} from "./DiskCommands.js";
 import {DiskOptionValues, parseDiskCommandLine, splitCommandLine} from "./DiskCommandParser.js";
 import {DiskSession, type DiskShellTerminal} from "./DiskSession.js";
@@ -179,7 +179,7 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
                 ended = await runDiskLine(session, line, globalOptions);
             } catch (e) {
                 if (e instanceof ToolError) {
-                    console.log(colorError(e.message));
+                    console.log(colorError(wrapMessage(e.message)));
                 } else {
                     // A bug, but losing the session would be worse.
                     console.log(colorError(e instanceof Error ? e.stack ?? e.message : String(e)));

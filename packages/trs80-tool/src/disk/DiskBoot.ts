@@ -147,10 +147,8 @@ export const BOOT_COMMAND: DiskCommand = {
     spec: {
         name: "boot",
         aliases: ["run"],
-        usage: "[--model 1|3|4] [--write-protected]",
+        args: "",
         summary: "boot the disk in the emulator, in the terminal; Ctrl-C returns to the disk shell",
-        minArgs: 0,
-        maxArgs: 0,
         options: [
             {
                 name: "--model",
@@ -163,11 +161,11 @@ export const BOOT_COMMAND: DiskCommand = {
                 description: "mount the disk write-protected, so that the DOS can't write to it",
             },
         ],
-        extraHelpLines: [
-            "The default model: 1 for TRSDOS 2.x and for other DOSes on single-density disks, 3 for TRSDOS 1.3",
-            "and for other DOSes on double-density disks, and 4 for TRSDOS 6 and LS-DOS 6. A disk with no DOS we",
+        extraHelp: [
+            "The default model: 1 for TRSDOS 2.x and for other DOSes on single-density disks, 3 for TRSDOS 1.3 " +
+            "and for other DOSes on double-density disks, and 4 for TRSDOS 6 and LS-DOS 6. A disk with no DOS we " +
             "recognize gets a 3.",
-            "The DOS can write to the disk, but only in memory: it's one change that \"undo\" takes back, and",
+            "The DOS can write to the disk, but only in memory: it's one change that \"undo\" takes back, and " +
             "\"save\" or \"quit\" saves. A disk whose image is marked write-protected stays so.",
         ],
     },

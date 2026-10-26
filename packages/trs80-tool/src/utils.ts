@@ -525,3 +525,68 @@ export function selectByPatterns<T>(files: T[], patterns: string[], accessors: P
             fileNameMatchesPattern(accessors.name(file), accessors.hasDirectories(file), unmatchedPattern));
     return { selected, unmatchedPattern, unmatchedOnlySystem };
 }
+
+/**
+ * Wrap text into lines of at most the given width, breaking at spaces or (optionally) after hyphens where
+ * possible, and indenting all but the first line. Words too long for a line are broken anywhere.
+ *
+ * @param text the text to wrap.
+ * @param width the maximum length of each line, including its indent.
+ * @param indent the number of spaces before each line after the first.
+ * @param breakAfterHyphens whether a line may end after a hyphen, as in "well-" then "known". Leave this
+ * off for text with names in it, like "trsdos-1.3".
+ * @return the lines, at least one.
+ */
+export function wrapText(text: string, width: number, indent: number, breakAfterHyphens = true): string[] {
+    const lines: string[] = [];
+    const indentText = " ".repeat(indent);
+    let rest = text;
+    let prefix = "";
+
+    // Too narrow to indent and still make progress.
+    if (width <= indent) {
+        return [text];
+    }
+
+    while (prefix.length + rest.length > width) {
+        const room = width - prefix.length;
+        // Break at the last space or after the last hyphen that fits, or anywhere if there's neither.
+        const afterHyphen = breakAfterHyphens ? rest.lastIndexOf("-", room - 1) + 1 : 0;
+        let breakIndex = Math.max(rest.lastIndexOf(" ", room), afterHyphen);
+        if (breakIndex <= 0) {
+            breakIndex = room;
+        }
+        lines.push(prefix + rest.slice(0, breakIndex).trimEnd());
+        rest = rest.slice(breakIndex).trimStart();
+        prefix = indentText;
+    }
+    lines.push(prefix + rest);
+
+    return lines;
+}
+
+/**
+ * The width to wrap text to for a person at the terminal: the terminal's width if standard output is one,
+ * and otherwise 80, as Commander does for its help.
+ */
+export function terminalWidth(): number {
+    return process.stdout.isTTY && process.stdout.columns > 0 ? process.stdout.columns : 80;
+}
+
+/**
+ * Wrap a message that may have several lines (such as an error with a list under it) to fit the terminal.
+ * Each line wraps at spaces, and the lines that it wraps into are indented as far as it was. A line of a
+ * list, which is indented and has a term and then at least two spaces before its description, wraps
+ * under the description instead.
+ *
+ * @param message the text, with lines separated by "\n".
+ * @param width the width to wrap to; the terminal's width by default.
+ * @return the message with long lines wrapped.
+ */
+export function wrapMessage(message: string, width = terminalWidth()): string {
+    return message.split("\n").map(line => {
+        const listItem = /^ +[^ ]+ {2,}(?=\S)/.exec(line);
+        const indent = listItem !== null ? listItem[0].length : line.length - line.trimStart().length;
+        return wrapText(line, width, indent, false).join("\n");
+    }).join("\n");
+}

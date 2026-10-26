@@ -3,6 +3,7 @@ import {Command, Option, program} from "commander";
 import {version} from "./version.js";
 import {HexFormat} from "z80-disasm";
 import {colors, honorNoColor, setColorLevel} from "./colors.js";
+import {HELP_OUTPUT_COLORS, HELP_STYLE} from "./helpStyle.js";
 import {BasicLevel, basicLevelFromString, Config, ModelType, modelTypeFromString,} from "trs80-emulator";
 import {dir} from "./dir.js";
 import {info} from "./info.js";
@@ -18,10 +19,10 @@ import {mcp} from "./mcp.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {disk} from "./disk/disk.js";
 import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS} from "./disk/DiskCommands.js";
-import {diskHelpLines} from "./disk/DiskHelp.js";
+import {diskOverviewSections, renderHelpSections} from "./disk/DiskHelp.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
-import {expandInputPattern, expandInputPatterns, ToolError, wordsAfterSubcommand} from "./utils.js";
+import {expandInputPattern, expandInputPatterns, ToolError, wordsAfterSubcommand, wrapMessage} from "./utils.js";
 import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
 
 /**
@@ -127,6 +128,9 @@ async function main(): Promise<void> {
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
     program
         .storeOptionsAsProperties(false)
+        // Set before adding commands, since they inherit these.
+        .configureHelp(HELP_STYLE)
+        .configureOutput(HELP_OUTPUT_COLORS)
         .name("trs80-tool")
         .addHelpText("after", HELP_TEXT)
         .version(fullVersion)
@@ -227,7 +231,8 @@ async function main(): Promise<void> {
             words: "commands to run in order, separated by a lone \":\" (try \"dir\"); program options such as " +
                 "--color must come before \"disk\"",
         })
-        .addHelpText("after", "\n" + diskHelpLines(DISK_COMMANDS.map(c => c.spec), DISK_GLOBAL_OPTIONS).join("\n"))
+        .addHelpText("after", ({command}) => "\n" +
+            renderHelpSections(command, diskOverviewSections(DISK_COMMANDS.map(c => c.spec), DISK_GLOBAL_OPTIONS)))
         .helpOption(false)
         .allowUnknownOption()
         .allowExcessArguments()
@@ -375,7 +380,7 @@ async function main(): Promise<void> {
         await program.parseAsync();
     } catch (e) {
         if (e instanceof ToolError) {
-            console.log(e.message);
+            console.log(wrapMessage(e.message));
             process.exitCode = 1;
         } else if (!(e instanceof PagerClosedError)) {
             error = e;
