@@ -1,4 +1,5 @@
 import readline from "readline";
+import {colors} from "../colors.js";
 import {colorError} from "../lscolors.js";
 import {ToolError} from "../utils.js";
 import {DISK_COMMANDS, runDiskCommands} from "./DiskCommands.js";
@@ -120,6 +121,10 @@ async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskO
  */
 function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOptionValues): Promise<void> {
     console.log(session.describe());
+    const readOnlyReason = session.getReadOnlyReason();
+    if (readOnlyReason !== undefined) {
+        console.log(colors.warning("Read-only: " + readOnlyReason));
+    }
 
     const commandNames = DISK_COMMANDS.map(c => c.spec.name);
     const completer = (line: string): [string[], string] => {

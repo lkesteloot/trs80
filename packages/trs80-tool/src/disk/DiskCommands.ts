@@ -1,3 +1,5 @@
+import {TrsdosFindingSeverity, trsdosFindingKindSeverity} from "trs80-base";
+import {assertNever} from "z80-base";
 import {printDirListing} from "../dir.js";
 import {extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
@@ -162,6 +164,8 @@ const INFO_COMMAND: DiskCommand = {
         } else if (granuleMap !== undefined) {
             console.log("    Free space: " + session.getFreeSpaceText());
         }
+        const readOnlyReason = session.getReadOnlyReason();
+        console.log("    Writable: " + (readOnlyReason === undefined ? "yes" : "no. " + readOnlyReason));
     },
 };
 
@@ -186,6 +190,70 @@ const FREE_COMMAND: DiskCommand = {
      */
     run(session) {
         console.log(session.getFreeSpaceText());
+    },
+};
+
+/**
+ * The heading for each severity of finding in the "check" command's report.
+ */
+function findingSeverityHeading(severity: TrsdosFindingSeverity): string {
+    switch (severity) {
+        case TrsdosFindingSeverity.LAYOUT:
+            return "Doubts about the layout:";
+        case TrsdosFindingSeverity.DAMAGE:
+            return "Damage:";
+        case TrsdosFindingSeverity.NOTE:
+            return "Notes:";
+        default:
+            assertNever(severity);
+    }
+}
+
+/**
+ * The "check" command: report what's inconsistent in the file system, changing nothing.
+ */
+const CHECK_COMMAND: DiskCommand = {
+    spec: {
+        name: "check",
+        aliases: [],
+        usage: "",
+        summary: "check the file system for problems and say whether it's safe to write, changing nothing",
+        minArgs: 0,
+        maxArgs: 0,
+        options: [],
+    },
+
+    endsSession: false,
+
+    /**
+     * Print the findings, grouped by severity, then whether the disk can be written and why not.
+     */
+    run(session) {
+        const gate = session.getWriteGate();
+        if (gate === undefined) {
+            if (session.fileSystem === undefined) {
+                throw new ToolError("Can't find a DOS directory on \"" + session.pathname + "\"");
+            }
+            throw new ToolError("Checking " + session.fileSystem.nameAndVersion + " disks isn't supported yet");
+        }
+
+        const findings = gate.check.findings;
+        if (findings.length === 0) {
+            console.log("No problems found.");
+        }
+        let previousSeverity: TrsdosFindingSeverity | undefined = undefined;
+        for (const finding of findings) {
+            // The findings are in order of severity.
+            const severity = trsdosFindingKindSeverity(finding.kind);
+            if (severity !== previousSeverity) {
+                console.log(findingSeverityHeading(severity));
+                previousSeverity = severity;
+            }
+            console.log("  " + finding.message);
+        }
+
+        const readOnlyReason = session.getReadOnlyReason();
+        console.log(readOnlyReason === undefined ? "Safe to write." : "Read-only: " + readOnlyReason);
     },
 };
 
@@ -275,6 +343,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     GET_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
+    CHECK_COMMAND,
     QUIT_COMMAND,
     ABORT_COMMAND,
     HELP_COMMAND,

@@ -1,8 +1,10 @@
 import fs from "fs";
 import {
-    decodeFloppyFileSystem, decodeTrs80File, FloppyDisk, isFloppy, isHardDisk, Trsdos, TrsdosGranuleMap,
+    decodeFloppyFileSystem, decodeTrs80File, evaluateTrsdosWriteGate, FloppyDisk, isFloppy, isHardDisk, Trsdos,
+    TrsdosGranuleMap, TrsdosWriteAccess, type TrsdosWriteGate,
 } from "trs80-base";
 import {withCommas} from "teamten-ts-utils";
+import {assertNever} from "z80-base";
 import {floppyInputFiles, InputFile} from "../InputFile.js";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 
@@ -26,6 +28,8 @@ export class DiskSession {
     public readonly fileSystem: ReturnType<typeof decodeFloppyFileSystem>;
     /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
     private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
+    /** Cache for getWriteGate(), null until the first call (undefined is a valid result). */
+    private writeGate: TrsdosWriteGate | undefined | null = null;
 
     /**
      * Use DiskSession.open() instead.
@@ -91,6 +95,42 @@ export class DiskSession {
         }
 
         return this.granuleMap;
+    }
+
+    /**
+     * Whether the TRSDOS-family file system on the disk is safe to write, and why not. It's computed on
+     * the first call and then kept.
+     *
+     * @returns the gate, or undefined if the disk has no file system or its file system isn't TRSDOS-family.
+     */
+    public getWriteGate(): TrsdosWriteGate | undefined {
+        if (this.writeGate === null) {
+            this.writeGate = this.fileSystem instanceof Trsdos ? evaluateTrsdosWriteGate(this.fileSystem) : undefined;
+        }
+
+        return this.writeGate;
+    }
+
+    /**
+     * Why the disk's file system can't be written, in one or more sentences, or undefined if it can.
+     */
+    public getReadOnlyReason(): string | undefined {
+        if (this.fileSystem === undefined) {
+            return "No file system was found on the disk.";
+        }
+        const gate = this.getWriteGate();
+        if (gate === undefined) {
+            return "Writing " + this.fileSystem.nameAndVersion + " disks isn't supported.";
+        }
+        switch (gate.access) {
+            case TrsdosWriteAccess.WRITABLE:
+                return undefined;
+            case TrsdosWriteAccess.REPAIR_ONLY:
+            case TrsdosWriteAccess.READ_ONLY:
+                return gate.blockers.map(blocker => blocker.message).join(" ");
+            default:
+                assertNever(gate.access);
+        }
     }
 
     /**
