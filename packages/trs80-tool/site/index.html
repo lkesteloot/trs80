@@ -478,12 +478,23 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         (<code>hello-world.bas will be HELLOWOR/BAS.</code>); <code>--as NAME</code> gives
                         the name of the one host file instead. <code>--system</code> and
                         <code>--invisible</code> set those attributes. Nothing is added unless every file
-                        can be: a name that is already on the disk, two files with the same TRSDOS name,
-                        or too little room is an error. (To replace a file, <code>rm</code> it first in the
-                        same chain: <code>rm HELLO/BAS : add hello.bas</code>.) A file that would need more
-                        than four fragments of free space can’t be added yet. It prints
+                        can be: a name that is already on the disk (unless you give <code>--overwrite</code>),
+                        two files with the same TRSDOS name, or too little room is an error. A file that would
+                        need more than four fragments of free space can’t be added yet. It prints
                         <code>Added HELLO/BAS (1,234 bytes).</code> for each file. Also called
                         <code>import</code> and <code>put</code>.</p>
+                        <p><code>--overwrite</code> replaces the files that are already on the disk, in the same
+                        directory slot, and prints <code>Replaced HELLO/BAS (1,234 bytes).</code> for them.
+                        The new copy keeps the old file’s attributes, passwords, record length, and date, except
+                        that <code>--system</code>, <code>--invisible</code>, and <code>--date</code> change those
+                        they name (on the LDOS line the file is also marked as changed since the last backup).
+                        Replacing a system file needs <code>--system</code>, as <code>rm</code> does, and
+                        <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be replaced. The new copy is
+                        written to free space first and the old copy freed afterward, so the new copy never
+                        lands on the old one’s sectors; only if it wouldn’t fit that way does it take over the
+                        old copy’s space, and the command warns when that happens. As with every change, nothing
+                        is saved unless every file can be added or replaced. (Replacing doesn’t work on TRSDOS 1.3
+                        disks yet.)</p>
                         <p>Files get no date unless you give <code>--date YYYY-MM-DD</code>, and only LDOS
                         and TRSDOS 6 / LS-DOS 6 disks keep one: TRSDOS 2.x and DOSPLUS 3 disks ignore it, with a
                         warning. Those disks hold the years 1980 to 1987, or 1980 to 2011 on an LDOS 5.3 or

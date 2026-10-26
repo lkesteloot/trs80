@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import {
     CassetteSpeed, decodeTrs80File, encodeSystemProgram, makeTrsdos23TestDisk, parseBasicText, SystemProgramBuilder,
-    type TestDiskOptions, type TestFile,
+    type TestDiskOptions, type TestFile, Trsdos,
 } from "trs80-base";
 import {binaryAsCasFile} from "trs80-cassette";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
@@ -183,7 +183,106 @@ describe("disk add", () => {
         const hostPathname = path.join(sub, "hello.bas");
         fs.writeFileSync(hostPathname, "10 PRINT");
 
-        await expect(runDisk("add", other, hostPathname)).rejects.toThrow("HELLO/BAS is already on the disk");
+        await expect(runDisk("add", other, hostPathname)).rejects.toThrow(
+            "HELLO/BAS is already on the disk (use --overwrite to replace it)");
+        expect(fs.readFileSync(imagePathname)).to.eql(before);
+    });
+
+    /**
+     * The directory entry of the named file (such as "HELLO/BAS") on the saved image.
+     */
+    function getEntry(name: string) {
+        const trsdos = DiskSession.open(imagePathname).fileSystem;
+        if (!(trsdos instanceof Trsdos)) {
+            throw new Error("Not TRSDOS");
+        }
+        const dirEntry = trsdos.findFile(name);
+        if (dirEntry === undefined) {
+            throw new Error("No file " + name);
+        }
+        return dirEntry;
+    }
+
+    it("replaces a file that's on the disk with --overwrite, and keeps its attributes", async () => {
+        makeImage([{...HELLO, invisible: true}, WORLD]);
+        const worldBytes = fileBytes(imagePathname, "WORLD.BAS");
+        const hostPathname = makeHostFile("hello.bas", 3000);
+
+        const lines = await runDisk("add", hostPathname, "--binary", "--overwrite");
+        expect(lines).to.eql(["Replaced HELLO/BAS (3,000 bytes).", "Saved " + imagePathname + "."]);
+        expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "WORLD.BAS"]);
+        expect(fileBytes(imagePathname, "HELLO.BAS")).to.eql(new Uint8Array(fs.readFileSync(hostPathname)));
+        expect(fileBytes(imagePathname, "WORLD.BAS")).to.eql(worldBytes);
+        expect(getEntry("HELLO/BAS").isHidden()).to.eql(true);
+    });
+
+    it("adds new files and replaces existing ones in one --overwrite command", async () => {
+        makeImage([HELLO, WORLD]);
+        const fresh = makeHostFile("fresh.txt", 20, 2);
+        const hostPathname = makeHostFile("world.bas", 40, 3);
+
+        const lines = await runDisk("add", fresh, hostPathname, "--binary", "--overwrite");
+        expect(lines).to.eql(["Added FRESH/TXT (20 bytes).", "Replaced WORLD/BAS (40 bytes).", "Saved " + imagePathname + "."]);
+        expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "WORLD.BAS", "FRESH.TXT"]);
+        expect(fileBytes(imagePathname, "WORLD.BAS")).to.eql(new Uint8Array(fs.readFileSync(hostPathname)));
+    });
+
+    it("changes the flags that --overwrite is given, and keeps the others", async () => {
+        makeImage([{...HELLO, invisible: true}, WORLD]);
+        const hostPathname = makeHostFile("hello.bas", 10);
+
+        await runDisk("add", hostPathname, "--binary", "--overwrite", "--system");
+        expect(getEntry("HELLO/BAS").isSystemFile()).to.eql(true);
+        expect(getEntry("HELLO/BAS").isHidden()).to.eql(true);
+    });
+
+    it("needs --system to replace a system file, and says so", async () => {
+        const kernel: TestFile = {
+            name: "KERNEL/SYS", extents: [{lump: 8, granuleOffset: 0, granuleCount: 2}], size: 500, system: true,
+        };
+        makeImage([HELLO, kernel]);
+        const before = fs.readFileSync(imagePathname);
+        const hostPathname = makeHostFile("kernel.sys", 100);
+
+        await expect(runDisk("add", hostPathname, "--binary", "--overwrite")).rejects.toThrow(
+            "KERNEL/SYS is a system file (use --system to replace it)");
+        expect(fs.readFileSync(imagePathname)).to.eql(before);
+
+        const lines = await runDisk("add", hostPathname, "--binary", "--overwrite", "--system");
+        expect(lines[0]).to.equal("Replaced KERNEL/SYS (100 bytes).");
+        expect(getEntry("KERNEL/SYS").isSystemFile()).to.eql(true);
+    });
+
+    it("refuses to replace BOOT/SYS even with --system", async () => {
+        makeImage([HELLO]);
+        const before = fs.readFileSync(imagePathname);
+        const hostPathname = makeHostFile("boot.sys", 100);
+
+        await expect(runDisk("add", hostPathname, "--as", "BOOT/SYS", "--binary", "--overwrite", "--system"))
+            .rejects.toThrow("BOOT/SYS can't be replaced");
+        expect(fs.readFileSync(imagePathname)).to.eql(before);
+    });
+
+    it("warns when the new copy had to go over the old copy's space", async () => {
+        makeImage([HELLO, WORLD]);
+        const granules = freeGranules(imagePathname) + 2;
+        const hostPathname = makeHostFile("hello.bas", granules*1280);
+
+        const lines = await runDisk("add", hostPathname, "--binary", "--overwrite");
+        expect(lines.length).to.equal(3);
+        expect(lines[0]).to.equal("Replaced HELLO/BAS (" + (granules*1280).toLocaleString() + " bytes).");
+        expect(lines[1]).to.include("HELLO/BAS didn't fit beside its old copy");
+        expect(fileBytes(imagePathname, "HELLO.BAS")).to.eql(new Uint8Array(fs.readFileSync(hostPathname)));
+    });
+
+    it("changes nothing when a replacement doesn't fit, even if an earlier file did", async () => {
+        makeImage([HELLO, WORLD]);
+        const before = fs.readFileSync(imagePathname);
+        const small = makeHostFile("small.txt", 10);
+        const huge = makeHostFile("hello.bas", (freeGranules(imagePathname) + 3)*1280);
+
+        await expect(runDisk("add", small, huge, "--binary", "--overwrite")).rejects.toThrow(
+            /Can't replace HELLO\/BAS: not enough room/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });
 

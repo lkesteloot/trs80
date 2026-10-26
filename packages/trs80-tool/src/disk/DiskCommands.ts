@@ -3,7 +3,7 @@ import path from "path";
 import {
     parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo, TRSDOS_BLANK_PASSWORD_HASH,
     TRSDOS_DEFAULT_PASSWORD_HASH, Trsdos, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
-    type TrsdosDiskInfoChanges, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost, trsdosFilenameToString,
+    type TrsdosAddResult, type TrsdosDiskInfoChanges, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost, trsdosFilenameToString,
     trsdosFindingKindSeverity, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString, type TrsdosProtectionNames,
     trsdosRuleSetToString,
 } from "trs80-base";
@@ -561,7 +561,7 @@ const ADD_COMMAND: DiskCommand = {
     spec: {
         name: "add",
         aliases: ["import", "put"],
-        usage: "HOSTFILE... [--as NAME] [--ascii | --binary] [--system] [--invisible] [--date YYYY-MM-DD]",
+        usage: "HOSTFILE... [--as NAME] [--ascii | --binary] [--system] [--invisible] [--date YYYY-MM-DD] [--overwrite]",
         summary: "copy files from the host onto the disk, converting BASIC, system programs, and text",
         minArgs: 1,
         maxArgs: Infinity,
@@ -596,6 +596,13 @@ const ADD_COMMAND: DiskCommand = {
                 valueName: "YYYY-MM-DD",
                 description: "record this date on the files, on DOSes that store dates (default: none)",
             },
+            {
+                name: "--overwrite",
+                valueName: undefined,
+                description: "replace files that are already on the disk, keeping their attributes, passwords " +
+                    "and date unless --system, --invisible or --date say otherwise; " +
+                    "replacing a system file also needs --system",
+            },
         ],
     },
 
@@ -604,7 +611,10 @@ const ADD_COMMAND: DiskCommand = {
     /**
      * Read the host files, convert them for the disk (see importHostFile()), and choose their TRSDOS
      * names, then add them all in one change, so that either every file is added or none is.
-     * Then say what was converted and which files were added, and warn once if the DOS couldn't store the date.
+     * A name that's already on the disk is an error, unless --overwrite says to replace that file
+     * (a system file also needs --system), in which case the new copy keeps the old file's attributes.
+     * Then say what was converted and which files were added or replaced, and warn once if the DOS couldn't
+     * store the date or a new copy had to be written over its old copy's space.
      */
     run(session, command) {
         const asText = command.options.getString("--as");
@@ -674,12 +684,34 @@ const ADD_COMMAND: DiskCommand = {
         session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
             for (const source of sources) {
                 addedLines.push(...source.messages);
-                const result = writer.addFile(source.filename, source.contents, {
-                    system: command.options.has("--system"),
-                    invisible: command.options.has("--invisible"),
-                    date,
-                });
-                addedLines.push("Added " + result.name + " (" + pluralizeWithCount(result.size, "byte") + ").");
+                const existing = writer.findFile(trsdosFilenameToString(source.filename));
+                let result: TrsdosAddResult;
+                let verb: string;
+                if (existing === undefined) {
+                    result = writer.addFile(source.filename, source.contents, {
+                        system: command.options.has("--system"),
+                        invisible: command.options.has("--invisible"),
+                        date,
+                    });
+                    verb = "Added";
+                } else {
+                    // The name as it is on the disk.
+                    const existingName = existing.getFilename("/");
+                    if (!command.options.has("--overwrite")) {
+                        throw new ToolError(existingName + " is already on the disk (use --overwrite to replace it)");
+                    }
+                    if (existing.isSystemFile() && !command.options.has("--system")) {
+                        throw new ToolError(existingName + " is a system file (use --system to replace it)");
+                    }
+                    // Only the flags that were given change; the new copy keeps the rest of the old file's.
+                    result = writer.replaceFile(existing, source.contents, {
+                        system: command.options.has("--system") ? true : undefined,
+                        invisible: command.options.has("--invisible") ? true : undefined,
+                        date,
+                    });
+                    verb = "Replaced";
+                }
+                addedLines.push(verb + " " + result.name + " (" + pluralizeWithCount(result.size, "byte") + ").");
                 if (result.warning !== undefined) {
                     warnings.add(result.warning);
                 }
