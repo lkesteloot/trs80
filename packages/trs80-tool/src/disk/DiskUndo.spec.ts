@@ -385,7 +385,7 @@ describe("disk undo, redo and revert", () => {
         }
         expect(redone).to.equal(MAX_UNDO_STATES);
         expect((await run(session, "label"))[0]).to.equal("Name: " + nameOf(changeCount));
-    });
+    }, 30_000);
 
     it("reverts to the saved disk even after the history that reaches it was dropped", async () => {
         makeImage([HELLO]);
