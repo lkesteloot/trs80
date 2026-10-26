@@ -214,12 +214,14 @@ describe("disk list", () => {
         expect(await runDisk("list", "MORE*")).to.eql(["Third"]);
     });
 
-    it("needs --system to list a system file", async () => {
+    it("lists a system file by name, but no wildcard matches it", async () => {
         await makeMixedImage();
-        await expect(runDisk("list", "KERNEL/SYS")).rejects.toThrow(
-            "No file on the disk matches \"KERNEL/SYS\", but a system file does (use --system)");
-        const lines = await runDisk("list", "KERNEL/SYS", "--system");
+        const lines = await runDisk("list", "KERNEL/SYS");
         expect(lines[0]).to.contain("0000");
+        await expect(runDisk("list", "KERNEL/S*")).rejects.toThrow(
+            "No file on the disk matches \"KERNEL/S*\" (wildcards don't match system files, so name the file)");
+        await expect(runDisk("list", "NOSUCH/*")).rejects.toThrow("No file on the disk matches \"NOSUCH/*\"");
+        await expect(runDisk("list", "KERNEL/SYS", "--system")).rejects.toThrow(/Unknown option "--system"/);
     });
 
     it("doesn't change the disk", async () => {
@@ -249,5 +251,33 @@ describe("disk list", () => {
                 process.env.TRS80_TOOL_PAGER = oldPager;
             }
         }
+    });
+
+    it("lists system files in dir only with --system or by name", async () => {
+        await makeMixedImage();
+        const plain = (await runDisk("dir")).join("\n");
+        expect(plain).to.contain("HELLO");
+        expect(plain).not.to.contain("KERNEL");
+
+        expect((await runDisk("dir", "KERNEL/SYS")).join("\n")).to.contain("KERNEL");
+        await expect(runDisk("dir", "KERN*")).rejects.toThrow(
+            "No file on the disk matches \"KERN*\" (wildcards don't match system files, so name the file)");
+        expect((await runDisk("dir", "KERN*", "--system")).join("\n")).to.contain("KERNEL");
+        expect((await runDisk("dir", "--system")).join("\n")).to.contain("BOOT");
+    });
+
+    it("extracts a system file by name, but no wildcard reaches it", async () => {
+        await makeMixedImage();
+        const outDir = path.join(dir, "out");
+        await runDisk("extract", "*", "--out-dir", outDir);
+        expect(fs.readdirSync(outDir).sort()).to.eql(["DATA.BIN", "HELLO.BAS", "NOTES.TXT"]);
+
+        await runDisk("extract", "KERNEL/SYS", "--out-dir", outDir);
+        expect(fs.existsSync(path.join(outDir, "KERNEL.SYS"))).to.be.true;
+
+        await expect(runDisk("extract", "KERN*", "--out-dir", outDir)).rejects.toThrow(/wildcards don't match system files/);
+        const asPathname = path.join(dir, "kernel.bin");
+        await runDisk("extract", "KERNEL/SYS", "--as", asPathname);
+        expect(fs.existsSync(asPathname)).to.be.true;
     });
 });

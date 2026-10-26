@@ -236,19 +236,14 @@ describe("disk add", () => {
         expect(getEntry("HELLO/BAS").isHidden()).to.eql(true);
     });
 
-    it("needs --system to replace a system file, and says so", async () => {
+    it("replaces a system file by name, keeping it a system file", async () => {
         const kernel: TestFile = {
             name: "KERNEL/SYS", extents: [{lump: 8, granuleOffset: 0, granuleCount: 2}], size: 500, system: true,
         };
         makeImage([HELLO, kernel]);
-        const before = fs.readFileSync(imagePathname);
         const hostPathname = makeHostFile("kernel.sys", 100);
 
-        await expect(runDisk("add", hostPathname, "--binary", "--overwrite")).rejects.toThrow(
-            "KERNEL/SYS is a system file (use --system to replace it)");
-        expect(fs.readFileSync(imagePathname)).to.eql(before);
-
-        const lines = await runDisk("add", hostPathname, "--binary", "--overwrite", "--system");
+        const lines = await runDisk("add", hostPathname, "--binary", "--overwrite");
         expect(lines[0]).to.equal("Replaced KERNEL/SYS (100 bytes).");
         expect(getEntry("KERNEL/SYS").isSystemFile()).to.eql(true);
     });

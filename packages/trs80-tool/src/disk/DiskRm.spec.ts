@@ -150,12 +150,12 @@ describe("disk rm", () => {
         expect(session.getInputFiles(false).length).to.equal(2);
     });
 
-    it("needs --system to remove a system file", async () => {
+    it("removes a system file by name, but no wildcard reaches it", async () => {
         makeImage([HELLO, SYSTEM]);
         const before = fs.readFileSync(imagePathname);
 
-        await expect(runDisk("rm", "KERNEL/SYS")).rejects.toThrow(
-            "No file on the disk matches \"KERNEL/SYS\", but a system file does (use --system)");
+        await expect(runDisk("rm", "KERNEL/S*")).rejects.toThrow(
+            "No file on the disk matches \"KERNEL/S*\" (wildcards don't match system files, so name the file)");
         expect(fs.readFileSync(imagePathname)).to.eql(before);
 
         // The "*" pattern doesn't reach it either.
@@ -163,7 +163,7 @@ describe("disk rm", () => {
         expect(fileNames(imagePathname, true)).to.have.members(["BOOT.SYS", "DIR.SYS", "KERNEL.SYS"]);
 
         makeImage([HELLO, SYSTEM]);
-        const lines = await runDisk("rm", "KERNEL/SYS", "--system");
+        const lines = await runDisk("rm", "KERNEL/SYS");
         expect(lines).to.eql(["Removed KERNEL/SYS.", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname, true)).to.have.members(["HELLO.BAS", "BOOT.SYS", "DIR.SYS"]);
     });
@@ -172,8 +172,8 @@ describe("disk rm", () => {
         makeImage([HELLO]);
         const before = fs.readFileSync(imagePathname);
 
-        await expect(runDisk("rm", "BOOT/SYS", "--system")).rejects.toThrow(ToolError);
-        await expect(runDisk("rm", "*", "--system")).rejects.toThrow(/can't be deleted/);
+        await expect(runDisk("rm", "BOOT/SYS")).rejects.toThrow(/can't be deleted/);
+        await expect(runDisk("rm", "DIR/SYS")).rejects.toThrow(/can't be deleted/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });
 

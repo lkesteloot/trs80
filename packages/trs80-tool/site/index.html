@@ -445,15 +445,16 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td><code>dir [NAME...]</code></td>
                     <td>List the files, as the <a href="#dir"><code>dir</code></a> command does, or only
                         those matching the names, which may have wildcards as in
-                        <a href="#extract"><code>extract</code></a>. With <code>--system</code>,
-                        include system files.</td>
+                        <a href="#extract"><code>extract</code></a>. System files are listed only with
+                        <code>--system</code>, but a name without wildcards finds a system file either way.</td>
                 </tr>
                 <tr>
                     <td><code>extract NAME...</code></td>
                     <td>Copy files to your computer, as the top-level
                         <a href="#extract"><code>extract</code></a> command does, with the same
-                        names, wildcards and options (<code>--out-dir</code>, <code>--system</code>,
-                        <code>--lowercase</code>, <code>--mark-damaged</code>).
+                        names, wildcards and options (<code>--out-dir</code>,
+                        <code>--lowercase</code>, <code>--mark-damaged</code>). A wildcard never matches a
+                        system file; to copy one, give its name.
                         <code>extract "*"</code> copies them all. With <code>--as PATH</code>, write the
                         one file that the name matches to that path. Also called <code>get</code>.</td>
                 </tr>
@@ -466,7 +467,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         <code>--hex</code> shows a hex dump whatever the file is, and <code>--raw</code> writes the
                         file’s bytes unchanged to standard output, with no pager, for piping.
                         If the name has wildcards and matches several files, each is shown under a
-                        <code>==&gt; NAME &lt;==</code> line. System files need <code>--system</code>.
+                        <code>==&gt; NAME &lt;==</code> line. A wildcard never matches a system file, but its name does.
                         Output goes through the pager when it’s a terminal (see <code>--no-pager</code>).
                         It works on any disk we can read, including a read-only one. Also
                         called <code>type</code> and <code>cat</code>.</td>
@@ -502,7 +503,6 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         The new copy keeps the old file’s attributes, passwords, record length, and date, except
                         that <code>--system</code>, <code>--invisible</code>, and <code>--date</code> change those
                         they name (on the LDOS line the file is also marked as changed since the last backup).
-                        Replacing a system file needs <code>--system</code>, as <code>rm</code> does, and
                         <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be replaced. The new copy is
                         written to free space first and the old copy freed afterward, so the new copy never
                         lands on the old one’s sectors; only if it wouldn’t fit that way does it take over the
@@ -518,7 +518,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td><code>rm NAME...</code></td>
                     <td>Remove files from the disk, freeing the space they used. The names may have wildcards,
                         as in <code>dir</code>; every name must match a file, or nothing is removed.
-                        System files are skipped unless you give <code>--system</code>, and
+                        A wildcard never matches a system file; to remove one, give its name.
                         <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be removed at all. It prints
                         <code>Removed HELLO/BAS.</code> for each file. Also called <code>del</code>,
                         <code>delete</code>, <code>kill</code>, and <code>remove</code>.</td>
@@ -527,9 +527,8 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td><code>mv OLDNAME NEWNAME</code></td>
                     <td>Rename a file on the disk. Both names are single TRSDOS names, with no wildcards, and
                         either <code>/</code> or <code>.</code> may come before the extension. The new name
-                        must not belong to another file. System files can be renamed only if you give
-                        <code>--system</code>, and <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be
-                        renamed at all. Only the name changes, not the file’s contents, dates or attributes.
+                        must not belong to another file. System files can be renamed, but
+                        <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be. Only the name changes, not the file’s contents, dates or attributes.
                         It prints <code>Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>ren</code>,
                         <code>rename</code>, and <code>move</code>.</td>
                 </tr>
@@ -537,7 +536,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td><code>attr PATTERN...</code></td>
                     <td><p>Change the attributes of files, or with no attribute options show them. The patterns
                         may have wildcards, as in <code>dir</code>; every pattern must match a file, or nothing
-                        is changed. System files match only if you give <code>--include-system</code>. The
+                        is changed. A wildcard never matches a system file; to change one, give its name. The
                         attributes are <code>--invisible</code> or <code>--visible</code> (whether directory
                         listings show the file), <code>--system</code> or <code>--no-system</code>
                         (<code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t change), <code>--protect LEVEL</code>,

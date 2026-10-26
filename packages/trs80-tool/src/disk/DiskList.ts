@@ -6,7 +6,7 @@ import {hexdumpLines} from "../hexdump.js";
 import type {InputFile} from "../InputFile.js";
 import {selectInputFiles} from "../InputFile.js";
 import {pageTextSync} from "../pager.js";
-import {ToolError} from "../utils.js";
+import {systemWildcardHint, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import type {DiskSession} from "./DiskSession.js";
 
@@ -226,24 +226,17 @@ function printLines(lines: string[]): void {
  * Find the files that the name selects.
  *
  * @param session the open disk.
- * @param pattern the name or pattern the user gave.
- * @param includeSystemFiles whether system files can match.
- * @throws ToolError if no file matches, saying so if only a system file does.
+ * @param pattern the name or pattern the user gave. A name selects a system file, but a wildcard doesn't.
+ * @throws ToolError if no file matches, saying so if only a system file would match the wildcard.
  */
-function selectListFiles(session: DiskSession, pattern: string, includeSystemFiles: boolean): InputFile[] {
-    const { selected, unmatchedPattern } = selectInputFiles(session.getInputFiles(includeSystemFiles), [pattern]);
+function selectListFiles(session: DiskSession, pattern: string): InputFile[] {
+    const { selected, unmatchedPattern, unmatchedOnlySystem } =
+        selectInputFiles(session.getInputFiles(true), [pattern], false);
     if (unmatchedPattern === undefined) {
         return selected;
     }
 
-    let hint = "";
-    if (!includeSystemFiles) {
-        const withSystem = selectInputFiles(session.getInputFiles(true), [pattern]);
-        if (withSystem.unmatchedPattern === undefined) {
-            hint = ", but a system file does (use --system)";
-        }
-    }
-    throw new ToolError("No file on the disk matches \"" + pattern + "\"" + hint);
+    throw new ToolError("No file on the disk matches \"" + pattern + "\"" + systemWildcardHint(unmatchedOnlySystem));
 }
 
 /**
@@ -254,7 +247,7 @@ export const LIST_COMMAND: DiskCommand = {
     spec: {
         name: "list",
         aliases: ["type", "cat"],
-        usage: "NAME [--hex] [--raw] [--system]",
+        usage: "NAME [--hex] [--raw]",
         summary: "show a file's contents: BASIC programs as listings, text as text, anything else as a hex dump",
         minArgs: 1,
         maxArgs: 1,
@@ -269,14 +262,10 @@ export const LIST_COMMAND: DiskCommand = {
                 valueName: undefined,
                 description: "write the file's bytes unchanged to standard output, with no pager, for piping",
             },
-            {
-                name: "--system",
-                valueName: undefined,
-                description: "include system files",
-            },
         ],
         extraHelpLines: [
             "A pattern that matches several files shows each, under a header line with its name.",
+            "A wildcard never matches a system file; to show one, give its name.",
             "Text is a file with no NUL bytes and almost all printable characters (CR, CRLF and LF end its lines).",
         ],
     },
@@ -295,7 +284,7 @@ export const LIST_COMMAND: DiskCommand = {
             throw new ToolError("Use either --hex or --raw, not both");
         }
 
-        const inFiles = selectListFiles(session, command.args[0], command.options.has("--system"));
+        const inFiles = selectListFiles(session, command.args[0]);
         if (raw) {
             for (const inFile of inFiles) {
                 process.stdout.write(inFile.binary);

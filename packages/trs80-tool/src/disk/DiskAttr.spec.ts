@@ -182,24 +182,24 @@ describe("disk attr", () => {
         await expect(runDisk("attr", "NOSUCH/*")).rejects.toThrow("No file on the disk matches");
     });
 
-    it("needs --include-system to match system files", async () => {
+    it("matches system files by name but not by wildcard", async () => {
         makeImage([HELLO, SYSTEM]);
         const before = fs.readFileSync(imagePathname);
 
-        const error = await runDiskExpectingError("attr", "KERNEL/SYS", "--invisible");
+        const error = await runDiskExpectingError("attr", "KERNEL/S*", "--invisible");
         expect(error.message).to.equal(
-            "No file on the disk matches \"KERNEL/SYS\", but a system file does (use --include-system)");
+            "No file on the disk matches \"KERNEL/S*\" (wildcards don't match system files, so name the file)");
         expect(fs.readFileSync(imagePathname)).to.eql(before);
         // A pattern that matches a user file doesn't touch the system file.
         const lines = await runDisk("attr", "*", "--invisible");
         expect(lines).to.eql(["Changed HELLO/BAS: invisible.", "Saved " + imagePathname + "."]);
         expect(getEntry("KERNEL/SYS").isHidden()).to.eql(false);
 
-        const lines2 = await runDisk("attr", "KERNEL/SYS", "--invisible", "--include-system");
+        const lines2 = await runDisk("attr", "KERNEL/SYS", "--invisible");
         expect(lines2[0]).to.equal("Changed KERNEL/SYS: invisible.");
         expect(getEntry("KERNEL/SYS").isHidden()).to.eql(true);
 
-        const shown = await runDisk("attr", "KERNEL/SYS", "--include-system");
+        const shown = await runDisk("attr", "KERNEL/SYS");
         expect(shown).to.eql(["KERNEL/SYS: protection FULL, invisible, system"]);
     });
 
@@ -210,7 +210,7 @@ describe("disk attr", () => {
         expect(lines[0]).to.equal("Changed HELLO/BAS: system.");
         expect(getEntry("HELLO/BAS").isSystemFile()).to.eql(true);
 
-        const lines2 = await runDisk("attr", "HELLO/BAS", "--no-system", "--include-system");
+        const lines2 = await runDisk("attr", "HELLO/BAS", "--no-system");
         expect(lines2[0]).to.equal("Changed HELLO/BAS: user file.");
         expect(getEntry("HELLO/BAS").isSystemFile()).to.eql(false);
     });
@@ -219,12 +219,12 @@ describe("disk attr", () => {
         makeImage([HELLO]);
         const before = fs.readFileSync(imagePathname);
 
-        const error = await runDiskExpectingError("attr", "BOOT/SYS", "--no-system", "--include-system");
+        const error = await runDiskExpectingError("attr", "BOOT/SYS", "--no-system");
         expect(error.message).to.equal("BOOT/SYS can't become a user file: the DOS needs it as it is");
         expect(fs.readFileSync(imagePathname)).to.eql(before);
 
         // Other attributes are fine.
-        const lines = await runDisk("attr", "BOOT/SYS", "--include-system", "--password", "boss");
+        const lines = await runDisk("attr", "BOOT/SYS", "--password", "boss");
         expect(lines[0]).to.equal("Changed BOOT/SYS: update password set.");
     });
 
@@ -292,7 +292,7 @@ describe("disk attr", () => {
         const before = fs.readFileSync(imagePathname);
 
         // BOOT/SYS is refused after HELLO/BAS (in directory order) has been changed in memory.
-        const error = await runDiskExpectingError("attr", "*", "BOOT/SYS", "--include-system", "--no-system");
+        const error = await runDiskExpectingError("attr", "*", "BOOT/SYS", "--no-system");
         expect(error.message).to.include("can't become a user file");
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });

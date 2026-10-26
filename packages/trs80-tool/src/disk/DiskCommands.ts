@@ -13,7 +13,7 @@ import {printDirListing} from "../dir.js";
 import {extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
-import {expandInputPatterns, fileNameMatchesPattern, pluralizeWithCount, ToolError} from "../utils.js";
+import {expandInputPatterns, pluralizeWithCount, selectByPatterns, systemWildcardHint, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {BOOT_COMMAND} from "./DiskBoot.js";
@@ -104,7 +104,7 @@ const DIR_COMMAND: DiskCommand = {
             {
                 name: "--system",
                 valueName: undefined,
-                description: "include system files",
+                description: "let the listing and wildcards include system files (a system file's name always finds it)",
             },
         ],
     },
@@ -112,13 +112,16 @@ const DIR_COMMAND: DiskCommand = {
     endsSession: false,
 
     /**
-     * Print the listing, which is the same as the top-level "dir" command's.
+     * Print the listing, which is the same as the top-level "dir" command's. System files are listed only
+     * with --system, or when a pattern names one without wildcards.
      */
     run(session, command) {
-        const allFiles = session.getInputFiles(command.options.has("--system"));
-        const { selected, unmatchedPattern } = selectInputFiles(allFiles, command.args);
+        const allFiles = session.getInputFiles(true);
+        const { selected, unmatchedPattern, unmatchedOnlySystem } =
+            selectInputFiles(allFiles, command.args, command.options.has("--system"));
         if (unmatchedPattern !== undefined) {
-            throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"");
+            throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"" +
+                systemWildcardHint(unmatchedOnlySystem));
         }
         printDirListing(selected);
     },
@@ -131,7 +134,7 @@ const EXTRACT_COMMAND: DiskCommand = {
     spec: {
         name: "extract",
         aliases: ["get", "export"],
-        usage: "NAME... [--out-dir DIR] [--as HOSTPATH] [--system] [--lowercase] [--mark-damaged]",
+        usage: "NAME... [--out-dir DIR] [--as HOSTPATH] [--lowercase] [--mark-damaged]",
         summary: "copy files from the disk to the host (use \"*\" for all of them)",
         minArgs: 1,
         maxArgs: Infinity,
@@ -145,11 +148,6 @@ const EXTRACT_COMMAND: DiskCommand = {
                 name: "--as",
                 valueName: "HOSTPATH",
                 description: "write the one selected file to exactly this host path",
-            },
-            {
-                name: "--system",
-                valueName: undefined,
-                description: "include system files",
             },
             {
                 name: "--lowercase",
@@ -168,7 +166,8 @@ const EXTRACT_COMMAND: DiskCommand = {
 
     /**
      * Write the selected files to the host, as the top-level "extract" command does, or with --as write the
-     * one selected file to the given path. Nothing is written if a name matches no file.
+     * one selected file to the given path. Nothing is written if a name matches no file. A system file is
+     * extracted only by naming it, never by a wildcard.
      */
     run(session, command) {
         const outDir = command.options.getString("--out-dir");
@@ -177,49 +176,38 @@ const EXTRACT_COMMAND: DiskCommand = {
             throw new ToolError("Use either --as or --out-dir, not both");
         }
 
-        const allFiles = session.getInputFiles(command.options.has("--system"));
+        const allFiles = session.getInputFiles(true);
         if (asPathname !== undefined) {
-            extractOneInputFile(allFiles, session.pathname, asPathname, command.args, false);
+            extractOneInputFile(allFiles, session.pathname, asPathname, command.args, false, false);
         } else {
             extractInputFiles(allFiles, session.pathname, outDir ?? ".", command.args, false,
-                command.options.has("--mark-damaged"), command.options.has("--lowercase"));
+                command.options.has("--mark-damaged"), command.options.has("--lowercase"), false);
         }
     },
 };
 
 /**
- * Choose the files that the patterns select, for the commands that take TRS-80 name patterns.
+ * Choose the files that the patterns select, for the commands that take TRS-80 name patterns. A name
+ * without wildcards selects the file of that name even if it's a system file, but a wildcard never
+ * selects a system file (see selectByPatterns()).
  *
- * @param allEntries the primary entries of the files on the disk, in directory order.
+ * @param allEntries the primary entries of the files on the disk, in directory order, including system files.
  * @param patterns the name patterns the user gave. Each must match a file.
- * @param includeSystemFiles whether system files can match.
- * @param systemOptionName the option that allows system files, to tell the user about if a pattern matches only them.
  * @return the files that any pattern matches, once each, in directory order.
  * @throws ToolError if a pattern matches no file.
  */
-function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[], includeSystemFiles: boolean,
-                          systemOptionName: string): TrsdosDirEntry[] {
-
-    const candidates = allEntries.filter(dirEntry => includeSystemFiles || !dirEntry.isSystemFile());
-    const selected = new Set<TrsdosDirEntry>();
-    for (const pattern of patterns) {
-        let matched = false;
-        for (const dirEntry of candidates) {
-            if (fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern)) {
-                selected.add(dirEntry);
-                matched = true;
-            }
-        }
-        if (!matched) {
-            // Say so if the pattern would have matched a system file.
-            const matchesSystemFile = allEntries.some(dirEntry =>
-                dirEntry.isSystemFile() && fileNameMatchesPattern(dirEntry.getFilename("."), false, pattern));
-            throw new ToolError("No file on the disk matches \"" + pattern + "\"" +
-                (matchesSystemFile ? ", but a system file does (use " + systemOptionName + ")" : ""));
-        }
+function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[]): TrsdosDirEntry[] {
+    const { selected, unmatchedPattern, unmatchedOnlySystem } = selectByPatterns(allEntries, patterns, {
+        name: dirEntry => dirEntry.getFilename("."),
+        hasDirectories: () => false,
+        isSystem: dirEntry => dirEntry.isSystemFile(),
+    }, false);
+    if (unmatchedPattern !== undefined) {
+        throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"" +
+            systemWildcardHint(unmatchedOnlySystem));
     }
 
-    return candidates.filter(dirEntry => selected.has(dirEntry));
+    return selected;
 }
 
 /**
@@ -229,16 +217,13 @@ const RM_COMMAND: DiskCommand = {
     spec: {
         name: "rm",
         aliases: ["del", "delete", "kill", "remove"],
-        usage: "NAME... [--system]",
-        summary: "remove files from the disk",
+        usage: "NAME...",
+        summary: "remove files from the disk (BOOT/SYS and DIR/SYS can't be removed)",
         minArgs: 1,
         maxArgs: Infinity,
-        options: [
-            {
-                name: "--system",
-                valueName: undefined,
-                description: "allow removing system files (BOOT/SYS and DIR/SYS can't be removed)",
-            },
+        options: [],
+        extraHelpLines: [
+            "A wildcard never matches a system file; to remove one, give its name.",
         ],
     },
 
@@ -250,13 +235,12 @@ const RM_COMMAND: DiskCommand = {
      * Then say which files were removed.
      */
     run(session, command) {
-        const includeSystemFiles = command.options.has("--system");
         const removedNames: string[] = [];
 
         session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
             // Check every pattern before removing anything. The files come in directory order, so the
             // report is stable.
-            const toRemove = selectDirEntries(writer.getFiles(), command.args, includeSystemFiles, "--system");
+            const toRemove = selectDirEntries(writer.getFiles(), command.args);
             for (const dirEntry of toRemove) {
                 writer.deleteFile(dirEntry);
                 removedNames.push(dirEntry.getFilename("/"));
@@ -276,25 +260,19 @@ const MV_COMMAND: DiskCommand = {
     spec: {
         name: "mv",
         aliases: ["ren", "rename", "move"],
-        usage: "OLDNAME NEWNAME [--system]",
-        summary: "rename a file on the disk",
+        usage: "OLDNAME NEWNAME",
+        summary: "rename a file on the disk (BOOT/SYS and DIR/SYS can't be renamed)",
         minArgs: 2,
         maxArgs: 2,
-        options: [
-            {
-                name: "--system",
-                valueName: undefined,
-                description: "allow renaming system files (BOOT/SYS and DIR/SYS can't be renamed)",
-            },
-        ],
+        options: [],
     },
 
     endsSession: false,
 
     /**
      * Rename the one file called OLDNAME to NEWNAME, with no wildcards. It's an error if there's no such
-     * file, if the new name belongs to another file, or if the file is a system file and --system wasn't
-     * given. Then say what was renamed.
+     * file or if the new name belongs to another file. The file can be a system file, since it's named.
+     * Then say what was renamed.
      */
     run(session, command) {
         const [oldText, newText] = command.args;
@@ -317,9 +295,6 @@ const MV_COMMAND: DiskCommand = {
             }
             // The name as it is on the disk.
             shownOldName = dirEntry.getFilename("/");
-            if (dirEntry.isSystemFile() && !command.options.has("--system")) {
-                throw new ToolError(shownOldName + " is a system file (use --system)");
-            }
             writer.renameFile(dirEntry, newFilename);
         });
 
@@ -426,7 +401,7 @@ const ATTR_COMMAND: DiskCommand = {
         name: "attr",
         aliases: ["attrib"],
         usage: "PATTERN... [--invisible | --visible] [--system | --no-system] [--protect LEVEL] " +
-            "[--password PW] [--access-password PW] [--date YYYY-MM-DD | --no-date] [--include-system]",
+            "[--password PW] [--access-password PW] [--date YYYY-MM-DD | --no-date]",
         summary: "change the attributes of files on the disk",
         minArgs: 1,
         maxArgs: Infinity,
@@ -476,11 +451,9 @@ const ATTR_COMMAND: DiskCommand = {
                 valueName: undefined,
                 description: "remove the date",
             },
-            {
-                name: "--include-system",
-                valueName: undefined,
-                description: "let the patterns match system files",
-            },
+        ],
+        extraHelpLines: [
+            "A wildcard never matches a system file; to change one, give its name.",
         ],
     },
 
@@ -513,7 +486,6 @@ const ATTR_COMMAND: DiskCommand = {
         } else if (options.has("--no-date")) {
             changes.date = null;
         }
-        const includeSystemFiles = options.has("--include-system");
 
         const changing = protectText !== undefined || Object.values(changes).some(value => value !== undefined);
         if (!changing) {
@@ -524,8 +496,7 @@ const ATTR_COMMAND: DiskCommand = {
                     "can't find a DOS directory on \"" + session.pathname + "\"" :
                     trsdos.nameAndVersion + " disks aren't TRSDOS-family"));
             }
-            const selected = selectDirEntries(trsdos.getDirEntries(true), command.args, includeSystemFiles,
-                "--include-system");
+            const selected = selectDirEntries(trsdos.getDirEntries(true), command.args);
             for (const dirEntry of selected) {
                 console.log(describeAttributes(dirEntry, trsdos.protectionNames));
             }
@@ -541,7 +512,7 @@ const ATTR_COMMAND: DiskCommand = {
                 changes.protectionLevel = parseProtectLevel(protectText, names);
             }
             const changeText = describeChanges(changes, names);
-            const selected = selectDirEntries(writer.getFiles(), command.args, includeSystemFiles, "--include-system");
+            const selected = selectDirEntries(writer.getFiles(), command.args);
             for (const dirEntry of selected) {
                 writer.setAttributes(dirEntry, changes);
                 changedLines.push("Changed " + dirEntry.getFilename("/") + ": " + changeText + ".");
@@ -614,8 +585,7 @@ const ADD_COMMAND: DiskCommand = {
                 name: "--overwrite",
                 valueName: undefined,
                 description: "replace files that are already on the disk, keeping their attributes, passwords " +
-                    "and date unless --system, --invisible or --date say otherwise; " +
-                    "replacing a system file also needs --system",
+                    "and date unless --system, --invisible or --date say otherwise",
             },
         ],
     },
@@ -626,7 +596,7 @@ const ADD_COMMAND: DiskCommand = {
      * Read the host files, convert them for the disk (see importHostFile()), and choose their TRSDOS
      * names, then add them all in one change, so that either every file is added or none is.
      * A name that's already on the disk is an error, unless --overwrite says to replace that file
-     * (a system file also needs --system), in which case the new copy keeps the old file's attributes.
+     * in which case the new copy keeps the old file's attributes (a system file included).
      * Then say what was converted and which files were added or replaced, and warn once if the DOS couldn't
      * store the date or a new copy had to be written over its old copy's space.
      */
@@ -713,9 +683,6 @@ const ADD_COMMAND: DiskCommand = {
                     const existingName = existing.getFilename("/");
                     if (!command.options.has("--overwrite")) {
                         throw new ToolError(existingName + " is already on the disk (use --overwrite to replace it)");
-                    }
-                    if (existing.isSystemFile() && !command.options.has("--system")) {
-                        throw new ToolError(existingName + " is a system file (use --system to replace it)");
                     }
                     // Only the flags that were given change; the new copy keeps the rest of the old file's.
                     result = writer.replaceFile(existing, source.contents, {

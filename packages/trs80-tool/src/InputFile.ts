@@ -12,8 +12,8 @@ import {
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {
-    ToolError, fileNameMatchesPattern, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
-    xenixTarTypeLetter,
+    ToolError, type PatternSelection, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
+    xenixTarTypeLetter, selectByPatterns,
 } from "./utils.js";
 import {colorDate} from "./lscolors.js";
 import type {ContainerJson, GranuleExtentJson, TrsdosIIFileJson, XenixTarFileJson} from "./json.js";
@@ -99,6 +99,14 @@ export class InputFile {
      */
     public getExtractedBinary(convertText: boolean): Uint8Array {
         return (convertText ? this.getHostText() : undefined) ?? this.binary;
+    }
+
+    /**
+     * Whether the container marks the file as a system file. A subclass overrides this. Wildcards
+     * don't select system files (see selectInputFiles()).
+     */
+    public isSystemFile(): boolean {
+        return false;
     }
 
     /**
@@ -206,6 +214,13 @@ export class TrsdosInputFile extends InputFile {
     }
 
     /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.dirEntry.isSystemFile();
+    }
+
+    /**
      * Only if the file is in a directory (a hard disk partition's).
      */
     public override hasDirectories(): boolean {
@@ -297,6 +312,13 @@ export class CpmInputFile extends InputFile {
         this.showUser = showUser;
     }
 
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.cpmFile.isSystemFile();
+    }
+
     public override getDirExtras(): string[] {
         const extras: string[] = [];
         if (this.showUser) {
@@ -349,6 +371,13 @@ export class MicroDosInputFile extends InputFile {
         this.microDosFile = microDosFile;
     }
 
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.microDosFile.isSystemFile();
+    }
+
     public override getDirExtras(): string[] {
         return [
             microDosFileTypeToString(this.microDosFile.type).padEnd(5),
@@ -387,6 +416,13 @@ export class UcsdPascalInputFile extends InputFile {
         super(filename, binary, trs80File, damage);
         this.ucsdPascal = ucsdPascal;
         this.file = file;
+    }
+
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.file.isSystemFile();
     }
 
     /**
@@ -452,6 +488,13 @@ export class ModelIITrsdosInputFile extends InputFile {
     }
 
     /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.dirEntry.isSystemFile();
+    }
+
+    /**
      * The date last updated (blank if the entry has none, padded to line up), the flags
      * (S for system, P for program), and the protection level.
      */
@@ -511,6 +554,13 @@ export class TrsdosIIInputFile extends InputFile {
         super(filename, binary, trs80File, damage);
         this.trsdosII = trsdosII;
         this.file = file;
+    }
+
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.file.isSystemFile();
     }
 
     /**
@@ -594,6 +644,13 @@ export class XenixTarInputFile extends InputFile {
         super(filename, binary, trs80File, damage);
         this.xenixTar = xenixTar;
         this.file = file;
+    }
+
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.file.isSystemFile();
     }
 
     /**
@@ -840,36 +897,24 @@ export function expandContainer(inFilename: string, includeSystemFiles: boolean,
 }
 
 /**
- * Choose the files whose names match at least one of the patterns (see fileNameMatchesPattern()).
+ * Choose the files whose names match at least one of the patterns (see selectByPatterns(), which decides
+ * what a pattern can select).
  *
  * @param inFiles the files in a container.
  * @param patterns the patterns to match, or an empty array to choose every file.
- * @returns the chosen files, in their original order, and the first pattern that matched no file at
- * all (undefined if every pattern matched something).
+ * @param wildcardsMatchSystemFiles whether system files can match wildcards. Names without wildcards always
+ * select system files that are in inFiles. The default is for the commands that choose which system files
+ * are in inFiles in the first place.
+ * @returns the chosen files, in their original order, the first pattern that matched no file at
+ * all (undefined if every pattern matched something), and whether that pattern is a wildcard that only
+ * system files would match.
  */
-export function selectInputFiles(inFiles: InputFile[], patterns: string[]):
-    { selected: InputFile[], unmatchedPattern: string | undefined } {
+export function selectInputFiles(inFiles: InputFile[], patterns: string[], wildcardsMatchSystemFiles = true):
+    PatternSelection<InputFile> {
 
-    if (patterns.length === 0) {
-        return { selected: inFiles, unmatchedPattern: undefined };
-    }
-
-    const selected: InputFile[] = [];
-    const matchedPatterns = new Set<string>();
-    for (const inFile of inFiles) {
-        let isSelected = false;
-        for (const pattern of patterns) {
-            const matches = fileNameMatchesPattern(inFile.filename, inFile.hasDirectories(), pattern);
-            if (matches) {
-                isSelected = true;
-                matchedPatterns.add(pattern);
-            }
-        }
-        if (isSelected) {
-            selected.push(inFile);
-        }
-    }
-
-    const unmatchedPattern = patterns.find(pattern => !matchedPatterns.has(pattern));
-    return { selected, unmatchedPattern };
+    return selectByPatterns(inFiles, patterns, {
+        name: inFile => inFile.filename,
+        hasDirectories: inFile => inFile.hasDirectories(),
+        isSystem: inFile => inFile.isSystemFile(),
+    }, wildcardsMatchSystemFiles);
 }

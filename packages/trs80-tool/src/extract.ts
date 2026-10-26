@@ -4,7 +4,7 @@ import { type XenixTarExtent } from "trs80-base";
 import { expandContainer, type InputFile, selectInputFiles, XenixTarInputFile } from "./InputFile.js";
 import { filesInfileJson, printInfilesJson } from "./json.js";
 import {
-    DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, ToolError,
+    DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, systemWildcardHint, ToolError,
 } from "./utils.js";
 
 /**
@@ -197,20 +197,23 @@ export function extract(inFilename: string, outDirname: string, patterns: string
  * @param markDamaged whether to add " [DAMAGED]" to the name of each file that had unreadable
  * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
  * @param lowercase whether to write the files with lowercase names, as in "foo.cmd" for "FOO.CMD".
+ * @param wildcardsMatchSystemFiles whether system files in allFiles can match wildcards (see selectInputFiles()).
  * @throws ToolError if the output path exists but isn't a directory, or if a pattern matches no file.
  * Nothing is written in either case.
  */
 export function extractInputFiles(allFiles: InputFile[], containerName: string, outDirname: string,
                                   patterns: string[], ucsdPascalRawText: boolean, markDamaged: boolean,
-                                  lowercase: boolean): void {
+                                  lowercase: boolean, wildcardsMatchSystemFiles = true): void {
 
     checkOutputDirectory(outDirname);
 
-    const { selected: inFiles, unmatchedPattern } = selectInputFiles(allFiles, patterns);
+    const { selected: inFiles, unmatchedPattern, unmatchedOnlySystem } =
+        selectInputFiles(allFiles, patterns, wildcardsMatchSystemFiles);
     if (unmatchedPattern !== undefined) {
         // People used to give the output directory here.
         const isDirectory = fs.statSync(unmatchedPattern, { throwIfNoEntry: false })?.isDirectory() === true;
         throw new ToolError("No file in \"" + containerName + "\" matches \"" + unmatchedPattern + "\"" +
+            systemWildcardHint(unmatchedOnlySystem) +
             (isDirectory ? ". To extract into that directory, use --out-dir " + unmatchedPattern : ""));
     }
 
@@ -277,15 +280,19 @@ export function extractInputFiles(allFiles: InputFile[], containerName: string, 
  * @param patterns patterns for the names of the files to choose (see fileNameMatchesPattern()).
  * @param ucsdPascalRawText whether a UCSD Pascal text file is written as it is on the disk,
  * instead of converted to host text.
+ * @param wildcardsMatchSystemFiles whether system files in allFiles can match wildcards (see selectInputFiles()).
  * @throws ToolError if a pattern matches no file, if the patterns don't choose exactly one file, or if
  * the output path is a directory. Nothing is written in these cases.
  */
 export function extractOneInputFile(allFiles: InputFile[], containerName: string, outPathname: string,
-                                    patterns: string[], ucsdPascalRawText: boolean): void {
+                                    patterns: string[], ucsdPascalRawText: boolean,
+                                    wildcardsMatchSystemFiles = true): void {
 
-    const { selected: inFiles, unmatchedPattern } = selectInputFiles(allFiles, patterns);
+    const { selected: inFiles, unmatchedPattern, unmatchedOnlySystem } =
+        selectInputFiles(allFiles, patterns, wildcardsMatchSystemFiles);
     if (unmatchedPattern !== undefined) {
-        throw new ToolError("No file in \"" + containerName + "\" matches \"" + unmatchedPattern + "\"");
+        throw new ToolError("No file in \"" + containerName + "\" matches \"" + unmatchedPattern + "\"" +
+            systemWildcardHint(unmatchedOnlySystem));
     }
     if (inFiles.length !== 1) {
         throw new ToolError("--as needs exactly one file, but " + patterns.map(p => "\"" + p + "\"").join(", ") +

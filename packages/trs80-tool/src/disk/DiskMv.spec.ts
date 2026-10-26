@@ -123,15 +123,9 @@ describe("disk mv", () => {
         await expect(runDisk("mv", "HE*", "GREET")).rejects.toThrow(ToolError);
     });
 
-    it("needs --system to rename a system file", async () => {
+    it("renames a system file by name", async () => {
         makeImage([HELLO, SYSTEM]);
-        const before = fs.readFileSync(imagePathname);
-
-        const error = await runDiskExpectingError("mv", "KERNEL/SYS", "CORE/SYS");
-        expect(error.message).to.equal("KERNEL/SYS is a system file (use --system)");
-        expect(fs.readFileSync(imagePathname)).to.eql(before);
-
-        const lines = await runDisk("mv", "KERNEL/SYS", "CORE/SYS", "--system");
+        const lines = await runDisk("mv", "KERNEL/SYS", "CORE/SYS");
         expect(lines).to.eql(["Renamed KERNEL/SYS to CORE/SYS.", "Saved " + imagePathname + "."]);
         expect(fileNames(imagePathname, true)).to.have.members(["HELLO.BAS", "BOOT.SYS", "DIR.SYS", "CORE.SYS"]);
     });
@@ -140,9 +134,9 @@ describe("disk mv", () => {
         makeImage([HELLO]);
         const before = fs.readFileSync(imagePathname);
 
-        const bootError = await runDiskExpectingError("mv", "BOOT/SYS", "OTHER/SYS", "--system");
+        const bootError = await runDiskExpectingError("mv", "BOOT/SYS", "OTHER/SYS");
         expect(bootError.message).to.match(/can't be renamed/);
-        const dirError = await runDiskExpectingError("mv", "DIR/SYS", "OTHER/SYS", "--system");
+        const dirError = await runDiskExpectingError("mv", "DIR/SYS", "OTHER/SYS");
         expect(dirError.message).to.match(/can't be renamed/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
     });
