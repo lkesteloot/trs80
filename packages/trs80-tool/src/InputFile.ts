@@ -218,7 +218,7 @@ export class TrsdosInputFile extends InputFile {
         const date = this.dirEntry.getFullDateString().padEnd(this.trsdos.hasTimeStamps ? 16 : 10, " ");
         return [
             colorDate(date),
-            trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.version),
+            trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.protectionNames),
         ];
     }
 
@@ -271,7 +271,7 @@ export class TrsdosInputFile extends InputFile {
             trsdos: {
                 osFile: this.dirEntry.isSystemFile(),
                 hidden: this.dirEntry.isHidden(),
-                protection: trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.version),
+                protection: trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.protectionNames),
                 extents,
             },
         };

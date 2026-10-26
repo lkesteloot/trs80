@@ -156,9 +156,15 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       The reservations also differ by DOS (16 DECs in LDOS, 16 or 2 in TRSDOS 6,
       2 in NEWDOS/80, which puts SYS14-29 in entries 2 and 3) and cover only the
       first eight directory sectors; see the table in "The HIT".
-- [ ] **Protection level names** follow LDOS 5.1 and NEWDOS/80 (3 unused, 4 write)
-      for the whole 2.3 family. TRSDOS 6 and LS-DOS number them like 1.3 (1
-      remove, 3 write, 4 update), so their files show "UNUSED" for write.
+- [ ] **Protection level names on TRSDOS 1.3 and 2.7** are TRSDOS 6's (1
+      remove, 3 write, 4 update), which comes from 1.3 being Model II
+      TRSDOS's descendant, not from a manual: the TRSDOS 1.3 Reference Guide
+      (PDF page 5) lists the ATTRIB levels as EXEC, READ, WRITE, NAME, KILL,
+      FULL, which are LDOS 5.1's names, without numbers. Check against the
+      resident's own table (*Model III TRSDOS Commented*, the access-level code
+      near 475C) or a disk with files at each level. Also NEWDOS/80 names 7 LOCK
+      (see "Protection level names" in `FLOPPY_FORMATS.md`), which we show as
+      NO_ACCESS.
 - [ ] **File dates exist only on the LDOS line.** `decodeDirEntry()` reads
       bytes 1-2 as a date for every 2.3-family disk, but NEWDOS/80 keeps flags in
       byte 1 and zero in byte 2, and TRSDOS 2.3 has no dates.

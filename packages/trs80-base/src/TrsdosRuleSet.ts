@@ -1,5 +1,5 @@
 import {assertNever} from "z80-base";
-import {type Trsdos, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
+import {type Trsdos, TRSDOS_6_DOS_NAME, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
 
 /**
  * The rules of the DOS that a disk is written under. The TRSDOS 2.3 family's DOSes share a layout
@@ -175,7 +175,7 @@ const DOS_NAME_RULES: readonly DosNameRule[] = [
     // Every 1.x, including the data disks that only know they're "TRSDOS 1.x".
     {pattern: /^TRSDOS 1\./, ruleSet: TrsdosRuleSet.TRSDOS_1_3},
     {pattern: /^LDOS 5\./, ruleSet: TrsdosRuleSet.LDOS_5},
-    {pattern: /^(?:TRSDOS|LS-DOS) 6\./, ruleSet: TrsdosRuleSet.TRSDOS_6},
+    {pattern: TRSDOS_6_DOS_NAME, ruleSet: TrsdosRuleSet.TRSDOS_6},
     {pattern: /^DOSPLUS 3\./, ruleSet: TrsdosRuleSet.DOSPLUS},
 ];
 

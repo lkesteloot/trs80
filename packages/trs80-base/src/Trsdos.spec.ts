@@ -1,7 +1,9 @@
 import {describe, expect, it} from "vitest";
 import {
-    decodeDirEntry, decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, TRSDOS_BLANK_PASSWORD_HASH, TrsdosDirEntry, TrsdosVersion,
-    type Trsdos23DirEntryFields,
+    decodeDirEntry, decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, hashTrsdosPassword,
+    parseTrsdosProtectionLevel, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
+    TrsdosProtectionLevel, TrsdosProtectionNames, trsdosProtectionLevels, trsdosProtectionLevelToString,
+    trsdosProtectionNamesFor, TrsdosVersion, type Trsdos23DirEntryFields,
 } from "./Trsdos.js";
 import {makeTrsdos23TestDisk} from "./TrsdosTestDisk.js";
 
@@ -213,5 +215,85 @@ describe("encodeTrsdos23ExtendedDirEntry", () => {
         expect(() => encodeTrsdos23ExtendedDirEntry({
             prevDec: 0x22, extents: [{lump: 5, granuleOffset: 8, granuleCount: 2}], nextDec: undefined,
         })).to.throw("doesn't fit");
+    });
+});
+
+describe("hashTrsdosPassword", () => {
+    it("hashes no password to the blank hash", () => {
+        expect(hashTrsdosPassword("")).to.eql(TRSDOS_BLANK_PASSWORD_HASH);
+        expect(hashTrsdosPassword("        ")).to.eql(TRSDOS_BLANK_PASSWORD_HASH);
+    });
+
+    it("hashes PASSWORD to the default master password's hash, in any case", () => {
+        expect(hashTrsdosPassword("PASSWORD")).to.eql(TRSDOS_DEFAULT_PASSWORD_HASH);
+        expect(hashTrsdosPassword("password")).to.eql(0x42E0);
+        expect(hashTrsdosPassword("PassWord")).to.eql(0x42E0);
+    });
+
+    it("pads short passwords with spaces", () => {
+        expect(hashTrsdosPassword("A")).to.eql(hashTrsdosPassword("A       "));
+        expect(hashTrsdosPassword("A")).to.not.eql(hashTrsdosPassword("B"));
+    });
+
+    it("refuses passwords the DOS wouldn't accept", () => {
+        for (const bad of ["1ABC", "TOOLONGPW", "A B", "AB-C", "A.B", " A"]) {
+            expect(() => hashTrsdosPassword(bad)).to.throw(Error, "Invalid password");
+        }
+        hashTrsdosPassword("A1234567");
+    });
+});
+
+describe("protection level names", () => {
+    it("uses the LDOS names on the 2.3 layout, and TRSDOS 6's names for TRSDOS 6 and LS-DOS 6", () => {
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "LDOS 5.1.4")).to.eql(TrsdosProtectionNames.LDOS);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "TRSDOS 2.x")).to.eql(TrsdosProtectionNames.LDOS);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "Unknown DOS")).to.eql(TrsdosProtectionNames.LDOS);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "TRSDOS 6.2")).to.eql(TrsdosProtectionNames.TRSDOS_6);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "LS-DOS 6.3")).to.eql(TrsdosProtectionNames.TRSDOS_6);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V1_3, "TRSDOS 1.3")).to.eql(TrsdosProtectionNames.TRSDOS_6);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_7, "TRSDOS 2.7")).to.eql(TrsdosProtectionNames.TRSDOS_6);
+    });
+
+    it("names levels 1, 3 and 4 differently", () => {
+        const names = (protectionNames: TrsdosProtectionNames) => [0, 1, 2, 3, 4, 5, 6, 7].map(level =>
+            trsdosProtectionLevelToString(level as TrsdosProtectionLevel, protectionNames));
+        expect(names(TrsdosProtectionNames.LDOS)).to.eql(
+            ["FULL", "KILL", "RENAME", "UNUSED", "WRITE", "READ", "EXEC", "NO_ACCESS"]);
+        expect(names(TrsdosProtectionNames.TRSDOS_6)).to.eql(
+            ["FULL", "REMOVE", "RENAME", "WRITE", "UPDATE", "READ", "EXEC", "NO_ACCESS"]);
+    });
+
+    it("decodes a test disk with the LDOS names", () => {
+        const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]));
+        expect(trsdos?.protectionNames).to.eql(TrsdosProtectionNames.LDOS);
+    });
+
+    it("lists the levels to choose from, leaving out LDOS's reserved 3", () => {
+        expect(trsdosProtectionLevels(TrsdosProtectionNames.LDOS).map(level => level as number))
+            .to.eql([0, 1, 2, 4, 5, 6, 7]);
+        expect(trsdosProtectionLevels(TrsdosProtectionNames.TRSDOS_6).map(level => level as number))
+            .to.eql([0, 1, 2, 3, 4, 5, 6, 7]);
+    });
+
+    it("parses names and numbers by the disk's names", () => {
+        const ldos = TrsdosProtectionNames.LDOS;
+        const trsdos6 = TrsdosProtectionNames.TRSDOS_6;
+        expect(parseTrsdosProtectionLevel("write", ldos)).to.eql(4);
+        expect(parseTrsdosProtectionLevel("write", trsdos6)).to.eql(3);
+        expect(parseTrsdosProtectionLevel("update", trsdos6)).to.eql(4);
+        expect(parseTrsdosProtectionLevel("update", ldos)).to.be.undefined;
+        expect(parseTrsdosProtectionLevel("Kill", ldos)).to.eql(1);
+        expect(parseTrsdosProtectionLevel("remove", ldos)).to.eql(1);
+        expect(parseTrsdosProtectionLevel("kill", trsdos6)).to.eql(1);
+        expect(parseTrsdosProtectionLevel("unused", ldos)).to.eql(3);
+        expect(parseTrsdosProtectionLevel("all", ldos)).to.eql(0);
+        expect(parseTrsdosProtectionLevel("execute", ldos)).to.eql(6);
+        for (const none of ["none", "no access", "no-access", "NO_ACCESS", "7"]) {
+            expect(parseTrsdosProtectionLevel(none, ldos)).to.eql(7);
+        }
+        expect(parseTrsdosProtectionLevel("0", ldos)).to.eql(0);
+        expect(parseTrsdosProtectionLevel("8", ldos)).to.be.undefined;
+        expect(parseTrsdosProtectionLevel("bogus", ldos)).to.be.undefined;
+        expect(parseTrsdosProtectionLevel("", ldos)).to.be.undefined;
     });
 });

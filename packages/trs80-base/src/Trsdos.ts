@@ -190,6 +190,44 @@ export const TRSDOS_BLANK_PASSWORD_HASH = 0x4296;
  */
 export const TRSDOS_DEFAULT_PASSWORD_HASH = 0x42E0;
 
+/**
+ * The longest password that the 2.3 family accepts.
+ */
+const TRSDOS_PASSWORD_LENGTH = 8;
+
+/**
+ * Hash a password the way the 2.3 family does, for the update and access passwords in a directory
+ * entry and the master password in the GAT. The password is uppercased and padded with spaces to
+ * eight characters (so trailing spaces don't matter), so an empty password gives {@link TRSDOS_BLANK_PASSWORD_HASH}. The algorithm is in
+ * "Password hashes" in FLOPPY_FORMATS.md. (TRSDOS 1.3 hashes differently, and this doesn't do that.)
+ *
+ * @param password one to eight letters and digits, starting with a letter, in any case; or empty for none.
+ * @returns the 16-bit hash.
+ * @throws Error if the DOS wouldn't accept the password.
+ */
+export function hashTrsdosPassword(password: string): number {
+    // Trailing spaces are the padding, so they don't count.
+    const upperPassword = password.toUpperCase().replace(/ +$/, "");
+    if (password.length > TRSDOS_PASSWORD_LENGTH || (upperPassword !== "" && !/^[A-Z][A-Z0-9]*$/.test(upperPassword))) {
+        throw new Error(`Invalid password "${password}": a password is up to ${TRSDOS_PASSWORD_LENGTH} letters and ` +
+            `digits, starting with a letter`);
+    }
+
+    const padded = upperPassword.padEnd(TRSDOS_PASSWORD_LENGTH, " ");
+    let hi = 0xFF;
+    let lo = 0xFF;
+    for (let i = padded.length - 1; i >= 0; i--) {
+        const c = padded.charCodeAt(i);
+        const t = lo ^ ((lo & 7) << 5);
+        const newHi = (t ^ (t >> 4) ^ c) & 0xFF;
+        const newLo = (((t << 4) & 0xFF) ^ (t >> 3) ^ hi) & 0xFF;
+        hi = newHi;
+        lo = newLo;
+    }
+
+    return (hi << 8) | lo;
+}
+
 // DEC of DIR/SYS's fixed directory slot in the 2.3 family.
 const DIR_SYS_HIT_INDEX = 0x01;
 // What old Model I disks store in that HIT slot instead of DIR/SYS's real hash (0xC4).
@@ -460,38 +498,85 @@ export enum TrsdosProtectionLevel {
 }
 
 /**
- * Gets the string version of the protection level enum.
+ * Which DOSes' names for the protection levels a disk follows. The levels are numbers 0-7 in the
+ * directory entry, and the DOSes disagree on what to call 1, 3 and 4. See "Protection level names"
+ * under "Directory entries (2.3 family)" in FLOPPY_FORMATS.md.
  */
-export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, version: TrsdosVersion): string {
-    // The names of the levels that differ between the Model I (2.3) and Model II (1.3) lineages.
-    // TRSDOS 2.7 descends from Model II TRSDOS like 1.3 does, so we use 1.3's names for it, but
-    // we haven't confirmed that 2.7 itself uses them.
-    let useModel2Names: boolean;
+export enum TrsdosProtectionNames {
+    /**
+     * 1 is KILL, 3 is unused (reserved for LDOS), and 4 is WRITE. TRSDOS 2.x, LDOS 5, NEWDOS/80 and
+     * the other DOSes on the 2.3 layout.
+     */
+    LDOS,
+
+    /**
+     * 1 is REMOVE, 3 is WRITE, and 4 is UPDATE. TRSDOS 6 and LS-DOS 6, and TRSDOS 1.3 and 2.7, which
+     * descend from Model II TRSDOS.
+     */
+    TRSDOS_6,
+}
+
+/**
+ * Matches the names of the DOSes that number the protection levels like TRSDOS 6 (see
+ * {@link Trsdos.nameAndVersion}). TRSDOS 6 and LS-DOS 6 are the same family, and LDOS 6 is what
+ * some people call them.
+ */
+export const TRSDOS_6_DOS_NAME = /^(?:TRSDOS|LS-DOS) 6\./;
+
+/**
+ * Work out which names a disk's DOS gives the protection levels.
+ *
+ * @param version the disk's layout.
+ * @param dosName the DOS's name and version, as {@link Trsdos.nameAndVersion} gives it.
+ */
+export function trsdosProtectionNamesFor(version: TrsdosVersion, dosName: string): TrsdosProtectionNames {
     switch (version) {
         case TrsdosVersion.V2_3:
-            useModel2Names = false;
-            break;
+            return TRSDOS_6_DOS_NAME.test(dosName) ? TrsdosProtectionNames.TRSDOS_6 : TrsdosProtectionNames.LDOS;
 
         case TrsdosVersion.V1_3:
         case TrsdosVersion.V2_7:
-            useModel2Names = true;
-            break;
+            // TRSDOS 2.7 descends from Model II TRSDOS like 1.3 does, so we use 1.3's names for it,
+            // but we haven't confirmed that 2.7 itself uses them.
+            return TrsdosProtectionNames.TRSDOS_6;
 
         default:
             assertNever(version);
+    }
+}
+
+/**
+ * Gets the string version of the protection level enum.
+ *
+ * @param level the level.
+ * @param names which DOS's names to use, from {@link Trsdos.protectionNames}.
+ */
+export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, names: TrsdosProtectionNames): string {
+    let useTrsdos6Names: boolean;
+    switch (names) {
+        case TrsdosProtectionNames.LDOS:
+            useTrsdos6Names = false;
+            break;
+
+        case TrsdosProtectionNames.TRSDOS_6:
+            useTrsdos6Names = true;
+            break;
+
+        default:
+            assertNever(names);
     }
 
     switch (level) {
         case TrsdosProtectionLevel.FULL:
             return "FULL";
         case TrsdosProtectionLevel.REMOVE:
-            return useModel2Names ? "REMOVE" : "KILL";
+            return useTrsdos6Names ? "REMOVE" : "KILL";
         case TrsdosProtectionLevel.RENAME:
             return "RENAME";
         case TrsdosProtectionLevel.WRITE:
-            return useModel2Names ? "WRITE" : "UNUSED";
+            return useTrsdos6Names ? "WRITE" : "UNUSED";
         case TrsdosProtectionLevel.UPDATE:
-            return useModel2Names ? "UPDATE" : "WRITE";
+            return useTrsdos6Names ? "UPDATE" : "WRITE";
         case TrsdosProtectionLevel.READ:
             return "READ";
         case TrsdosProtectionLevel.EXEC:
@@ -501,6 +586,66 @@ export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, vers
         default:
             return "UNKNOWN";
     }
+}
+
+/**
+ * Every protection level that a DOS names and lets the user choose, in numeric order, so the names can
+ * be listed. This leaves out level 3 on the LDOS names, which LDOS reserves.
+ *
+ * @param names which DOS's names to use.
+ */
+export function trsdosProtectionLevels(names: TrsdosProtectionNames): TrsdosProtectionLevel[] {
+    const levels = [
+        TrsdosProtectionLevel.FULL, TrsdosProtectionLevel.REMOVE, TrsdosProtectionLevel.RENAME,
+        TrsdosProtectionLevel.WRITE, TrsdosProtectionLevel.UPDATE, TrsdosProtectionLevel.READ,
+        TrsdosProtectionLevel.EXEC, TrsdosProtectionLevel.NO_ACCESS,
+    ];
+    switch (names) {
+        case TrsdosProtectionNames.LDOS:
+            return levels.filter(level => level !== TrsdosProtectionLevel.WRITE);
+
+        case TrsdosProtectionNames.TRSDOS_6:
+            return levels;
+
+        default:
+            assertNever(names);
+    }
+}
+
+/**
+ * Find the protection level that the user named, ignoring case. This accepts the names that
+ * {@link trsdosProtectionLevelToString} gives (and "UNUSED" for level 3 on the LDOS names), a few
+ * spellings the manuals use ("ALL" for FULL; "KILL" and "REMOVE" for level 1 under either set of names;
+ * "EXECUTE"; "NONE", "NO ACCESS" and "NO-ACCESS" for level 7), and the numbers 0-7.
+ *
+ * @param text what the user typed.
+ * @param names which DOS's names to use, which decide what 3 and 4 mean.
+ * @returns the level, or undefined if the text is none.
+ */
+export function parseTrsdosProtectionLevel(text: string, names: TrsdosProtectionNames): TrsdosProtectionLevel | undefined {
+    const upperText = text.trim().toUpperCase();
+    if (/^[0-7]$/.test(upperText)) {
+        return Number(upperText) as TrsdosProtectionLevel;
+    }
+
+    if (upperText === "ALL") {
+        return TrsdosProtectionLevel.FULL;
+    }
+    if (upperText === "KILL" || upperText === "REMOVE") {
+        return TrsdosProtectionLevel.REMOVE;
+    }
+    if (upperText === "EXECUTE") {
+        return TrsdosProtectionLevel.EXEC;
+    }
+    if (upperText === "NONE" || upperText === "NO ACCESS" || upperText === "NO-ACCESS") {
+        return TrsdosProtectionLevel.NO_ACCESS;
+    }
+    for (let number = 0; number < 8; number++) {
+        if (trsdosProtectionLevelToString(number as TrsdosProtectionLevel, names) === upperText) {
+            return number as TrsdosProtectionLevel;
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -969,11 +1114,14 @@ export class TrsdosDirEntry implements FloppyDirEntry {
 
     /**
      * Get a user-visible string version of the flags.
+     *
+     * @param protectionNames which DOS's names to use for the protection level, from
+     * {@link Trsdos.protectionNames}.
      */
-    public getFlagsString(): string {
+    public getFlagsString(protectionNames: TrsdosProtectionNames): string {
         const parts: string[] = [];
 
-        parts.push(trsdosProtectionLevelToString(this.getProtectionLevel(), this.version));
+        parts.push(trsdosProtectionLevelToString(this.getProtectionLevel(), protectionNames));
         if (this.isHidden()) {
             parts.push("hidden");
         }
@@ -1332,6 +1480,15 @@ function writeTrsdos23Extents(binary: Uint8Array, extents: AllocatedExtent[]): v
 }
 
 /**
+ * Pack a time stamp into the 16-bit value that LDOS 5.3 and LS-DOS 6.3 keep in directory bytes 18-19,
+ * high byte first: the hour in bits 15-11, the minute in bits 10-5, and the year minus 1980 in bits 4-0.
+ * See "Time stamps (LDOS 5.3 and LS-DOS 6.3)" in FLOPPY_FORMATS.md.
+ */
+export function trsdos23TimeStampToWord(timeStamp: Trsdos23TimeStamp): number {
+    return (timeStamp.hour << 11) | (timeStamp.minute << 5) | ((timeStamp.year - 1980) & 0x1F);
+}
+
+/**
  * Build the 32 bytes of a primary directory entry in the TRSDOS 2.3 family, the inverse of what
  * {@link decodeDirEntry} reads. Unused extents are 0xFF, and so is the link when there's none. The
  * fields aren't interpreted, only checked to fit their bytes.
@@ -1367,8 +1524,7 @@ export function encodeTrsdos23DirEntry(fields: Trsdos23DirEntryFields): Uint8Arr
         binary[19] = fields.accessPassword >> 8;
     } else {
         // Big endian, unlike the password.
-        const {hour, minute, year} = fields.timeStamp;
-        const stamp = (hour << 11) | (minute << 5) | ((year - 1980) & 0x1F);
+        const stamp = trsdos23TimeStampToWord(fields.timeStamp);
         binary[18] = stamp >> 8;
         binary[19] = stamp & 0xFF;
     }
@@ -1563,6 +1719,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * because it reads the system files.
      */
     public readonly nameAndVersion: string;
+    /**
+     * Which DOS's names this disk's DOS gives the protection levels, from the layout and
+     * {@link nameAndVersion}. Disks whose DOS we don't know get the LDOS names on the 2.3 layout.
+     */
+    public readonly protectionNames: TrsdosProtectionNames;
 
     constructor(
         disk: DiskVolume,
@@ -1603,6 +1764,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.gatPassesStrictCheck = typeof gatInfo !== "string" &&
             gatInfo.hasValidHighBits(this.granulesPerLump, this.lumpCount, this.version);
         this.nameAndVersion = this.evaluation.score >= 0 ? this.decodeNameAndVersion() : UNKNOWN_DOS;
+        this.protectionNames = trsdosProtectionNamesFor(this.version, this.nameAndVersion);
     }
 
     /**

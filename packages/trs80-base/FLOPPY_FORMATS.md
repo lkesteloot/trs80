@@ -1117,7 +1117,7 @@ Where they differ:
 - **Byte 0 bit 5**: a partitioned data set in TRSDOS 6, reserved elsewhere.
 - **Protection levels.** LDOS 5.1 and NEWDOS/80: 0 full, 1 kill, 2 rename, 3
   unused, 4 write, 5 read, 6 execute, 7 none. TRSDOS 6 renumbers the middle: 1
-  remove, 3 write, 4 update.
+  remove, 3 write, 4 update. See "Protection level names" below.
 - **Extents.** TRSDOS 2.3 counts bytes 22-31 as five "granule allocation pairs",
   the fifth being the link. NEWDOS/80 allows 0xFE or 0xFF in the first byte of any
   pair: 0xFF ends the list, 0xFE means the next byte is an FXDE's DEC. It limits
@@ -1157,6 +1157,49 @@ Where they differ:
 - **Deleting a file** clears bit 4 of byte 0 and the HIT byte and frees the
   granules, leaving the rest of the entry intact. A HIT byte of 0 means a free
   slot in every one of these DOSes.
+
+### Protection level names
+
+The low three bits of byte 0 hold a level, 0 to 7, that limits what a user can do without the
+update password. The DOSes agree on the numbers and disagree on the names of 1, 3 and 4. A
+higher number allows less:
+
+    level   LDOS 5.1       TRSDOS 6 / LS-DOS 6   what the user may do
+    0       FULL (ALL)     FULL                  everything
+    1       KILL           REMOVE                everything except ATTRIB
+    2       RENAME         RENAME                rename, write, read, execute
+    3       reserved       WRITE                 write, read, execute
+    4       WRITE          UPDATE                read, write without extending, execute
+    5       READ           READ                  read, execute
+    6       EXEC           EXEC                  execute only
+    7       NO ACCESS      NO ACCESS (NONE)      nothing without the password
+
+What the books say:
+
+- **LDOS 5.1.** The directory-record description numbers them 0 FULL, 1 KILL, 2 RENAME,
+  3 reserved for LDOS use, 4 WRITE, 5 READ, 6 EXEC, 7 NO ACCESS (retyped edition PDF page 210,
+  scan PDF page 301). ATTRIB's table of levels (retyped PDF page 25, scan PDF pages 32-33)
+  lists EXEC, READ, WRIT, NAME, KILL and ALL or FULL, with no UPDATE and no NONE.
+- **TRSDOS 6.** The Model 4 Technical Reference's directory entry (software part, PDF page
+  16) and FCB (PDF page 25) number them 0 FULL, 1 REMOVE, 2 RENAME, 3 WRITE, 4 UPDATE,
+  5 READ, 6 EXECUTE, 7 NO ACCESS, and so does *The Programmer's Guide to TRSDOS Version 6*
+  (PDF page 55).
+- **The 1992 LDOS & LS-DOS Reference Manual** describes both in one ATTRIB table (PDF pages
+  54-55): NONE, EXEC, READ, UPDATE, WRITE, RENAME, then "Kill" marked [V5] and "ReMove"
+  marked [V6], then ALL and FULL. UPDATE allows writing without extending the file. Its DIR
+  listing shows the level in two letters on LDOS 5 (NO, EX, RE, UP, WR, NA, KI, FU) and four on
+  version 6 (PDF page 134). So **level 7 is NONE in the ATTRIB command**, though the technical
+  references call it NO ACCESS; we show NO_ACCESS everywhere and accept both spellings.
+- **NEWDOS/80 2.0.** ATTRIB's PROT= (manual PDF pages 17-18) names 0 FULL, 1 KILL, 2 RENAME
+  (or NAME), 4 WRITE, 5 READ, 6 EXEC and 7 LOCK (no access except through the system's overlay
+  loader), and says nothing of 3. So NEWDOS/80 follows LDOS 5's numbers.
+- **TRSDOS 2.3.** *TRSDOS 2.3 Decoded* (PDF page 168, on ATTRIB's PROT=) says the assignable
+  levels are KILL, RENAME, WRITE, READ and EXEC.
+
+`TrsdosProtectionNames` has two sets: the LDOS one (every 2.3-layout DOS that isn't TRSDOS 6 or
+LS-DOS 6) and TRSDOS 6's (also used for TRSDOS 1.3 and 2.7; see "Protection level names on TRSDOS
+1.3 and 2.7" in `FLOPPY_TODO.md`). `Trsdos.protectionNames` picks the set from the DOS name. The
+`attr` command accepts level 3 on LDOS-named disks by number or as UNUSED, though LDOS reserves it.
 
 ## Time stamps (LDOS 5.3 and LS-DOS 6.3)
 
@@ -2517,49 +2560,6 @@ them with their ID-field position.
     because an error stops the disk from being opened at all.
 - **Not IMD:** one `.IMD` is really an HxC `HXCMFM` file.
 
-## Hard disk images
-
-Hard disks are `HardDisk` objects, not `FloppyDisk`s: a flat array of 256-byte
-sectors addressed by (cylinder, head, sector), with none of a floppy's recording
-details. Each partition is a `HardDiskPartition`, which implements `DiskVolume`
-(the part of a floppy that the TRSDOS decoder uses), so the same `Trsdos` class
-reads floppies and partitions. LDOS 5, LS-DOS 6 and DOSPLUS 3 partitions are read.
-Everything below was measured on the images in `disks/hard/`, and agrees with *The
-Programmer's Guide to TRSDOS Version 6* (`TRSDOS/`), the drive control table (DCT)
-in section 4.2, PDF pages 32-35.
-
-**Why not a subclass of `FloppyDisk`:**
-- A `FloppyDisk` models a floppy's recording: density, CRCs, data marks, sector
-  sizes, mixed geometry and `formatTrack()`, with a `SectorInfo` for every
-  sector, which would be 262,144 meaningless objects for a 64 MB disk.
-- The emulator's floppy controller accepts any `FloppyDisk`, and a hard disk
-  belongs on a different controller (the WD1010, below).
-- A hard disk isn't one file system but several partitions, whose layout lives
-  in the driver's configuration, so the unit a decoder reads is a partition.
-
-The decoders only use a small part of a floppy, so that part is the `DiskVolume`
-interface, and only `Trsdos` uses it so far. Every reference we looked at made
-the same split: Matthew Reed's tools (`~/others/matthew-reed-tools`) have
-`THardImage` beside `TFloppyImage`, and trsfs and trs80gp have `hd_image*.cpp`
-beside `fd_image*.cpp`.
-
-**References for hard disks:**
-- Matthew Reed's HDV1 spec, <https://www.trs-80.com/sub-tips-file-formats.htm#HDV1>.
-- George Phillips' xfile (<https://48k.ca/xfile.html>, public, with source): its
-  `hd_image_*.cpp` read HDV1, HDV2, DREM and `.emu` images. They're the same files
-  as trsfs's (`~/others/trsfs`, Peter Phillips' private reader) and close to
-  trs80gp's `lib/` (`~/others/trs80gp`).
-- Matthew Reed's tools (`~/others/matthew-reed-tools`): `DiskImage/hdv1.cpp`,
-  `hdv2.cpp`, and `FileSystem/LDOS.cpp`, whose partition walk and hard disk GAT
-  handling were the model for ours; also `NEWDOS80.cpp`, which reads NEWDOS/80
-  hard disks.
-- FreHD's source (GPL, <http://www.vecoven.com/trs80/trs80.html>, release 2.14 and
-  github.com/fvecoven/FreHDv1): the PIC firmware's `trs_hard.c` (opening an image,
-  the header, sector addressing), `trs_extra.c` (its extra commands) and the Z80
-  boot ROM's `frehd.inc` (ports, and the auto-boot DOS codes).
-- Tandy and LSI's LS-DOS 6.3 hard disk drivers and formatter, in Pete's Model II
-  archive (github.com/pski/model2archive, `Other/I_III_4/MAD Soft/LS-DOS 6.3.x
-  Source Code/LS-DOS-6.3.0-tree/trshard/`): `trshd6.asm`, `hdwd6a.asm`,
 ## Track layouts by DOS
 
 What each DOS's FORMAT writes, as `TrackLayout.ts` reproduces it. Measured on the
@@ -2616,6 +2616,49 @@ The MFM sync (three A1 before every mark) follows the ID sync and data sync zero
   from the HFE), and everything about two-sided TRSDOS 1.3 and 2.3 disks. The Model I
   LDOS system disk's cylinder 0 is single density on a double-density disk.
 
+## Hard disk images
+
+Hard disks are `HardDisk` objects, not `FloppyDisk`s: a flat array of 256-byte
+sectors addressed by (cylinder, head, sector), with none of a floppy's recording
+details. Each partition is a `HardDiskPartition`, which implements `DiskVolume`
+(the part of a floppy that the TRSDOS decoder uses), so the same `Trsdos` class
+reads floppies and partitions. LDOS 5, LS-DOS 6 and DOSPLUS 3 partitions are read.
+Everything below was measured on the images in `disks/hard/`, and agrees with *The
+Programmer's Guide to TRSDOS Version 6* (`TRSDOS/`), the drive control table (DCT)
+in section 4.2, PDF pages 32-35.
+
+**Why not a subclass of `FloppyDisk`:**
+- A `FloppyDisk` models a floppy's recording: density, CRCs, data marks, sector
+  sizes, mixed geometry and `formatTrack()`, with a `SectorInfo` for every
+  sector, which would be 262,144 meaningless objects for a 64 MB disk.
+- The emulator's floppy controller accepts any `FloppyDisk`, and a hard disk
+  belongs on a different controller (the WD1010, below).
+- A hard disk isn't one file system but several partitions, whose layout lives
+  in the driver's configuration, so the unit a decoder reads is a partition.
+
+The decoders only use a small part of a floppy, so that part is the `DiskVolume`
+interface, and only `Trsdos` uses it so far. Every reference we looked at made
+the same split: Matthew Reed's tools (`~/others/matthew-reed-tools`) have
+`THardImage` beside `TFloppyImage`, and trsfs and trs80gp have `hd_image*.cpp`
+beside `fd_image*.cpp`.
+
+**References for hard disks:**
+- Matthew Reed's HDV1 spec, <https://www.trs-80.com/sub-tips-file-formats.htm#HDV1>.
+- George Phillips' xfile (<https://48k.ca/xfile.html>, public, with source): its
+  `hd_image_*.cpp` read HDV1, HDV2, DREM and `.emu` images. They're the same files
+  as trsfs's (`~/others/trsfs`, Peter Phillips' private reader) and close to
+  trs80gp's `lib/` (`~/others/trs80gp`).
+- Matthew Reed's tools (`~/others/matthew-reed-tools`): `DiskImage/hdv1.cpp`,
+  `hdv2.cpp`, and `FileSystem/LDOS.cpp`, whose partition walk and hard disk GAT
+  handling were the model for ours; also `NEWDOS80.cpp`, which reads NEWDOS/80
+  hard disks.
+- FreHD's source (GPL, <http://www.vecoven.com/trs80/trs80.html>, release 2.14 and
+  github.com/fvecoven/FreHDv1): the PIC firmware's `trs_hard.c` (opening an image,
+  the header, sector addressing), `trs_extra.c` (its extra commands) and the Z80
+  boot ROM's `frehd.inc` (ports, and the auto-boot DOS codes).
+- Tandy and LSI's LS-DOS 6.3 hard disk drivers and formatter, in Pete's Model II
+  archive (github.com/pski/model2archive, `Other/I_III_4/MAD Soft/LS-DOS 6.3.x
+  Source Code/LS-DOS-6.3.0-tree/trshard/`): `trshd6.asm`, `hdwd6a.asm`,
   `hdform6.asm` and others. They show the WD1010 ports and how the DCT's head
   offset and DBLBIT are used.
 
