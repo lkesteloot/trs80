@@ -1,6 +1,13 @@
 import {describe, expect, it} from "vitest";
-import {Density, type FloppyDecodeOptions, SectorPosition, TrackPosition} from "./FloppyDisk.js";
-import {decodeImdFloppyDisk, ImdMode, imdModeToString} from "./ImdFloppyDisk.js";
+import {
+    Density,
+    type FloppyDecodeOptions,
+    FloppyWrite,
+    type SectorData,
+    SectorPosition,
+    TrackPosition,
+} from "./FloppyDisk.js";
+import {decodeImdFloppyDisk, type ImdFloppyDisk, ImdMode, imdModeToString} from "./ImdFloppyDisk.js";
 import {decodeTrs80File} from "./Trs80FileDecoder.js";
 
 // Require a boot track, as when guessing the format.
@@ -153,6 +160,69 @@ function toArray(data: Uint8Array | undefined): number[] | undefined {
     return data === undefined ? undefined : Array.from(data);
 }
 
+/**
+ * A sector's contents as the tests compare them: the data, the deleted flag, and the data error flag.
+ */
+interface SectorSnapshot {
+    data: number[];
+    deleted: boolean;
+    crcError: boolean;
+}
+
+/**
+ * Read every sector of the disk, keyed by physical position.
+ */
+function snapshotDisk(disk: ImdFloppyDisk): Map<string,SectorSnapshot> {
+    const snapshot = new Map<string,SectorSnapshot>();
+    for (const sectorInfo of disk.getGeometry().sectorInfos) {
+        const sectorData = disk.readSector(sectorInfo.sectorPosition);
+        if (sectorData !== undefined) {
+            snapshot.set(sectorInfo.sectorPosition.key(), {
+                data: Array.from(sectorData.data),
+                deleted: sectorData.deleted,
+                crcError: sectorData.crcError,
+            });
+        }
+    }
+    return snapshot;
+}
+
+/**
+ * Apply writes in order to a copy of a file, extending it when a write runs past the end, the
+ * way the emulator's patcher does.
+ */
+function applyWrites(original: Uint8Array, writes: FloppyWrite[]): Uint8Array {
+    let file = Uint8Array.from(original);
+    for (const write of writes) {
+        const end = write.offset + write.data.length;
+        if (end > file.length) {
+            const bigger = new Uint8Array(end);
+            bigger.set(file);
+            file = bigger;
+        }
+        file.set(write.data, write.offset);
+    }
+    return file;
+}
+
+/**
+ * Decode an IMD file that we expect to be valid.
+ */
+function mustDecode(binary: Uint8Array): ImdFloppyDisk {
+    const disk = decodeImdFloppyDisk(binary, STRICT);
+    expect(disk).not.to.equal(undefined);
+    return disk!;
+}
+
+/**
+ * Read a sector that we expect to exist, as a copy that the test may change.
+ */
+function mustRead(disk: ImdFloppyDisk, cylinder: number, side: number, sector: number): SectorData {
+    const sectorData = disk.readSector(SectorPosition.make(cylinder, side, sector));
+    expect(sectorData).not.to.equal(undefined);
+    return sectorData!;
+}
+
 describe("ImdFloppyDisk", () => {
     it("reads a Model II style disk", () => {
         const tracks = buildModel2Tracks(3);
@@ -197,7 +267,7 @@ describe("ImdFloppyDisk", () => {
         expect(disk?.readSector(SectorPosition.make(3, 0, 1))).to.equal(undefined);
         expect(disk?.hasSectorData(SectorPosition.make(2, 0, 26))).to.equal(true);
         expect(disk?.hasSectorData(SectorPosition.make(2, 0, 27))).to.equal(false);
-        expect(disk?.isWriteProtected()).to.equal(true);
+        expect(disk?.isWriteProtected()).to.equal(false);
     });
 
     it("returns a copy of the sector data", () => {
@@ -554,5 +624,167 @@ describe("ImdFloppyDisk", () => {
 
         expect(file.className).to.equal("ImdFloppyDisk");
         expect(decodeTrs80File(new Uint8Array(50), {filename: "X.IMD"}).className).to.equal("RawBinaryFile");
+    });
+
+    describe("writing", () => {
+        it("changes a normal record in place", () => {
+            const original = buildImd(buildModel2Tracks(3));
+            const disk = mustDecode(Uint8Array.from(original));
+            const before = snapshotDisk(disk);
+            const events: FloppyWrite[] = [];
+            disk.onWrite.subscribe(write => events.push(write));
+
+            const sectorData = mustRead(disk, 2, 0, 10);
+            sectorData.data = Uint8Array.from({length: 256}, (_, i) => (i*3 + 1) & 0xFF);
+            disk.writeSector(SectorPosition.make(2, 0, 10), sectorData);
+
+            expect(disk.binary.length).to.equal(original.length);
+            expect(toArray(disk.readSector(SectorPosition.make(2, 0, 10))?.data)).to.eql(toArray(sectorData.data));
+            expect(events.length).to.equal(1);
+            expect(events[0].data.length).to.equal(257);
+
+            // Nothing else changed, in the object or in the re-decoded file.
+            const expected = new Map(before);
+            expected.set("2:0:10", {data: toArray(sectorData.data)!, deleted: false, crcError: false});
+            expect(snapshotDisk(disk)).to.eql(expected);
+            expect(snapshotDisk(mustDecode(disk.binary))).to.eql(expected);
+            expect(toArray(applyWrites(original, events))).to.eql(toArray(disk.binary));
+        });
+
+        it("writes uniform data to a compressed record without growing the file", () => {
+            const tracks = buildModel2Tracks(3);
+            tracks[2].records[4] = compressed(0xE5);
+            const original = buildImd(tracks);
+            const disk = mustDecode(Uint8Array.from(original));
+            const events: FloppyWrite[] = [];
+            disk.onWrite.subscribe(write => events.push(write));
+
+            const sectorData = mustRead(disk, 2, 0, 5);
+            sectorData.data = new Uint8Array(256).fill(0x42);
+            disk.writeSector(SectorPosition.make(2, 0, 5), sectorData);
+
+            expect(disk.binary.length).to.equal(original.length);
+            expect(events.length).to.equal(1);
+            expect(events[0].data.length).to.equal(2);
+            expect(toArray(events[0].data)).to.eql([COMPRESSED, 0x42]);
+            expect(toArray(disk.readSector(SectorPosition.make(2, 0, 5))?.data)).to.eql(new Array(256).fill(0x42));
+            expect(toArray(mustDecode(disk.binary).readSector(SectorPosition.make(2, 0, 5))?.data))
+                .to.eql(new Array(256).fill(0x42));
+            const texts = disk.annotations.map(annotation => annotation.text);
+            expect(texts).to.include("Cylinder 2, side 0, sector 5, compressed (fill 0x42)");
+        });
+
+        it("keeps a normal record normal even if the new data is uniform", () => {
+            const original = buildImd(buildModel2Tracks(2));
+            const disk = mustDecode(Uint8Array.from(original));
+
+            const sectorData = mustRead(disk, 1, 0, 3);
+            sectorData.data = new Uint8Array(256).fill(0x00);
+            disk.writeSector(SectorPosition.make(1, 0, 3), sectorData);
+
+            expect(disk.binary.length).to.equal(original.length);
+            expect(toArray(mustDecode(disk.binary).readSector(SectorPosition.make(1, 0, 3))?.data))
+                .to.eql(new Array(256).fill(0x00));
+        });
+
+        it("grows the file when a compressed record gets varied data", () => {
+            const tracks = buildModel2Tracks(4);
+            tracks[1].records[6] = compressed(0xE5);
+            tracks[2].records[9] = compressed(0x00, COMPRESSED_DELETED);
+            const original = buildImd(tracks);
+            const disk = mustDecode(Uint8Array.from(original));
+            const before = snapshotDisk(disk);
+            const events: FloppyWrite[] = [];
+            disk.onWrite.subscribe(write => events.push(write));
+
+            // Grow the first, then the second, which is now at a different offset.
+            const first = mustRead(disk, 1, 0, 7);
+            first.data = Uint8Array.from({length: 256}, (_, i) => (i*5) & 0xFF);
+            disk.writeSector(SectorPosition.make(1, 0, 7), first);
+            expect(disk.binary.length).to.equal(original.length + 255);
+
+            const second = mustRead(disk, 2, 0, 10);
+            expect(second.deleted).to.equal(true);
+            second.data = Uint8Array.from({length: 256}, (_, i) => (i*7 + 2) & 0xFF);
+            disk.writeSector(SectorPosition.make(2, 0, 10), second);
+            expect(disk.binary.length).to.equal(original.length + 510);
+
+            const expected = new Map(before);
+            expected.set("1:0:7", {data: toArray(first.data)!, deleted: false, crcError: false});
+            expected.set("2:0:10", {data: toArray(second.data)!, deleted: true, crcError: false});
+            expect(snapshotDisk(disk)).to.eql(expected);
+            expect(snapshotDisk(mustDecode(disk.binary))).to.eql(expected);
+
+            // The geometry is unchanged, and the annotations match the new file.
+            expect(disk.getGeometry().sectorInfos.length).to.equal(before.size);
+            let previousEnd = 0;
+            for (const annotation of disk.annotations) {
+                expect(annotation.begin).to.be.at.least(previousEnd);
+                previousEnd = annotation.end;
+            }
+            expect(previousEnd).to.equal(disk.binary.length);
+            const reDecodedTexts = mustDecode(disk.binary).annotations.map(annotation => annotation.text);
+            expect(disk.annotations.map(annotation => annotation.text)).to.eql(reDecodedTexts);
+
+            // The events reproduce the file, including the growth.
+            expect(events.length).to.equal(2);
+            expect(toArray(applyWrites(original, events))).to.eql(toArray(disk.binary));
+        });
+
+        it("round-trips a deleted mark and clears a data error", () => {
+            const tracks = [makeTrack(ImdMode.MFM_250_KBPS, 0, 0, 4, 0)];
+            tracks[0].records[0] = normal(128, 1, NORMAL_ERROR);
+            tracks[0].records[1] = compressed(0x11, COMPRESSED_ERROR);
+            const original = buildImd(tracks);
+            const disk = mustDecode(Uint8Array.from(original));
+            const events: FloppyWrite[] = [];
+            disk.onWrite.subscribe(write => events.push(write));
+
+            // Sector 1 had a data error, and becomes a good deleted sector.
+            const sector1 = mustRead(disk, 0, 0, 1);
+            expect(sector1.crcError).to.equal(true);
+            sector1.deleted = true;
+            sector1.crcError = true;
+            disk.writeSector(SectorPosition.make(0, 0, 1), sector1);
+            for (const d of [disk, mustDecode(disk.binary)]) {
+                const read = mustRead(d, 0, 0, 1);
+                expect(read.deleted).to.equal(true);
+                expect(read.crcError).to.equal(false);
+                expect(toArray(read.data)).to.eql(toArray(sector1.data));
+            }
+
+            // Sector 2 was compressed with a data error. Uniform data keeps it compressed but good.
+            const sector2 = mustRead(disk, 0, 0, 2);
+            expect(sector2.crcError).to.equal(true);
+            disk.writeSector(SectorPosition.make(0, 0, 2), sector2);
+            expect(mustRead(disk, 0, 0, 2).crcError).to.equal(false);
+            expect(mustDecode(disk.binary).readSector(SectorPosition.make(0, 0, 2))?.crcError).to.equal(false);
+            expect(disk.binary.length).to.equal(original.length);
+
+            // Sector 1 goes back to normal.
+            const again = mustRead(disk, 0, 0, 1);
+            again.deleted = false;
+            disk.writeSector(SectorPosition.make(0, 0, 1), again);
+            expect(mustRead(disk, 0, 0, 1).deleted).to.equal(false);
+            expect(mustDecode(disk.binary).readSector(SectorPosition.make(0, 0, 1))?.deleted).to.equal(false);
+            expect(toArray(applyWrites(original, events))).to.eql(toArray(disk.binary));
+        });
+
+        it("refuses bad writes", () => {
+            const disk = mustDecode(buildImd(buildModel2Tracks(2)));
+            const sectorData = mustRead(disk, 1, 0, 1);
+            const before = snapshotDisk(disk);
+
+            const wrongSize = mustRead(disk, 1, 0, 1);
+            wrongSize.data = new Uint8Array(128);
+            expect(() => disk.writeSector(SectorPosition.make(1, 0, 1), wrongSize)).to.throw();
+            expect(() => disk.writeSector(SectorPosition.make(1, 0, 99), sectorData)).to.throw();
+
+            disk.setMountedWriteProtected(true);
+            expect(disk.isWriteProtected()).to.equal(true);
+            sectorData.data = new Uint8Array(256).fill(1);
+            expect(() => disk.writeSector(SectorPosition.make(1, 0, 1), sectorData)).to.throw();
+            expect(snapshotDisk(disk)).to.eql(before);
+        });
     });
 });

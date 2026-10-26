@@ -975,4 +975,17 @@ export abstract class FloppyDisk extends AbstractTrs80File implements DiskVolume
         this.bootTrackText = undefined;
         this.onWrite.dispatch(floppyWrite);
     }
+
+    /**
+     * Replace the in-memory binary with one of a different length, for a format whose records
+     * grow when written. The caller has built the new binary, and "floppyWrite" describes the change
+     * to the old file: its data runs from its offset to the end of the new binary, so applying it
+     * to the old file at that offset (which extends the file) gives the new file. This is valid only
+     * if the new binary is at least as long as the old one and the bytes before the offset are the same.
+     */
+    protected replaceBinary(newBinary: Uint8Array, floppyWrite: FloppyWrite): void {
+        this.setBinary(newBinary);
+        this.bootTrackText = undefined;
+        this.onWrite.dispatch(floppyWrite);
+    }
 }

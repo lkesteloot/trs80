@@ -10,9 +10,10 @@ export abstract class AbstractTrs80File {
     public abstract readonly className: string;
 
     /**
-     * The binary representing just this one file.
+     * The current binary, which is the same as the one passed to the constructor unless a
+     * subclass replaces it with setBinary().
      */
-    public readonly binary: Uint8Array;
+    private currentBinary: Uint8Array;
 
     /**
      * Error encountered while decoding, if any.
@@ -25,9 +26,24 @@ export abstract class AbstractTrs80File {
     public readonly annotations: ProgramAnnotation[];
 
     protected constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
-        this.binary = binary;
+        this.currentBinary = binary;
         this.error = error;
         this.annotations = annotations;
+    }
+
+    /**
+     * The binary representing just this one file.
+     */
+    public get binary(): Uint8Array {
+        return this.currentBinary;
+    }
+
+    /**
+     * Make a different array the file's binary, for a subclass that edits itself in a way that
+     * changes the binary's length.
+     */
+    protected setBinary(binary: Uint8Array): void {
+        this.currentBinary = binary;
     }
 
     /**

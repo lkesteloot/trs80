@@ -4,7 +4,9 @@
  * interleave), which sectors have a deleted data mark or a data error, and the cylinder and
  * side numbers in each sector's ID field when they differ from where the sector physically is.
  * It doesn't keep gaps, the raw ID fields, or CRC bytes. Sectors whose data is one repeated
- * byte are stored compressed. Reading only; we don't write IMD.
+ * byte are stored compressed. Writing a sector changes its record in place, except that a compressed
+ * record whose sector gets non-uniform data grows by the size of the sector, which moves the rest of the
+ * file. We never shrink a record, so the file only grows.
  *
  * Damaged files are read up to the first thing that can't be read, and the rest is ignored
  * with a warning, not an error, because an error would stop the disk from being opened at
@@ -21,12 +23,14 @@ import {
     FloppyDisk,
     FloppyDecodeOptions,
     FloppyDiskGeometry,
+    FloppyWrite,
     SectorData,
     SectorInfo,
     SectorPosition,
     TrackPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {isDeletedDataAddressMark} from "./TrackBytes.js";
 import {TRS80_BASE_LOGGER} from "z80-logger";
 
 // Print extra debug stuff.
@@ -108,6 +112,12 @@ function imdModeFromByte(byte: number): ImdMode | undefined {
     return byte >= ImdMode.FM_500_KBPS && byte <= ImdMode.MFM_250_KBPS ? byte as ImdMode : undefined;
 }
 
+// The record types we write: normal or compressed data, with a good or deleted data address mark.
+const RECORD_TYPE_NORMAL = 1;
+const RECORD_TYPE_COMPRESSED = 2;
+const RECORD_TYPE_NORMAL_DELETED = 3;
+const RECORD_TYPE_COMPRESSED_DELETED = 4;
+
 /**
  * What a sector data record's type byte says about the sector.
  */
@@ -153,13 +163,16 @@ export class ImdSector {
     public readonly size: number;
     // The record's type byte, 0 to 8.
     public readonly recordType: number;
+    // The offset in the binary of the record's type byte.
+    public readonly recordOffset: number;
     // For a normal (not compressed) sector, the offset in the binary of its data.
     public readonly dataOffset: number | undefined;
     // For a compressed sector, the byte that fills it.
     public readonly fillByte: number | undefined;
 
     constructor(sectorNumber: number, cylinder: number, side: number, density: Density, size: number,
-                recordType: number, dataOffset: number | undefined, fillByte: number | undefined) {
+                recordType: number, recordOffset: number, dataOffset: number | undefined,
+                fillByte: number | undefined) {
 
         this.sectorNumber = sectorNumber;
         this.cylinder = cylinder;
@@ -167,6 +180,7 @@ export class ImdSector {
         this.density = density;
         this.size = size;
         this.recordType = recordType;
+        this.recordOffset = recordOffset;
         this.dataOffset = dataOffset;
         this.fillByte = fillByte;
     }
@@ -229,11 +243,11 @@ export class ImdFloppyDisk extends FloppyDisk {
     /**
      * Why and where we stopped reading the file before its end, if we did.
      */
-    public readonly ignoredData: string | undefined;
+    public ignoredData: string | undefined;
     // Set by computeGeometry(), which the decoder calls.
     private geometry: FloppyDiskGeometry | undefined = undefined;
-    // Only the tracks that have sectors.
-    public readonly tracks: ImdTrack[];
+    // Only the tracks that have sectors. Replaced when a write moves the sector records.
+    public tracks: ImdTrack[];
     // Map from the key of a physical sector position to the sector. We only include sectors with
     // data, to match the geometry. If a sector number repeats on a track, the last one wins.
     private readonly sectorMap = new Map<string,ImdSector>();
@@ -245,8 +259,15 @@ export class ImdFloppyDisk extends FloppyDisk {
         this.comment = comment;
         this.ignoredData = ignoredData;
         this.tracks = tracks;
+        this.computeSectorMap();
+    }
 
-        for (const track of tracks) {
+    /**
+     * Fill the map from physical sector position to sector, from the current tracks.
+     */
+    private computeSectorMap(): void {
+        this.sectorMap.clear();
+        for (const track of this.tracks) {
             for (const sector of track.sectors) {
                 if (sector.hasData()) {
                     this.sectorMap.set(new SectorPosition(track.trackPosition, sector.sectorNumber).key(), sector);
@@ -316,6 +337,92 @@ export class ImdFloppyDisk extends FloppyDisk {
         sectorData.crcError = sector.hasDataError();
         // IMD doesn't record the exact data address mark nor the CRC bytes, so leave those undefined.
         return sectorData;
+    }
+
+    /**
+     * IMD has no write-protect flag, so all we have is the mounted state.
+     */
+    public isWriteProtected(): boolean {
+        return this.mountedWriteProtected;
+    }
+
+    /**
+     * Write a sector's data and set its record to normal or deleted according to the data address
+     * mark, never to a data-error type, since a write gives the sector a good CRC. A sector whose
+     * record is normal gets its data in place. A compressed record stays compressed if the new data is
+     * one repeated byte, and is otherwise replaced by a normal one, which moves the rest of the file.
+     * That change is reported as a single write from the record to the new end of the file. After any
+     * change to the records, the tracks and annotations are read again from the new binary.
+     *
+     * @throws if the disk is mounted write-protected, has no such sector, or the data is the wrong size.
+     */
+    public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
+        if (this.isWriteProtected()) {
+            throw new Error("tried to write sector to IMD but it's write protected");
+        }
+
+        const sector = this.sectorMap.get(sectorPosition.key());
+        if (sector === undefined) {
+            throw new Error(`IMD has no sector ${sectorPosition.key()} to write`);
+        }
+        if (sector.size !== data.data.length) {
+            throw new Error(`size mismatch when writing sector (${sector.size} vs. ${data.data.length})`);
+        }
+
+        const deleted = isDeletedDataAddressMark(data.getDataAddressMark());
+        const fillByte = data.data[0];
+        const uniform = data.data.every(b => b === fillByte);
+        const oldCompressed = sector.isCompressed();
+        // We only compress what was already compressed, so that a record never shrinks.
+        const newCompressed = oldCompressed && uniform;
+        let recordType: number;
+        if (newCompressed) {
+            recordType = deleted ? RECORD_TYPE_COMPRESSED_DELETED : RECORD_TYPE_COMPRESSED;
+        } else {
+            recordType = deleted ? RECORD_TYPE_NORMAL_DELETED : RECORD_TYPE_NORMAL;
+        }
+
+        const record = new Uint8Array(1 + (newCompressed ? 1 : sector.size));
+        record[0] = recordType;
+        if (newCompressed) {
+            record[1] = fillByte;
+        } else {
+            record.set(data.data, 1);
+        }
+
+        const recordOffset = sector.recordOffset;
+        if (oldCompressed && !newCompressed) {
+            // The record grows from two bytes, so the rest of the file moves up.
+            const oldRecordEnd = recordOffset + 2;
+            const newBinary = new Uint8Array(recordOffset + record.length + this.binary.length - oldRecordEnd);
+            newBinary.set(this.binary.subarray(0, recordOffset), 0);
+            newBinary.set(record, recordOffset);
+            newBinary.set(this.binary.subarray(oldRecordEnd), recordOffset + record.length);
+            this.replaceBinary(newBinary, new FloppyWrite(newBinary.slice(recordOffset), recordOffset));
+        } else {
+            this.write(new FloppyWrite(record, recordOffset));
+        }
+
+        // The structure only needs reading again if something besides the data of a normal record changed.
+        if (oldCompressed || recordType !== sector.recordType) {
+            this.rebuildFromBinary();
+        }
+    }
+
+    /**
+     * Read the tracks and annotations again from the binary, after a write has changed the records
+     * or moved them. The geometry doesn't change, because the sectors' numbers, densities, and sizes
+     * don't.
+     */
+    private rebuildFromBinary(): void {
+        const headerEnd = this.binary.indexOf(HEADER_END_BYTE);
+        const body = readBody(this.binary, headerEnd);
+        this.tracks = body.tracks;
+        this.ignoredData = body.ignoredData;
+        // The annotations array is shared with callers, so update it in place.
+        this.annotations.length = 0;
+        this.annotations.push(... body.annotations);
+        this.computeSectorMap();
     }
 }
 
@@ -479,7 +586,7 @@ function readTrack(binary: Uint8Array, start: number, annotations: ProgramAnnota
         const dataOffset = typeInfo.hasData && !typeInfo.compressed ? recordStart + 1 : undefined;
         const fillByte = typeInfo.hasData && typeInfo.compressed ? binary[recordStart + 1] : undefined;
         const sector = new ImdSector(sectorNumber, sectorCylinder, sectorSide, density, size, recordType,
-            dataOffset, fillByte);
+            recordStart, dataOffset, fillByte);
         sectors.push(sector);
 
         // Annotate the record.
@@ -516,27 +623,25 @@ function readTrack(binary: Uint8Array, start: number, annotations: ProgramAnnota
 }
 
 /**
- * Decode an ImageDisk (IMD) file. Damaged files are accepted if their good part has a boot track
- * (or any track, if the boot track isn't required): we stop reading at the first thing we can't
- * read, keep what we have, and log a warning.
- *
- * @param options how strict to be; see FloppyDecodeOptions.
+ * What's in an IMD file after its header.
  */
-export function decodeImdFloppyDisk(binary: Uint8Array, options: FloppyDecodeOptions): ImdFloppyDisk | undefined {
-    // The header ends with a 0x1A byte. We don't look for the "IMD " signature because some
-    // files have had that line edited out.
-    const headerEnd = binary.indexOf(HEADER_END_BYTE);
-    if (headerEnd < 0) {
-        if (DEBUG) console.log("IMD: no end of header");
-        return undefined;
-    }
+interface ImdBody {
+    // Annotations for the whole file, in order.
+    annotations: ProgramAnnotation[];
+    tracks: ImdTrack[];
+    // Number of track headers that were valid, even if the track was cut short.
+    validTrackCount: number;
+    // Why and where we stopped reading, if we did.
+    ignoredData: string | undefined;
+}
 
-    let comment = "";
-    for (let i = 0; i < headerEnd; i++) {
-        comment += String.fromCharCode(binary[i]);
-    }
-    comment = comment.replace(/\r\n?/g, "\n");
-
+/**
+ * Read the header annotations and all the tracks of an IMD file, stopping at the first thing
+ * we can't read.
+ *
+ * @param headerEnd the offset of the 0x1A byte that ends the header.
+ */
+function readBody(binary: Uint8Array, headerEnd: number): ImdBody {
     const annotations: ProgramAnnotation[] = [];
     annotations.push(new ProgramAnnotation("Header comment", 0, headerEnd));
     annotations.push(new ProgramAnnotation("End of header", headerEnd, headerEnd + 1));
@@ -558,11 +663,6 @@ export function decodeImdFloppyDisk(binary: Uint8Array, options: FloppyDecodeOpt
         failure = result.failure;
     }
 
-    if (validTrackCount === 0) {
-        if (DEBUG) console.log("IMD: no valid tracks");
-        return undefined;
-    }
-
     let ignoredData: string | undefined = undefined;
     if (failure !== undefined) {
         const ignoredCount = binary.length - failure.offset;
@@ -571,7 +671,38 @@ export function decodeImdFloppyDisk(binary: Uint8Array, options: FloppyDecodeOpt
         annotations.push(new ProgramAnnotation("Ignored data", failure.offset, binary.length));
     }
 
-    const floppyDisk = new ImdFloppyDisk(binary, annotations, comment, ignoredData, tracks);
+    return {annotations, tracks, validTrackCount, ignoredData};
+}
+
+/**
+ * Decode an ImageDisk (IMD) file. Damaged files are accepted if their good part has a boot track
+ * (or any track, if the boot track isn't required): we stop reading at the first thing we can't
+ * read, keep what we have, and log a warning.
+ *
+ * @param options how strict to be; see FloppyDecodeOptions.
+ */
+export function decodeImdFloppyDisk(binary: Uint8Array, options: FloppyDecodeOptions): ImdFloppyDisk | undefined {
+    // The header ends with a 0x1A byte. We don't look for the "IMD " signature because some
+    // files have had that line edited out.
+    const headerEnd = binary.indexOf(HEADER_END_BYTE);
+    if (headerEnd < 0) {
+        if (DEBUG) console.log("IMD: no end of header");
+        return undefined;
+    }
+
+    let comment = "";
+    for (let i = 0; i < headerEnd; i++) {
+        comment += String.fromCharCode(binary[i]);
+    }
+    comment = comment.replace(/\r\n?/g, "\n");
+
+    const body = readBody(binary, headerEnd);
+    if (body.validTrackCount === 0) {
+        if (DEBUG) console.log("IMD: no valid tracks");
+        return undefined;
+    }
+
+    const floppyDisk = new ImdFloppyDisk(binary, body.annotations, comment, body.ignoredData, body.tracks);
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
         if (DEBUG) console.log("IMD: No sectors");
@@ -582,8 +713,8 @@ export function decodeImdFloppyDisk(binary: Uint8Array, options: FloppyDecodeOpt
         return undefined;
     }
 
-    if (ignoredData !== undefined) {
-        TRS80_BASE_LOGGER.warn("IMD: " + ignoredData);
+    if (body.ignoredData !== undefined) {
+        TRS80_BASE_LOGGER.warn("IMD: " + body.ignoredData);
     }
 
     return floppyDisk;
