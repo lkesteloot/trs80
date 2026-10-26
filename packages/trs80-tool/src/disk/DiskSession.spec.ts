@@ -1,10 +1,13 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {Density, SectorData, SectorPosition} from "trs80-base";
+import {
+    Density, SectorData, SectorPosition, type TrsdosCheckResult, TrsdosWriteAccess, type TrsdosWriteBlocker,
+    TrsdosWriteBlockerKind, type TrsdosWriteGate,
+} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
-import {DiskSession} from "./DiskSession.js";
+import {decideWrite, DiskSession, DiskWritePurpose} from "./DiskSession.js";
 
 const BYTES_PER_SECTOR = 256;
 const SECTORS_PER_CYLINDER = 10;
@@ -157,5 +160,85 @@ describe("DiskSession saving", () => {
         session.abort();
         expect(printedLines(() => session.saveAndReport(true))).to.eql([]);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
+    });
+});
+
+/**
+ * A gate with the given access and blockers, for testing decideWrite(), which doesn't look at the rest.
+ */
+function makeGate(access: TrsdosWriteAccess, blockers: TrsdosWriteBlocker[]): TrsdosWriteGate {
+    return { access, blockers, check: {} as TrsdosCheckResult, ruleSet: undefined };
+}
+
+/**
+ * A blocker of the given kind, with a message made from its forceability.
+ */
+function makeBlocker(kind: TrsdosWriteBlockerKind, message: string, forceable: boolean): TrsdosWriteBlocker {
+    return { kind, message, forceable };
+}
+
+describe("decideWrite", () => {
+    const damage = makeBlocker(TrsdosWriteBlockerKind.DAMAGE, "It is damaged.", true);
+    const doubt = makeBlocker(TrsdosWriteBlockerKind.LAYOUT_DOUBT, "The layout is doubtful.", true);
+    const unknownDos = makeBlocker(TrsdosWriteBlockerKind.UNKNOWN_DOS, "Name the DOS with --dos.", false);
+
+    it("refuses a file system that isn't TRSDOS-family", () => {
+        expect(decideWrite(undefined, "CP/M 2.2", DiskWritePurpose.CHANGE, false)).to.eql({
+            allowed: false, error: "Writing CP/M 2.2 disks isn't supported.",
+        });
+        // Forcing can't help.
+        expect(decideWrite(undefined, "CP/M 2.2", DiskWritePurpose.REPAIR, true).allowed).to.equal(false);
+    });
+
+    it("allows a writable disk without a warning", () => {
+        const gate = makeGate(TrsdosWriteAccess.WRITABLE, []);
+        for (const force of [false, true]) {
+            expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, force)).to.eql({
+                allowed: true, warning: undefined,
+            });
+        }
+    });
+
+    it("allows only a repair on a damaged disk", () => {
+        const gate = makeGate(TrsdosWriteAccess.REPAIR_ONLY, [damage]);
+        expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.REPAIR, false)).to.eql({
+            allowed: true, warning: undefined,
+        });
+        expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, false)).to.eql({
+            allowed: false, error: "Can't write to this disk: It is damaged. Use --force to write anyway.",
+        });
+    });
+
+    it("lets --force write despite forceable blockers, with a warning", () => {
+        const gate = makeGate(TrsdosWriteAccess.READ_ONLY, [doubt, damage]);
+        expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, true)).to.eql({
+            allowed: true, warning: "Writing anyway (--force): The layout is doubtful. It is damaged.",
+        });
+        expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, false)).to.eql({
+            allowed: false,
+            error: "Can't write to this disk: The layout is doubtful. It is damaged. Use --force to write anyway.",
+        });
+    });
+
+    it("lets --force write a damaged disk for an ordinary change", () => {
+        const gate = makeGate(TrsdosWriteAccess.REPAIR_ONLY, [damage]);
+        expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, true)).to.eql({
+            allowed: true, warning: "Writing anyway (--force): It is damaged.",
+        });
+    });
+
+    it("never forces past a blocker that isn't forceable, and doesn't mention --force", () => {
+        const gate = makeGate(TrsdosWriteAccess.READ_ONLY, [unknownDos, doubt]);
+        for (const force of [false, true]) {
+            const decision = decideWrite(gate, "TRSDOS 2.3", DiskWritePurpose.CHANGE, force);
+            expect(decision).to.eql({
+                allowed: false, error: "Can't write to this disk: Name the DOS with --dos. The layout is doubtful.",
+            });
+        }
+    });
+
+    it("doesn't let a repair past a read-only disk", () => {
+        const gate = makeGate(TrsdosWriteAccess.READ_ONLY, [doubt]);
+        expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.REPAIR, false).allowed).to.equal(false);
     });
 });

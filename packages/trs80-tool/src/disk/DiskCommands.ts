@@ -1,4 +1,4 @@
-import {TrsdosFindingSeverity, trsdosFindingKindSeverity} from "trs80-base";
+import {TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString} from "trs80-base";
 import {assertNever} from "z80-base";
 import {printDirListing} from "../dir.js";
 import {extractInputFiles, extractOneInputFile} from "../extract.js";
@@ -44,6 +44,16 @@ export const DISK_GLOBAL_OPTIONS: DiskOptionSpec[] = [
         name: "--dry-run",
         valueName: undefined,
         description: "write nothing, and say whether the disk would have changed (overrides --output)",
+    },
+    {
+        name: "--dos",
+        valueName: "NAME",
+        description: "write by the rules of this DOS, if the disk doesn't say or says otherwise (\"help dos\" lists them)",
+    },
+    {
+        name: "--force",
+        valueName: undefined,
+        description: "write even where the disk looks doubtful, if the doubt can be overridden",
     },
 ];
 
@@ -175,6 +185,10 @@ const INFO_COMMAND: DiskCommand = {
             console.log("    Free space: unknown (" + granuleMap + ")");
         } else if (granuleMap !== undefined) {
             console.log("    Free space: " + session.getFreeSpaceText());
+        }
+        const gate = session.getWriteGate();
+        if (gate !== undefined) {
+            console.log("    Rules: " + (gate.ruleSet === undefined ? "unknown" : trsdosRuleSetToString(gate.ruleSet)));
         }
         const readOnlyReason = session.getReadOnlyReason();
         console.log("    Writable: " + (readOnlyReason === undefined ? "yes" : "no. " + readOnlyReason));

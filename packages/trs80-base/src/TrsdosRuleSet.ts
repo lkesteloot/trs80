@@ -89,16 +89,27 @@ export const TRSDOS_RULE_SETS: readonly TrsdosRuleSet[] = [
     TrsdosRuleSet.DOSPLUS,
 ];
 
-// Other names that parseTrsdosRuleSet() accepts, besides the CLI names. LDOS 6 and LS-DOS 6 are
-// what some people call TRSDOS 6.
-const RULE_SET_ALIASES = new Map<string, TrsdosRuleSet>([
-    ["ldos-6", TrsdosRuleSet.TRSDOS_6],
-    ["ls-dos-6", TrsdosRuleSet.TRSDOS_6],
-]);
+/**
+ * Other names that parseTrsdosRuleSet() accepts for a rule set, besides its CLI name. LDOS 6 and
+ * LS-DOS 6 are what some people call TRSDOS 6.
+ */
+export function trsdosRuleSetAliases(ruleSet: TrsdosRuleSet): string[] {
+    switch (ruleSet) {
+        case TrsdosRuleSet.TRSDOS_2:
+        case TrsdosRuleSet.TRSDOS_1_3:
+        case TrsdosRuleSet.LDOS_5:
+        case TrsdosRuleSet.DOSPLUS:
+            return [];
+        case TrsdosRuleSet.TRSDOS_6:
+            return ["ldos-6", "ls-dos-6"];
+        default:
+            assertNever(ruleSet);
+    }
+}
 
 /**
  * Find the rule set that the user named, ignoring case. This accepts the names from
- * {@link trsdosRuleSetCliName} and the aliases "ldos-6" and "ls-dos-6" for TRSDOS 6.
+ * {@link trsdosRuleSetCliName} and those from {@link trsdosRuleSetAliases}.
  *
  * @param name what the user typed, such as the value of --dos.
  * @returns the rule set, or undefined if the name isn't one.
@@ -110,7 +121,7 @@ export function parseTrsdosRuleSet(name: string): TrsdosRuleSet | undefined {
             return ruleSet;
         }
     }
-    return RULE_SET_ALIASES.get(lowerName);
+    return TRSDOS_RULE_SETS.find(ruleSet => trsdosRuleSetAliases(ruleSet).includes(lowerName));
 }
 
 /**

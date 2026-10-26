@@ -1,9 +1,10 @@
 import fs from "fs";
 import {
     decodeFloppyFileSystem, decodeTrs80File, evaluateTrsdosWriteGate, FloppyDisk, isFloppy, isHardDisk, type KnownFloppyFileSystem, Trsdos,
-    TrsdosGranuleMap, TrsdosWriteAccess, type TrsdosWriteGate,
+    TrsdosGranuleMap, type TrsdosRuleSet, TrsdosWriteAccess, type TrsdosWriteGate,
 } from "trs80-base";
 import {assertNever} from "z80-base";
+import {colors} from "../colors.js";
 import {floppyInputFiles, InputFile} from "../InputFile.js";
 import {pluralizeWithCount, ToolError, writeFileAtomically} from "../utils.js";
 
@@ -15,6 +16,75 @@ function freeKilobytesText(granuleMap: TrsdosGranuleMap): string {
 }
 
 /**
+ * Why a command wants to write to the disk, which decides whether a damaged file system blocks it.
+ */
+export enum DiskWritePurpose {
+    /** An ordinary change, such as removing or adding a file. Damage blocks it. */
+    CHANGE,
+
+    /** A repair of damage, which may write to a file system that is damaged but otherwise sound. */
+    REPAIR,
+}
+
+/**
+ * The result of {@link decideWrite}.
+ */
+export type DiskWriteDecision =
+    /** The write may go ahead. The warning, if any, should be shown first (the write was forced). */
+    { allowed: true, warning: string | undefined } |
+    /** The write may not go ahead, for the reason in the error message. */
+    { allowed: false, error: string };
+
+/**
+ * Decide whether a command may write to a disk. (Exported for tests.)
+ *
+ * @param gate the write gate of the disk's TRSDOS-family file system, or undefined if the file
+ * system is some other family.
+ * @param fileSystemName the name and version of the disk's file system, for the message when the gate is
+ * undefined.
+ * @param purpose why the command wants to write.
+ * @param force whether the user gave --force, which overrides every blocker that is forceable.
+ */
+export function decideWrite(gate: TrsdosWriteGate | undefined, fileSystemName: string, purpose: DiskWritePurpose,
+                            force: boolean): DiskWriteDecision {
+
+    if (gate === undefined) {
+        return { allowed: false, error: "Writing " + fileSystemName + " disks isn't supported." };
+    }
+
+    switch (gate.access) {
+        case TrsdosWriteAccess.WRITABLE:
+            return { allowed: true, warning: undefined };
+        case TrsdosWriteAccess.REPAIR_ONLY:
+            switch (purpose) {
+                case DiskWritePurpose.REPAIR:
+                    return { allowed: true, warning: undefined };
+                case DiskWritePurpose.CHANGE:
+                    break;
+                default:
+                    assertNever(purpose);
+            }
+            break;
+        case TrsdosWriteAccess.READ_ONLY:
+            break;
+        default:
+            assertNever(gate.access);
+    }
+
+    // Something stands in the way. Only --force can get past it, and only if all of it can be forced.
+    const messages = gate.blockers.map(blocker => blocker.message).join(" ");
+    const allForceable = gate.blockers.every(blocker => blocker.forceable);
+    if (force && allForceable) {
+        return { allowed: true, warning: "Writing anyway (--force): " + messages };
+    }
+
+    return {
+        allowed: false,
+        error: "Can't write to this disk: " + messages + (allForceable ? " Use --force to write anyway." : ""),
+    };
+}
+
+/**
  * How a session saves its changes. These come from the global options of the "disk" command.
  */
 export interface DiskSessionOptions {
@@ -22,6 +92,10 @@ export interface DiskSessionOptions {
     outputPathname?: string | undefined;
     /** Whether to never write anything, which wins over outputPathname (--dry-run). */
     dryRun?: boolean | undefined;
+    /** The DOS whose rules to write by (--dos), or undefined to go by what the disk says. */
+    ruleSet?: TrsdosRuleSet | undefined;
+    /** Whether to write despite blockers that can be overridden (--force). */
+    force?: boolean | undefined;
 }
 
 /**
@@ -48,6 +122,12 @@ export class DiskSession {
     private changed = false;
     /** Whether abort() was called, so that nothing is saved. */
     private aborted = false;
+    /** The DOS rules the user named (--dos), or undefined. */
+    private readonly ruleSet: TrsdosRuleSet | undefined;
+    /** Whether the user allows overriding blockers (--force). */
+    private readonly force: boolean;
+    /** Whether requireWritable() has already shown the warning about forcing. */
+    private forceWarningShown = false;
 
     /**
      * Use DiskSession.open() instead.
@@ -60,6 +140,8 @@ export class DiskSession {
         this.fileSystem = fileSystem;
         this.savePathname = options.outputPathname ?? pathname;
         this.dryRun = options.dryRun ?? false;
+        this.ruleSet = options.ruleSet;
+        this.force = options.force ?? false;
         floppy.onWrite.subscribe(() => {
             this.changed = true;
         });
@@ -71,7 +153,8 @@ export class DiskSession {
      *
      * @param pathname the host pathname of the image.
      * @param options where and whether to save changes.
-     * @throws ToolError if the file can't be read, isn't a TRS-80 file we can decode, or isn't a floppy.
+     * @throws ToolError if the file can't be read, isn't a TRS-80 file we can decode, isn't a floppy, or
+     * if options.ruleSet is given and the file system isn't TRSDOS-family.
      */
     public static open(pathname: string, options: DiskSessionOptions = {}): DiskSession {
         let binary: Uint8Array;
@@ -92,7 +175,12 @@ export class DiskSession {
             throw new ToolError("Can't open \"" + pathname + "\": it's not a floppy image");
         }
 
-        return new DiskSession(pathname, trs80File, decodeFloppyFileSystem(trs80File), options);
+        const fileSystem = decodeFloppyFileSystem(trs80File);
+        if (options.ruleSet !== undefined && !(fileSystem instanceof Trsdos)) {
+            throw new ToolError("--dos only applies to TRSDOS-family disks");
+        }
+
+        return new DiskSession(pathname, trs80File, fileSystem, options);
     }
 
     /**
@@ -193,14 +281,14 @@ export class DiskSession {
     }
 
     /**
-     * Whether the TRSDOS-family file system on the disk is safe to write, and why not. It's computed on
-     * the first call and then kept.
+     * Whether the TRSDOS-family file system on the disk is safe to write, and why not, going by the rules of
+     * the DOS the user named (--dos) if any. It's computed on the first call and then kept.
      *
      * @returns the gate, or undefined if the disk has no file system or its file system isn't TRSDOS-family.
      */
     public getWriteGate(): TrsdosWriteGate | undefined {
         if (this.writeGate === null) {
-            this.writeGate = this.fileSystem instanceof Trsdos ? evaluateTrsdosWriteGate(this.fileSystem) : undefined;
+            this.writeGate = this.fileSystem instanceof Trsdos ? evaluateTrsdosWriteGate(this.fileSystem, this.ruleSet) : undefined;
         }
 
         return this.writeGate;
@@ -225,6 +313,28 @@ export class DiskSession {
                 return gate.blockers.map(blocker => blocker.message).join(" ");
             default:
                 assertNever(gate.access);
+        }
+    }
+
+    /**
+     * Check that a command may write to the disk, before it changes anything. With --force, blockers that
+     * can be overridden don't stop it, and a warning saying so is printed (the first time only).
+     *
+     * @param purpose why the command wants to write.
+     * @throws ToolError if the disk has no file system, or the write isn't allowed.
+     */
+    public requireWritable(purpose: DiskWritePurpose): void {
+        if (this.fileSystem === undefined) {
+            throw new ToolError("Can't find a DOS directory on \"" + this.pathname + "\"");
+        }
+
+        const decision = decideWrite(this.getWriteGate(), this.fileSystem.nameAndVersion, purpose, this.force);
+        if (!decision.allowed) {
+            throw new ToolError(decision.error);
+        }
+        if (decision.warning !== undefined && !this.forceWarningShown) {
+            console.log(colors.warning(decision.warning));
+            this.forceWarningShown = true;
         }
     }
 

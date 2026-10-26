@@ -1,5 +1,6 @@
 import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS, runDiskCommands} from "./DiskCommands.js";
 import {parseDiskCommandLine} from "./DiskCommandParser.js";
+import {parseDosName} from "./DiskHelp.js";
 import {DiskSession} from "./DiskSession.js";
 import {runDiskShell} from "./DiskShell.js";
 
@@ -22,9 +23,14 @@ export async function disk(words: string[]): Promise<void> {
     const { globalOptions, commands } = parseDiskCommandLine(words.slice(1), DISK_GLOBAL_OPTIONS,
         DISK_COMMANDS.map(c => c.spec));
 
+    const dosName = globalOptions.getString("--dos");
+    const ruleSet = dosName === undefined ? undefined : parseDosName(dosName);
+
     const session = DiskSession.open(pathname, {
         outputPathname: globalOptions.getString("--output"),
         dryRun: globalOptions.has("--dry-run"),
+        ruleSet,
+        force: globalOptions.has("--force"),
     });
 
     if (commands.length === 0) {
