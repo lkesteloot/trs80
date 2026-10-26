@@ -18,16 +18,14 @@ interface DosCase {
     dos: string;
     /** The name that the disk's decoded file system has. The decoder can't tell TRSDOS 2.3 from other 2.x. */
     nameAndVersion: string;
-    /** Whether the writer can add files to the DOS's disks (it can't yet for TRSDOS 1.3). */
-    canAdd: boolean;
 }
 
 const DOS_CASES: DosCase[] = [
-    {dos: "trsdos-2.3", nameAndVersion: "TRSDOS 2.x", canAdd: true},
-    {dos: "trsdos-1.3", nameAndVersion: "TRSDOS 1.x", canAdd: false},
-    {dos: "ldos-5.3", nameAndVersion: "LDOS 5.3", canAdd: true},
-    {dos: "trsdos-6.2", nameAndVersion: "TRSDOS 6.2", canAdd: true},
-    {dos: "lsdos-6.3", nameAndVersion: "LS-DOS 6.3", canAdd: true},
+    {dos: "trsdos-2.3", nameAndVersion: "TRSDOS 2.x"},
+    {dos: "trsdos-1.3", nameAndVersion: "TRSDOS 1.x"},
+    {dos: "ldos-5.3", nameAndVersion: "LDOS 5.3"},
+    {dos: "trsdos-6.2", nameAndVersion: "TRSDOS 6.2"},
+    {dos: "lsdos-6.3", nameAndVersion: "LS-DOS 6.3"},
 ];
 
 describe("disk create and format", () => {
@@ -108,27 +106,19 @@ describe("disk create and format", () => {
 
         it(`creates a ${dosCase.nameAndVersion} disk, then lists, checks, and adds a file in the same run`, async () => {
             const hostPathname = makeHostFile("data.bin", 3000);
-            const words = ["create", "--dos", dosCase.dos, ":", "dir", ":", "free", ":", "check"];
-            if (dosCase.canAdd) {
-                words.push(":", "add", hostPathname, "--as", "DATA/BIN", ":", "dir");
-            }
+            const words = ["create", "--dos", dosCase.dos, ":", "dir", ":", "free", ":", "check",
+                ":", "add", hostPathname, "--as", "DATA/BIN", ":", "dir"];
             const lines = await runDisk(...words);
             expect(lines.some(line => /^\d+ KB free \(\d+ granules? of [\d,]+ bytes( each)?\)$/.test(line))).to.eql(true);
             expect(lines).to.include("No files");
             expect(lines).to.include("Safe to write.");
             expect(lines.some(line => line.startsWith("Saved "))).to.eql(true);
 
-            if (dosCase.canAdd) {
-                expect(lines).to.include("Added DATA/BIN (3,000 bytes).");
-                const session = DiskSession.open(imagePathname);
-                expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
-                const inputFile = session.getInputFiles(false)[0];
-                expect(Array.from(inputFile.binary)).to.eql(Array.from(fs.readFileSync(hostPathname)));
-            } else {
-                // The writer doesn't write TRSDOS 1.3 disks yet, and says so.
-                const error = await runDiskExpectingError("add", hostPathname);
-                expect(error.message).to.eql("Adding files isn't supported yet on TRSDOS 1.3 disks");
-            }
+            expect(lines).to.include("Added DATA/BIN (3,000 bytes).");
+            const session = DiskSession.open(imagePathname);
+            expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
+            const inputFile = session.getInputFiles(false)[0];
+            expect(Array.from(inputFile.binary)).to.eql(Array.from(fs.readFileSync(hostPathname)));
         });
     }
 

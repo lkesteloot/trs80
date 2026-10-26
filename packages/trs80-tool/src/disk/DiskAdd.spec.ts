@@ -2,8 +2,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
-    CassetteSpeed, decodeTrs80File, encodeSystemProgram, makeTrsdos23TestDisk, parseBasicText, SystemProgramBuilder,
-    type TestDiskOptions, type TestFile, Trsdos,
+    CassetteSpeed, decodeTrs80File, encodeSystemProgram, formatTrsdosDataDisk, makeTrsdos23TestDisk, parseBasicText,
+    SystemProgramBuilder, type TestDiskOptions, type TestFile, Trsdos, TrsdosFormatDos,
 } from "trs80-base";
 import {binaryAsCasFile} from "trs80-cassette";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
@@ -466,5 +466,77 @@ describe("disk add", () => {
         const hostPathname = makeHostFile("a.dat", 5);
 
         await expect(runDisk("add", hostPathname, "--ascii", "--binary")).rejects.toThrow("not both");
+    });
+});
+
+describe("disk add on a TRSDOS 1.3 disk", () => {
+    let dir = "";
+    let imagePathname = "";
+
+    beforeEach(() => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), "trs80-tool-add13-"));
+        imagePathname = path.join(dir, "model3.dmk");
+        const blank = formatTrsdosDataDisk({dos: TrsdosFormatDos.TRSDOS_1_3, cylinders: 40, sides: 1});
+        if (typeof blank === "string") {
+            throw new Error(blank);
+        }
+        fs.writeFileSync(imagePathname, blank.binary);
+    });
+
+    afterEach(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    /**
+     * Run the "disk" command on the image with these words after the image, and return what it printed.
+     */
+    async function runDisk(...words: string[]): Promise<string[]> {
+        const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+        try {
+            await disk([imagePathname, ...words]);
+            return spy.mock.calls.map(args => args.join(" "));
+        } finally {
+            spy.mockRestore();
+        }
+    }
+
+    it("adds files of several sizes, lists them, and extracts them back exactly", async () => {
+        const sizes = [0, 255, 256, 257, 5000];
+        const contents = sizes.map((size, i) => {
+            const bytes = new Uint8Array(size);
+            for (let j = 0; j < size; j++) {
+                bytes[j] = (j*7 + (j >> 8)*13 + i*31) & 0xFF;
+            }
+            return bytes;
+        });
+        const hostPathnames = sizes.map((size, i) => {
+            const pathname = path.join(dir, "F" + size + ".dat");
+            fs.writeFileSync(pathname, contents[i]);
+            return pathname;
+        });
+
+        const lines = await runDisk("add", ...hostPathnames);
+        expect(lines[0]).to.equal("Added F0/DAT (0 bytes).");
+        expect(lines[lines.length - 1]).to.equal("Saved " + imagePathname + ".");
+        // The check has only a note about the boot granule, which no file claims on a data disk.
+        const checkLines = await runDisk("check");
+        expect(checkLines[checkLines.length - 1]).to.equal("Safe to write.");
+        expect(checkLines.some(line => /problem|damage|error/i.test(line))).to.equal(false);
+
+        const listing = await runDisk("dir");
+        for (const size of sizes) {
+            expect(listing.some(line => line.includes("F" + size + ".DAT"))).to.equal(true);
+        }
+
+        const outDir = path.join(dir, "out");
+        await runDisk("extract", "*", "--out-dir", outDir);
+        sizes.forEach((size, i) => {
+            expect(new Uint8Array(fs.readFileSync(path.join(outDir, "F" + size + ".DAT")))).to.eql(contents[i]);
+        });
+
+        // Remove one and add another in the same run.
+        await runDisk("rm", "F257/DAT", ":", "add", hostPathnames[0], "--as", "EMPTY/DAT");
+        expect(DiskSession.open(imagePathname).getInputFiles(false).map(f => f.filename))
+            .to.have.members(["F0.DAT", "F255.DAT", "F256.DAT", "F5000.DAT", "EMPTY.DAT"]);
     });
 });

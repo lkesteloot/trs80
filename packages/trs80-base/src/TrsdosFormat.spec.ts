@@ -209,10 +209,10 @@ describe("formatTrsdosDataDisk", () => {
             const explicitGate = evaluateTrsdosWriteGate(blankTrsdos, ruleSet);
             expect(explicitGate.access).to.eql(TrsdosWriteAccess.WRITABLE);
 
-            // The writer doesn't write the TRSDOS 1.3 layout yet. Adding a file to an 80-cylinder disk
-            // is slow, so only the largest disk of the DOS that writes the most (LS-DOS 6.3) does it.
+            // Adding a file to an 80-cylinder disk is slow, so only the largest disk of the DOS that writes
+            // the most (LS-DOS 6.3) does it.
             const slowDisk = options.cylinders === 80 && !(options.dos === TrsdosFormatDos.LSDOS_6_3 && options.sides === 2);
-            if (version === TrsdosVersion.V1_3 || slowDisk) {
+            if (slowDisk) {
                 return;
             }
 

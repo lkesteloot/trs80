@@ -2,14 +2,16 @@ import {assertNever, toHexByte, word} from "z80-base";
 import type {SectorPosition} from "./FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
-    decodeDirEntry, decodeTrsdos, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry, hashForFilename,
-    hashTrsdosPassword, TRSDOS_BLANK_PASSWORD_HASH, type Trsdos, type Trsdos23TimeStamp, trsdos23TimeStampToWord,
+    decodeDirEntry, decodeTrsdos, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
+    hashForFilename, hashTrsdosPassword, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_13_EXTENTS_PER_ENTRY,
+    TRSDOS_BLANK_PASSWORD_HASH, type Trsdos, type Trsdos23TimeStamp, trsdos23TimeStampToWord,
     type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
 import {allocateGranules, type AllocatedExtent, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
 import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
+import {hashTrsdos13Password} from "./TrsdosFormat.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {
     formatTrsdosGatDate, GAT_AUTO_OFFSET, GAT_DATE_OFFSET, GAT_NAME_OFFSET, GAT_PASSWORD_OFFSET, GAT_TEXT_LENGTH,
@@ -58,6 +60,13 @@ const PROTECTION_LEVEL_MASK = 0x07;
 const BYTE1_KEPT_BITS = 0xE0;
 
 /**
+ * Byte 1 of a TRSDOS 1.3 entry: the bits above the month nibble, which {@link TrsdosWriter.setAttributes} and
+ * {@link TrsdosWriter.replaceFile} keep when they change the date. TRSDOS 1.3 doesn't use them (byte 1 is the
+ * month), but an entry may hold something there.
+ */
+const BYTE1_13_KEPT_BITS = 0xF0;
+
+/**
  * The offset in a directory entry of the 11 bytes of the file's name and extension.
  */
 const NAME_OFFSET = 5;
@@ -78,6 +87,12 @@ const SECTOR_SIZE = 256;
  */
 const FIRST_YEAR = 1980;
 const LAST_YEAR_WITHOUT_TIME_STAMP = 1987;
+
+/**
+ * The last year that TRSDOS 1.3's DATE command accepts, since it takes two digits. (The entry's year byte holds
+ * more, but the DOS never writes them.)
+ */
+const LAST_YEAR_13 = 1999;
 
 /**
  * The last year that an LDOS 5.3 or LS-DOS 6.3 time stamp holds (five bits for the year, from 1980).
@@ -513,12 +528,20 @@ export class TrsdosWriter {
      * problems for the final comparison.
      *
      * @param trsdos the file system, whose disk must be a {@link SectorOverlay}.
-     * @param ruleSet the rules the disk is written under, from the write gate.
-     * @throws TrsdosWriteError if the disk isn't an overlay, or the GAT or HIT can't be read.
+     * @param ruleSet the rules the disk is written under, from the write gate. TRSDOS 1.3's rules go with
+     * the TRSDOS 1.3 layout and no other.
+     * @throws TrsdosWriteError if the disk isn't an overlay, the rules don't fit the layout, or the GAT or
+     * HIT can't be read.
      */
     constructor(trsdos: Trsdos, ruleSet: TrsdosRuleSet) {
         if (!(trsdos.disk instanceof SectorOverlay)) {
             throw new TrsdosWriteError("The disk must be a SectorOverlay to be written");
+        }
+        const is13Layout = trsdos.version === TrsdosVersion.V1_3;
+        const is13Rules = ruleSet === TrsdosRuleSet.TRSDOS_1_3;
+        if (is13Layout !== is13Rules) {
+            throw new TrsdosWriteError(`${trsdosRuleSetToString(ruleSet)} rules don't fit a disk in the ` +
+                `${is13Layout ? "TRSDOS 1.3" : "2.3 family"} layout`);
         }
         this.trsdos = trsdos;
         this.overlay = trsdos.disk;
@@ -584,8 +607,10 @@ export class TrsdosWriter {
      * The file's data reaches the overlay at {@link flush}, with the rest. A file in a granule
      * freed by {@link deleteFile} reuses it. If this throws, the writer is as it was before the call.
      *
-     * Only TRSDOS 2.3 layouts are supported for now. A file with more than four extents gets extended
-     * directory entries (FXDEs), each holding four more, chained from the primary entry.
+     * The 2.3 family's layouts and TRSDOS 1.3's are supported. In the 2.3 family a file with more than four extents
+     * gets extended directory entries (FXDEs), each holding four more, chained from the primary entry. TRSDOS 1.3 has
+     * no extended entries, so a file there is limited to the 13 extents of its one entry, and free space that is too
+     * fragmented to hold the file in 13 is refused.
      *
      * @param filename the file's name, which must not be on the disk already (case doesn't matter).
      * @param contents the file's bytes, which are stored as they are.
@@ -631,7 +656,7 @@ export class TrsdosWriter {
      * copies. Nothing is lost here, since nothing reaches the disk until {@link flush}. If this throws, the
      * writer is as it was before the call.
      *
-     * Only TRSDOS 2.3 layouts are supported for now. BOOT/SYS and DIR/SYS can't be replaced. The file is
+     * The 2.3 family's layouts and TRSDOS 1.3's are supported. BOOT/SYS and DIR/SYS can't be replaced. The file is
      * given as its primary entry from the writer's directory, so a file added in this writer can't be replaced.
      * After the call, {@link findFile} no longer finds the file, as with {@link deleteFile}, but
      * {@link addFile} refuses its name, and {@link renameFile} refuses to take it.
@@ -661,19 +686,6 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(`${name} can't be replaced: the DOS needs it where it is`);
         }
         this.checkFilesWritable("Replacing files");
-        switch (this.ruleSet) {
-            case TrsdosRuleSet.TRSDOS_2:
-            case TrsdosRuleSet.LDOS_5:
-            case TrsdosRuleSet.TRSDOS_6:
-            case TrsdosRuleSet.DOSPLUS:
-                break;
-
-            case TrsdosRuleSet.TRSDOS_1_3:
-                throw new TrsdosWriteError("Replacing files isn't supported yet on TRSDOS 1.3 disks");
-
-            default:
-                assertNever(this.ruleSet);
-        }
 
         // The old entry's bytes as they are now, which include any renaming or attribute change made
         // in this writer, so the name comes from there.
@@ -700,10 +712,8 @@ export class TrsdosWriter {
         const trsdos = this.trsdos;
         switch (trsdos.version) {
             case TrsdosVersion.V2_3:
-                break;
-
             case TrsdosVersion.V1_3:
-                throw new TrsdosWriteError(`${activity} isn't supported yet on TRSDOS 1.3 disks`);
+                break;
 
             case TrsdosVersion.V2_7:
                 throw new TrsdosWriteError(`${activity} isn't supported yet on TRSDOS 2.7 disks`);
@@ -713,6 +723,113 @@ export class TrsdosWriter {
         }
         if (trsdos.geometry.modalDataSectorSize !== SECTOR_SIZE) {
             throw new TrsdosWriteError(`${activity} isn't supported on disks with ${trsdos.geometry.modalDataSectorSize}-byte sectors`);
+        }
+    }
+
+    /**
+     * The hash that a directory entry holds for a blank password, which differs between the layouts: TRSDOS 1.3
+     * hashes with its own algorithm. See "Password hashes" in FLOPPY_FORMATS.md.
+     */
+    private blankPasswordHash(): number {
+        switch (this.trsdos.version) {
+            case TrsdosVersion.V2_3:
+            case TrsdosVersion.V2_7:
+                return TRSDOS_BLANK_PASSWORD_HASH;
+
+            case TrsdosVersion.V1_3:
+                return TRSDOS_13_BLANK_PASSWORD_HASH;
+
+            default:
+                assertNever(this.trsdos.version);
+        }
+    }
+
+    /**
+     * The most extents that a primary directory entry holds in this layout.
+     */
+    private extentsPerEntry(): number {
+        switch (this.trsdos.version) {
+            case TrsdosVersion.V2_3:
+            case TrsdosVersion.V2_7:
+                return EXTENTS_PER_ENTRY;
+
+            case TrsdosVersion.V1_3:
+                return TRSDOS_13_EXTENTS_PER_ENTRY;
+
+            default:
+                assertNever(this.trsdos.version);
+        }
+    }
+
+    /**
+     * The most extents that a file can have in this layout: unlimited in the 2.3 family as far as the allocator is
+     * concerned (extended entries hold the extents past the first entry's, and the directory slots decide whether they
+     * fit), and what the one entry holds in TRSDOS 1.3, which has no extended entries.
+     */
+    private maxExtentsPerFile(): number {
+        switch (this.trsdos.version) {
+            case TrsdosVersion.V2_3:
+            case TrsdosVersion.V2_7:
+                return Infinity;
+
+            case TrsdosVersion.V1_3:
+                return TRSDOS_13_EXTENTS_PER_ENTRY;
+
+            default:
+                assertNever(this.trsdos.version);
+        }
+    }
+
+    /**
+     * Build the bytes of a file's primary directory entry in this layout. The size rule is the layout's: the
+     * 2.3 family counts a partly filled last sector in the entry's sector count, while TRSDOS 1.3 counts only full
+     * sectors and adds the end-of-file offset to them (see "File sizes" in FLOPPY_FORMATS.md).
+     *
+     * @param rawFilename the name as it's stored, 11 characters.
+     * @param size the file's size in bytes.
+     * @param attributes the new entry's attributes.
+     * @param extents the extents that go in this entry.
+     * @param nextDec the DEC of the file's next entry, or undefined if it has none (always so in TRSDOS 1.3).
+     */
+    private encodePrimaryEntry(rawFilename: string, size: number, attributes: NewEntryAttributes,
+                               extents: AllocatedExtent[], nextDec: number | undefined): Uint8Array {
+
+        switch (this.trsdos.version) {
+            case TrsdosVersion.V2_3:
+                return encodeTrsdos23DirEntry({
+                    flags: attributes.flags,
+                    byte1: attributes.byte1,
+                    byte2: attributes.byte2,
+                    eofOffset: size % SECTOR_SIZE,
+                    lrl: attributes.lrl,
+                    rawFilename,
+                    updatePassword: attributes.updatePassword,
+                    accessPassword: attributes.accessPassword,
+                    timeStamp: attributes.timeStamp,
+                    sectorCount: Math.ceil(size/SECTOR_SIZE),
+                    extents,
+                    nextDec,
+                });
+
+            case TrsdosVersion.V1_3:
+                return encodeTrsdos13DirEntry({
+                    flags: attributes.flags,
+                    month: attributes.byte1,
+                    year: attributes.byte2,
+                    eofOffset: size % SECTOR_SIZE,
+                    lrl: attributes.lrl,
+                    rawFilename,
+                    updatePassword: attributes.updatePassword,
+                    accessPassword: attributes.accessPassword,
+                    sectorCount: Math.floor(size/SECTOR_SIZE),
+                    extents,
+                });
+
+            case TrsdosVersion.V2_7:
+                throw new TrsdosWriteError("Writing files isn't supported yet on TRSDOS 2.7 disks");
+
+            default:
+                assertNever(this.trsdos.version);
         }
     }
 
@@ -731,8 +848,8 @@ export class TrsdosWriter {
             byte1: datePart.byte1,
             byte2: datePart.byte2,
             lrl: 0,
-            updatePassword: TRSDOS_BLANK_PASSWORD_HASH,
-            accessPassword: TRSDOS_BLANK_PASSWORD_HASH,
+            updatePassword: this.blankPasswordHash(),
+            accessPassword: this.blankPasswordHash(),
             timeStamp: datePart.timeStamp,
             warning: datePart.warning,
             expected: undefined,
@@ -825,7 +942,22 @@ export class TrsdosWriter {
                 break;
 
             case TrsdosRuleSet.TRSDOS_1_3:
-                throw new TrsdosWriteError("Replacing files isn't supported yet on TRSDOS 1.3 disks");
+                // The month is the low nibble of byte 1 and the year minus 1900 is byte 2. Without a date in the
+                // options, the old date stays.
+                if (options.date !== undefined) {
+                    const date = options.date;
+                    const datePart = this.makeDateFields(date);
+                    byte1 = (oldBytes[1] & BYTE1_13_KEPT_BITS) | datePart.byte1;
+                    byte2 = datePart.byte2;
+                    expected.date = {
+                        month: date.getMonth() + 1,
+                        day: 0,
+                        year: date.getFullYear(),
+                        hour: undefined,
+                        minute: undefined,
+                    };
+                }
+                break;
 
             default:
                 assertNever(this.ruleSet);
@@ -901,10 +1033,12 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(`${name} is too big: a file can have at most 65,535 sectors`);
         }
         const neededGranules = Math.ceil(sectorCount/trsdos.sectorsPerGranule);
-        // Ask for any number of extents: the directory slots below decide whether they fit, and
-        // the allocator's choice doesn't depend on the limit.
+        // In the 2.3 family, ask for any number of extents: the directory slots below decide whether they fit
+        // (extended entries hold more), and the allocator's choice doesn't depend on the limit. TRSDOS 1.3 has no
+        // extended entries, so the one entry's 13 extents are all there are.
+        const maxExtents = this.maxExtentsPerFile();
         let extents = allocateGranules(this.freeGranules, trsdos.granulesPerLump, neededGranules,
-            maxGranulesPerExtent(trsdos.version), Infinity);
+            maxGranulesPerExtent(trsdos.version), maxExtents);
         if (typeof extents === "string" && replacing !== undefined) {
             // It doesn't fit beside the old copy. Try again with the old copy's granules free.
             const freeWithoutOld = this.freeGranules.slice();
@@ -912,7 +1046,7 @@ export class TrsdosWriter {
                 freeWithoutOld[index] = true;
             }
             extents = allocateGranules(freeWithoutOld, trsdos.granulesPerLump, neededGranules,
-                maxGranulesPerExtent(trsdos.version), Infinity);
+                maxGranulesPerExtent(trsdos.version), maxExtents);
             if (typeof extents !== "string") {
                 warnings.push(`${name} didn't fit beside its old copy, so the new copy was written over the old ` +
                     `copy's space`);
@@ -929,8 +1063,9 @@ export class TrsdosWriter {
         // holds the extents past the first four. Asking for them all at once reports a full directory
         // before anything changes.
         const extentGroups: AllocatedExtent[][] = [];
-        for (let i = 0; i < Math.max(extents.length, 1); i += EXTENTS_PER_ENTRY) {
-            extentGroups.push(extents.slice(i, i + EXTENTS_PER_ENTRY));
+        const extentsPerEntry = this.extentsPerEntry();
+        for (let i = 0; i < Math.max(extents.length, 1); i += extentsPerEntry) {
+            extentGroups.push(extents.slice(i, i + extentsPerEntry));
         }
         const extendedEntriesUnderstood = this.ruleSet !== TrsdosRuleSet.TRSDOS_2;
         if (extentGroups.length > 1 && !extendedEntriesUnderstood) {
@@ -972,20 +1107,7 @@ export class TrsdosWriter {
         const entries = extentGroups.map((group, i) => {
             const nextDec = i + 1 < decs.length ? decs[i + 1] : undefined;
             if (i === 0) {
-                return encodeTrsdos23DirEntry({
-                    flags: attributes.flags,
-                    byte1: attributes.byte1,
-                    byte2: attributes.byte2,
-                    eofOffset: size % SECTOR_SIZE,
-                    lrl: attributes.lrl,
-                    rawFilename,
-                    updatePassword: attributes.updatePassword,
-                    accessPassword: attributes.accessPassword,
-                    timeStamp: attributes.timeStamp,
-                    sectorCount,
-                    extents: group,
-                    nextDec,
-                });
+                return this.encodePrimaryEntry(rawFilename, size, attributes, group, nextDec);
             } else {
                 return encodeTrsdos23ExtendedDirEntry({prevDec: decs[i - 1], extents: group, nextDec});
             }
@@ -1079,8 +1201,18 @@ export class TrsdosWriter {
                 return {byte1, byte2, timeStamp, warning: undefined};
             }
 
-            case TrsdosRuleSet.TRSDOS_1_3:
-                throw new TrsdosWriteError("Adding files isn't supported yet on TRSDOS 1.3 disks");
+            case TrsdosRuleSet.TRSDOS_1_3: {
+                // The month is byte 1 and the year minus 1900 is byte 2, with no day. With no date both are zero.
+                if (date === undefined) {
+                    return {byte1: 0, byte2: 0, timeStamp: undefined, warning: undefined};
+                }
+                const year = date.getFullYear();
+                if (Number.isNaN(year) || year < FIRST_YEAR || year > LAST_YEAR_13) {
+                    throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
+                        `${Number.isNaN(year) ? "of that date" : year}; give a date from ${FIRST_YEAR} to ${LAST_YEAR_13}, or none`);
+                }
+                return {byte1: date.getMonth() + 1, byte2: year - 1900, timeStamp: undefined, warning: undefined};
+            }
 
             default:
                 assertNever(this.ruleSet);
@@ -1089,10 +1221,12 @@ export class TrsdosWriter {
 
     /**
      * Delete a file: clear the in-use bit of its primary entry and of each extended entry, clear their
-     * HIT bytes, and free the granules that only this file used. The rest of each entry stays, so
-     * that an undelete is possible. Nothing reaches the overlay until {@link flush}.
+     * HIT bytes, and free the granules that only this file used. In the 2.3 family the rest of each entry stays, so
+     * that an undelete is possible; TRSDOS 1.3's KILL zeroes the whole entry, so ours does too. Nothing reaches the
+     * overlay until {@link flush}.
      *
-     * Only TRSDOS 2.3 layouts are supported for now. BOOT/SYS and DIR/SYS can't be deleted.
+     * The 2.3 family's layouts and TRSDOS 1.3's are supported. BOOT/SYS and DIR/SYS can't be deleted, and neither
+     * can TRSDOS 1.3's system files, which have no directory entries.
      *
      * @param dirEntry the file's primary entry, from {@link findFile} or the writer's directory.
      * @throws TrsdosWriteError if the file can't be deleted.
@@ -1116,10 +1250,8 @@ export class TrsdosWriter {
 
         switch (this.trsdos.version) {
             case TrsdosVersion.V2_3:
-                break;
-
             case TrsdosVersion.V1_3:
-                throw new TrsdosWriteError("Deleting files isn't supported yet on TRSDOS 1.3 disks");
+                break;
 
             case TrsdosVersion.V2_7:
                 throw new TrsdosWriteError("Deleting files isn't supported yet on TRSDOS 2.7 disks");
@@ -1148,7 +1280,7 @@ export class TrsdosWriter {
      * file changes: not its granules, its dates or its attributes. Nothing reaches the overlay until
      * {@link flush}. If this throws, the writer is as it was before the call.
      *
-     * Only TRSDOS 2.3 layouts are supported for now. BOOT/SYS and DIR/SYS can't be renamed. Renaming a
+     * The 2.3 family's layouts and TRSDOS 1.3's are supported. BOOT/SYS and DIR/SYS can't be renamed. Renaming a
      * file to its own name changes nothing. A file with extended entries can't be renamed under TRSDOS 2.x
      * rules, whose extended entries have HIT bytes that we don't understand yet.
      *
@@ -1176,10 +1308,8 @@ export class TrsdosWriter {
 
         switch (this.trsdos.version) {
             case TrsdosVersion.V2_3:
-                break;
-
             case TrsdosVersion.V1_3:
-                throw new TrsdosWriteError("Renaming files isn't supported yet on TRSDOS 1.3 disks");
+                break;
 
             case TrsdosVersion.V2_7:
                 throw new TrsdosWriteError("Renaming files isn't supported yet on TRSDOS 2.7 disks");
@@ -1242,10 +1372,10 @@ export class TrsdosWriter {
      * entries have no attributes). Nothing reaches the overlay until {@link flush}. If this throws, the writer is
      * as it was before the call.
      *
-     * Only TRSDOS 2.3 layouts are supported for now, and not under TRSDOS 1.3 rules. BOOT/SYS and DIR/SYS can't
-     * change between system and user file, but their other attributes can change.
+     * The 2.3 family's layouts and TRSDOS 1.3's are supported. BOOT/SYS and DIR/SYS can't change between system and
+     * user file, but their other attributes can change. TRSDOS 1.3's passwords use its own hash.
      *
-     * Dates are only stored by the LDOS line. A date on another DOS is an error here, unlike in
+     * Dates are only stored by the LDOS line and by TRSDOS 1.3 (which keeps a month and a year, and no day). A date on another DOS is an error here, unlike in
      * {@link addFile}, since a date is all that the caller asked for. Changing the date keeps the entry's other
      * flag bits in byte 1, including the "modified since backup" bit: the file's contents didn't change, so
      * it doesn't need backing up again. On LDOS 5.3 and LS-DOS 6.3 disks the time stamp takes the place of the access
@@ -1275,10 +1405,8 @@ export class TrsdosWriter {
 
         switch (trsdos.version) {
             case TrsdosVersion.V2_3:
-                break;
-
             case TrsdosVersion.V1_3:
-                throw new TrsdosWriteError("Changing attributes isn't supported yet on TRSDOS 1.3 disks");
+                break;
 
             case TrsdosVersion.V2_7:
                 throw new TrsdosWriteError("Changing attributes isn't supported yet on TRSDOS 2.7 disks");
@@ -1291,10 +1419,8 @@ export class TrsdosWriter {
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6:
             case TrsdosRuleSet.DOSPLUS:
-                break;
-
             case TrsdosRuleSet.TRSDOS_1_3:
-                throw new TrsdosWriteError("Changing attributes isn't supported yet on TRSDOS 1.3 disks");
+                break;
 
             default:
                 assertNever(this.ruleSet);
@@ -1344,7 +1470,7 @@ export class TrsdosWriter {
 
         // The passwords, bytes 16-19.
         if (changes.updatePassword !== undefined) {
-            const hash = TrsdosWriter.hashPassword(changes.updatePassword);
+            const hash = this.hashPassword(changes.updatePassword);
             bytes[16] = hash & 0xFF;
             bytes[17] = hash >> 8;
         }
@@ -1354,7 +1480,7 @@ export class TrsdosWriter {
                 throw new TrsdosWriteError(`Can't set the access password of ${name}: entries on this disk keep ` +
                     `a time stamp where the access password would go`);
             }
-            const hash = TrsdosWriter.hashPassword(changes.accessPassword);
+            const hash = this.hashPassword(changes.accessPassword);
             bytes[18] = hash & 0xFF;
             bytes[19] = hash >> 8;
             expected.accessPassword = hash;
@@ -1370,10 +1496,10 @@ export class TrsdosWriter {
 
                 case TrsdosRuleSet.LDOS_5:
                 case TrsdosRuleSet.TRSDOS_6:
+                case TrsdosRuleSet.TRSDOS_1_3:
                     break;
 
                 default:
-                    // TRSDOS 1.3 rules were refused above.
                     assertNever(this.ruleSet);
             }
 
@@ -1395,13 +1521,16 @@ export class TrsdosWriter {
                     expected.accessPassword = TRSDOS_BLANK_PASSWORD_HASH;
                 }
             }
-            bytes[1] = (bytes[1] & BYTE1_KEPT_BITS) | (datePart.byte1 & ~BYTE1_KEPT_BITS & 0xFF);
+            const keptBits = this.ruleSet === TrsdosRuleSet.TRSDOS_1_3 ? BYTE1_13_KEPT_BITS : BYTE1_KEPT_BITS;
+            bytes[1] = (bytes[1] & keptBits) | (datePart.byte1 & ~keptBits & 0xFF);
             bytes[2] = datePart.byte2;
+            // No date reads as year 1980 in the LDOS line's entries and as 1900 in TRSDOS 1.3's.
+            const noDateYear = this.ruleSet === TrsdosRuleSet.TRSDOS_1_3 ? 1900 : FIRST_YEAR;
             expected.date = date === null ?
-                {month: 0, day: 0, year: FIRST_YEAR, hour: undefined, minute: undefined} :
+                {month: 0, day: 0, year: noDateYear, hour: undefined, minute: undefined} :
                 {
                     month: date.getMonth() + 1,
-                    day: date.getDate(),
+                    day: this.ruleSet === TrsdosRuleSet.TRSDOS_1_3 ? 0 : date.getDate(),
                     year: date.getFullYear(),
                     hour: datePart.timeStamp === undefined ? undefined : date.getHours(),
                     minute: datePart.timeStamp === undefined ? undefined : date.getMinutes(),
@@ -1431,7 +1560,9 @@ export class TrsdosWriter {
      * with the new values and the old values of the rest. If this throws, the writer is as it was before the call.
      * See "The GAT's name, date and AUTO command" in FLOPPY_FORMATS.md.
      *
-     * Only TRSDOS 2.3 layouts are supported for now, and not under TRSDOS 1.3 rules.
+     * The 2.3 family's layouts and TRSDOS 1.3's are supported. TRSDOS 1.3 keeps the same fields at the same offsets,
+     * hashes the master password its own way, and keeps its AUTO command in the GAT too (32 bytes at 0xE0: the
+     * command, a 0x0D, then spaces, as its AUTO command leaves them).
      *
      * - The name is trimmed, then must be one to eight printable ASCII characters. It's stored padded with
      *   spaces, and uppercased except on DOSPLUS, whose names are mixed case.
@@ -1453,11 +1584,8 @@ export class TrsdosWriter {
 
         switch (trsdos.version) {
             case TrsdosVersion.V2_3:
-                break;
-
             case TrsdosVersion.V1_3:
-                throw new TrsdosWriteError("Changing the disk's name, date, password and AUTO command isn't " +
-                    "supported yet on TRSDOS 1.3 disks");
+                break;
 
             case TrsdosVersion.V2_7:
                 throw new TrsdosWriteError("Changing the disk's name, date, password and AUTO command isn't " +
@@ -1471,11 +1599,8 @@ export class TrsdosWriter {
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6:
             case TrsdosRuleSet.DOSPLUS:
-                break;
-
             case TrsdosRuleSet.TRSDOS_1_3:
-                throw new TrsdosWriteError("Changing the disk's name, date, password and AUTO command isn't " +
-                    "supported yet on TRSDOS 1.3 disks");
+                break;
 
             default:
                 assertNever(this.ruleSet);
@@ -1514,7 +1639,7 @@ export class TrsdosWriter {
         }
 
         if (changes.masterPassword !== undefined) {
-            const hash = TrsdosWriter.hashPassword(changes.masterPassword);
+            const hash = this.hashPassword(changes.masterPassword);
             gatBytes[GAT_PASSWORD_OFFSET] = hash & 0xFF;
             gatBytes[GAT_PASSWORD_OFFSET + 1] = hash >> 8;
             expected.passwordHash = hash;
@@ -1662,14 +1787,15 @@ export class TrsdosWriter {
     }
 
     /**
-     * Hash a password for a directory entry, turning the hash function's error into a write error.
+     * Hash a password for a directory entry or the GAT with the hash of the disk's layout (TRSDOS 1.3 has its own),
+     * turning the hash function's error into a write error.
      *
      * @param password the password, or empty for none.
      * @throws TrsdosWriteError if the DOS wouldn't accept the password.
      */
-    private static hashPassword(password: string): number {
+    private hashPassword(password: string): number {
         try {
-            return hashTrsdosPassword(password);
+            return this.trsdos.version === TrsdosVersion.V1_3 ? hashTrsdos13Password(password) : hashTrsdosPassword(password);
         } catch (e) {
             throw new TrsdosWriteError(e instanceof Error ? e.message : String(e));
         }
@@ -1781,17 +1907,22 @@ export class TrsdosWriter {
     }
 
     /**
-     * Delete one directory entry in memory: clear its in-use bit and its HIT byte.
+     * Delete one directory entry in memory: clear its in-use bit and its HIT byte. TRSDOS 1.3's KILL also zeroes
+     * the rest of the entry (Model III TRSDOS Commented, PDF page 77), so it does here.
      */
     private clearDirEntry(slot: TrsdosDirSlot): void {
         const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slot.hitIndex);
         const copy = this.getDirSectorCopy(sectorPosition);
 
-        const flags = copy.bytes[offset];
-        const newFlags = flags & ~FLAG_IN_USE;
-        if (newFlags !== flags) {
-            copy.bytes[offset] = newFlags;
-            copy.dirty = true;
+        const zeroEntry = this.trsdos.version === TrsdosVersion.V1_3;
+        const length = zeroEntry ? this.trsdos.dirEntryLength : 1;
+        for (let i = 0; i < length; i++) {
+            const oldByte = copy.bytes[offset + i];
+            const newByte = zeroEntry ? 0 : oldByte & ~FLAG_IN_USE;
+            if (newByte !== oldByte) {
+                copy.bytes[offset + i] = newByte;
+                copy.dirty = true;
+            }
         }
 
         if (this.hit.bytes[slot.hitIndex] !== 0) {

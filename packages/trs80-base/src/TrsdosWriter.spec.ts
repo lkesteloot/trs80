@@ -2,13 +2,14 @@ import {describe, expect, it} from "vitest";
 import {type FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
-    decodeTrsdos, TRSDOS_BLANK_PASSWORD_HASH, hashForFilename, hashTrsdosPassword, type Trsdos,
-    type TrsdosDirEntry, TrsdosProtectionLevel,
+    decodeTrsdos, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, hashForFilename, hashTrsdosPassword,
+    type Trsdos, type TrsdosDirEntry, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
-import {checkTrsdos} from "./TrsdosCheck.js";
+import {checkTrsdos, TrsdosFindingSeverity, trsdosFindingKindSeverity} from "./TrsdosCheck.js";
 import {reservedDecs} from "./TrsdosDirSlots.js";
 import {readTrsdosDiskInfo} from "./TrsdosDiskInfo.js";
 import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
+import {formatTrsdosDataDisk, hashTrsdos13Password, TrsdosFormatDos} from "./TrsdosFormat.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile, type TestGranule, testUserSlotDec} from "./TrsdosTestDisk.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
@@ -1314,13 +1315,6 @@ describe("TrsdosWriter.setAttributes", () => {
         expect(getFile(newTrsdos, "BOOT/SYS").updatePassword).to.eql(hashTrsdosPassword("SECRET"));
     });
 
-    it("refuses under TRSDOS 1.3 rules", () => {
-        const {writer} = makeHelloFixture(TrsdosRuleSet.TRSDOS_1_3);
-        expect(() => writer.setAttributes(writerFile(writer, "HELLO/BAS"), {invisible: true}))
-            .to.throw(TrsdosWriteError, "TRSDOS 1.3");
-        expect(writer.hasChanges()).to.eql(false);
-    });
-
     it("works together with a rename and a delete in one writer", () => {
         const {writer} = makeHelloFixture(TrsdosRuleSet.LDOS_5);
         writer.addFile(name("EXTRA/DAT"), makeContents(100));
@@ -1646,10 +1640,7 @@ describe("TrsdosWriter.setDiskInfo", () => {
         expect(diskInfo(writer.flush(), TrsdosRuleSet.TRSDOS_6).name).to.eql("FILLER");
     });
 
-    it("refuses TRSDOS 1.3 rules, and a writer that has flushed", () => {
-        const old = makeInfoFixture(TrsdosRuleSet.TRSDOS_1_3);
-        expect(() => old.writer.setDiskInfo({name: "X"})).to.throw(TrsdosWriteError, "TRSDOS 1.3");
-
+    it("refuses a writer that has flushed", () => {
         const {writer} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
         writer.flush();
         expect(() => writer.setDiskInfo({name: "X"})).to.throw(TrsdosWriteError, "already been flushed");
@@ -1981,11 +1972,412 @@ describe("TrsdosWriter.replaceFile", () => {
         expect(() => writer.replaceFile(hello, makeContents(5))).to.throw(TrsdosWriteError, "has been deleted");
     });
 
-    it("refuses under TRSDOS 1.3 rules", () => {
-        const {writer} = makeFixture([HELLO], {}, TrsdosRuleSet.TRSDOS_1_3);
+    it("refuses the rules of a layout the disk isn't in", () => {
+        expect(() => makeFixture([HELLO], {}, TrsdosRuleSet.TRSDOS_1_3))
+            .to.throw(TrsdosWriteError, "TRSDOS 1.3 rules don't fit a disk in the 2.3 family layout");
+    });
+});
 
-        expect(() => writer.replaceFile(writerFile(writer, "HELLO/BAS"), makeContents(5)))
-            .to.throw(TrsdosWriteError, "isn't supported yet on TRSDOS 1.3 disks");
+/**
+ * The date that the TRSDOS 1.3 test disks are formatted with.
+ */
+const FORMAT_DATE = new Date(1983, 4, 17);
+
+/**
+ * Format a blank TRSDOS 1.3 data disk (40 cylinders, as the DOS's FORMAT makes it), wrap it in an overlay, and make
+ * a writer under TRSDOS 1.3's rules.
+ *
+ * @param patchSector changes a sector of the freshly formatted disk before the file system is decoded, by sector
+ * (the GAT is sector 1 of cylinder 17 and the HIT sector 2), or undefined to leave the disk as it is.
+ */
+function make13Fixture(patchSector: ((sectorNumber: number, bytes: Uint8Array) => void) | undefined = undefined): Fixture {
+    const disk = formatTrsdosDataDisk({dos: TrsdosFormatDos.TRSDOS_1_3, cylinders: 40, sides: 1, date: FORMAT_DATE});
+    if (typeof disk === "string") {
+        throw new Error(disk);
+    }
+    if (patchSector !== undefined) {
+        const patch = new SectorOverlay(disk);
+        for (const sectorNumber of [1, 2]) {
+            const position = SectorPosition.make(17, 0, sectorNumber);
+            const bytes = readBytes(disk, position).slice();
+            patchSector(sectorNumber, bytes);
+            patch.writeSector(position, bytes);
+        }
+        patch.commit();
+    }
+    const overlay = new SectorOverlay(disk);
+    const trsdos = decodeTrsdos(overlay);
+    if (trsdos === undefined || trsdos.version !== TrsdosVersion.V1_3) {
+        throw new Error("Test disk didn't decode as TRSDOS 1.3");
+    }
+    return {disk, overlay, trsdos, writer: new TrsdosWriter(trsdos, TrsdosRuleSet.TRSDOS_1_3)};
+}
+
+/**
+ * Make a new writer on the file system that a flush returned.
+ */
+function writerFor(trsdos: Trsdos): TrsdosWriter {
+    return new TrsdosWriter(trsdos, TrsdosRuleSet.TRSDOS_1_3);
+}
+
+/**
+ * The 48 bytes of a file's primary directory entry on a TRSDOS 1.3 disk.
+ */
+function entry13(trsdos: Trsdos, fileName: string): Uint8Array {
+    const slot = trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === fileName);
+    if (slot === undefined) {
+        throw new Error("No slot for " + fileName);
+    }
+    const {sectorPosition, offset} = trsdos.getDirEntryLocation(slot.hitIndex);
+    return readBytes(trsdos.disk, sectorPosition).slice(offset, offset + 48);
+}
+
+/**
+ * The number of granules that a file's extents hold.
+ */
+function granuleCount(trsdos: Trsdos, dirEntry: TrsdosDirEntry): number {
+    let count = 0;
+    for (const extent of trsdos.getFileExtents(dirEntry)) {
+        count += extent.granuleCount;
+    }
+    return count;
+}
+
+describe("TrsdosWriter on TRSDOS 1.3 disks", () => {
+    it("adds files of every size around the sector and granule boundaries, and reads them back", () => {
+        const {writer} = make13Fixture();
+        const sizes = [0, 1, 255, 256, 257, 512, 767, 768, 769, 5000];
+        const contents = sizes.map((size, i) => makeContents(size, i + 1));
+        sizes.forEach((size, i) => {
+            const result = writer.addFile(name(`F${size}/DAT`), contents[i]);
+            expect(result.size).to.eql(size);
+            expect(result.warning).to.be.undefined;
+        });
+        const newTrsdos = writer.flush();
+
+        sizes.forEach((size, i) => {
+            const dirEntry = getFile(newTrsdos, `F${size}/DAT`);
+            expect(newTrsdos.readFile(dirEntry)).to.eql(contents[i]);
+            expect(dirEntry.getSize()).to.eql(size);
+            // TRSDOS 1.3 counts only the full sectors and adds the end-of-file offset to them.
+            expect(dirEntry.sectorCount).to.eql(Math.floor(size/256));
+            expect(dirEntry.lastSectorSize).to.eql(size % 256);
+            expect(granuleCount(newTrsdos, dirEntry)).to.eql(Math.ceil(Math.ceil(size/256)/3));
+        });
+        expect(checkTrsdos(newTrsdos).findings.filter(finding =>
+            [TrsdosFindingSeverity.LAYOUT, TrsdosFindingSeverity.DAMAGE].includes(trsdosFindingKindSeverity(finding.kind))))
+            .to.eql([]);
+    });
+
+    it("writes the entry byte for byte as TRSDOS 1.3 creates one", () => {
+        const {overlay, trsdos, writer} = make13Fixture();
+        const dirPosition = trsdos.getDirEntryLocation(0).sectorPosition;
+        const oldDirSector = readBytes(overlay, dirPosition).slice();
+        const oldGat = readBytes(overlay, trsdos.getGatPosition()).slice();
+        const oldHit = readBytes(overlay, trsdos.getHitPosition()).slice();
+
+        const contents = makeContents(300);
+        writer.addFile(name("HELLO/BAS"), contents, {date: new Date(1983, 4, 17)});
+        const newTrsdos = writer.flush();
+
+        const rawName = "HELLO   BAS";
+        const expected = new Uint8Array(48).fill(0xFF);
+        expected.set([0x10, 5, 83, 300 - 256, 0], 0);
+        expected.set([...rawName].map(c => c.charCodeAt(0)), 5);
+        // Both passwords are blank under 1.3's hash. The one full sector is counted, and the first free granule
+        // is granule 1 of cylinder 0 (granule 0 is the boot granule).
+        expected.set([0xEF, 0x5C, 0xEF, 0x5C, 1, 0, 0, (1 << 5) | 1], 16);
+        expect(entry13(newTrsdos, "HELLO/BAS")).to.eql(expected);
+
+        // The HIT byte is the hash of the name, in the first slot, and the GAT has the granule's bit.
+        const hit = readBytes(overlay, newTrsdos.getHitPosition());
+        expect(hit[0]).to.eql(hashForFilename(rawName));
+        expect(hit.subarray(1)).to.eql(oldHit.subarray(1));
+        const gat = readBytes(overlay, newTrsdos.getGatPosition());
+        expect(gat[0]).to.eql(0x03);
+        expect(gat.subarray(1)).to.eql(oldGat.subarray(1));
+
+        // The rest of the directory sector, including the filler that ends it, is as FORMAT left it.
+        const dirSector = readBytes(overlay, dirPosition);
+        expect(dirSector.subarray(48)).to.eql(oldDirSector.subarray(48));
+        expect(new TextDecoder().decode(dirSector.subarray(240)).trim()).to.eql("(c) 1980 Tandy");
+    });
+
+    it("gives the new file's data granule 1 of the first free cylinder and reads it from the disk after a commit", () => {
+        const {disk, overlay, writer} = make13Fixture();
+        const contents = makeContents(2000);
+        writer.addFile(name("DATA/BIN"), contents, {invisible: true, system: true});
+        const newTrsdos = writer.flush();
+        overlay.commit();
+
+        const reread = decodeTrsdos(disk);
+        if (reread === undefined) {
+            throw new Error("Didn't decode");
+        }
+        const dirEntry = getFile(reread, "DATA/BIN");
+        expect(reread.readFile(dirEntry)).to.eql(contents);
+        expect(dirEntry.isHidden()).to.be.true;
+        expect(dirEntry.isSystemFile()).to.be.true;
+        expect(newTrsdos.getDirEntries(true).map(entry => entry.getFilename("/"))).to.eql(["DATA/BIN"]);
+    });
+
+    it("deletes a file the way 1.3's KILL does, zeroing the entry and freeing its granules", () => {
+        const first = make13Fixture();
+        first.writer.addFile(name("ONE/DAT"), makeContents(1000, 1));
+        first.writer.addFile(name("TWO/DAT"), makeContents(2000, 2));
+        const twoDat = first.writer.flush();
+        const gatBefore = readBytes(first.overlay, twoDat.getGatPosition()).slice();
+
+        const writer = writerFor(twoDat);
+        writer.deleteFile(writerFile(writer, "ONE/DAT"));
+        const newTrsdos = writer.flush();
+
+        expect(newTrsdos.getDirEntries(true).map(entry => entry.getFilename("/"))).to.eql(["TWO/DAT"]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "TWO/DAT"))).to.eql(makeContents(2000, 2));
+        const {sectorPosition, offset} = newTrsdos.getDirEntryLocation(0);
+        expect(readBytes(first.overlay, sectorPosition).slice(offset, offset + 48)).to.eql(new Uint8Array(48));
+        expect(readBytes(first.overlay, newTrsdos.getHitPosition())[0]).to.eql(0);
+        // ONE/DAT held 2 granules (4 sectors), so exactly those bits are gone from the GAT.
+        const gatAfter = readBytes(first.overlay, newTrsdos.getGatPosition());
+        const bits = (gat: Uint8Array) => gat.slice(0, 40).reduce((sum, b) => sum + b.toString(2).replace(/0/g, "").length, 0);
+        expect(bits(gatBefore) - bits(gatAfter)).to.eql(2);
+
+        // The freed slot and granules are the first to be reused.
+        const again = writerFor(newTrsdos);
+        again.addFile(name("NEW/DAT"), makeContents(1000, 3));
+        const afterAdd = again.flush();
+        expect(entry13(afterAdd, "NEW/DAT").subarray(22, 24)).to.eql(new Uint8Array([0, (1 << 5) | 2]));
+        expect(readBytes(first.overlay, afterAdd.getHitPosition())[0]).to.eql(hashForFilename("NEW     DAT"));
+    });
+
+    it("refuses to delete, rename, replace or change a system file that the HIT lists", () => {
+        // SYS1 on cylinder 5, granules 0 and 1; the system file table is in the HIT at 0xE0.
+        const {writer} = make13Fixture((sectorNumber, bytes) => {
+            if (sectorNumber === 2) {
+                bytes.set([0x02, 5], 0xE2);
+            }
+        });
+        const sys1 = writerFile(writer, "SYS1/SYS");
+
+        expect(() => writer.deleteFile(sys1)).to.throw(TrsdosWriteError, "doesn't list in its directory");
+        expect(() => writer.renameFile(sys1, name("X/Y"))).to.throw(TrsdosWriteError, "doesn't list in its directory");
+        expect(() => writer.replaceFile(sys1, makeContents(5))).to.throw(TrsdosWriteError, "doesn't list in its directory");
+        expect(() => writer.setAttributes(sys1, {invisible: true})).to.throw(TrsdosWriteError, "doesn't list in its directory");
         expect(writer.hasChanges()).to.eql(false);
+    });
+
+    it("keeps new files off the granules that the system file table lists", () => {
+        const {writer} = make13Fixture((sectorNumber, bytes) => {
+            if (sectorNumber === 2) {
+                bytes.set([0x02, 5], 0xE2);
+            }
+        });
+        // Every free granule but the two of SYS1: 233 - 2, with 40 cylinders of 6, the boot granule and the directory.
+        const free = 40*6 - 1 - 6 - 2;
+        const contents = makeContents(free*768, 5);
+        writer.addFile(name("BIG/DAT"), contents);
+        const newTrsdos = writer.flush();
+
+        const dirEntry = getFile(newTrsdos, "BIG/DAT");
+        expect(newTrsdos.readFile(dirEntry)).to.eql(contents);
+        for (const extent of newTrsdos.getFileExtents(dirEntry)) {
+            const start = extent.cylinderNumber*6 + extent.granuleOffset;
+            expect(start + extent.granuleCount <= 5*6 || start >= 5*6 + 2).to.be.true;
+        }
+        expect(getFile(newTrsdos, "SYS1/SYS")).not.to.be.undefined;
+        // The disk is now full.
+        expect(() => writerFor(newTrsdos).addFile(name("MORE/DAT"), makeContents(1))).to.throw(TrsdosWriteError, "not enough room");
+    });
+
+    it("renames a file, writing the name and its new hash", () => {
+        const {overlay, writer} = make13Fixture();
+        writer.addFile(name("OLD/TXT"), makeContents(700));
+        writer.addFile(name("OTHER/TXT"), makeContents(10));
+        const trsdos = writer.flush();
+        const before = entry13(trsdos, "OLD/TXT");
+
+        const second = writerFor(trsdos);
+        expect(() => second.renameFile(writerFile(second, "OLD/TXT"), name("OTHER/TXT"))).to.throw(TrsdosWriteError, "already on the disk");
+        second.renameFile(writerFile(second, "OLD/TXT"), name("NEWNAME/BAS"));
+        const newTrsdos = second.flush();
+
+        const after = entry13(newTrsdos, "NEWNAME/BAS");
+        expect([...after.subarray(5, 16)].map(c => String.fromCharCode(c)).join("")).to.eql("NEWNAME BAS");
+        // Everything but the name is as it was.
+        expect(after.subarray(0, 5)).to.eql(before.subarray(0, 5));
+        expect(after.subarray(16)).to.eql(before.subarray(16));
+        expect(readBytes(overlay, newTrsdos.getHitPosition())[0]).to.eql(hashForFilename("NEWNAME BAS"));
+        expect(newTrsdos.readFile(getFile(newTrsdos, "NEWNAME/BAS"))).to.eql(makeContents(700));
+    });
+
+    it("changes attributes, hashing passwords the 1.3 way and dating with a month and a year", () => {
+        const {writer} = make13Fixture();
+        writer.addFile(name("SECRET/DAT"), makeContents(100));
+        const trsdos = writer.flush();
+        const firstEntry = entry13(trsdos, "SECRET/DAT");
+        // A new file has blank passwords and no date.
+        expect(firstEntry.subarray(1, 3)).to.eql(new Uint8Array([0, 0]));
+        expect(getFile(trsdos, "SECRET/DAT").updatePassword).to.eql(TRSDOS_13_BLANK_PASSWORD_HASH);
+
+        const second = writerFor(trsdos);
+        second.setAttributes(writerFile(second, "SECRET/DAT"), {
+            invisible: true, protectionLevel: TrsdosProtectionLevel.READ, updatePassword: "boss", accessPassword: "Guest1",
+            date: new Date(1984, 11, 25),
+        });
+        const newTrsdos = second.flush();
+
+        const dirEntry = getFile(newTrsdos, "SECRET/DAT");
+        expect(dirEntry.isHidden()).to.be.true;
+        expect(dirEntry.getProtectionLevel()).to.eql(TrsdosProtectionLevel.READ);
+        expect(dirEntry.updatePassword).to.eql(hashTrsdos13Password("BOSS"));
+        expect(dirEntry.accessPassword).to.eql(hashTrsdos13Password("GUEST1"));
+        expect(dirEntry.updatePassword).not.to.eql(hashTrsdosPassword("BOSS"));
+        expect(dirEntry.month).to.eql(12);
+        expect(dirEntry.year).to.eql(1984);
+        expect(dirEntry.day).to.eql(0);
+        const bytes = entry13(newTrsdos, "SECRET/DAT");
+        expect(bytes[0]).to.eql(0x10 | 0x08 | TrsdosProtectionLevel.READ);
+        expect(bytes[1]).to.eql(12);
+        expect(bytes[2]).to.eql(84);
+        expect(bytes[16]).to.eql(hashTrsdos13Password("BOSS") & 0xFF);
+        expect(bytes[17]).to.eql(hashTrsdos13Password("BOSS") >> 8);
+
+        // Removing a password and the date puts back the blank hash and zeros.
+        const third = writerFor(newTrsdos);
+        third.setAttributes(writerFile(third, "SECRET/DAT"), {updatePassword: "", accessPassword: "", date: null});
+        const cleared = third.flush();
+        expect(getFile(cleared, "SECRET/DAT").updatePassword).to.eql(TRSDOS_13_BLANK_PASSWORD_HASH);
+        expect(getFile(cleared, "SECRET/DAT").accessPassword).to.eql(TRSDOS_13_BLANK_PASSWORD_HASH);
+        expect(entry13(cleared, "SECRET/DAT").subarray(1, 3)).to.eql(new Uint8Array([0, 0]));
+
+        // The DOS only accepts passwords it can store.
+        const fourth = writerFor(cleared);
+        expect(() => fourth.setAttributes(writerFile(fourth, "SECRET/DAT"), {updatePassword: "1BAD"})).to.throw(TrsdosWriteError, "Invalid password");
+        expect(fourth.hasChanges()).to.eql(false);
+    });
+
+    it("refuses a date it can't store", () => {
+        const {writer} = make13Fixture();
+        expect(() => writer.addFile(name("A/B"), makeContents(5), {date: new Date(2026, 9, 5)}))
+            .to.throw(TrsdosWriteError, "can't store the year 2026");
+        expect(() => writer.addFile(name("A/B"), makeContents(5), {date: new Date(1975, 0, 1)}))
+            .to.throw(TrsdosWriteError, "can't store the year 1975");
+        expect(writer.hasChanges()).to.eql(false);
+        const result = writer.addFile(name("A/B"), makeContents(5), {date: new Date(1999, 11, 31)});
+        expect(result.warning).to.be.undefined;
+        const dirEntry = getFile(writer.flush(), "A/B");
+        expect([dirEntry.month, dirEntry.year]).to.eql([12, 1999]);
+    });
+
+    it("refuses a file that needs more than 13 extents, but takes one with 13", () => {
+        // Cylinders 0 to 39 but 17 have granules 1, 3 and 5 free and 0, 2 and 4 used, so every free granule is alone.
+        const alternating = (sectorNumber: number, bytes: Uint8Array) => {
+            if (sectorNumber === 1) {
+                for (let cylinder = 0; cylinder < 40; cylinder++) {
+                    if (cylinder !== 17) {
+                        bytes[cylinder] = 0x15;
+                    }
+                }
+            }
+        };
+        const {writer} = make13Fixture(alternating);
+        expect(() => writer.addFile(name("TOO/BIG"), makeContents(14*768)))
+            .to.throw(TrsdosWriteError, "free space is too fragmented: the file would need 14 extents and can have at most 13");
+        expect(writer.hasChanges()).to.eql(false);
+
+        const contents = makeContents(13*768, 9);
+        writer.addFile(name("JUST/FIT"), contents);
+        const newTrsdos = writer.flush();
+        const dirEntry = getFile(newTrsdos, "JUST/FIT");
+        expect(dirEntry.extents.length).to.eql(13);
+        expect(dirEntry.nextDirEntry).to.be.undefined;
+        expect(newTrsdos.readFile(dirEntry)).to.eql(contents);
+    });
+
+    it("fills the directory's 80 entries and then says it's full, and reuses a freed slot", () => {
+        const {overlay, writer} = make13Fixture();
+        const fileName = (i: number) => `F${i.toString().padStart(2, "0")}`;
+        for (let i = 0; i < 80; i++) {
+            writer.addFile(name(fileName(i)), new Uint8Array(0));
+        }
+        expect(() => writer.addFile(name("ONEMORE"), new Uint8Array(0))).to.throw(TrsdosWriteError, "the directory is full");
+        const full = writer.flush();
+        expect(full.getDirEntries(true).length).to.eql(80);
+        // The last entry is in the last (16th) directory sector, and the directory sectors still end with the filler.
+        const lastDirSector = full.getDirEntryLocation(79).sectorPosition;
+        expect(new TextDecoder().decode(readBytes(overlay, lastDirSector).subarray(240)).trim()).to.eql("(c) 1980 Tandy");
+
+        const second = writerFor(full);
+        second.deleteFile(writerFile(second, fileName(37)));
+        second.addFile(name("ONEMORE"), makeContents(3));
+        const newTrsdos = second.flush();
+        expect(newTrsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "ONEMORE")?.hitIndex).to.eql(37);
+    });
+
+    it("replaces a file, keeping its slot, attributes and date", () => {
+        const {writer} = make13Fixture();
+        writer.addFile(name("KEEP/BAS"), makeContents(300), {date: new Date(1982, 2, 4)});
+        writer.addFile(name("AFTER/BAS"), makeContents(300));
+        const first = writer.flush();
+        const second = writerFor(first);
+        second.setAttributes(writerFile(second, "KEEP/BAS"), {invisible: true, protectionLevel: TrsdosProtectionLevel.EXEC, updatePassword: "BOSS"});
+        const withAttributes = second.flush();
+        const slotBefore = withAttributes.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "KEEP/BAS")!.hitIndex;
+
+        const third = writerFor(withAttributes);
+        const contents = makeContents(5000, 4);
+        const result = third.replaceFile(writerFile(third, "KEEP/BAS"), contents);
+        expect(result.size).to.eql(5000);
+        const newTrsdos = third.flush();
+
+        const dirEntry = getFile(newTrsdos, "KEEP/BAS");
+        expect(newTrsdos.readFile(dirEntry)).to.eql(contents);
+        expect(newTrsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "KEEP/BAS")!.hitIndex).to.eql(slotBefore);
+        expect(dirEntry.isHidden()).to.be.true;
+        expect(dirEntry.getProtectionLevel()).to.eql(TrsdosProtectionLevel.EXEC);
+        expect(dirEntry.updatePassword).to.eql(hashTrsdos13Password("BOSS"));
+        expect([dirEntry.month, dirEntry.year]).to.eql([3, 1982]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "AFTER/BAS"))).to.eql(makeContents(300));
+
+        // A date in the options replaces the old one.
+        const fourth = writerFor(newTrsdos);
+        fourth.replaceFile(writerFile(fourth, "KEEP/BAS"), makeContents(10), {date: new Date(1990, 8, 9)});
+        const dated = getFile(fourth.flush(), "KEEP/BAS");
+        expect([dated.month, dated.year]).to.eql([9, 1990]);
+    });
+
+    it("changes the disk's name, date, master password and AUTO command", () => {
+        const {overlay, trsdos, writer} = make13Fixture();
+        const info = readTrsdosDiskInfo(trsdos, TrsdosRuleSet.TRSDOS_1_3);
+        expect(info).to.eql({name: "DATADISK", date: "05/17/83", passwordHash: hashTrsdos13Password("PASSWORD"), autoCommand: ""});
+
+        writer.setDiskInfo({
+            name: "my disk", date: new Date(1984, 0, 2), masterPassword: "Secret", autoCommand: "BASIC MENU",
+        });
+        const newTrsdos = writer.flush();
+
+        expect(readTrsdosDiskInfo(newTrsdos, TrsdosRuleSet.TRSDOS_1_3)).to.eql({
+            name: "MY DISK", date: "01/02/84", passwordHash: hashTrsdos13Password("SECRET"), autoCommand: "BASIC MENU",
+        });
+        const gat = readBytes(overlay, newTrsdos.getGatPosition());
+        expect(gat[0xCE]).to.eql(hashTrsdos13Password("SECRET") & 0xFF);
+        expect(gat[0xCF]).to.eql(hashTrsdos13Password("SECRET") >> 8);
+        // The command, its 0x0D, then spaces to the end of the sector, as 1.3's AUTO command leaves them.
+        expect(new TextDecoder().decode(gat.subarray(0xE0, 0xE0 + 10))).to.eql("BASIC MENU");
+        expect(gat[0xEA]).to.eql(0x0D);
+        expect(gat.subarray(0xEB)).to.eql(new Uint8Array(256 - 0xEB).fill(0x20));
+
+        // The command has to fit in the 32 bytes with its terminator.
+        const second = writerFor(newTrsdos);
+        expect(() => second.setDiskInfo({autoCommand: "X".repeat(32)})).to.throw(TrsdosWriteError, "at most 31");
+        expect(() => second.setDiskInfo({date: new Date(2026, 0, 1)})).to.throw(TrsdosWriteError, "can't store the year 2026");
+        second.setDiskInfo({autoCommand: ""});
+        expect(readTrsdosDiskInfo(second.flush(), TrsdosRuleSet.TRSDOS_1_3)).to.have.property("autoCommand", "");
+    });
+
+    it("refuses the rules of the other layout, and the 2.3 rules on a 1.3 disk", () => {
+        const {trsdos} = make13Fixture();
+        expect(() => new TrsdosWriter(trsdos, TrsdosRuleSet.LDOS_5))
+            .to.throw(TrsdosWriteError, "LDOS 5 rules don't fit a disk in the TRSDOS 1.3 layout");
     });
 });
