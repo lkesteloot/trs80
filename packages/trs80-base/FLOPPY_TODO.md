@@ -53,6 +53,11 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       an Infocom loader) need 5-sector granules too.
 - [ ] **Use the on-disk PDRIVE table as a hint**: try its `GPL` and `DDSL` first,
       but trust the media over its `SPT`, and its `SPT` over its `TD`.
+- [ ] **The lump count follows the image, not the file system.** `lumpCount` comes from
+      the image's cylinder count, so an 80-cylinder image of a 40-cylinder disk decodes
+      with 80 lumps. The 2.3-family formatters mark the GAT bytes past the disk's end as
+      used with no owner, which `trim` uses to find the end; GAT byte 0xCC on the LDOS
+      line and the media block record it outright. TRSDOS 1.3 has no such marker.
 - [ ] **The lockout table** is still read from 0x60 for `cylinderCount` bytes. On
       NEWDOS/80 there is none, and past 96 lumps that range is GAT
       (`newdos80-DSSD-80T.dmk`).
