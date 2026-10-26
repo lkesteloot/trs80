@@ -396,7 +396,7 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
             </div>
-            <p>Most commands only read the disk; <code>add</code>, <code>rm</code>, <code>mv</code> and <code>attr</code> change it. Commands that change the disk do
+            <p>Most commands only read the disk; <code>add</code>, <code>rm</code>, <code>mv</code>, <code>attr</code> and <code>label</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command, all or nothing: if any
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
             one step, so an interrupted write can’t leave half a disk.</p>
@@ -527,6 +527,26 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         LS-DOS 6. An unknown name lists the ones that fit the disk. LDOS 5.3 and LS-DOS 6.3 disks
                         keep a time stamp where the access password would go, so they have no access password
                         to set, and system files there have no dates.</p></td>
+                </tr>
+                <tr>
+                    <td><code>label</code></td>
+                    <td><p>Show or change the disk’s name, date, master password and AUTO command. With no
+                        options it shows them, and needs no write access: the name, the date as the disk
+                        stores it, whether the master password is <code>PASSWORD</code> (the usual one), blank,
+                        or something else (shown as its hash, since the password itself isn’t stored), and the
+                        AUTO command, which is the command the DOS runs when it boots. The options each change one
+                        field and leave the others alone: <code>--name NAME</code> (up to 8 characters, uppercased
+                        except on DOSPLUS), <code>--date YYYY-MM-DD</code> (the DOS keeps only two digits of
+                        the year, so the year must be one it can enter: 1980 to 1999, or to 2011 on LDOS 5.3 and
+                        LS-DOS 6.3 disks), <code>--password PW</code> (up to 8 letters and digits, starting with a
+                        letter; an empty one makes it blank), and <code>--auto COMMAND</code> or
+                        <code>--no-auto</code>. It prints what changed, such as <code>Name is now GAMES. AUTO
+                        command is now BASIC RUN"MENU".</code></p>
+                        <p>The AUTO command is up to 31 characters on TRSDOS 2.x, LDOS 5 and DOSPLUS 3, which keep it
+                        in the same sector as the name, and up to 79 on TRSDOS 6 and LS-DOS 6, which keep it in
+                        the system information sector of the boot track. A TRSDOS 6 disk that has no such sector
+                        (one that another program formatted) can’t be given an AUTO command. Changing the
+                        name or date doesn’t change the DOS release banner that TRSDOS 6 keeps in that sector.</p></td>
                 </tr>
                 <tr>
                     <td><code>info</code></td>

@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
 import {
-    parseTrsdosFilename, parseTrsdosProtectionLevel, TRSDOS_BLANK_PASSWORD_HASH, Trsdos, type TrsdosAttributeChanges,
-    type TrsdosDirEntry, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost, trsdosFilenameToString,
+    parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo, TRSDOS_BLANK_PASSWORD_HASH,
+    TRSDOS_DEFAULT_PASSWORD_HASH, Trsdos, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
+    type TrsdosDiskInfoChanges, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost, trsdosFilenameToString,
     trsdosFindingKindSeverity, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString, type TrsdosProtectionNames,
     trsdosRuleSetToString,
 } from "trs80-base";
@@ -707,6 +708,154 @@ const ADD_COMMAND: DiskCommand = {
 };
 
 /**
+ * Describe a disk's master password for the user, without revealing more than the hash tells us: the
+ * password is only known if it's one of the two common ones.
+ */
+function describeMasterPassword(passwordHash: number): string {
+    if (passwordHash === TRSDOS_DEFAULT_PASSWORD_HASH) {
+        return "PASSWORD";
+    } else if (passwordHash === TRSDOS_BLANK_PASSWORD_HASH) {
+        return "blank";
+    } else {
+        return "set (hash 0x" + passwordHash.toString(16).toUpperCase().padStart(4, "0") + ")";
+    }
+}
+
+/**
+ * Describe a disk's AUTO command for the user.
+ *
+ * @param autoCommand the command, empty for none, or undefined if the disk has no place to keep it.
+ */
+function describeAutoCommand(autoCommand: string | undefined): string {
+    if (autoCommand === undefined) {
+        return "unknown (the disk has no system information sector)";
+    }
+    return autoCommand === "" ? "none" : autoCommand;
+}
+
+/**
+ * Read the name, date, master password and AUTO command of the session's disk.
+ *
+ * @param session the open disk.
+ * @return the information. The disk's DOS decides where the AUTO command is read from.
+ * @throws ToolError if the disk isn't TRSDOS-family or its information can't be read.
+ */
+function readSessionDiskInfo(session: DiskSession): TrsdosDiskInfo {
+    const trsdos = session.fileSystem;
+    if (!(trsdos instanceof Trsdos)) {
+        throw new ToolError("Can't show the disk's information: " + (trsdos === undefined ?
+            "can't find a DOS directory on \"" + session.pathname + "\"" :
+            trsdos.nameAndVersion + " disks aren't TRSDOS-family"));
+    }
+    const info = readTrsdosDiskInfo(trsdos, session.getWriteGate()?.ruleSet);
+    if (typeof info === "string") {
+        throw new ToolError("Can't read the disk's information: " + info);
+    }
+    return info;
+}
+
+/**
+ * The "label" command: show or change the disk's name, date, master password and AUTO command.
+ */
+const LABEL_COMMAND: DiskCommand = {
+    spec: {
+        name: "label",
+        aliases: [],
+        usage: "[--name NAME] [--date YYYY-MM-DD] [--password PW] [--auto COMMAND | --no-auto]",
+        summary: "show or change the disk's name, date, master password and AUTO command",
+        minArgs: 0,
+        maxArgs: 0,
+        options: [
+            {
+                name: "--name",
+                valueName: "NAME",
+                description: "set the disk's name, up to 8 characters",
+            },
+            {
+                name: "--date",
+                valueName: "YYYY-MM-DD",
+                description: "set the disk's date, as the years of the disk's DOS allow",
+            },
+            {
+                name: "--password",
+                valueName: "PW",
+                description: "set the master password, up to 8 letters and digits; \"\" for none",
+            },
+            {
+                name: "--auto",
+                valueName: "COMMAND",
+                description: "set the command that the DOS runs at boot, such as 'BASIC RUN\"MENU\"'",
+            },
+            {
+                name: "--no-auto",
+                valueName: undefined,
+                description: "remove the AUTO command",
+            },
+        ],
+    },
+
+    endsSession: false,
+
+    /**
+     * With no options, show the disk's name, date, master password (as "PASSWORD", "blank", or its hash) and
+     * AUTO command, and change nothing. Otherwise make the changes in one write and say what the disk now
+     * has in the fields that changed.
+     */
+    run(session, command) {
+        const options = command.options;
+        requireNotBoth(options, "--auto", "--no-auto");
+
+        const changes: TrsdosDiskInfoChanges = {};
+        changes.name = options.getString("--name");
+        const dateText = options.getString("--date");
+        if (dateText !== undefined) {
+            changes.date = parseAddDate(dateText);
+        }
+        changes.masterPassword = options.getString("--password");
+        if (options.has("--no-auto")) {
+            changes.autoCommand = "";
+        } else {
+            changes.autoCommand = options.getString("--auto");
+        }
+
+        const changing = Object.values(changes).some(value => value !== undefined);
+        if (!changing) {
+            // Just show the information.
+            const info = readSessionDiskInfo(session);
+            console.log("Name: " + info.name);
+            console.log("Date: " + (info.date === "" ? "none" : info.date));
+            console.log("Master password: " + describeMasterPassword(info.passwordHash));
+            console.log("AUTO command: " + describeAutoCommand(info.autoCommand));
+            return;
+        }
+
+        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
+            writer.setDiskInfo(changes);
+        });
+
+        // Say what the disk holds now, in the fields that changed, which may differ from what the user
+        // typed (an uppercased name, for instance).
+        const info = readSessionDiskInfo(session);
+        const sentences: string[] = [];
+        if (changes.name !== undefined) {
+            sentences.push("Name is now " + info.name + ".");
+        }
+        if (changes.date !== undefined) {
+            sentences.push("Date is now " + info.date + ".");
+        }
+        if (changes.masterPassword !== undefined) {
+            sentences.push(changes.masterPassword.trim() === "" ? "Master password is now blank." :
+                "Master password is changed.");
+        }
+        if (changes.autoCommand !== undefined) {
+            sentences.push(changes.autoCommand === "" ? "AUTO command is removed." :
+                "AUTO command is now " + describeAutoCommand(info.autoCommand) + ".");
+        }
+        console.log(sentences.join(" "));
+    },
+};
+
+/**
  * The "info" command: describe the disk and its layout.
  */
 const INFO_COMMAND: DiskCommand = {
@@ -950,6 +1099,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     RM_COMMAND,
     MV_COMMAND,
     ATTR_COMMAND,
+    LABEL_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
     CHECK_COMMAND,
