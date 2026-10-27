@@ -528,16 +528,20 @@ export function selectByPatterns<T>(files: T[], patterns: string[], accessors: P
 
 /**
  * Wrap text into lines of at most the given width, breaking at spaces or (optionally) after hyphens where
- * possible, and indenting all but the first line. Words too long for a line are broken anywhere.
+ * possible, and indenting all but the first line. A word too long for a line is broken anywhere, or with
+ * breakLongWords off is kept whole on a line of its own, longer than the width.
  *
  * @param text the text to wrap.
  * @param width the maximum length of each line, including its indent.
  * @param indent the number of spaces before each line after the first.
  * @param breakAfterHyphens whether a line may end after a hyphen, as in "well-" then "known". Leave this
  * off for text with names in it, like "trsdos-1.3".
+ * @param breakLongWords whether to break a word that doesn't fit on a line by itself. Leave this off for
+ * text that people copy, like file paths, and on where nothing may go past the width.
  * @return the lines, at least one.
  */
-export function wrapText(text: string, width: number, indent: number, breakAfterHyphens = true): string[] {
+export function wrapText(text: string, width: number, indent: number, breakAfterHyphens = true,
+                         breakLongWords = true): string[] {
     const lines: string[] = [];
     const indentText = " ".repeat(indent);
     let rest = text;
@@ -554,7 +558,12 @@ export function wrapText(text: string, width: number, indent: number, breakAfter
         const afterHyphen = breakAfterHyphens ? rest.lastIndexOf("-", room - 1) + 1 : 0;
         let breakIndex = Math.max(rest.lastIndexOf(" ", room), afterHyphen);
         if (breakIndex <= 0) {
-            breakIndex = room;
+            // The first word doesn't fit: break it, or end the line after it.
+            const nextSpace = rest.indexOf(" ", room);
+            breakIndex = breakLongWords ? room : nextSpace;
+            if (breakIndex < 0) {
+                break;
+            }
         }
         lines.push(prefix + rest.slice(0, breakIndex).trimEnd());
         rest = rest.slice(breakIndex).trimStart();
@@ -587,6 +596,6 @@ export function wrapMessage(message: string, width = terminalWidth()): string {
     return message.split("\n").map(line => {
         const listItem = /^ +[^ ]+ {2,}(?=\S)/.exec(line);
         const indent = listItem !== null ? listItem[0].length : line.length - line.trimStart().length;
-        return wrapText(line, width, indent, false).join("\n");
+        return wrapText(line, width, indent, false, false).join("\n");
     }).join("\n");
 }

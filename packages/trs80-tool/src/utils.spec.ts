@@ -262,6 +262,9 @@ describe("wrapText", () => {
     it("breaks after hyphens unless told not to", () => {
         expect(wrapText("a well-known-name here", 12, 0)).to.eql(["a well-", "known-name", "here"]);
         expect(wrapText("a well-known-name here", 12, 0, false)).to.eql(["a", "well-known-n", "ame here"]);
+        expect(wrapText("see /a/very/long/path/name here", 12, 2, false, false))
+            .to.eql(["see", "  /a/very/long/path/name", "  here"]);
+        expect(wrapText("/a/very/long/path/name", 12, 2, false, false)).to.eql(["/a/very/long/path/name"]);
     });
 });
 
