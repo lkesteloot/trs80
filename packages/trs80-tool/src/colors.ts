@@ -53,6 +53,16 @@ export const colors = {
 } satisfies { [role: string]: Style };
 
 /**
+ * Styles that tell files apart from each other in a drawing, such as the "disk" command's "map". They cycle,
+ * so neighboring files differ. Red and yellow are left out because they mean errors and warnings, and
+ * the second half of the list is bold so that there are enough of them to tell neighbors apart.
+ */
+export const filePalette: Style[] = [
+    chalk.cyan, chalk.green, chalk.blue, chalk.magenta,
+    chalk.cyan.bold, chalk.green.bold, chalk.blue.bold, chalk.magenta.bold,
+];
+
+/**
  * Whether the byte is a printable ASCII character, including space.
  */
 function isPrintableAscii(byte: number): boolean {

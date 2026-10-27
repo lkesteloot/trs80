@@ -208,7 +208,7 @@ function pagerAllowed(): boolean {
  * runs its commands synchronously, so it can't use the pager that other commands use (see pageTextSync()).
  * Quitting the pager early just ends the listing.
  */
-function printLines(lines: string[]): void {
+export function printLines(lines: string[]): void {
     if (lines.length === 0) {
         return;
     }

@@ -587,6 +587,30 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         the GAT says are free and that no file uses.</td>
                 </tr>
                 <tr>
+                    <td><code>map [PATTERN...]</code></td>
+                    <td><p>Draw the disk granule by granule, so you can see where everything is: a column for
+                        each cylinder (or lump, on DOSes whose lumps aren’t cylinders) and a row for each granule in
+                        it, split into blocks to fit the terminal. Each file has a letter and a color, listed
+                        below the map with its size, system files last. <code>.</code> is free, <code>D</code> the directory,
+                        <code>B</code> the boot granule and <code>x</code> a locked-out one. Damage shows in red:
+                        <code>!</code> for a granule that two or more files claim, <code>?</code> for one that a
+                        file claims but the GAT says is free, and <code>u</code> for one the GAT says is used
+                        that no file claims. With patterns, only the matching files get letters, and the rest
+                        show as <code>o</code>. A wildcard never matches a system file; to show one, name it.
+                        It changes nothing, so it works on a read-only disk, and only on TRSDOS-family disks.</p>
+<pre><code>          0         1         2         3
+cylinder  01234567890123456789012345678901234
+granule 0 B.AA....E........D.................
+granule 1 ..A..C..E........D.................
+
+A  HELLO/BAS   3 granules  3,000 bytes
+C  WORLD/BAS   1 granule     300 bytes
+E  KERNEL/SYS  2 granules  2,000 bytes  system
+
+. free   D directory   B boot
+9 of 70 granules used, 61 free (76.3 KB). A granule is 1,280 bytes.</code></pre></td>
+                </tr>
+                <tr>
                     <td><code>check</code></td>
                     <td>Check a TRSDOS-family file system for problems, changing nothing:
                         files that share granules, files in granules the GAT says are free,

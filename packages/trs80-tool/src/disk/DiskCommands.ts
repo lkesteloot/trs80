@@ -23,6 +23,7 @@ import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {importHostFile} from "./DiskImport.js";
 import {LIST_COMMAND} from "./DiskList.js";
+import {MAP_COMMAND} from "./DiskMap.js";
 import {printDiskHelp} from "./DiskHelp.js";
 
 /**
@@ -1072,6 +1073,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     LABEL_COMMAND,
     INFO_COMMAND,
     FREE_COMMAND,
+    MAP_COMMAND,
     CHECK_COMMAND,
     REPAIR_COMMAND,
     CREATE_COMMAND,
