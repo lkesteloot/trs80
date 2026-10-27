@@ -409,6 +409,26 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         interleave or skew, or double density) won't decode until a format is
         added to `UCSD_PASCAL_FORMATS`.
 
+## Converting between image formats
+
+`trs80-tool convert in.dmk out.hfe` works for DMK, JV1, JV3, HFE and IMD (see "Writing the image
+formats" in `FLOPPY_FORMATS.md` for what each holds and the results on the collection). What's left:
+
+- [ ] **SCP as a raw source.** SCP is converted as sectors, so its gaps and flux detail are lost.
+      Needs an SCP image to test with (there are none), and flux decoding that keeps the bytes.
+- [ ] **HFE v3 and the alternate track 0 encoding fields.** We write only v1, with the fields 0xFF;
+      HxC sets them when track 0 is single density on a double-density disk, and FlashFloppy ignores them.
+- [ ] **8-inch HFE** (500 kbit/s, 360 rpm) is written but unchecked against a real image.
+- [ ] **IDs the HFE reader can't see** (no data mark; inside another sector's data). The cells are
+      kept, but `decodeSide()` drops them, so `compareFloppies()` calls the sectors missing. A reader that
+      kept them for copy-protected disks would let the report say they survived.
+- [ ] **JV3 sector numbers above 39.** The format allows up to 254, but the reader's plausibility test
+      (`SectorPosition.isPlausible()`) refuses a file that has them, so the writer leaves them out.
+- [ ] **A better reason in the report.** `MISSING_SECTOR` doesn't say why the format couldn't hold the
+      sector (duplicate, number too high, no data). The writers know; the comparison doesn't.
+- [ ] **Filling the other direction:** `convert` makes floppy images only from floppy images. Putting
+      files on a new disk is the `disk` command's job.
+
 ## Hard disks
 
 `HdvHardDisk` partitions that hold LDOS 5, LS-DOS 6 or DOSPLUS 3 file systems

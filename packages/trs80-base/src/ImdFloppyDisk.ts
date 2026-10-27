@@ -719,3 +719,164 @@ export function decodeImdFloppyDisk(binary: Uint8Array, options: FloppyDecodeOpt
 
     return floppyDisk;
 }
+
+/**
+ * One sector to put in a new IMD image.
+ */
+export interface ImdSectorToWrite {
+    /**
+     * The sector number in the ID field.
+     */
+    sectorNumber: number;
+
+    /**
+     * The cylinder and side in the ID field, which are written as maps if they differ from the track's.
+     */
+    idCylinder: number;
+    idSide: number;
+
+    /**
+     * The sector's size in bytes, a power of two from 128 to 8192.
+     */
+    size: number;
+
+    /**
+     * The sector's data, or undefined if its ID was found but not its data.
+     */
+    data: Uint8Array | undefined;
+
+    /**
+     * Whether the data address mark is the deleted one.
+     */
+    deleted: boolean;
+
+    /**
+     * Whether the sector's data had a CRC error.
+     */
+    dataError: boolean;
+}
+
+/**
+ * One track to put in a new IMD image.
+ */
+export interface ImdTrackToWrite {
+    /**
+     * The physical position. The side must be 0 or 1.
+     */
+    trackPosition: TrackPosition;
+
+    /**
+     * The track's data rate and encoding. The sectors' densities must agree with it.
+     */
+    mode: ImdMode;
+
+    /**
+     * The track's sectors in physical order, at most 255.
+     */
+    sectors: ImdSectorToWrite[];
+}
+
+/**
+ * The size code for a sector size, 0 for 128 bytes up to 6 for 8192, or undefined if it isn't one.
+ */
+function imdSizeCode(size: number): number | undefined {
+    for (let code = 0; code <= MAX_SIZE_CODE; code++) {
+        if (128 << code === size) {
+            return code;
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Make an IMD image from tracks. Sectors whose data is one repeated byte are written compressed. The
+ * cylinder and head maps are written for the tracks whose sectors' ID fields differ from the track's
+ * position, and a table of sizes for tracks whose sectors differ in size.
+ *
+ * @param tracks the tracks, which are written in the order given.
+ * @param headerText the text before the 0x1A byte: a line like "IMD 1.18: 26/10/2026 12:00:00", a
+ * CR LF, and a comment.
+ * @return the new image, or undefined if there are no sectors, or a track or sector can't be recorded
+ * (a side past 1, a size that isn't a power of two, or more than 255 sectors).
+ */
+export function makeImdFloppyDisk(tracks: ImdTrackToWrite[], headerText: string): ImdFloppyDisk | undefined {
+    const parts: Uint8Array[] = [];
+    const header = new Uint8Array(headerText.length + 1);
+    for (let i = 0; i < headerText.length; i++) {
+        header[i] = headerText.charCodeAt(i) & 0xFF;
+    }
+    header[headerText.length] = HEADER_END_BYTE;
+    parts.push(header);
+
+    for (const track of tracks) {
+        const {sectors} = track;
+        const sizeCodes = sectors.map(sector => imdSizeCode(sector.size));
+        const tooMany = sectors.length > 255;
+        if (track.trackPosition.side > 1 || track.trackPosition.cylinderNumber > 255 || tooMany ||
+            sizeCodes.some(code => code === undefined) ||
+            sectors.some(sector => sector.data !== undefined && sector.data.length !== sector.size)) {
+
+            return undefined;
+        }
+
+        const position = track.trackPosition;
+        const needCylinderMap = sectors.some(sector => sector.idCylinder !== position.cylinderNumber);
+        const needHeadMap = sectors.some(sector => sector.idSide !== position.side);
+        const sameSize = sectors.every(sector => sector.size === sectors[0].size);
+        const headByte = position.side | (needCylinderMap ? HEAD_FLAG_CYLINDER_MAP : 0) |
+            (needHeadMap ? HEAD_FLAG_HEAD_MAP : 0);
+
+        const bytes: number[] = [track.mode, position.cylinderNumber, headByte, sectors.length,
+            sameSize && sectors.length > 0 ? sizeCodes[0]! : SIZE_CODE_TABLE];
+        for (const sector of sectors) {
+            bytes.push(sector.sectorNumber);
+        }
+        if (needCylinderMap) {
+            for (const sector of sectors) {
+                bytes.push(sector.idCylinder);
+            }
+        }
+        if (needHeadMap) {
+            for (const sector of sectors) {
+                bytes.push(sector.idSide);
+            }
+        }
+        if (!(sameSize && sectors.length > 0)) {
+            for (const sector of sectors) {
+                bytes.push(sector.size & 0xFF, sector.size >> 8);
+            }
+        }
+
+        // The records.
+        for (const sector of sectors) {
+            if (sector.data === undefined) {
+                bytes.push(0);
+                continue;
+            }
+            const fillByte = sector.data[0];
+            const uniform = sector.data.every(value => value === fillByte);
+            bytes.push((uniform ? 2 : 1) + (sector.deleted ? 2 : 0) + (sector.dataError ? 4 : 0));
+            if (uniform) {
+                bytes.push(fillByte);
+            } else {
+                for (let i = 0; i < sector.data.length; i++) {
+                    bytes.push(sector.data[i]);
+                }
+            }
+        }
+        parts.push(Uint8Array.from(bytes));
+    }
+
+    let totalLength = 0;
+    for (const part of parts) {
+        totalLength += part.length;
+    }
+    const binary = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const part of parts) {
+        binary.set(part, offset);
+        offset += part.length;
+    }
+
+    return decodeImdFloppyDisk(binary, {requireBootTrack: false});
+}

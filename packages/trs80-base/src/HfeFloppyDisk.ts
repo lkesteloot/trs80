@@ -20,6 +20,8 @@ import {
     FloppyDecodeOptions,
     FloppyDiskGeometry,
     FloppyWrite,
+    laterSectorReplaces,
+    SectorCopy,
     SectorCrc,
     SectorData,
     SectorInfo,
@@ -40,17 +42,17 @@ import {
 const DEBUG = false;
 
 // The size of the header, and of the blocks that everything else is laid out in.
-const BLOCK_SIZE = 512;
+export const BLOCK_SIZE = 512;
 
 // Each side's half of an interleaved block.
-const SIDE_BLOCK_SIZE = BLOCK_SIZE/2;
+export const SIDE_BLOCK_SIZE = BLOCK_SIZE/2;
 
 // The offset in the header of the byte that says whether writing is allowed: 0xFF means yes, 0x00 means no.
 const WRITE_ALLOWED_OFFSET = 20;
 const WRITE_PROTECTED_VALUE = 0x00;
 
 // The first eight bytes of a version 1 file.
-const HFE_V1_MAGIC = "HXCPICFE";
+export const HFE_V1_MAGIC = "HXCPICFE";
 
 // The first eight bytes of a version 3 file, which we don't support.
 const HFE_V3_MAGIC = "HXCHFEV3";
@@ -59,14 +61,14 @@ const HFE_V3_MAGIC = "HXCHFEV3";
 const MFM_SYNC_CELLS = 0x4489;
 
 // The clock bits of an FM address mark, which is missing some of them.
-const FM_MARK_CLOCK = 0xC7;
+export const FM_MARK_CLOCK = 0xC7;
 
 // The clock bits of an FM data byte, which has all of them.
-const FM_DATA_CLOCK = 0xFF;
+export const FM_DATA_CLOCK = 0xFF;
 
 // Number of cells in an encoded byte. FM has four per data bit and MFM has two.
-const FM_CELLS_PER_BYTE = 32;
-const MFM_CELLS_PER_BYTE = 16;
+export const FM_CELLS_PER_BYTE = 32;
+export const MFM_CELLS_PER_BYTE = 16;
 
 // Maximum gap between the end of an ID field and the start of its data address mark, in bytes,
 // from the WD179x data sheet.
@@ -194,6 +196,20 @@ class HfeTrack {
     }
 
     /**
+     * Read this side's cell stream out of the file's binary, for a converter that wants the raw cells.
+     *
+     * @param binary the whole file, which the track was decoded from.
+     * @throws if the track runs off the end of the file, which the decoder doesn't allow.
+     */
+    public readStream(binary: Uint8Array): CellStream {
+        const bytes = extractSide(binary, this.begin/BLOCK_SIZE, this.sideLength*2, this.trackPosition.side);
+        if (bytes === undefined) {
+            throw new Error("HFE track " + this.trackPosition.key() + " runs off the end of the file");
+        }
+        return new CellStream(bytes);
+    }
+
+    /**
      * Where a cell is in the file, the inverse of extractSide(): the offset of its byte, and the mask of
      * its bit within that byte. The index wraps around either end of the stream.
      */
@@ -282,7 +298,10 @@ export class HfeFloppyDisk extends FloppyDisk {
     }
 
     /**
-     * Find the first sector at a physical position, since a sector number can repeat.
+     * Find the sector at a physical position. A sector number can repeat on a track (dual-boot disks have the
+     * same numbers in both densities), and then the later sector replaces the earlier one unless it's worse, the
+     * rule that the geometry and the DMK reader use (see laterSectorReplaces()), so that every format reads the
+     * same sector.
      */
     private findSector(sectorPosition: SectorPosition): { track: HfeTrack, sector: HfeSector } | undefined {
         const track = this.tracksByPosition.get(sectorPosition.trackPosition.key());
@@ -290,8 +309,20 @@ export class HfeFloppyDisk extends FloppyDisk {
             return undefined;
         }
 
-        const sector = track.sectors.find(sector => sector.sectorNumber === sectorPosition.sectorNumber);
-        return sector === undefined ? undefined : {track, sector};
+        // Every HFE sector has a data field, so only the ID's CRC tells copies apart.
+        const copyOf = (sector: HfeSector): SectorCopy => ({
+            hasValidIdCrc: () => sector.idCrc.valid(),
+            hasData: () => true,
+        });
+        let found: HfeSector | undefined = undefined;
+        for (const sector of track.sectors) {
+            if (sector.sectorNumber === sectorPosition.sectorNumber &&
+                (found === undefined || laterSectorReplaces(copyOf(found), copyOf(sector)))) {
+
+                found = sector;
+            }
+        }
+        return found === undefined ? undefined : {track, sector: found};
     }
 
     /**
@@ -403,7 +434,7 @@ export class HfeFloppyDisk extends FloppyDisk {
     }
 
     readSector(sectorPosition: SectorPosition): SectorData | undefined {
-        // If a sector number repeats, we return the first one.
+        // If a sector number repeats, see findSector().
         const sector = this.findSector(sectorPosition)?.sector;
         if (sector === undefined) {
             return undefined;
@@ -440,7 +471,7 @@ function matchesAscii(binary: Uint8Array, begin: number, text: string): boolean 
  *
  * @param clock the clock bits, most significant first: 0xFF for data and 0xC7 for an address mark.
  */
-function fmByteCells(byte: number, clock: number): number[] {
+export function fmByteCells(byte: number, clock: number): number[] {
     const cells: number[] = [];
 
     for (let bit = 7; bit >= 0; bit--) {
@@ -456,7 +487,7 @@ function fmByteCells(byte: number, clock: number): number[] {
  *
  * @param previousDataBit the last data bit before this byte.
  */
-function mfmByteCells(byte: number, previousDataBit: number): number[] {
+export function mfmByteCells(byte: number, previousDataBit: number): number[] {
     const cells: number[] = [];
 
     for (let bit = 7; bit >= 0; bit--) {
@@ -472,7 +503,7 @@ function mfmByteCells(byte: number, previousDataBit: number): number[] {
  * A side's cell stream, which is treated as circular: a sector whose data runs off the end
  * of the stream continues from the start. Cells are stored least significant bit first.
  */
-class CellStream {
+export class CellStream {
     public readonly bytes: Uint8Array;
     public readonly length: number;
 
@@ -585,7 +616,7 @@ class CellStream {
 /**
  * The number of cells in an encoded byte of the given density.
  */
-function cellsPerByte(density: Density): number {
+export function cellsPerByte(density: Density): number {
     switch (density) {
         case Density.SINGLE:
             return FM_CELLS_PER_BYTE;
@@ -615,10 +646,11 @@ function maxDataMarkGap(density: Density): number {
 }
 
 /**
- * The number of data bytes for a sector's size code. Like DMK, we use 256 for codes we don't know.
+ * The number of data bytes for a sector's size code. Like DMK, and like the WD179x, we use only the low
+ * two bits, so a code above 3 wraps around.
  */
 function sectorSizeFromCode(sizeCode: number): number {
-    return sizeCode <= 3 ? 128 << sizeCode : 256;
+    return 128 << (sizeCode & 0x03);
 }
 
 /**

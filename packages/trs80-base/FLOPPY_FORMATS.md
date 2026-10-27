@@ -2669,6 +2669,100 @@ them with their ID-field position.
     because an error stops the disk from being opened at all.
 - **Not IMD:** one `.IMD` is really an HxC `HXCMFM` file.
 
+## Writing the image formats
+
+How `FloppyConvert.ts` writes the five formats (DMK, JV1, JV3, HFE, IMD), and what each leaves out.
+Writers produce an image, decode it with the format's reader, and `compareFloppies()` compares the
+two disks sector by sector, so everything below is what a reader can read back.
+
+- **Time slots.** DMK and HFE tracks use one unit of time, a double-density byte (16 HFE cells, one
+  DMK byte). A single-density byte takes two, which is why DMK doubles them and HFE gives them 32
+  cells. `TrackStream` holds a track as bytes with a density and a flag for the special clock bits
+  (the three 0xA1 sync bytes before a double-density mark, and a single-density mark), so DMK to
+  HFE and back is a change of encoding, and a track with both densities lines up in both. A turn of
+  a 5¼-inch track is 6,250 slots (100,000 cells, 12,500 bytes a side), and of an 8-inch track 10,416.
+- **Raw formats keep their bytes.** DMK to HFE and HFE to DMK keep the track's bytes (gaps,
+  filler, copy-protection), and the HFE round trip of a FORMAT-made DMK comes back byte for byte.
+  Only the bytes' special clock flags have to be rebuilt, from the IDAM table (DMK) or the marks found
+  in the cells (HFE).
+- **Sector formats get synthesized tracks.** JV1, JV3 and IMD have no gaps, so a DMK or HFE made
+  from them is laid out as a FORMAT would: the matching DOS's gaps when the track is exactly that
+  DOS's (TRSDOS 2.3's 10 sectors, LDOS's 18 in double density, TRSDOS 1.3's 18 from 1), otherwise
+  trs80gp's generic layout (40 FF, then 6 00, ID, 11 FF, 6 00, data, 10 FF in single density; 60 4E,
+  then 12 00, 3 A1, ID, 22 4E, 12 00, 3 A1, data, 24 4E in double). If the track doesn't fit in a
+  turn, the gaps shrink to a minimum, and then the last sectors are left out. Sectors keep the
+  order they have in the source; a JV1 has none, so TRSDOS 2.3's interleave is used.
+- **HFE header** (matching the real-hardware images in `telanoc/`): revision 0, encoding 0 (MFM,
+  even for single density), bit rate 250 kbit/s, 300 rpm, interface mode 7 (generic Shugart DD),
+  byte 0x11 and the rest of the header 0xFF, track list at block 1, write allowed 0xFF, single step
+  0xFF, no alternate track 0 encoding. Each track is 25,000 bytes (the two sides interleaved, 49 blocks),
+  and track *n* is at block 2 + 49*n. A side with no data is filled with 0xAA. The 8-inch values (500 kbit/s,
+  360 rpm, 41,664 bytes a track) are our choice and no real image has checked them.
+- **The missing clock of a sync byte.** An 0xA1 sync is an ordinary MFM byte but for its sixth clock
+  cell, the third zero's, which is left out (cell 10 of its 16, giving 0x4489).
+- **Imager tracks are longer than a turn.** DMK tracks from real-drive imagers are 0x1980 (6,400
+  slots) or more, and a sector near the end can run past the turn. In a real HFE it continues at the
+  start of the track, so the converter moves that part there (and a DMK made from an HFE with such a
+  sector has a longer track to hold it). Everything else past the turn is gap or a repeat of the start
+  and is dropped.
+- **Pointers that aren't IDs.** An IDAM pointer can aim at a byte that isn't 0xFE, or at a 0xFE inside
+  a data field (the "stale" and "points at data" cases above). Giving those marks would change the data they
+  sit in, so the converter marks only IDs with a good CRC, or in double density two sync bytes in front.
+  An ID written inside the previous sector's data field (copy protection) keeps its marks, but our HFE
+  reader ignores marks inside a data field (it has to, because MFM data can look like an FM mark), so
+  that sector is reported as missing though its cells are there.
+- **What each writer can't hold**, and what the report calls it:
+
+  | Format | Can't hold | Reported as |
+  |---|---|---|
+  | DMK | nothing, but IDs inside data fields and junk pointers need the marks above | |
+  | HFE | an ID with no data mark after it (the reader finds sectors by their data marks) | sector missing |
+  | JV3 | duplicate sector numbers; a track other than the ID's; sectors without data; bad ID CRCs; sector numbers above 39 and cylinders above 99 (our reader rejects the file otherwise) | sector missing, ID field cylinder or side, ID CRC |
+  | IMD | two densities on one track (the less common is dropped); bad ID CRCs; which deleted mark (0xF8, 0xFA, or 0xF9); sector sizes above 8,192 | sector missing, exact data address mark, ID CRC |
+  | JV1 | anything but single-sided, single density, 10 × 256 numbered 0-9; marks (other than the 0xFA it makes up for cylinder 17); CRC errors; the order of the sectors. A missing sector is 0xE5 | sector missing, deleted mark, data CRC error, sectors added |
+
+  DMK and HFE keep a CRC error by writing a wrong CRC, and JV3 and IMD with a flag (one, for the data).
+  Mixed density per track (single density on cylinder 0, double after it) survives in DMK, HFE, JV3 and
+  IMD, whose mode byte is per track.
+- **IMD mode bytes.** Five-and-a-quarter-inch disks use 250 kbit/s (modes 2 and 5, as in the two such
+  images in the collection) and 8-inch use 500 (modes 0 and 3, as every Model II image does). The
+  header is `IMD 1.18: dd/mm/yyyy hh:mm:ss`, a CR LF, and a comment line, then 0x1A.
+- **Sizes.** The disk size is taken from the source when it says (DMK track length, IMD mode,
+  HFE bit rate), else the 5¼-inch size unless some track doesn't fit in it. DMK tracks are 0x1900 (5¼
+  inch) or 0x2940 (8 inch) bytes, longer if a stream needs it.
+- **Two reader rules came out of it.** The HFE reader read a size code above 3 as 256 bytes and now takes
+  the low two bits as DMK does (there are none in the 32 HFE images), and it picks among sectors with the
+  same number by `laterSectorReplaces()` as the geometry and the DMK reader do (it took the first; there
+  are none in the suite). Without that, a dual-boot disk, which has the same sector numbers in both
+  densities on one track, read as another file system after converting to HFE.
+- **SCP** is read as sectors only: its flux isn't turned back into track bytes. There are no SCP images
+  to test with.
+
+**Results on the collection** (October 2026; 1,584 floppy images; every image was converted to each other
+format, read back, compared, and converted back; "lossless" means no loss kind in the report):
+
+| From → to | Images | Refused | Lossless | Lossless back | Losses in the others |
+|---|---|---|---|---|---|
+| DMK → HFE | 1,506 | 0 | 1,428 | 1,428 | bad-ID-CRC junk (37), missing sectors (45): IDs with no data mark and IDs inside data fields |
+| DMK → JV3 | 1,506 | 0 | 1,367 | 1,367 | IDs that say another side (36), junk (39), missing (91): duplicates, no data, sector numbers over 39 |
+| DMK → IMD | 1,506 | 0 | 1,157 | 1,156 | data mark 0xFA (320), junk (39), missing (26, mostly dual-boot tracks with both densities) |
+| DMK → JV1 | 1,506 | 869 | 200 | 200 | missing, marks, IDs, densities |
+| HFE → DMK, JV3 | 32 | 0 | 32 | 32 | |
+| HFE → IMD | 32 | 0 | 29 | 29 | data mark 0xFA (3) |
+| IMD → DMK | 23 | 0 | 23 | 23 | |
+| IMD → HFE | 23 | 0 | 22 | 22 | one with a sector that HFE can't hold |
+| IMD → JV3 | 23 | 0 | 21 | 21 | a cylinder map (1 image), sectors JV3 can't hold (2) |
+| JV1 → DMK, JV3, HFE | 9 | 0 | 9 | 9 | |
+| JV1 → IMD | 9 | 0 | 0 | 9 | the 0xFA directory mark, in all |
+| JV3 → DMK, HFE | 14 | 0 | 14 | 14 | |
+| JV3 → IMD | 14 | 0 | 11 | 11 | data mark 0xFA (3) |
+
+Every converted image decoded as its new format, and the files of every disk with a file system
+were identical afterward, except where the report said sectors were lost or added (JV1 fills a
+cylinder that the source never formatted with 0xE5, where the file systems read a missing sector as
+zeros). The comparison of files is part of the report, and also stops a conversion unless
+`--force` is given.
+
 ## Track layouts by DOS
 
 What each DOS's FORMAT writes, as `TrackLayout.ts` reproduces it. Measured on the
