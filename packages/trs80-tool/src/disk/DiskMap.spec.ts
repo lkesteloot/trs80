@@ -1,13 +1,16 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {formatTrsdosDataDisk, makeTrsdos23TestDisk, TrsdosFormatDos, type TestDiskOptions, type TestFile} from "trs80-base";
+import {
+    decodeTrsdos, formatTrsdosDataDisk, makeTrsdos23TestDisk, Trsdos, TrsdosFormatDos, TrsdosGranuleMap,
+    type TestDiskOptions, type TestFile,
+} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {setColorLevel} from "../colors.js";
 import {disk} from "./disk.js";
 import type {ParsedDiskCommand} from "./DiskCommandParser.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
-import {MAP_COMMAND} from "./DiskMap.js";
+import {drawGranuleMap, MAP_COMMAND} from "./DiskMap.js";
 import type {DiskSession} from "./DiskSession.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 2, granuleOffset: 0, granuleCount: 3}], size: 3000};
@@ -57,82 +60,105 @@ describe("disk map", () => {
         Object.defineProperty(process.stdout, "columns", { value: columns, configurable: true, writable: true });
     }
 
-    it("draws the grid and the legend, user files before system files", async () => {
-        makeImage([HELLO, WORLD, KERNEL]);
+    /**
+     * Keep the ruler, the lines that show anything but free sectors, and everything after the grid, so that a test
+     * of a big disk can name the part it cares about.
+     *
+     * @param lines the output of the map command.
+     * @param gutterWidth the width of the cylinder and side columns.
+     * @param rulerLineCount the number of lines of ruler.
+     */
+    function withoutFreeLines(lines: string[], gutterWidth: number, rulerLineCount: number): string[] {
+        const gridEnd = lines.indexOf("");
+        return lines.filter((line, i) => i < rulerLineCount || i >= gridEnd || /[^\s·│]/.test(line.slice(gutterWidth)));
+    }
+
+    it("draws a line for each cylinder and a cell for each sector, with names and granule ends", async () => {
+        makeImage([HELLO, WORLD, KERNEL], {cylinderCount: 18});
         expect(await runDisk("map")).to.eql([
-            "          0         1         2         3",
-            "cylinder  01234567890123456789012345678901234",
-            "granule 0 B.AA....E........D.................",
-            "granule 1 ..A..C..E........D.................",
+            "cyl   0  1  2  3  4  5  6  7  8  9",
+            "  0  BOOT/SYS ─────│·  ·  ·  ·  · │",
+            "  1  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  2  HELLO/BAS ────│──────────────│",
+            "  3  HELLO/BAS ────│·  ·  ·  ·  · │",
+            "  4  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  5  ·  ·  ·  ·  · │WORLD/BAS ────│",
+            "  6  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  7  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  8  KERNEL/SYS ───│──────────────│",
+            "  9  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 10  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 11  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 12  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 13  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 14  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 15  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 16  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 17  DIR/SYS ──────│──────────────│",
             "",
-            "A  HELLO/BAS   3 granules  3,000 bytes",
-            "C  WORLD/BAS   1 granule     300 bytes",
-            "E  KERNEL/SYS  2 granules  2,000 bytes  system",
-            "",
-            ". free   D directory   B boot",
-            "9 of 70 granules used, 61 free (76.3 KB). A granule is 1,280 bytes.",
+            "· free",
+            "9 of 36 granules used, 27 free (33.8 KB). A granule is 1,280 bytes.",
         ]);
     });
 
-    it("never uses a symbol that means something else for a file", async () => {
-        // The 2nd and 4th letters would be B and D, which are boot and directory.
-        const files: TestFile[] = [];
-        for (let i = 0; i < 5; i++) {
-            files.push({name: "F" + i + "/DAT", extents: [{lump: 2 + i, granuleOffset: 0, granuleCount: 1}], size: 100});
-        }
-        makeImage(files);
-        expect(await runDisk("map")).to.eql([
-            "          0         1         2         3",
-            "cylinder  01234567890123456789012345678901234",
-            "granule 0 B.ACEFG..........D.................",
-            "granule 1 .................D.................",
-            "",
-            // The legend is in two columns, filled down the first and then the second.
-            "A  F0/DAT  1 granule   100 bytes   F  F3/DAT  1 granule   100 bytes",
-            "C  F1/DAT  1 granule   100 bytes   G  F4/DAT  1 granule   100 bytes",
-            "E  F2/DAT  1 granule   100 bytes",
-            "",
-            ". free   D directory   B boot",
-            "8 of 70 granules used, 62 free (77.5 KB). A granule is 1,280 bytes.",
-        ]);
-    });
-
-    it("splits into blocks that fit the terminal", async () => {
-        makeImage([HELLO, WORLD, KERNEL]);
-        setTerminalWidth(30);
-        expect(await runDisk("map")).to.eql([
-            "          0         1",
-            "cylinder  01234567890123456789",
-            "granule 0 B.AA....E........D..",
-            "granule 1 ..A..C..E........D..",
-            "",
-            "          2         3",
-            "cylinder  012345678901234",
-            "granule 0 ...............",
-            "granule 1 ...............",
-            "",
-            "A  HELLO/BAS   3 granules  3,000 bytes",
-            "C  WORLD/BAS   1 granule     300 bytes",
-            "E  KERNEL/SYS  2 granules  2,000 bytes  system",
-            "",
-            ". free   D directory   B boot",
-            "9 of 70 granules used, 61 free (76.3 KB). A granule is 1,280 bytes.",
-        ]);
-    });
-
-    it("shows only the files that patterns match, and the rest as o", async () => {
-        makeImage([HELLO, WORLD, KERNEL]);
+    it("shows only the files that patterns match, and the rest as plain runs", async () => {
+        makeImage([HELLO, WORLD, KERNEL], {cylinderCount: 18});
         expect(await runDisk("map", "HELLO*", "KERNEL/SYS")).to.eql([
-            "          0         1         2         3",
-            "cylinder  01234567890123456789012345678901234",
-            "granule 0 B.AA....C........D.................",
-            "granule 1 ..A..o..C........D.................",
+            "cyl   0  1  2  3  4  5  6  7  8  9",
+            "  0  BOOT/SYS ─────│·  ·  ·  ·  · │",
+            "  1  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  2  HELLO/BAS ────│──────────────│",
+            "  3  HELLO/BAS ────│·  ·  ·  ·  · │",
+            "  4  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  5  ·  ·  ·  ·  · │──────────────│",
+            "  6  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  7  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  8  KERNEL/SYS ───│──────────────│",
+            "  9  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 10  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 11  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 12  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 13  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 14  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 15  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 16  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 17  DIR/SYS ──────│──────────────│",
             "",
-            "A  HELLO/BAS   3 granules  3,000 bytes",
-            "C  KERNEL/SYS  2 granules  2,000 bytes  system",
+            "HELLO/BAS   3 granules  3,000 bytes",
+            "KERNEL/SYS  2 granules  2,000 bytes  system",
             "",
-            ". free   D directory   B boot   o other file",
-            "9 of 70 granules used, 61 free (76.3 KB). A granule is 1,280 bytes.",
+            "· free   ─ other file",
+            "9 of 36 granules used, 27 free (33.8 KB). A granule is 1,280 bytes.",
+        ]);
+    });
+
+    it("lists a matched file that has no granules, since it isn't in the grid", async () => {
+        makeImage([HELLO, {name: "EMPTY/DAT", extents: [], size: 0}], {cylinderCount: 18});
+        expect(await runDisk("map", "EMPTY/DAT")).to.eql([
+            "cyl   0  1  2  3  4  5  6  7  8  9",
+            "  0  BOOT/SYS ─────│·  ·  ·  ·  · │",
+            "  1  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  2  ──────────────│──────────────│",
+            "  3  ──────────────│·  ·  ·  ·  · │",
+            "  4  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  5  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  6  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  7  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  8  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  9  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 10  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 11  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 12  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 13  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 14  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 15  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 16  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 17  DIR/SYS ──────│──────────────│",
+            "",
+            "EMPTY/DAT  0 granules  0 bytes",
+            "",
+            "· free   ─ other file",
+            "6 of 36 granules used, 30 free (37.5 KB). A granule is 1,280 bytes.",
         ]);
     });
 
@@ -148,50 +174,163 @@ describe("disk map", () => {
         // and a cylinder is locked out.
         const kernel = {...KERNEL, extents: [{lump: 4, granuleOffset: 1, granuleCount: 3}]};
         makeImage([HELLO, WORLD, kernel],
-            {gatUsed: [{lump: 20, granule: 1}], gatFree: [{lump: 2, granule: 0}], lockedOut: [30]});
+            {cylinderCount: 32, gatUsed: [{lump: 20, granule: 1}], gatFree: [{lump: 2, granule: 0}], lockedOut: [30]});
         expect(await runDisk("map")).to.eql([
-            "          0         1         2         3",
-            "cylinder  01234567890123456789012345678901234",
-            "granule 0 B.?A.E...........D............x....",
-            "granule 1 ..A.E!...........D..u.........x....",
+            "cyl   0  1  2  3  4  5  6  7  8  9",
+            "  0  BOOT/SYS ─────│·  ·  ·  ·  · │",
+            "  1  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  2  ??????????????│HELLO/BAS ────│",
+            "  3  HELLO/BAS ────│·  ·  ·  ·  · │",
+            "  4  ·  ·  ·  ·  · │KERNEL/SYS ───│",
+            "  5  KERNEL/SYS ───│!!!!!!!!!!!!!!│",
+            "  6  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  7  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  8  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            "  9  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 10  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 11  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 12  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 13  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 14  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 15  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 16  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 17  DIR/SYS ──────│──────────────│",
+            " 18  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 19  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 20  ·  ·  ·  ·  · │uuuuuuuuuuuuuu│",
+            " 21  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 22  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 23  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 24  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 25  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 26  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 27  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 28  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 29  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
+            " 30  xxxxxxxxxxxxxx│xxxxxxxxxxxxxx│",
+            " 31  ·  ·  ·  ·  · │·  ·  ·  ·  · │",
             "",
-            "A  HELLO/BAS   3 granules  3,000 bytes",
-            "C  WORLD/BAS   1 granule     300 bytes",
-            "E  KERNEL/SYS  3 granules  2,000 bytes  system",
-            "",
-            ". free   D directory   B boot   x locked out   ! shared by two or more files (1)",
+            "· free   x locked out   ! shared by two or more files (1)",
             "? claimed by a file but free in the GAT (1)",
             "u used in the GAT but claimed by no file (1)",
-            "12 of 70 granules used, 58 free (72.5 KB), 2 locked out. A granule is 1,280 bytes.",
+            "12 of 64 granules used, 52 free (65 KB), 2 locked out. A granule is 1,280 bytes.",
         ]);
     });
 
-    it("draws a TRSDOS 1.3 disk with a file added", async () => {
+    it("draws a double-sided disk with a line for each side, and repeats a name only on a new cylinder", async () => {
+        const blank = formatTrsdosDataDisk({dos: TrsdosFormatDos.LDOS_5_3, cylinders: 35, sides: 2});
+        if (typeof blank === "string") {
+            throw new Error(blank);
+        }
+        imagePathname = path.join(dir, "ldos.dmk");
+        fs.writeFileSync(imagePathname, blank.binary);
+        const hostPathname = path.join(dir, "data.bin");
+        fs.writeFileSync(hostPathname, new Uint8Array(9000).fill(0x41));
+        await runDisk("add", hostPathname, "--binary");
+
+        // Granules are 6 sectors of 18 per track, three to a side. The file starts after the boot granule, runs
+        // off the end of side 0 onto side 1 (no new name there), and on to the next cylinder (a new name).
+        expect(withoutFreeLines(await runDisk("map"), 11, 1)).to.eql([
+            "cyl  side   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17",
+            "  0  0     BOOT/SYS ────────│DATA/BIN ────────│─────────────────│",
+            "     1     ─────────────────│─────────────────│─────────────────│",
+            "  1  0     DATA/BIN ────────│·  ·  ·  ·  ·  · │·  ·  ·  ·  ·  · │",
+            " 17  0     DIR/SYS ─────────│─────────────────│─────────────────│",
+            "     1     ─────────────────│─────────────────│─────────────────│",
+            "",
+            "· free",
+            "13 of 210 granules used, 197 free (295.5 KB). A granule is 1,536 bytes.",
+        ]);
+    });
+
+    it("uses narrower cells and a ruler of two lines when the wide cells don't fit", async () => {
+        const blank = formatTrsdosDataDisk({dos: TrsdosFormatDos.LDOS_5_3, cylinders: 35, sides: 2});
+        if (typeof blank === "string") {
+            throw new Error(blank);
+        }
+        imagePathname = path.join(dir, "ldos.dmk");
+        fs.writeFileSync(imagePathname, blank.binary);
+        const hostPathname = path.join(dir, "data.bin");
+        fs.writeFileSync(hostPathname, new Uint8Array(9000).fill(0x41));
+        await runDisk("add", hostPathname, "--binary");
+
+        // 11 columns of gutter and 18 sectors: 65 wide, so 60 columns forces two-character cells.
+        setTerminalWidth(60);
+        expect((await runDisk("map")).slice(0, 6)).to.eql([
+            "                               1",
+            "cyl  side  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7",
+            "  0  0     BOOT/SYS ──│DATA/BIN ──│───────────│",
+            "     1     ───────────│───────────│───────────│",
+            "  1  0     DATA/BIN ──│· · · · · ·│· · · · · ·│",
+            "     1     · · · · · ·│· · · · · ·│· · · · · ·│",
+        ]);
+    });
+
+    it("draws a TRSDOS 1.3 disk, where a long name covers the bars inside its run and is cut short in a small one", async () => {
         const blank = formatTrsdosDataDisk({dos: TrsdosFormatDos.TRSDOS_1_3, cylinders: 40, sides: 1});
         if (typeof blank === "string") {
             throw new Error(blank);
         }
         imagePathname = path.join(dir, "model3.dmk");
         fs.writeFileSync(imagePathname, blank.binary);
-        const hostPathname = path.join(dir, "data.bin");
-        fs.writeFileSync(hostPathname, new Uint8Array(3000).fill(0x41));
-        await runDisk("add", hostPathname, "--binary");
+        const bigPathname = path.join(dir, "BIGFILE.TXT");
+        fs.writeFileSync(bigPathname, new Uint8Array(3000).fill(0x41));
+        const smallPathname = path.join(dir, "SMALLONE.TXT");
+        fs.writeFileSync(smallPathname, new Uint8Array(600).fill(0x42));
+        await runDisk("add", bigPathname, "--binary");
+        await runDisk("add", smallPathname, "--binary");
 
-        // 40 cylinders of 6 granules, the boot granule, the directory in the middle, and the new file after the boot granule.
-        expect(await runDisk("map")).to.eql([
-            "          0         1         2         3",
-            "cylinder  0123456789012345678901234567890123456789",
-            "granule 0 B................D......................",
-            "granule 1 A................D......................",
-            "granule 2 A................D......................",
-            "granule 3 A................D......................",
-            "granule 4 A................D......................",
-            "granule 5 .................D......................",
-            "",
-            "A  DATA/BIN  4 granules  3,000 bytes",
-            "",
-            ". free   D directory   B boot",
-            "11 of 240 granules used, 229 free (171.8 KB). A granule is 768 bytes.",
+        // Granules are 3 sectors, so 9 characters, and the 12-character names don't fit in one.
+        expect((await runDisk("map")).slice(0, 2)).to.eql([
+            "cyl   1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18",
+            "  0  boot ───│BIGFILE/TXT ─────│────────│────────│SMALLONE│",
+        ]);
+    });
+
+    it("says so when the image has a side that the file system doesn't use", () => {
+        const blank = formatTrsdosDataDisk({dos: TrsdosFormatDos.LDOS_5_3, cylinders: 35, sides: 2});
+        if (typeof blank === "string") {
+            throw new Error(blank);
+        }
+        const decoded = decodeTrsdos(blank);
+        if (decoded === undefined) {
+            throw new Error("Didn't decode as TRSDOS");
+        }
+
+        // Read the same disk as if the DOS used only side 0, with lumps of 3 granules.
+        const oneSide = new Trsdos(decoded.disk, decoded.geometry, decoded.version, 1, 3, decoded.sectorsPerGranule,
+            decoded.dirLumpNumber, 3, 0);
+        const granuleMap = TrsdosGranuleMap.make(oneSide);
+        if (typeof granuleMap === "string") {
+            throw new Error(granuleMap);
+        }
+
+        const lines = drawGranuleMap(granuleMap, oneSide.getDirEntries(true), undefined, 80);
+        expect(lines.slice(0, 3)).to.eql([
+            "cyl   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17",
+            "  0  BOOT/SYS ────────│·  ·  ·  ·  ·  · │·  ·  ·  ·  ·  · │",
+            "  1  ·  ·  ·  ·  ·  · │·  ·  ·  ·  ·  · │·  ·  ·  ·  ·  · │",
+        ]);
+        expect(lines).to.include("The image has 2 sides, but the file system uses only 1.");
+    });
+
+    it("marks a cylinder that no granule covers", () => {
+        // The test disk read as if the file system started on cylinder 1, with the directory on its lump 16.
+        const standard = decodeTrsdos(makeTrsdos23TestDisk([HELLO], {cylinderCount: 18}));
+        if (standard === undefined) {
+            throw new Error("Didn't decode as TRSDOS");
+        }
+        const shifted = new Trsdos(standard.disk, standard.geometry, standard.version, 1, 2, 5, 16, 2, 1);
+        const granuleMap = TrsdosGranuleMap.make(shifted);
+        if (typeof granuleMap === "string") {
+            throw new Error(granuleMap);
+        }
+
+        const lines = drawGranuleMap(granuleMap, shifted.getDirEntries(true), undefined, 80);
+        expect(lines.slice(0, 3)).to.eql([
+            "cyl   0  1  2  3  4  5  6  7  8  9",
+            "  0  not in the file system",
+            "  1  BOOT/SYS ─────│·  ·  ·  ·  · │",
         ]);
     });
 

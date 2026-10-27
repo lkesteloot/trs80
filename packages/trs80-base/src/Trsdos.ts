@@ -2348,6 +2348,31 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
+     * The number of the first sector on a track, which this DOS's version decides (0 or 1). A track's sectors
+     * are numbered consecutively from it, for the sectors that the file system uses.
+     */
+    public get firstSectorNumber(): number {
+        return getFirstSectorNumber(this.version);
+    }
+
+    /**
+     * The physical positions of the sectors of one granule, in order. A granule need not sit on one track:
+     * where lumps don't line up with cylinders (see "NEWDOS/80 lumps" in FLOPPY_FORMATS.md), or when a
+     * granule is the last on a side, it continues on the next track.
+     *
+     * @param lumpNumber the lump (the cylinder, where lumps are cylinders) that holds the granule.
+     * @param granule the granule's index within its lump.
+     * @return one position for each sector of the granule.
+     */
+    public getGranuleSectorPositions(lumpNumber: number, granule: number): SectorPosition[] {
+        const positions: SectorPosition[] = [];
+        for (let sectorOffset = 0; sectorOffset < this.sectorsPerGranule; sectorOffset++) {
+            positions.push(this.logicalToPhysical(lumpNumber, granule, sectorOffset));
+        }
+        return positions;
+    }
+
+    /**
      * Convert a lump-based sector position to a physical track-based sector position.
      *
      * The granule and sectorOffsets are not checked against bounds, so (for example), the sectorOffset could

@@ -2,7 +2,7 @@ import {describe, expect, it} from "vitest";
 import {
     decodeDirEntry, decodeTrsdos, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
     hashTrsdosPassword, parseTrsdosProtectionLevel, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
-    TrsdosProtectionLevel, TrsdosProtectionNames, trsdosProtectionLevels, trsdosProtectionLevelToString,
+    Trsdos, TrsdosProtectionLevel, TrsdosProtectionNames, trsdosProtectionLevels, trsdosProtectionLevelToString,
     trsdosProtectionNamesFor, TrsdosVersion, type Trsdos13DirEntryFields, type Trsdos23DirEntryFields,
 } from "./Trsdos.js";
 import {hashTrsdos13Password} from "./TrsdosFormat.js";
@@ -396,5 +396,49 @@ describe("encodeTrsdos13DirEntry", () => {
         expect(() => encodeTrsdos13DirEntry({...fields, extents: [{...extent, granuleCount: 0}]})).to.throw("doesn't fit");
         expect(() => encodeTrsdos13DirEntry({...fields, extents: [{...extent, lump: 0xFE}]})).to.throw("doesn't fit");
         expect(() => encodeTrsdos13DirEntry({...fields, year: 256})).to.throw("doesn't fit");
+    });
+});
+
+describe("Trsdos.getGranuleSectorPositions", () => {
+    /**
+     * Decode the standard test disk (a single side, 10 sectors per track, 2 granules of 5 sectors per lump).
+     */
+    function decodeTestDisk(): Trsdos {
+        const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]));
+        if (trsdos === undefined) {
+            throw new Error("Test disk didn't decode as TRSDOS");
+        }
+        return trsdos;
+    }
+
+    /**
+     * The positions of a granule as "cylinder:side:sector" strings.
+     */
+    function keys(trsdos: Trsdos, lump: number, granule: number): string[] {
+        return trsdos.getGranuleSectorPositions(lump, granule).map(position => position.key());
+    }
+
+    it("lists the sectors of a granule that fits on a cylinder", () => {
+        const trsdos = decodeTestDisk();
+        expect(trsdos.firstSectorNumber).to.equal(0);
+        expect(keys(trsdos, 3, 0)).to.eql(["3:0:0", "3:0:1", "3:0:2", "3:0:3", "3:0:4"]);
+        expect(keys(trsdos, 3, 1)).to.eql(["3:0:5", "3:0:6", "3:0:7", "3:0:8", "3:0:9"]);
+    });
+
+    it("continues a granule onto the next cylinder when lumps don't line up with cylinders", () => {
+        // Another reading of the same disk, with lumps of 3 granules of 4 sectors: 12 sectors, on 10-sector cylinders.
+        const standard = decodeTestDisk();
+        const trsdos = new Trsdos(standard.disk, standard.geometry, TrsdosVersion.V2_3, 1, 3, 4,
+            standard.dirLumpNumber, 3, 0);
+        expect(trsdos.lumpsAreCylinders).to.equal(false);
+        expect(keys(trsdos, 0, 2)).to.eql(["0:0:8", "0:0:9", "1:0:0", "1:0:1"]);
+        expect(keys(trsdos, 1, 1)).to.eql(["1:0:6", "1:0:7", "1:0:8", "1:0:9"]);
+    });
+
+    it("starts after the unused cylinders before the first data cylinder", () => {
+        const standard = decodeTestDisk();
+        const trsdos = new Trsdos(standard.disk, standard.geometry, TrsdosVersion.V2_3, 1, 2, 5,
+            standard.dirLumpNumber, 2, 1);
+        expect(keys(trsdos, 0, 0)).to.eql(["1:0:0", "1:0:1", "1:0:2", "1:0:3", "1:0:4"]);
     });
 });

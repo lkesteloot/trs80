@@ -664,27 +664,36 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                 </tr>
                 <tr>
                     <td><code>map [PATTERN...]</code></td>
-                    <td><p>Draw the disk granule by granule, so you can see where everything is: a column for
-                        each cylinder (or lump, on DOSes whose lumps aren’t cylinders) and a row for each granule in
-                        it, split into blocks to fit the terminal. Each file has a letter and a color, listed
-                        below the map with its size, system files last. <code>.</code> is free, <code>D</code> the directory,
-                        <code>B</code> the boot granule and <code>x</code> a locked-out one. Damage shows in red:
+                    <td><p>Draw the disk sector by sector, so you can see where everything is: a line for each
+                        cylinder and a cell for each sector on it, numbered by a ruler on top. On a double-sided
+                        disk each cylinder has a line for side 0 and one for side 1, so reading left to right and top
+                        to bottom follows the order the DOS allocates sectors in. A <code>│</code> ends each granule.
+                        A file is a run of <code>─</code> that starts with its name, in a color of its own; the name
+                        repeats at the start of each cylinder (but not when a file runs from side 0 to side 1). The
+                        directory and the boot granule are drawn the same way. <code>·</code> is a free sector and
+                        <code>x</code> a locked-out one. Damage shows in red:
                         <code>!</code> for a granule that two or more files claim, <code>?</code> for one that a
                         file claims but the GAT says is free, and <code>u</code> for one the GAT says is used
-                        that no file claims. With patterns, only the matching files get letters, and the rest
-                        show as <code>o</code>. A wildcard never matches a system file; to show one, name it.
+                        that no file claims. With patterns, only the matching files get names and colors, and
+                        the rest show as a plain <code>─</code>; the matching files are listed below the map.
+                        A wildcard never matches a system file; to show one, name it.
                         It changes nothing, so it works on a read-only disk, and only on TRSDOS-family disks.</p>
-<pre><code>          0         1         2         3
-cylinder  01234567890123456789012345678901234
-granule 0 B.AA....E........D.................
-granule 1 ..A..C..E........D.................
+<pre><code>cyl   0  1  2  3  4  5  6  7  8  9
+  0  BOOT/SYS ─────│·  ·  ·  ·  · │
+  1  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  2  HELLO/BAS ────│──────────────│
+  3  HELLO/BAS ────│·  ·  ·  ·  · │
+  4  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  5  ·  ·  ·  ·  · │WORLD/BAS ────│
+  6  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  7  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  8  KERNEL/SYS ───│──────────────│
+  9  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+ ...
+ 17  DIR/SYS ──────│──────────────│
 
-A  HELLO/BAS   3 granules  3,000 bytes
-C  WORLD/BAS   1 granule     300 bytes
-E  KERNEL/SYS  2 granules  2,000 bytes  system
-
-. free   D directory   B boot
-9 of 70 granules used, 61 free (76.3 KB). A granule is 1,280 bytes.</code></pre></td>
+· free
+9 of 36 granules used, 27 free (33.8 KB). A granule is 1,280 bytes.</code></pre></td>
                 </tr>
                 <tr>
                     <td><code>check</code></td>
