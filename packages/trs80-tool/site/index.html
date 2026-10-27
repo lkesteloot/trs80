@@ -282,7 +282,83 @@
             <p>The output must be a file; to extract the contents of an archive, use
             <a href="#extract"><code>extract</code></a>.</p>
 
+            <p id="convert-floppy"><strong>A floppy image can be converted to another floppy image
+            format.</strong> If the input is a floppy image and the output ends in <code>.dmk</code>, <code>.jv1</code>,
+            <code>.jv3</code>, <code>.hfe</code>, or <code>.imd</code>, the whole disk is converted to that
+            image format, whatever file system it has (or if it has none). The input can be any floppy
+            image the tool reads: DMK, JV1, JV3, HFE, IMD, or SCP.</p>
+            <div><pre><code>% trs80-tool convert in.dmk out.hfe
+Wrote out.hfe: HFE floppy, 40 cylinders, 1 side, 720 sectors; nothing lost.
+% trs80-tool convert in.imd out.dmk</code></pre>
+            </div>
+            <p>(<code>.dsk</code> isn’t accepted for the output, because it means JV1 to some programs and JV3 to
+            others: use <code>.jv1</code> or <code>.jv3</code>.)</p>
             <table class="flags">
+                <tr>
+                    <td><code>.dmk</code></td>
+                    <td>Keeps every track as bytes. Converting from HFE keeps the bytes of the tracks (gaps,
+                        sync bytes, and copy protection); from the sector formats (JV1, JV3, IMD) the tracks
+                        are laid out as a DOS’s <code>FORMAT</code> would have, with real CRCs. Holds anything,
+                        including both densities on one track.</td>
+                </tr>
+                <tr>
+                    <td><code>.hfe</code></td>
+                    <td>Version 1 images for Gotek drives and the HxC emulator, with the same header as the
+                        images made on real TRS-80 hardware. Every track is exactly one turn long (100,000 cells
+                        a side for a 5¼-inch disk). Converting from DMK keeps the bytes of the tracks. An ID
+                        field with no data field after it can’t be kept, because the HFE reader finds sectors by
+                        their data marks.</td>
+                </tr>
+                <tr>
+                    <td><code>.jv3</code></td>
+                    <td>Holds sectors of 128 to 1,024 bytes in either density, with their order around the track,
+                        deleted marks, and CRC errors. It can’t hold IDs that disagree with where the sector is,
+                        duplicate sector numbers, sectors without data, bad ID CRCs, or sector numbers above 39.</td>
+                </tr>
+                <tr>
+                    <td><code>.imd</code></td>
+                    <td>Holds one density per track, any sector size, the order of the sectors, IDs that disagree
+                        with their position, sectors without data, deleted marks, and data errors. It can’t hold
+                        which deleted mark (0xF8, 0xFA) was used, or bad ID CRCs. Disks of 8 inches are written
+                        at 500 kbit/s, and 5¼-inch ones at 250.</td>
+                </tr>
+                <tr>
+                    <td><code>.jv1</code></td>
+                    <td>Holds only single-sided, single-density tracks of ten 256-byte sectors numbered 0 to 9.
+                        Anything else is left out, tracks with missing sectors are filled with 0xE5, and its
+                        deleted marks are those it makes up for cylinder 17.</td>
+                </tr>
+            </table>
+            <p>After converting, the tool reads the new image back and compares every sector with the original
+            (its data, ID field, density, deleted mark, and CRC errors), and, if the disk has a file system
+            the tool recognizes, every file. It then reports what the new format couldn’t hold, counted
+            by kind, with a few examples of each:</p>
+            <div><pre><code>% trs80-tool convert protected.dmk out.jv3
+JV3 can't hold everything on this disk:
+  2 sectors missing
+    cylinder 0 side 0 sector 125: sector is missing
+    cylinder 0 side 0 sector 127: sector is missing
+  11 sectors whose ID field CRC error changed
+    cylinder 19 side 0 sector 16: ID field has a bad CRC, so the sector was dropped
+    and 8 more
+Note: 35 tracks whose gaps and sync bytes are regenerated
+Nothing was written to "out.jv3". Use --force to write it anyway.
+% trs80-tool convert --force protected.dmk out.jv3
+% trs80-tool convert in.jv3 out.dmk
+Wrote out.dmk: DMK floppy, 40 cylinders, 2 sides, 1,440 sectors; nothing lost.</code></pre>
+            </div>
+            <p>If anything would be lost, nothing is written unless you give <code>--force</code>. Differences that
+            lose nothing (the interleave of the sectors, sectors added to fill a track, and the gaps of a track
+            that is stored as sectors) are shown as notes and don’t need <code>--force</code>. Converting a disk
+            to its own format makes a copy. To get the files out of a disk, use
+            <a href="#extract"><code>extract</code></a>; to make a new disk, use
+            <a href="#disk"><code>disk</code></a>.</p>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--force</code></td>
+                    <td>Write a floppy image even if the new format can’t hold everything on the disk.</td>
+                </tr>
                 <tr>
                     <td><code>--baud RATE</code></td>
                     <td>Write cassettes at this baud rate (250, 500, or 1500). If not specified,

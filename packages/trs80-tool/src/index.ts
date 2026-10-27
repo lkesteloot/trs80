@@ -177,12 +177,14 @@ async function main(): Promise<void> {
     program
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
-            files: "one or more infiles (any TRS-80 file), then the outfile (WAV, CAS, CMD, 3BN, BAS, or ASC file)",
+            files: "one or more infiles (any TRS-80 file), then the outfile (WAV, CAS, CMD, 3BN, BAS, or ASC file), " +
+                "or a floppy image (DMK, JV1, JV3, HFE, or IMD) to convert to another floppy image format",
         })
         .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
         .option("--system", "include system files from source floppies and hard disks")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
+        .option("--force", "write a floppy image even if its new format can't hold everything on the disk")
         .action((files, options) => {
             const speed = parseBaud(options.baud);
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
@@ -192,7 +194,7 @@ async function main(): Promise<void> {
             }
             const infiles = expandInputPatterns(files.slice(0, files.length - 1));
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, speed, start, includeSystemFiles, options.cpmRecords);
+            convert(infiles, outfile, speed, start, includeSystemFiles, options.cpmRecords, options.force ?? false);
         });
     program
         .command("extract <infile> [names...]")
