@@ -125,11 +125,13 @@ jobs:
               echo "$tag is already tagged at $tagged. Bump the version to release."
               exit 0
           fi
-          # Each platform's binary gets its own name, since a release's files must differ.
+          # A release's files must have different names, so zip each Unix binary,
+          # which also keeps its executable bit (lost in the artifact, so restore it).
           mkdir release
-          cp artifacts/trs80-tool-linux/trs80-tool release/trs80-tool-linux
-          cp artifacts/trs80-tool-macos/trs80-tool release/trs80-tool-macos
-          cp artifacts/trs80-tool-macos-arm64/trs80-tool release/trs80-tool-macos-arm64
-          cp artifacts/trs80-tool-windows/trs80-tool.exe release/trs80-tool-windows.exe
+          for platform in linux macos macos-arm64; do
+              chmod +x artifacts/trs80-tool-$platform/trs80-tool
+              (cd artifacts/trs80-tool-$platform && zip -q ../../release/trs80-tool-$platform.zip trs80-tool)
+          done
+          cp artifacts/trs80-tool-windows/trs80-tool.exe release/trs80-tool.exe
           gh release create "$tag" release/* --target "$GITHUB_SHA" --title "trs80-tool $tag" \
               --notes "See the [change log](https://www.my-trs-80.com/tool/#change-log)."
