@@ -166,21 +166,25 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 
 ## CI, releases, and deploys
 
-- **CI** (`.github/workflows/build.yml`) runs on pushes to master and on pull
-  requests. It builds, tests, and uploads the apps, the tool's site, and the tool
-  binaries as artifacts. A macOS job builds the binaries, and Linux and Windows
-  jobs smoke-test them.
-- **Deploys:** www.my-trs-80.com is a Cloudflare Worker serving static files.
-  Cloudflare's own build runs on every push to master: it builds, tests, and
-  runs `deploy/my-trs-80/assemble`, which puts the three apps and the tool's
-  site into one folder, then deploys. `deploy/my-trs-80/README.md` has the
-  build settings.
+- **CI** (`.github/workflows/build.yml`) runs on pushes to master and
+  release, and on pull requests. It builds, tests, and uploads the apps, the
+  tool's site, and the tool binaries as artifacts. A macOS job builds the
+  binaries, and Linux and Windows jobs smoke-test them.
+- **Deploys:** www.my-trs-80.com is a Cloudflare Worker serving static files,
+  built by Cloudflare itself. A push to `master` updates the staging site,
+  stage.my-trs-80.com (a Cloudflare "Preview"). A push to `release`, usually
+  `git push origin master:release`, makes it live at www. Each build runs the
+  tests, then `deploy/my-trs-80/assemble`, which puts the three apps and the
+  tool's site into one folder. `deploy/my-trs-80/README.md` has the settings.
+  Don't push to `release` unless asked: it's how the user publishes.
 - **trs80-tool releases:** bump `version` in its `package.json`, and add a
   change log entry in `site/index.html`. The `/changelog` skill
-  (`.claude/skills/changelog`) does both. On master, CI's `release-trs80-tool`
-  job then publishes the binaries as the GitHub Release `v<version>`, once per
-  version. The tool page links to the latest release's files, and the site's
-  `_redirects` keeps the old `www.my-trs-80.com/trs80-tool/…` URLs working.
+  (`.claude/skills/changelog`) does both. On the `release` branch, CI's
+  `release-trs80-tool` job then publishes the binaries as the GitHub Release
+  `v<version>`, once per version: a zip per Unix platform holding
+  `trs80-tool`, plus `trs80-tool.exe`. The tool page links to the latest
+  release's files, and the site's `_redirects` keeps the old
+  `www.my-trs-80.com/trs80-tool/…` URLs working.
 
 ## Starting a session in a worktree
 

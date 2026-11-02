@@ -10,5 +10,8 @@
     "workers_dev": true,
     "assets": {
         "directory": "./site"
-    }
+    },
+    // Lets "wrangler preview" make Previews (stage.my-trs-80.com). They need no
+    // settings of their own.
+    "previews": {}
 }

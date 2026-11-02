@@ -2,7 +2,8 @@ name: Build and publish TRS-80 artifacts
 
 on:
   push:
-    branches: [master]
+    # Pushing to "release" makes the site live and releases the tool.
+    branches: [master, release]
   pull_request:
   workflow_dispatch:
 
@@ -96,11 +97,11 @@ jobs:
           ./${{ matrix.binary }} --version
 
   release-trs80-tool:
-    # On master, publish the tool's binaries as a GitHub Release named for its
-    # version (e.g., v4.6.0), once per version. The download links on the tool's
-    # page point at the latest release. A version already tagged at another
+    # On the release branch, publish the tool's binaries as a GitHub Release named
+    # for its version (e.g., v4.6.0), once per version. The download links on the
+    # tool's page point at the latest release. A version already tagged at another
     # commit isn't released again; bump the version to release.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
     needs: [build-all-packages, test-trs80-tool-binaries]
     runs-on: ubuntu-latest
     permissions:
