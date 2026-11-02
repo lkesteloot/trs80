@@ -1,0 +1,7 @@
+# The trs80-tool binaries are too big for Cloudflare (over 25 MiB), so they're
+# attached to GitHub Releases instead (zipped, except on Windows). Keep the old
+# download URLs working.
+/trs80-tool/linux/trs80-tool https://github.com/lkesteloot/trs80/releases/latest/download/trs80-tool-linux.zip 302
+/trs80-tool/macos/trs80-tool https://github.com/lkesteloot/trs80/releases/latest/download/trs80-tool-macos.zip 302
+/trs80-tool/macos-arm64/trs80-tool https://github.com/lkesteloot/trs80/releases/latest/download/trs80-tool-macos-arm64.zip 302
+/trs80-tool/windows/trs80-tool.exe https://github.com/lkesteloot/trs80/releases/latest/download/trs80-tool.exe 302

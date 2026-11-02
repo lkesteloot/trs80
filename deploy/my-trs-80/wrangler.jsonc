@@ -1,0 +1,16 @@
+// Cloudflare Workers config for www.my-trs-80.com. The site is static files,
+// assembled into ./site by the "assemble" script after the build. See README.md.
+{
+    "name": "my-trs-80",
+    "compatibility_date": "2026-11-01",
+    // No per-version preview URLs: old versions shouldn't stay reachable.
+    "preview_urls": false,
+    // Only serve at the real domains, not at *.workers.dev.
+    "workers_dev": false,
+    "assets": {
+        "directory": "./site"
+    },
+    // Lets "wrangler preview" make Previews (stage.my-trs-80.com). They need no
+    // settings of their own.
+    "previews": {}
+}

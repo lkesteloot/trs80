@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Assembles www.my-trs-80.com in ./site from the built web apps. Run after
+# "npm run build" at the repo root. See README.md.
+
+set -e
+
+cd "$(dirname "$0")"
+packages=../../packages
+
+rm -rf site
+cp -R $packages/my-trs-80/dist site
+cp -R $packages/trs80-cassette-webapp/dist site/cassette
+cp -R $packages/trs80-ide/dist site/ide
+cp -R $packages/trs80-tool/site site/tool
+cp _redirects site
