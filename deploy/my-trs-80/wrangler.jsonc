@@ -5,9 +5,8 @@
     "compatibility_date": "2026-11-01",
     // No per-version preview URLs: old versions shouldn't stay reachable.
     "preview_urls": false,
-    // On for testing at my-trs-80.lawrence-kesteloot.workers.dev. Turn off once
-    // the real domain points at this Worker.
-    "workers_dev": true,
+    // Only serve at the real domains, not at *.workers.dev.
+    "workers_dev": false,
     "assets": {
         "directory": "./site"
     },
