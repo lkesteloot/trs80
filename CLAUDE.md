@@ -170,11 +170,17 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   requests. It builds, tests, and uploads the apps, the tool's site, and the tool
   binaries as artifacts. A macOS job builds the binaries, and Linux and Windows
   jobs smoke-test them.
-- **Deploys:** `~/mine/hitch-config/my-trs-80/Makefile` downloads the artifacts
-  of the newest successful master run. Every public build comes from CI.
+- **Deploys:** www.my-trs-80.com is a Cloudflare Worker serving static files.
+  Cloudflare's own build runs on every push to master: it builds, tests, and
+  runs `deploy/my-trs-80/assemble`, which puts the three apps and the tool's
+  site into one folder, then deploys. `deploy/my-trs-80/README.md` has the
+  build settings.
 - **trs80-tool releases:** bump `version` in its `package.json`, and add a
   change log entry in `site/index.html`. The `/changelog` skill
-  (`.claude/skills/changelog`) does both.
+  (`.claude/skills/changelog`) does both. On master, CI's `release-trs80-tool`
+  job then publishes the binaries as the GitHub Release `v<version>`, once per
+  version. The tool page links to the latest release's files, and the site's
+  `_redirects` keeps the old `www.my-trs-80.com/trs80-tool/…` URLs working.
 
 ## Starting a session in a worktree
 

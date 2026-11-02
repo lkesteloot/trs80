@@ -2,3 +2,7 @@ node_modules
 .idea
 *.iml
 dist
+
+# deploy/my-trs-80/assemble output, and wrangler's local cache.
+deploy/my-trs-80/site
+.wrangler
