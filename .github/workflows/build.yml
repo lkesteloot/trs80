@@ -94,3 +94,42 @@ jobs:
         run: |
           chmod +x ${{ matrix.binary }}
           ./${{ matrix.binary }} --version
+
+  release-trs80-tool:
+    # On master, publish the tool's binaries as a GitHub Release named for its
+    # version (e.g., v4.6.0), once per version. The download links on the tool's
+    # page point at the latest release. A version already tagged at another
+    # commit isn't released again; bump the version to release.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [build-all-packages, test-trs80-tool-binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: trs80-tool-*
+          path: artifacts
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=v$(jq -r .version packages/trs80-tool/package.json)
+          if gh release view "$tag" > /dev/null 2>&1; then
+              echo "$tag is already released."
+              exit 0
+          fi
+          tagged=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" \
+              --jq ".[] | select(.ref == \"refs/tags/$tag\") | .object.sha")
+          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then
+              echo "$tag is already tagged at $tagged. Bump the version to release."
+              exit 0
+          fi
+          # Each platform's binary gets its own name, since a release's files must differ.
+          mkdir release
+          cp artifacts/trs80-tool-linux/trs80-tool release/trs80-tool-linux
+          cp artifacts/trs80-tool-macos/trs80-tool release/trs80-tool-macos
+          cp artifacts/trs80-tool-macos-arm64/trs80-tool release/trs80-tool-macos-arm64
+          cp artifacts/trs80-tool-windows/trs80-tool.exe release/trs80-tool-windows.exe
+          gh release create "$tag" release/* --target "$GITHUB_SHA" --title "trs80-tool $tag" \
+              --notes "See the [change log](https://www.my-trs-80.com/tool/#change-log)."
