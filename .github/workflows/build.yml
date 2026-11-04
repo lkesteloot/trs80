@@ -2,7 +2,8 @@ name: Build and publish TRS-80 artifacts
 
 on:
   push:
-    branches: [master]
+    # Pushing to "release" makes the site live and releases the tool.
+    branches: [master, release]
   pull_request:
   workflow_dispatch:
 
@@ -25,22 +26,6 @@ jobs:
       - run: npm clean-install
       - run: npm run build
       - run: npm run test
-      - uses: actions/upload-artifact@v6
-        with:
-          name: my-trs-80
-          path: packages/my-trs-80/dist/
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-cassette-webapp
-          path: packages/trs80-cassette-webapp/dist/
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-ide
-          path: packages/trs80-ide/dist/
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-tool-site
-          path: packages/trs80-tool/site/
 
   build-trs80-tool-binaries:
     # macOS, because the macOS binaries must be signed with codesign. Builds all platforms.
@@ -94,3 +79,44 @@ jobs:
         run: |
           chmod +x ${{ matrix.binary }}
           ./${{ matrix.binary }} --version
+
+  release-trs80-tool:
+    # On the release branch, publish the tool's binaries as a GitHub Release named
+    # for its version (e.g., v4.6.0), once per version. The download links on the
+    # tool's page point at the latest release. A version already tagged at another
+    # commit isn't released again; bump the version to release.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+    needs: [build-all-packages, test-trs80-tool-binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: trs80-tool-*
+          path: artifacts
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=v$(jq -r .version packages/trs80-tool/package.json)
+          if gh release view "$tag" > /dev/null 2>&1; then
+              echo "$tag is already released."
+              exit 0
+          fi
+          tagged=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" \
+              --jq ".[] | select(.ref == \"refs/tags/$tag\") | .object.sha")
+          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then
+              echo "$tag is already tagged at $tagged. Bump the version to release."
+              exit 0
+          fi
+          # A release's files must have different names, so zip each Unix binary,
+          # which also keeps its executable bit (lost in the artifact, so restore it).
+          mkdir release
+          for platform in linux macos macos-arm64; do
+              chmod +x artifacts/trs80-tool-$platform/trs80-tool
+              (cd artifacts/trs80-tool-$platform && zip -q ../../release/trs80-tool-$platform.zip trs80-tool)
+          done
+          cp artifacts/trs80-tool-windows/trs80-tool.exe release/trs80-tool.exe
+          gh release create "$tag" release/* --target "$GITHUB_SHA" --title "trs80-tool $tag" \
+              --notes "See the [change log](https://www.my-trs-80.com/tool/#change-log)."
