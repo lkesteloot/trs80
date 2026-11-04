@@ -26,22 +26,6 @@ jobs:
       - run: npm clean-install
       - run: npm run build
       - run: npm run test
-      - uses: actions/upload-artifact@v6
-        with:
-          name: my-trs-80
-          path: packages/my-trs-80/dist/
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-cassette-webapp
-          path: packages/trs80-cassette-webapp/dist/
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-ide
-          path: packages/trs80-ide/dist/
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-tool-site
-          path: packages/trs80-tool/site/
 
   build-trs80-tool-binaries:
     # macOS, because the macOS binaries must be signed with codesign. Builds all platforms.

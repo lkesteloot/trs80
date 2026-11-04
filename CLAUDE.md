@@ -167,9 +167,10 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 ## CI, releases, and deploys
 
 - **CI** (`.github/workflows/build.yml`) runs on pushes to master and
-  release, and on pull requests. It builds, tests, and uploads the apps, the
-  tool's site, and the tool binaries as artifacts. A macOS job builds the
-  binaries, and Linux and Windows jobs smoke-test them.
+  release, and on pull requests. It builds and tests everything. A macOS job
+  builds the tool's binaries and uploads them as artifacts, which Linux and
+  Windows jobs smoke-test and the release job publishes. The web apps aren't
+  uploaded: Cloudflare builds the site itself.
 - **Deploys:** www.my-trs-80.com is a Cloudflare Worker serving static files,
   built by Cloudflare itself. A push to `master` updates the staging site,
   stage.my-trs-80.com (a Cloudflare "Preview"). A push to `release`, usually
