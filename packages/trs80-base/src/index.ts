@@ -42,6 +42,8 @@ export * from "./ProgramAnnotation.js";
 export * from "./HexdumpGenerator.js";
 export * from "./KnownLabels.js";
 export * from "./BasicTokens.js";
+export * from "./BasicDialect.js";
+export * from "./Model4BasicTokens.js";
 export * from "./ProgramBuilder.js";
 export * from "./Level1Program.js";
 export * from "./EdtasmFile.js";
