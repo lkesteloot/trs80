@@ -79,6 +79,12 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   (`npm run generateRoms -w packages/trs80-emulator`). It's gitignored and
   regenerated before type checks, tests, and every app and trs80-tool build or
   dev start.
+- trs80-tool's `src/disk/Templates.ts` embeds the files in `packages/trs80-tool/templates/` (the
+  gzipped DOS system disks for `create --system`, and the DOSes' data-disk boot sectors for `create`
+  and `format`), written by `tools/GenerateTemplates.ts` (`npm run generateTemplates -w
+  packages/trs80-tool`). It's gitignored and regenerated before type checks, tests, and trs80-tool
+  builds. The templates themselves are committed; `tools/ExtractTemplates.ts` makes them from disk
+  images, and `templates/README.md` says where they came from.
 - `trs80-tool/src/version.ts` comes from the tool's `package.json` version and
   is committed.
 - z80-inst's generator (`npm run generate`) writes `src/Opcodes.ts`, which is committed.

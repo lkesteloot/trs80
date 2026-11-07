@@ -1,5 +1,4 @@
-import { withCommas } from "teamten-ts-utils";
-import {expandFile} from "./InputFile.js";
+import {expandFile, InputFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
 import {colorError, colorFilename, colorSize} from "./lscolors.js";
 import {ToolError} from "./utils.js";
@@ -48,30 +47,38 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
  * List the files in one input file.
  */
 function dirFile(inFilename: string, showSystemFiles: boolean, cpmWholeRecords: boolean): void {
-    const inFiles = expandFile(inFilename, showSystemFiles, cpmWholeRecords);
+    printDirListing(expandFile(inFilename, showSystemFiles, cpmWholeRecords));
+}
+
+/**
+ * Print the directory listing of a set of files: a line for each with its name, size, and details,
+ * or "No files" if there are none.
+ */
+export function printDirListing(inFiles: InputFile[]): void {
     if (inFiles.length === 0) {
         console.log("No files");
-    } else {
-        // Find max filename length.
-        const maxFilenameLength = Math.max(... inFiles.map(inFile => inFile.filename.length));
+        return;
+    }
 
-        for (const inFile of inFiles) {
-            const filename = inFile.filename;
-            const size = inFile.binary.length;
-            const parts = [
-                // Pad separately, since the color codes would throw off padEnd().
-                colorFilename(filename, inFile.trs80File) + " ".repeat(maxFilenameLength - filename.length),
-                colorSize(withCommas(size).padStart(8), size) + " ",
-                ... inFile.getDirExtras(),
-            ];
-            if (inFile.damage !== undefined) {
-                parts.push(colorError("damaged: " + inFile.damage.toString()));
-            }
-            if (inFile.trs80File.error !== undefined) {
-                parts.push(colorError(inFile.trs80File.error));
-            }
+    // Find max filename length.
+    const maxFilenameLength = Math.max(... inFiles.map(inFile => inFile.filename.length));
 
-            console.log(parts.join(" "));
+    for (const inFile of inFiles) {
+        const filename = inFile.filename;
+        const size = inFile.binary.length;
+        const parts = [
+            // Pad separately, since the color codes would throw off padEnd().
+            colorFilename(filename, inFile.trs80File) + " ".repeat(maxFilenameLength - filename.length),
+            colorSize(size.toLocaleString().padStart(8), size) + " ",
+            ... inFile.getDirExtras(),
+        ];
+        if (inFile.damage !== undefined) {
+            parts.push(colorError("damaged: " + inFile.damage.toString()));
         }
+        if (inFile.trs80File.error !== undefined) {
+            parts.push(colorError(inFile.trs80File.error));
+        }
+
+        console.log(parts.join(" "));
     }
 }

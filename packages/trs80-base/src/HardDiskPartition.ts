@@ -1,5 +1,5 @@
 import {Density, SectorData, SectorInfo, SectorPosition, TrackGeometry} from "./FloppyDisk.js";
-import type {DiskVolume, VolumeGeometry} from "./DiskVolume.js";
+import type {VolumeGeometry, WritableDiskVolume} from "./DiskVolume.js";
 import {HARD_DISK_SECTOR_SIZE, HARD_DISK_SECTORS_PER_TRACK, type HardDisk} from "./HardDisk.js";
 import {bytesToText} from "./DiskUtils.js";
 
@@ -10,7 +10,7 @@ import {bytesToText} from "./DiskUtils.js";
  * of head (head offset + floor(s / 32)) of cylinder (cylinder offset + c). See "Hard disk images"
  * in FLOPPY_FORMATS.md.
  */
-export class HardDiskPartition implements DiskVolume {
+export class HardDiskPartition implements WritableDiskVolume {
     public readonly disk: HardDisk;
     /**
      * The first physical cylinder of the partition.
@@ -108,6 +108,20 @@ export class HardDiskPartition implements DiskVolume {
      * Find the sector's bytes on the underlying disk, or undefined if there are none.
      */
     private readPhysicalSector(sectorPosition: SectorPosition): Uint8Array | undefined {
+        const physical = this.toPhysical(sectorPosition);
+        if (physical === undefined) {
+            return undefined;
+        }
+
+        return this.disk.readSector(physical.cylinder, physical.head, physical.sector);
+    }
+
+    /**
+     * Map a logical position in the partition to the cylinder, head and sector on the disk, or
+     * undefined if the position is outside the partition. This is the one place that does the
+     * mapping, for reading and writing.
+     */
+    private toPhysical(sectorPosition: SectorPosition): {cylinder: number, head: number, sector: number} | undefined {
         const logicalCylinder = sectorPosition.cylinderNumber;
         const sectorNumber = sectorPosition.sectorNumber;
         if (sectorPosition.side !== 0 ||
@@ -117,9 +131,44 @@ export class HardDiskPartition implements DiskVolume {
             return undefined;
         }
 
-        const head = this.headOffset + Math.floor(sectorNumber / HARD_DISK_SECTORS_PER_TRACK);
-        return this.disk.readSector(this.cylinderOffset + logicalCylinder, head,
-            sectorNumber % HARD_DISK_SECTORS_PER_TRACK);
+        return {
+            cylinder: this.cylinderOffset + logicalCylinder,
+            head: this.headOffset + Math.floor(sectorNumber / HARD_DISK_SECTORS_PER_TRACK),
+            sector: sectorNumber % HARD_DISK_SECTORS_PER_TRACK,
+        };
+    }
+
+    /**
+     * Whether the disk is write-protected.
+     */
+    public isWriteProtected(): boolean {
+        return this.disk.isWriteProtected();
+    }
+
+    /**
+     * Write a sector of the partition, which goes to the same place on the disk that readSector()
+     * reads it from. Only the data is stored; the sector's other fields mean nothing on a hard disk.
+     *
+     * @throws Error if the disk is write-protected, the position is outside the partition or the
+     * image doesn't hold the sector, or the data isn't 256 bytes. The messages are suitable for
+     * showing to a user.
+     */
+    public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
+        const description = `cylinder ${sectorPosition.cylinderNumber}, side ${sectorPosition.side}, ` +
+            `sector ${sectorPosition.sectorNumber}`;
+        const physical = this.toPhysical(sectorPosition);
+        if (physical === undefined) {
+            throw new Error(`Can't write ${description}: no such sector in the partition`);
+        }
+        if (data.data.length !== HARD_DISK_SECTOR_SIZE) {
+            throw new Error(`Can't write ${description}: the data is ${data.data.length} bytes ` +
+                `but a sector holds ${HARD_DISK_SECTOR_SIZE}`);
+        }
+
+        this.disk.writeSector(physical.cylinder, physical.head, physical.sector, data.data);
+        if (sectorPosition.cylinderNumber === 0) {
+            this.bootTrackText = undefined;
+        }
     }
 
     /**

@@ -5,7 +5,7 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 25, 2026. "Where things stand" at the end has the regression results.
+Last updated October 26, 2026. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -20,9 +20,12 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       "Allocation sides are not media sides" in `FLOPPY_FORMATS.md`). So a double-sided disk with
       nothing on side 1 reads as single-sided when its GAT is full or fails the
       strict check. Reading is unaffected, but writing would never use side 1.
-      When writing arrives, the LDOS line's media block and 0xCD bit 5 can
-      settle it: they say one side on `willus/fractl5.dmk`, and two on
-      `ldos-5.3-dsdd-80-tracks.dmk`.
+      The write gate now takes a one-side reading of a two-sided image as proven on the
+      LDOS line when the GAT's 0xCD bit 5 says one side (`gatProvesSides()`), and no
+      LDOS-line disk in the suite is read as one side against a GAT that says two. What's
+      left is the other DOSes, whose 0xCD isn't reliable (DOSPLUS, MultiDOS, NEWDOS/80,
+      RapiDOS, VTOS, TRSDOS 2.x), and the media block (next item) as a second opinion for
+      TRSDOS 6 and LS-DOS. 12 two-sided images remain `SIDES_UNPROVEN` for those reasons.
 - [ ] **Read the GAT's media block** (0xF5-0xFF, "\x03LSI" or "\x03631" then
       seven Drive Control Table bytes; see "What the TRSDOS 6 manuals add" in
       `FLOPPY_FORMATS.md`). It gives density, sides, sectors per track, granules
@@ -36,17 +39,25 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       side-0 directory on double-sided disks (DOSPLUS) and a whole cylinder
       (LDOS); the NEWDOS/80 generator tries every size from 2 granules to the lump,
       plus one larger size if the HIT asks for it (byte 0x1F, or its highest
-      column in use; see "HIT sector" in `FLOPPY_FORMATS.md`). Ties go to the
-      smaller one, once fewer granules per lump haven't decided (that rule fixed
-      `m2-lsdos-blank.dmk`, which used to show a 15-sector DIR/SYS). Reading the
-      size would be firmer: DIR/SYS's own extent where there is one, or byte 0x1F
-      alone, though `peter/TRS-80 Format [Set 1]` lists files past what 0x1F says.
+      column in use; see "HIT sector" in `FLOPPY_FORMATS.md`). Among candidates that tie on the
+      score, the one whose directory is exactly DIR/SYS's extent sorts first
+      (`Trsdos.dirSysConfirmsSize`), so two-sided LDOS-line disks read as a whole-cylinder
+      directory and the gate's `DIRECTORY_SIZE_UNPROVEN` no longer fires on any disk in the
+      suite. What's left: a disk without DIR/SYS in its directory, or whose DIR/SYS disagrees
+      with the HIT, still falls back to "ties go to the smaller one" (which fixed
+      `m2-lsdos-blank.dmk`'s 15-sector DIR/SYS before), and `peter/TRS-80 Format [Set 1]` lists
+      files past what 0x1F says, so the HIT alone isn't firm either.
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
       on its pseudo-density disks; several non-NEWDOS/80 disks (`BUSINESS`, `COMREF`,
       an Infocom loader) need 5-sector granules too.
 - [ ] **Use the on-disk PDRIVE table as a hint**: try its `GPL` and `DDSL` first,
       but trust the media over its `SPT`, and its `SPT` over its `TD`.
+- [ ] **The lump count follows the image, not the file system.** `lumpCount` comes from
+      the image's cylinder count, so an 80-cylinder image of a 40-cylinder disk decodes
+      with 80 lumps. The 2.3-family formatters mark the GAT bytes past the disk's end as
+      used with no owner, which `trim` uses to find the end; GAT byte 0xCC on the LDOS
+      line and the media block record it outright. TRSDOS 1.3 has no such marker.
 - [ ] **The lockout table** is still read from 0x60 for `cylinderCount` bytes. On
       NEWDOS/80 there is none, and past 96 lumps that range is GAT
       (`newdos80-DSSD-80T.dmk`).
@@ -57,6 +68,24 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
 ## Gaps independent of the switch
 
+- [ ] **TRSDOS 2.x's extended entries (FXDEs) have an unknown HIT byte.** On
+      LDOS, TRSDOS 6 and DOSPLUS disks an FXDE's HIT byte is its primary's name
+      hash, but not on the TRSDOS 2.x disks that have FXDEs (see "An FXDE" in
+      FLOPPY_FORMATS.md). Until it's known, `TrsdosWriter.addFile()` refuses a
+      file that would need one under TRSDOS 2.x rules. A real TRSDOS 2.3 does
+      write the primary's hash (measured in trs80gp; see "An FXDE" in
+      FLOPPY_FORMATS.md), so the refusal could be lifted for 2.3 once `check` and
+      `repair` agree and the disks with other HIT bytes are explained.
+- [ ] **TRSDOS 1.x entries with bit 7 set read as orphaned extended entries.**
+      `TrsdosDirEntry.isExtendedEntry()` tests bit 7 of byte 0, but 1.3's
+      directory has no extended entries and calls that bit unused. Entries with
+      the bit set, a good name and valid extents are on about 18 disks (the
+      `Network 3` and other `no-extract` disks, `Computer Talk`), so the decoder
+      drops real files (PB/ORG, EDIR/CMD, KILL/CMD) and `check` calls them
+      orphans, which keeps those disks repair-only. `TrsdosWriter.repair()` leaves
+      such entries alone for that reason. Treating bit 7 as plain data on the
+      1.3 layout, in `decodeDirEntry()`, would list the files and clear the
+      findings.
 - [ ] **Stray sector IDs inflate `TrackGeometry`'s range.** Its first/last
       sector numbers include stray IDs (copy protection writes a few sectors
       numbered far outside the track's numbering, e.g. 124-126 on a 0-9 track,
@@ -150,9 +179,15 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       The reservations also differ by DOS (16 DECs in LDOS, 16 or 2 in TRSDOS 6,
       2 in NEWDOS/80, which puts SYS14-29 in entries 2 and 3) and cover only the
       first eight directory sectors; see the table in "The HIT".
-- [ ] **Protection level names** follow LDOS 5.1 and NEWDOS/80 (3 unused, 4 write)
-      for the whole 2.3 family. TRSDOS 6 and LS-DOS number them like 1.3 (1
-      remove, 3 write, 4 update), so their files show "UNUSED" for write.
+- [ ] **Protection level names on TRSDOS 1.3 and 2.7** are TRSDOS 6's (1
+      remove, 3 write, 4 update), which comes from 1.3 being Model II
+      TRSDOS's descendant, not from a manual: the TRSDOS 1.3 Reference Guide
+      (PDF page 5) lists the ATTRIB levels as EXEC, READ, WRITE, NAME, KILL,
+      FULL, which are LDOS 5.1's names, without numbers. Check against the
+      resident's own table (*Model III TRSDOS Commented*, the access-level code
+      near 475C) or a disk with files at each level. Also NEWDOS/80 names 7 LOCK
+      (see "Protection level names" in `FLOPPY_FORMATS.md`), which we show as
+      NO_ACCESS.
 - [ ] **File dates exist only on the LDOS line.** `decodeDirEntry()` reads
       bytes 1-2 as a date for every 2.3-family disk, but NEWDOS/80 keeps flags in
       byte 1 and zero in byte 2, and TRSDOS 2.3 has no dates.
@@ -376,6 +411,26 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         interleave or skew, or double density) won't decode until a format is
         added to `UCSD_PASCAL_FORMATS`.
 
+## Converting between image formats
+
+`trs80-tool convert in.dmk out.hfe` works for DMK, JV1, JV3, HFE and IMD (see "Writing the image
+formats" in `FLOPPY_FORMATS.md` for what each holds and the results on the collection). What's left:
+
+- [ ] **SCP as a raw source.** SCP is converted as sectors, so its gaps and flux detail are lost.
+      Needs an SCP image to test with (there are none), and flux decoding that keeps the bytes.
+- [ ] **HFE v3 and the alternate track 0 encoding fields.** We write only v1, with the fields 0xFF;
+      HxC sets them when track 0 is single density on a double-density disk, and FlashFloppy ignores them.
+- [ ] **8-inch HFE** (500 kbit/s, 360 rpm) is written but unchecked against a real image.
+- [ ] **IDs the HFE reader can't see** (no data mark; inside another sector's data). The cells are
+      kept, but `decodeSide()` drops them, so `compareFloppies()` calls the sectors missing. A reader that
+      kept them for copy-protected disks would let the report say they survived.
+- [ ] **JV3 sector numbers above 39.** The format allows up to 254, but the reader's plausibility test
+      (`SectorPosition.isPlausible()`) refuses a file that has them, so the writer leaves them out.
+- [ ] **A better reason in the report.** `MISSING_SECTOR` doesn't say why the format couldn't hold the
+      sector (duplicate, number too high, no data). The writers know; the comparison doesn't.
+- [ ] **Filling the other direction:** `convert` makes floppy images only from floppy images. Putting
+      files on a new disk is the `disk` command's job.
+
 ## Hard disks
 
 `HdvHardDisk` partitions that hold LDOS 5, LS-DOS 6 or DOSPLUS 3 file systems
@@ -428,7 +483,21 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       (`HD_Images/DREM/` and `HD_Images/DG/`, 45-85 MB each), and the readers in
       xfile and trsfs (`hd_image_hdv2.cpp`, `hd_image_drem.cpp`,
       `hd_image_emu.cpp`) are references. No HDV2 sample is known.
-- [ ] **Writing** to hard disks.
+- [x] **Writing** to hard disks: LDOS 5 and LS-DOS 6 partitions of HDV images are
+      written by `trs80-tool disk` (see "Writing to partitions" in
+      `FLOPPY_FORMATS.md`). Still to do: DOSPLUS 3 partitions (the granules per
+      cylinder need a second disk or the manual to confirm), partitions with
+      more than 203 cylinders, creating and formatting hard disks, and a
+      per-sector undo instead of a copy of the whole image per step.
+- [ ] **Why LS-DOS's `DIR` hangs on an FXDE in another directory sector, on a
+      partition.** The writer works around it by keeping a file's FXDEs in its
+      primary entry's sector (see "Writing to partitions" in `FLOPPY_FORMATS.md`),
+      refusing a file for which no sector has room. LS-DOS's own FXDEs, which it
+      puts in other sectors, hang `DIR` too on trs80gp with FreHD, and the driver
+      returns the error 6 that `DIR` expects, so the cause is still unknown.
+      Find whether a real machine hangs (then `repair` could move such FXDEs, and
+      `check` should warn), or it's trs80gp, by tracing `DIR`'s `ALL15` sector
+      read in the emulator.
 - [ ] **The emulator:** no hard disk controller, and none of FreHD's extras, so
       `Trs80.runTrs80File()` doesn't know what to do with a hard disk. See
       "Emulating a hard disk" below.
@@ -561,3 +630,11 @@ NEWDOS+ and Percom's TRSDOS 2.x; MicroDOS's resident; NEWDOS/80's whole version)
 and LNW80 CP/M left 30, and finding MultiDOS's residents outside its files (and
 its backwards banners) left 5. Of the suite's 1,599 disks, 1,566 decode, 44,861 of 45,189
 files clean; nothing changed but names, except the four LNW disks, which now decode.
+
+October 26, 2026: the TRSDOS-family write gate read two-sided LDOS-line disks as "directory size
+unproven" because the side-0 directory and the whole-cylinder one tie on hashes. The decoder now
+prefers the directory that DIR/SYS's extent names, and the gate accepts the LDOS line's GAT side
+bit for a one-side reading. Of the suite's 1,339 TRSDOS-family floppies the gate passes 647 (up from
+630), allows repairs only on 72 (from 69), and leaves 620 read-only (from 640); `info --json`
+doesn't report the gate, so these come from a throwaway script that decodes every disk. 33
+disks changed directory size and nothing else (13 LDOS-line, 19 NEWDOS/80-style, 1 MultiDOS).

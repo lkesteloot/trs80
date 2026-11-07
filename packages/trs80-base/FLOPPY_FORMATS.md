@@ -323,6 +323,9 @@ entry in DEC 0x01. BOOT/SYS matched on all 68 disks that have it. The NEWDOS/80
 manual (page 98) calls 0x2C a bug of old Model I disks, which NEWDOS/80 reports as
 "file not in directory" until it's patched to 0xC4, and the HIT dump in the
 1979 *Disk & Other Mysteries* (page 45) has it too.
+Percom DoubleDOS 4.2x keeps DIR/SYS in DEC 0x00 rather than 0x01, with the same
+0x2C. `evaluate()` doesn't count that one, but `checkTrsdos()` doesn't report it as
+a HIT mismatch either.
 
 **Blank system names can be confirmed from their slot.** Four Meta Technologies data
 disks in `ira/lk-341-set-2` (Mingle II, Rebuild, Shrink, Supersede) have the names of
@@ -622,6 +625,14 @@ On a double-sided disk:
   and code files are CMD programs. So the decoder assumes one side unless
   something proves two.
 
+  On the LDOS line the GAT's own record settles it either way (see "GAT bytes
+  0xCB-0xCD"): in the whole collection the decoder never reads an LDOS 5, TRSDOS 6 or
+  LS-DOS disk as one side when the GAT's side bit says two, and on the 11 two-sided images
+  it reads as one side the bit says one (`willus/fractl5.dmk` among them). So the write
+  gate takes a one-side reading as proven when the DOS is of that line and the bit agrees
+  (`gatProvesSides()` in `TrsdosWriteGate.ts`). Other DOSes' bit isn't reliable, so they
+  stay unproven.
+
   Reading one side as NEWDOS/80-style lumps can mimic two: on the TRSDOS 6
   double-sided disks (the TRSLink issues), six 5-sector granules per lump on
   one side reach the same directory sectors as six 6-sector granules on two,
@@ -649,6 +660,19 @@ On a double-sided disk:
   `ldos-5.3-dsdd-80-tracks.dmk` has a two-sided directory with no entries on
   side 1 yet. (The Cornsoft disks also show a 3-granule DIR/SYS, but only because
   they don't use side 1 at all; see above.)
+
+  Because the hashes tie, the decoder's size comes from DIR/SYS: among candidates that
+  tie on the score, the one whose directory granules are exactly the granules of DIR/SYS's
+  extents sorts first (`Trsdos.dirSysConfirmsSize`), ahead of the old rule that a
+  directory which doesn't fill its lump wins. That puts a blank two-sided LDOS 5.3,
+  TRSDOS 6.2 or LS-DOS 6.3 disk (whether `formatTrsdosDataDisk()` made it or the DOS did)
+  on the whole cylinder, and DOSPLUS on side 0. Across the whole collection this changed
+  the directory size of 33 disks and nothing else: no allocation side, directory cylinder,
+  file count or check result. 13 are LDOS-line disks (two-sided, so DIR/SYS says the whole
+  cylinder), one is MultiDOS 1.71S, and 19 are NEWDOS/80-style (2 to 6 granules, where the
+  smallest size had won the tie). On all 19 the new size equals the HIT's own, from byte 0x1F
+  and its highest column in use, so the disk's two records of the directory's size agree
+  with each other.
 - A GAT byte covers a whole cylinder. Double-sided LDOS at 18 sectors per track
   has 6 granules per cylinder, 3 per side, so a free byte reads 0xC0.
   Single-sided 1.3 reads 0x3F.
@@ -665,6 +689,21 @@ On a double-sided disk:
 - Granule offsets run across the cylinder: offsets 0-2 are side 0 and 3-5 side 1.
   Sector order is side 0, then side 1, then the next cylinder — verified by
   17 files whose extents cross the side boundary and still decode cleanly.
+
+### BOOT/SYS overlaps SYS7/SYS on LDOS 5.3.1
+
+LDOS 5.3's FORMAT writes a BOOT/SYS entry of 5 sectors in one granule and marks
+only granule 0 of cylinder 0 used (FORMAT/CMD's template at 6524H and the code at
+62A2H in trs-80.com's LDOS 5.3.1 disassembly), as on `simple/trs80gp/formatted/m1-ldos-blank.dmk`.
+But on all ten LDOS 5.3.1 Model I distribution images in `ira/all-dos/`, BOOT/SYS's
+entry says 7 sectors in two granules (extent byte `01`), and SYS7/SYS's second
+extent is cylinder 0, granule 1, which holds its 51st and last sector (cylinder 0,
+sector 5). The GAT marks both granules used. So BOOT/SYS was grown after SYS7
+took that granule, or the other way round; which file's data sectors 5 and 6
+hold isn't settled (sector 5 starts with text, sector 6 with Z80 code).
+`checkTrsdos()` reports a granule that BOOT/SYS shares on the boot cylinder as a
+note, not damage: a writer that never allocates a granule any file claims, and
+never frees one that another file still claims, leaves both files as they are.
 
 ## GAT bytes 0xCB-0xCD
 
@@ -804,7 +843,8 @@ technical reference (pages 18-19) describe the same GAT, with these additions:
   writes it on data disks too, unlike the system information sector below.
 - **The system information sector** is cylinder 0 sector 2 (guide, page 145):
   0x00 the DOS version, 0xC0 the disk type (0xFF system, 0x00 data), 0x10-0x1F
-  the pack name and date, 0x20-0x6F the AUTO command, and 0x70-0xBF the drive
+  the pack name and date (really a release banner; see "The GAT's name, date and AUTO command"),
+  0x20-0x6F the AUTO command, and 0x70-0xBF the drive
   table, eight 10-byte DCTs. Like NEWDOS/80's PDRIVE copy in the same sector, the
   table describes the *drives* of the machine that wrote it, and it's zeros on
   blank disks. Measured: the nine TRSDOS 6 and LS-DOS system disks have version
@@ -852,6 +892,50 @@ six granules. It doesn't try every count that divides the track: with 4 granules
 check passes any GAT, and that reading beat the right one on four LDOS and MultiDOS
 disks. GAT byte 0xCB is 0x10, as on MultiDOS 1.x, so only the system disk is named,
 from SYS0's banner, "DosPLUS II - Series A.00".
+
+### The GAT's name, date and AUTO command
+
+What `TrsdosWriter.setDiskInfo()` writes, from the manuals and from every 2.3-family
+disk in the collection that decodes with a rule set we write (TRSDOS 2.x, LDOS 5,
+TRSDOS 6 and LS-DOS 6, DOSPLUS 3):
+
+- **The master password** is the 16-bit hash of the password (see "Password hashes") at
+  0xCE, little endian. "PASSWORD" is 0x42E0 and a blank one 0x4296.
+- **The name** is 8 characters at 0xD0, padded on the right with spaces. LDOS's manual
+  (*LDOS & LS-DOS Reference Manual*, PDF pages 57-58 and the FORMAT section) says a name is
+  up to eight characters and doesn't restrict them, and the disks agree: names have `:`,
+  `-`, `.`, `*` and spaces ("DOS:3.50", "LDOS-5.0", "* Data *"). No LDOS 5, TRSDOS 6 or TRSDOS 2.x
+  name has a lowercase letter; DOSPLUS names do ("DataDisk", "dos+35RS").
+- **The date** is 8 characters of `MM/DD/YY` at 0xD8, with a two-digit year. LS-DOS 6.3's DATE
+  command takes 80-99 for 1980-1999 and 00-11 for 2000-2011 (same manual, DATE). Disks hold
+  "00/00/00" when no date was set, and TRSDOS 2.0 and 2.1 disks go back to "78".
+- **The AUTO command before TRSDOS 6** is at 0xE0-0xFF, 32 bytes: the command, a 0x0D, then
+  filler. LDOS 5.1's manual (PDF page 36, AUTO) allows 31 characters. Filler is spaces on LDOS and
+  DOSPLUS (over 100 disks, including an empty command, which is 0x0D and 31 spaces) and 0xFF on
+  freshly formatted TRSDOS 2.1-2.3 disks, whose empty command is 0x0D 0x0D 0xFF...; TRSDOS 2.3's own
+  AUTO command copies 32 bytes of the command line (*TRSDOS 2.3 Decoded*, section 9.3), so a
+  command written by that DOS has leftover bytes after the 0x0D. DOSPLUS 3.4 and later, and DOSPLUS IV,
+  end the command with 0x0D like the others; three third-party disks have 0x03 instead (see "The
+  GAT's AUTO command doesn't always end in 0x0D"), which looks like a program's own writing,
+  not DOSPLUS's. There is no DOSPLUS 3 manual in the library to say. The media block at 0xF5 (see
+  "What the TRSDOS 6 manuals add") would end the field early on a disk that has one; no LDOS 5 or
+  DOSPLUS disk does.
+- **The AUTO command on TRSDOS 6 and LS-DOS 6** isn't in the GAT: its 0xE0-0xF4 are zeros on all of
+  them. It's in the system information sector, cylinder 0 sector 2, at 0x20-0x6F (80 bytes), as
+  the *Programmer's Guide to TRSDOS Version 6* says (PDF page 145). The command ends in 0x0D, and
+  nothing is cleared after it: an empty command on a disk that once had one is a 0x0D with the old
+  text still behind it (`TRSDOS62Level-AN` 0x0D `CRIPSIT/CMD` 0x0D), while FORMAT's is a 0x0D and zeros.
+  About twenty disks in the collection have a real command ("basic HARDGEN/BAS" on the hard disk
+  initialization sets, "*DO START" on the training course). The
+  sector's 0x10-0x1F aren't the disk's name and date, whatever the guide says ("same as in
+  Granule Allocation Table"): they hold the DOS release's banner ("TRSDOS62Level-AN", "LS-DOS63Level-L ",
+  "TRSDOS6101/24/84"), and match the GAT's name on 123 of 232 TRSDOS 6 and LS-DOS disks and its date on 17. Some
+  disks have zeros there, and a disk with 0xE5 filler in the whole sector (a different formatter,
+  the *TRSLink* magazine disks) has no usable sector at all. A sector is real if byte 0 is
+  0x60-0x6F and byte 0xC0 is 0x00 or 0xFF; byte 0 isn't always the GAT's 0xCB (14 real ones differ by
+  one release).
+- **BOOT/SYS covers the system information sector**, since it owns the boot track, so changing the
+  AUTO command changes what BOOT/SYS reads as. The writer's final check expects that.
 
 ## Identifying the DOS
 
@@ -1099,14 +1183,44 @@ Where they differ:
 - **Byte 0 bit 5**: a partitioned data set in TRSDOS 6, reserved elsewhere.
 - **Protection levels.** LDOS 5.1 and NEWDOS/80: 0 full, 1 kill, 2 rename, 3
   unused, 4 write, 5 read, 6 execute, 7 none. TRSDOS 6 renumbers the middle: 1
-  remove, 3 write, 4 update.
+  remove, 3 write, 4 update. See "Protection level names" below.
 - **Extents.** TRSDOS 2.3 counts bytes 22-31 as five "granule allocation pairs",
   the fifth being the link. NEWDOS/80 allows 0xFE or 0xFF in the first byte of any
   pair: 0xFF ends the list, 0xFE means the next byte is an FXDE's DEC. It limits
   lump numbers to 0-191, the most the GAT can hold. The NEWDOS/80 manual says
   outright that the count is the number of granules less one, which settles the
   handbook's contradiction (see "NEWDOS/80 lumps").
-- **An FXDE** uses only bytes 0, 1 and 22-31 (bits 7 and 4 of byte 0 set).
+- **An FXDE** uses only bytes 0, 1 and 22-31 (bits 7 and 4 of byte 0 set). Measured
+  over the 19 FXDEs on the LDOS 5 and DOSPLUS disks in the collection (all of whose
+  HIT bytes decode), every one has byte 0 = 0x90 exactly (no protection, system or
+  invisible bits), bytes 2-21 all zero (no copy of
+  the primary's name, date, passwords or sector count), and a HIT byte equal to its
+  primary's name hash. The chain runs primary, FXDE 1, FXDE 2, and so on, and
+  **byte 1 is the DEC of the entry just before it in the chain**: the primary for the
+  first FXDE, the previous FXDE for later ones (`ira/no-extract/DiskMan v0.04L
+  (1983)(Kim Watt)[M3][with Kim Watt Library].dmk` has a seven-FXDE chain whose
+  links 2 to 7 point at the FXDE before). Bytes 30-31 are `FE nn` to the next FXDE,
+  or `FF FF` on the last. The slots aren't tied to the
+  primary's: an FXDE is usually later in the DEC order but can be earlier, and can
+  be in another directory sector. The four TRSDOS 2.x FXDEs that decode with a HIT
+  (`peter/Crush Crumble & Chomp (1981)(Automated Simulations)[M1][Original].dmk`
+  and its two siblings, and `peter/Athletics Tracking System (19xx)(A Tetley)[M1][Disk 1 of 3][Drive 0][Error in CREATE file].dmk`) agree on byte 0,
+  bytes 2-21 and byte 1, but their HIT bytes (0x93 and 0x34) aren't the primary's
+  hash (0x6a and 0x7b), and we don't know the rule. (The one TRSDOS 6 FXDE, in
+  `peter/Bobby Lee (100).dmk`, has the same bytes but no usable HIT.) `TrsdosWriter` writes the
+  LDOS 5 and DOSPLUS form under LDOS 5, TRSDOS 6 and DOSPLUS rules, and refuses a
+  file that would need an FXDE under TRSDOS 2.x rules until that HIT byte is understood.
+  **Measured on a real TRSDOS 2.3** (trs80gp, Model I, `COPY` of a 12 KB file into a
+  floppy whose free space was ten one-granule holes): it wrote a primary entry and
+  two FXDEs, with the HIT byte of every one of the three equal to the primary's name
+  hash, as on LDOS. The FXDEs have byte 0 = 0x90, byte 1 the DEC of the entry before
+  them (the primary, then the first FXDE), zeros in bytes 2-21, `FE nn` to the next
+  and `FF FF` on the last; the primary has `FE nn` in bytes 30-31 and its sector count
+  is the file's. Our `extract` returns the file intact and `check` finds nothing wrong. So this
+  TRSDOS 2.3 behaves like LDOS; the disks with other HIT bytes (0x93, 0x34) were
+  written by something else, or an earlier TRSDOS 2.x. TRSDOS 2.3 put its primary at DEC 0xE7
+  and its FXDEs at 0x40 and 0x60 (entries 2 and 3 of the first directory sector), a
+  choice we don't copy: our writer takes the lowest free slots.
 - **Bit 7 on a primary entry.** Four Sunburst disks for the Model III (`Thinking
   Skills`, `Teasers by Tobbs`, and both copies of `WhatsIt Corporation`) use a
   MultiDOS whose system files are dated 08/82 and 01/83 (`DOSRES/sys`, `INTERP/sys`,
@@ -1120,6 +1234,92 @@ Where they differ:
 - **Deleting a file** clears bit 4 of byte 0 and the HIT byte and frees the
   granules, leaving the rest of the entry intact. A HIT byte of 0 means a free
   slot in every one of these DOSes.
+
+### Protection level names
+
+The low three bits of byte 0 hold a level, 0 to 7, that limits what a user can do without the
+update password. The DOSes agree on the numbers and disagree on the names of 1, 3 and 4. A
+higher number allows less:
+
+    level   LDOS 5.1       TRSDOS 6 / LS-DOS 6   what the user may do
+    0       FULL (ALL)     FULL                  everything
+    1       KILL           REMOVE                everything except ATTRIB
+    2       RENAME         RENAME                rename, write, read, execute
+    3       reserved       WRITE                 write, read, execute
+    4       WRITE          UPDATE                read, write without extending, execute
+    5       READ           READ                  read, execute
+    6       EXEC           EXEC                  execute only
+    7       NO ACCESS      NO ACCESS (NONE)      nothing without the password
+
+What the books say:
+
+- **LDOS 5.1.** The directory-record description numbers them 0 FULL, 1 KILL, 2 RENAME,
+  3 reserved for LDOS use, 4 WRITE, 5 READ, 6 EXEC, 7 NO ACCESS (retyped edition PDF page 210,
+  scan PDF page 301). ATTRIB's table of levels (retyped PDF page 25, scan PDF pages 32-33)
+  lists EXEC, READ, WRIT, NAME, KILL and ALL or FULL, with no UPDATE and no NONE.
+- **TRSDOS 6.** The Model 4 Technical Reference's directory entry (software part, PDF page
+  16) and FCB (PDF page 25) number them 0 FULL, 1 REMOVE, 2 RENAME, 3 WRITE, 4 UPDATE,
+  5 READ, 6 EXECUTE, 7 NO ACCESS, and so does *The Programmer's Guide to TRSDOS Version 6*
+  (PDF page 55).
+- **The 1992 LDOS & LS-DOS Reference Manual** describes both in one ATTRIB table (PDF pages
+  54-55): NONE, EXEC, READ, UPDATE, WRITE, RENAME, then "Kill" marked [V5] and "ReMove"
+  marked [V6], then ALL and FULL. UPDATE allows writing without extending the file. Its DIR
+  listing shows the level in two letters on LDOS 5 (NO, EX, RE, UP, WR, NA, KI, FU) and four on
+  version 6 (PDF page 134). So **level 7 is NONE in the ATTRIB command**, though the technical
+  references call it NO ACCESS; we show NO_ACCESS everywhere and accept both spellings.
+- **NEWDOS/80 2.0.** ATTRIB's PROT= (manual PDF pages 17-18) names 0 FULL, 1 KILL, 2 RENAME
+  (or NAME), 4 WRITE, 5 READ, 6 EXEC and 7 LOCK (no access except through the system's overlay
+  loader), and says nothing of 3. So NEWDOS/80 follows LDOS 5's numbers.
+- **TRSDOS 2.3.** *TRSDOS 2.3 Decoded* (PDF page 168, on ATTRIB's PROT=) says the assignable
+  levels are KILL, RENAME, WRITE, READ and EXEC.
+
+`TrsdosProtectionNames` has two sets: the LDOS one (every 2.3-layout DOS that isn't TRSDOS 6 or
+LS-DOS 6) and TRSDOS 6's (also used for TRSDOS 1.3 and 2.7; see "Protection level names on TRSDOS
+1.3 and 2.7" in `FLOPPY_TODO.md`). `Trsdos.protectionNames` picks the set from the DOS name. The
+`attr` command accepts level 3 on LDOS-named disks by number or as UNUSED, though LDOS reserves it.
+
+## Directory entries (TRSDOS 1.3)
+
+Documented by *Model III TRSDOS Commented* (PDF page 8), and checked against its listings of INIT, CLOSE,
+KILL and RENAME (PDF pages 66-68, 73-77 and 111). 48 bytes, five to a sector, in sectors 3-18 of the directory
+cylinder (80 entries; the HIT's bytes 0-79 are their hashes, in the same order):
+
+    0      bit 6 system, bit 5 limited backups, bit 4 in use, bit 3 invisible, bits 2-0 protection level
+           (bit 7 unused)
+    1      month of creation (0 for none)
+    2      year of creation minus 1900 (so 83 for 1983; there is no day)
+    3      EOF: the offset of the end of the file in the sector after the full ones
+    4      logical record length, 0 meaning 256
+    5-15   name and extension, space padded
+    16-17  update password hash; 18-19 access password hash (1.3's own hash, blank 0x5CEF; see "Password hashes")
+    20-21  the number of full sectors (the DOS calls it the relative sector number of EOF)
+    22-47  thirteen extents of two bytes: the cylinder, then bits 7-5 the granule within it and bits 4-0 the
+           granule count itself (not less one, so at most 31); 0xFF 0xFF ends the list. There are no
+           extended entries.
+
+What the DOS does with it:
+
+- **A new file** (INIT, PDF pages 66-68) takes the first free HIT byte, stores the name's hash there, and fills
+  the entry: byte 0 is 0x10 (visible, user) with the protection level forced to 6 if the file was given a nonblank
+  update password, otherwise level 0; the month and the year come from the system date; the EOF byte and the
+  sector count are 0; the LRL comes from the OPEN; both password hashes follow the name; and all 26 extent bytes
+  are 0xFF. It gets no granules until it is written.
+- **The size** is the full sectors times 256 plus the EOF byte, and DIR shows the sector count plus one as the
+  number of records when the EOF byte is not 0 (PDF pages 123-124). A file whose size is a multiple of 256 has an EOF
+  byte of 0.
+- **CLOSE** (PDF pages 73-75) can trim the file to the granules it needs when the FCB's bit 3 is set. It works
+  out the granules as the sector count plus one, divided by 3 and rounded up, which by the listing keeps one
+  granule too many when the size is a multiple of 768 (not measured). Files the DOS has written often hold more
+  granules than their size needs, since it allocates as it writes and only trims on request; our writer
+  allocates just the sectors the data fills.
+- **KILL** (PDF pages 76-77) clears the HIT byte, gives the extents' granules back in the GAT, and then zeroes
+  all 48 bytes of the entry (unlike the 2.3 family, which keeps the entry for UNKILL).
+- **RENAME** (PDF pages 111-112) writes the new name in the entry and the new hash in the HIT, and nothing else.
+- **AUTO** (PDF pages 103-104) copies the typed command, which ends with a 0x0D, followed by spaces up to 32
+  bytes, to GAT offset 0xE0. At boot the DOS runs it unless its first byte is 0x0D (PDF page 51). FORMAT leaves
+  zeros there.
+- **The date** is the system date, entered at boot as MM/DD/YY; the DATE command rejects a year over 99, so the
+  DOS never writes a year past 1999.
 
 ## Time stamps (LDOS 5.3 and LS-DOS 6.3)
 
@@ -2480,6 +2680,235 @@ them with their ID-field position.
     because an error stops the disk from being opened at all.
 - **Not IMD:** one `.IMD` is really an HxC `HXCMFM` file.
 
+## Writing the image formats
+
+How `FloppyConvert.ts` writes the five formats (DMK, JV1, JV3, HFE, IMD), and what each leaves out.
+Writers produce an image, decode it with the format's reader, and `compareFloppies()` compares the
+two disks sector by sector, so everything below is what a reader can read back.
+
+- **Time slots.** DMK and HFE tracks use one unit of time, a double-density byte (16 HFE cells, one
+  DMK byte). A single-density byte takes two, which is why DMK doubles them and HFE gives them 32
+  cells. `TrackStream` holds a track as bytes with a density and a flag for the special clock bits
+  (the three 0xA1 sync bytes before a double-density mark, and a single-density mark), so DMK to
+  HFE and back is a change of encoding, and a track with both densities lines up in both. A turn of
+  a 5¼-inch track is 6,250 slots (100,000 cells, 12,500 bytes a side), and of an 8-inch track 10,416.
+- **Raw formats keep their bytes.** DMK to HFE and HFE to DMK keep the track's bytes (gaps,
+  filler, copy-protection), and the HFE round trip of a FORMAT-made DMK comes back byte for byte.
+  Only the bytes' special clock flags have to be rebuilt, from the IDAM table (DMK) or the marks found
+  in the cells (HFE).
+- **Sector formats get synthesized tracks.** JV1, JV3 and IMD have no gaps, so a DMK or HFE made
+  from them is laid out as a FORMAT would: the matching DOS's gaps when the track is exactly that
+  DOS's (TRSDOS 2.3's 10 sectors, LDOS's 18 in double density, TRSDOS 1.3's 18 from 1), otherwise
+  trs80gp's generic layout (40 FF, then 6 00, ID, 11 FF, 6 00, data, 10 FF in single density; 60 4E,
+  then 12 00, 3 A1, ID, 22 4E, 12 00, 3 A1, data, 24 4E in double). If the track doesn't fit in a
+  turn, the gaps shrink to a minimum, and then the last sectors are left out. Sectors keep the
+  order they have in the source; a JV1 has none, so TRSDOS 2.3's interleave is used.
+- **HFE header** (matching the real-hardware images in `telanoc/`): revision 0, encoding 0 (MFM,
+  even for single density), bit rate 250 kbit/s, 300 rpm, interface mode 7 (generic Shugart DD),
+  byte 0x11 and the rest of the header 0xFF, track list at block 1, write allowed 0xFF, single step
+  0xFF, no alternate track 0 encoding. Each track is 25,000 bytes (the two sides interleaved, 49 blocks),
+  and track *n* is at block 2 + 49*n. A side with no data is filled with 0xAA. The 8-inch values (500 kbit/s,
+  360 rpm, 41,664 bytes a track) are our choice and no real image has checked them.
+- **The missing clock of a sync byte.** An 0xA1 sync is an ordinary MFM byte but for its sixth clock
+  cell, the third zero's, which is left out (cell 10 of its 16, giving 0x4489).
+- **Imager tracks are longer than a turn.** DMK tracks from real-drive imagers are 0x1980 (6,400
+  slots) or more, and a sector near the end can run past the turn. In a real HFE it continues at the
+  start of the track, so the converter moves that part there (and a DMK made from an HFE with such a
+  sector has a longer track to hold it). Everything else past the turn is gap or a repeat of the start
+  and is dropped.
+- **Pointers that aren't IDs.** An IDAM pointer can aim at a byte that isn't 0xFE, or at a 0xFE inside
+  a data field (the "stale" and "points at data" cases above). Giving those marks would change the data they
+  sit in, so the converter marks only IDs with a good CRC, or in double density two sync bytes in front.
+  An ID written inside the previous sector's data field (copy protection) keeps its marks, but our HFE
+  reader ignores marks inside a data field (it has to, because MFM data can look like an FM mark), so
+  that sector is reported as missing though its cells are there.
+- **What each writer can't hold**, and what the report calls it:
+
+  | Format | Can't hold | Reported as |
+  |---|---|---|
+  | DMK | nothing, but IDs inside data fields and junk pointers need the marks above | |
+  | HFE | an ID with no data mark after it (the reader finds sectors by their data marks) | sector missing |
+  | JV3 | duplicate sector numbers; a track other than the ID's; sectors without data; bad ID CRCs; sector numbers above 39 and cylinders above 99 (our reader rejects the file otherwise) | sector missing, ID field cylinder or side, ID CRC |
+  | IMD | two densities on one track (the less common is dropped); bad ID CRCs; which deleted mark (0xF8, 0xFA, or 0xF9); sector sizes above 8,192 | sector missing, exact data address mark, ID CRC |
+  | JV1 | anything but single-sided, single density, 10 × 256 numbered 0-9; marks (other than the 0xFA it makes up for cylinder 17); CRC errors; the order of the sectors. A missing sector is 0xE5 | sector missing, deleted mark, data CRC error, sectors added |
+
+  DMK and HFE keep a CRC error by writing a wrong CRC, and JV3 and IMD with a flag (one, for the data).
+  Mixed density per track (single density on cylinder 0, double after it) survives in DMK, HFE, JV3 and
+  IMD, whose mode byte is per track.
+- **IMD mode bytes.** Five-and-a-quarter-inch disks use 250 kbit/s (modes 2 and 5, as in the two such
+  images in the collection) and 8-inch use 500 (modes 0 and 3, as every Model II image does). The
+  header is `IMD 1.18: dd/mm/yyyy hh:mm:ss`, a CR LF, and a comment line, then 0x1A.
+- **Sizes.** The disk size is taken from the source when it says (DMK track length, IMD mode,
+  HFE bit rate), else the 5¼-inch size unless some track doesn't fit in it. DMK tracks are 0x1900 (5¼
+  inch) or 0x2940 (8 inch) bytes, longer if a stream needs it.
+- **Two reader rules came out of it.** The HFE reader read a size code above 3 as 256 bytes and now takes
+  the low two bits as DMK does (there are none in the 32 HFE images), and it picks among sectors with the
+  same number by `laterSectorReplaces()` as the geometry and the DMK reader do (it took the first; there
+  are none in the suite). Without that, a dual-boot disk, which has the same sector numbers in both
+  densities on one track, read as another file system after converting to HFE.
+- **SCP** is read as sectors only: its flux isn't turned back into track bytes. There are no SCP images
+  to test with.
+
+**Results on the collection** (October 2026; 1,584 floppy images; every image was converted to each other
+format, read back, compared, and converted back; "lossless" means no loss kind in the report):
+
+| From → to | Images | Refused | Lossless | Lossless back | Losses in the others |
+|---|---|---|---|---|---|
+| DMK → HFE | 1,506 | 0 | 1,428 | 1,428 | bad-ID-CRC junk (37), missing sectors (45): IDs with no data mark and IDs inside data fields |
+| DMK → JV3 | 1,506 | 0 | 1,367 | 1,367 | IDs that say another side (36), junk (39), missing (91): duplicates, no data, sector numbers over 39 |
+| DMK → IMD | 1,506 | 0 | 1,157 | 1,156 | data mark 0xFA (320), junk (39), missing (26, mostly dual-boot tracks with both densities) |
+| DMK → JV1 | 1,506 | 869 | 200 | 200 | missing, marks, IDs, densities |
+| HFE → DMK, JV3 | 32 | 0 | 32 | 32 | |
+| HFE → IMD | 32 | 0 | 29 | 29 | data mark 0xFA (3) |
+| IMD → DMK | 23 | 0 | 23 | 23 | |
+| IMD → HFE | 23 | 0 | 22 | 22 | one with a sector that HFE can't hold |
+| IMD → JV3 | 23 | 0 | 21 | 21 | a cylinder map (1 image), sectors JV3 can't hold (2) |
+| JV1 → DMK, JV3, HFE | 9 | 0 | 9 | 9 | |
+| JV1 → IMD | 9 | 0 | 0 | 9 | the 0xFA directory mark, in all |
+| JV3 → DMK, HFE | 14 | 0 | 14 | 14 | |
+| JV3 → IMD | 14 | 0 | 11 | 11 | data mark 0xFA (3) |
+
+Every converted image decoded as its new format, and the files of every disk with a file system
+were identical afterward, except where the report said sectors were lost or added (JV1 fills a
+cylinder that the source never formatted with 0xE5, where the file systems read a missing sector as
+zeros). The comparison of files is part of the report, and also stops a conversion unless
+`--force` is given.
+
+## Track layouts by DOS
+
+What each DOS's FORMAT writes, as `TrackLayout.ts` reproduces it. Measured on the
+blank disks in `simple/trs80gp/formatted/` (made by trs80gp's emulated DOSes: the
+DMKs `m1-ldos`, `m3-ldos`, `m3-trsdos`, `m4-lsdos`, `m4-trsdos`, all one-sided) and
+on the real-hardware HFE images in `telanoc/`, which add two-sided disks. Only
+one-sided blanks exist for the Model III and 4 DOSes, so every two-sided fact comes
+from the HFEs. Sector size is 256 (size code 1) everywhere, and the fresh-sector data
+address mark is 0xFB. No layout writes an index address mark. All lengths are bytes.
+
+| Layout | Density | Sectors | Interleave (cylinder 0) | Filler | Lead gap | ID sync | Gap 2 | Data sync | Gap 3 | ID to ID |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TRSDOS 2.3, Model I | FM | 10, from 0 | 0 5 1 6 2 7 3 8 4 9 | `E5` | 14 FF | 6 | 12 FF | 6 | 12 FF | 302 |
+| LDOS 5.3 / LS-DOS 6.3 | FM | 10, from 0 | 0 5 1 6 2 7 3 8 4 9 | `E5` | 14 FF | 6 | 12 FF | 6 | 14 FF | 304 |
+| LDOS 5.3, Models I and III | MFM | 18, from 0 | 3:1: 0 6 12 1 7 13 2 8 14 3 9 15 4 10 16 5 11 17 | `6D B6` | 32 4E | 12 | 22 4E | 12 | 24 4E | 342 |
+| LS-DOS 6.3 / TRSDOS 6.2, Model 4 | MFM | 18, from 0 | 2:1: 0 9 1 10 2 11 3 12 4 13 5 14 6 15 7 16 8 17 | `6D B6` | 32 4E | 12 | 22 4E | 12 | 24 4E | 342 |
+| TRSDOS 1.3, Model III | MFM | 18, from 1 | 1 4 7 10 13 16 2 5 8 11 14 17 3 6 9 12 15 18 | `E5` ending in `(c) 1980 Tandy  ` | 64 4E | 8 | 22 4E | 12 | 24 4E | 338 |
+
+The MFM sync (three A1 before every mark) follows the ID sync and data sync zeros;
+"ID to ID" counts it. After the last sector the track is gap bytes to the end.
+
+- **Interleave generator.** One rule gives every order above: sector k (counting from
+  the first) goes in position k × step, or the next free position. The steps are 2
+  (TRSDOS 2.3, LDOS and LS-DOS single density, LS-DOS double density), 3 (LDOS double
+  density) and 6 (TRSDOS 1.3).
+- **Skew.** TRSDOS 2.3 and TRSDOS 1.3 start every track at their first listed sector.
+  LDOS and LS-DOS rotate the start of each cylinder along the interleave: on a
+  one-sided disk by 7 positions per cylinder in single density, 13 in LDOS double
+  density, and 10 in LS-DOS double density (matching the `S5TBL`, `D5TBL` skews in
+  FLOPPY_WRITING.md's reading of the LS-DOS source). On a **two-sided** disk it is one
+  more per cylinder (8, 14, 11), and side 1 starts one position after side 0 of the
+  same cylinder. Checked on all tracks of two-sided LDOS single density (Model I), LDOS
+  double density (Models I and III) and LS-DOS (Model 4), where the generator matches
+  every track. So the Model I's LDOS 3:1 double-density order and skew of 13 (read
+  from FORMAT's code) are confirmed, and Model I and III LDOS double density are the
+  same layout.
+- **Lead gap.** The trs80gp DMKs are one byte shorter (13 FF, 31 4E, 63 4E) than the
+  HFEs and the LS-DOS FORMAT table (14, 32, 64): the first byte after the index is
+  lost in those images. The layouts use the longer values; everything else (the gaps
+  between sectors, so every ID-to-ID distance) matches the blanks exactly.
+- **What isn't format.** Boot and system sectors, the directory (data address mark
+  0xF8, filler 0x00 on LDOS), and a sector the DOS has rewritten (its sync before the
+  data mark is often one zero short) all differ from a fresh format. TRSDOS 2.3's HFE
+  is a system disk, so its filler is read only from the sectors no file uses.
+- **Variants that don't match.** `telanoc/model4/m4_ld63_ds_dd_{40,80}_blank` (LS-DOS
+  6.3, real hardware) has the same order and skew as above but an IBM-style track: 80
+  4E, 12 00, three C2, an index mark FC, 50 4E, then the sectors with a 12-byte 4E gap
+  3 (330 bytes ID to ID, first A1 158 bytes from the start). trs80gp's LS-DOS blank
+  and FORMAT's table have the 342 layout, which the code uses. Two other system disks
+  were not made by a plain FORMAT: `m3_ld53_ss_dd_40_system` is LDOS 3:1 with the start
+  moving back 3 positions each cylinder, and `m4_ld63_ss_dd_40_system` is the LDOS 3:1
+  order on every cylinder after the first, starting at the same sector.
+- **Unmeasured.** TRSDOS 2.3's lead gap (14 FF then six zeros before the first ID,
+  from the HFE), and everything about two-sided TRSDOS 1.3 and 2.3 disks. The Model I
+  LDOS system disk's cylinder 0 is single density on a double-density disk.
+
+## Blank data disks by DOS
+
+What a DOS's FORMAT puts on a new data disk, after the tracks (see "Track layouts by DOS"), as
+`formatTrsdosDataDisk()` in `TrsdosFormat.ts` writes it. Measured on the formatted blanks in
+`simple/trs80gp/formatted/` (one-sided: LDOS 5.3 on the Models I and III, LS-DOS 6.3, TRSDOS 6.2,
+TRSDOS 1.3), on a TRSDOS 2.3 data disk, and for two sides, 80 cylinders and both densities on the
+real-hardware LDOS 5.3 and LS-DOS 6.3 images in `telanoc/`. For the LDOS line, FORMAT's source
+(`format1.asm`, `format2.asm`) agrees with the disks. Every sector of the five blanks (data and
+data address mark) is reproduced exactly; the hardware images agree on every structure sector
+except the drive-select bits in the media block (see below).
+
+**What the DOSes share (the 2.3 family: TRSDOS 2.3, LDOS 5.3, TRSDOS 6.2, LS-DOS 6.3).**
+
+- **The directory cylinder** is the middle one, cylinders divided by two (17, 20, 40), searching
+  outward past locked-out cylinders. TRSDOS 2.3 and 1.3 always use 17. The whole cylinder, both
+  sides, is the directory: GAT, HIT, then entry sectors, every one with the directory's data
+  address mark (0xF8 on the LDOS line, 0xFA on TRSDOS 2.3, in single density).
+- **The GAT** (directory sector 0). Bytes 0x00-0xCA are 0xFF; then each existing cylinder gets the
+  free byte, `0xFF << granules per cylinder`, truncated to 8 bits (0xFC, 0xF8, 0xF0 or 0xC0 for 2, 3, 4
+  or 6 granules). The lockout table at 0x60 gets a copy of that, before anything is marked used.
+  Then granule 0 of cylinder 0 is marked used (the boot granule) and the directory cylinder is set
+  to 0xFF. Cylinders past the end stay 0xFF in both tables. The master password hash is at 0xCE, the
+  disk name (8 characters, space padded) at 0xD0 and the date as `MM/DD/YY` at 0xD8; FORMAT's
+  defaults are "DATADISK" and "PASSWORD".
+- **0xCB-0xCD**: 0x21, 0, 0 on TRSDOS 2.3; 0x53 on LDOS 5.3, 0x62 on TRSDOS 6.2, 0x63 on LS-DOS 6.3,
+  then cylinders minus 35, then 0x80 (data disk) plus 0x40 (double density), 0x20 (two sides),
+  0x08 (new date style: LDOS 5.3 and LS-DOS 6.3 set it, TRSDOS 6.2 doesn't) and granules per side
+  minus one.
+- **0xE0, the AUTO command**: an empty one (0x0D, then spaces) on TRSDOS 2.3 and LDOS 5.3; zeros on
+  TRSDOS 6.2 and LS-DOS 6.3.
+- **The media block** (TRSDOS 6.2 and LS-DOS 6.3) at 0xF5: 0x03, then "LSI" (TRSDOS 6.2) or "631"
+  (LS-DOS 6.3.1), then the drive control table's last seven bytes: flags 1 (0x44 double density,
+  0x04 single), flags 2 (0x40, plus 0x20 for two sides, plus the drive FORMAT ran in: 0x02 on trs80gp's
+  blanks and 0x01 on the hardware ones; we write 0x02), current cylinder 0, highest cylinder,
+  sectors per track minus one, granules per side minus one over sectors per granule minus one
+  (0x45, or 0x24 in single density), and the directory cylinder. LDOS 5.3 has no media block.
+- **The HIT** (sector 1): 0xA2 for BOOT/SYS, then 0xC4 for DIR/SYS (0x2C on TRSDOS 2.3), zeros.
+- **BOOT/SYS and DIR/SYS** in the first entry of directory sectors 2 and 3: attributes 0x5E and
+  0x5D (system, invisible, in use, protection level 6 and 5), five sectors for BOOT/SYS (one extent,
+  cylinder 0 granule 0, one granule) and for DIR/SYS the number of sectors in the cylinder, at most
+  34, one extent covering every granule of the directory cylinder. Bytes 16-19 (the two password
+  hashes) and the unused extents differ by DOS:
+
+  | | BOOT/SYS bytes 16-19 | tail | DIR/SYS bytes 16-19 | tail |
+  |---|---|---|---|---|
+  | TRSDOS 2.3 | `60 7F 1F B2` | `FF FF` and zeros | `A7 1D F9 E5` | `FF FF` and zeros |
+  | LDOS 5.3 | `AE 01 00 00` | eight `FF` | `AE 01 96 42` | eight `FF` |
+  | TRSDOS 6.2 | `F6 37 F5 9C` | eight `FF` | `F6 37 96 42` | `FF FF` and zeros |
+  | LS-DOS 6.3 | `F4 71 00 00` | eight `FF` | `F4 71 96 42` | `FF FF` and zeros |
+
+  The rest of the directory is zeros. DIR/SYS's size stops at 34 sectors because the HIT can't
+  address more (a two-sided 18-sector cylinder has 36), yet FORMAT writes the last two sectors too.
+- **The LDOS line also writes** a system information sector in cylinder 0 sector 2 (the release
+  number at byte 0; TRSDOS 6.2 and LS-DOS 6.3 add an empty AUTO, 0x0D, at 0x20) and a copy of the GAT
+  in cylinder 0 sector 3, made after the directory cylinder is marked used. TRSDOS 2.3 leaves
+  cylinder 0 sectors 1-9 as the format filler.
+- **Boot sectors.** The data-disk boot sector goes in cylinder 0 sector 0, and on the LDOS line also
+  sector 1 (the same code on the Model III and 4; two different sectors on the Model I, where the
+  first loads the second). Byte 2 holds the directory cylinder (0x00, 0xFE, cylinder). They are
+  the only DOS-specific code on the disk and how most tools identify the formatter, which is why
+  `formatTrsdosDataDisk()` takes them from the caller; it patches byte 2 and nothing else (the
+  boot step rate, for one, stays as in the source disk).
+
+**TRSDOS 1.3** writes much less. The boot sector is cylinder 0 sector 1 (byte 0 0xFE, byte 1 the
+directory cylinder, 17) and sector 2 holds "Not a SYSTEM Disk", both with data address mark 0xF8;
+cylinder 0's other sectors are the format filler. The directory cylinder is 17, with its sectors
+numbered from 1: the GAT in sector 1 is a byte per cylinder with a bit per used granule, six
+granules (so unused bits are clear), 0x01 for cylinder 0 and 0x3F for cylinder 17, zeros everywhere
+else, including the existence table at 0x60 and the part past the last cylinder; the master password
+at 0xCE (1.3's own hash: "PASSWORD" 0x8FD3, none 0x5CEF), name and date at 0xD0 and 0xD8, and zeros
+for the AUTO command. The HIT in sector 2 is zeros except the sixteen system file slots at 0xE0, all
+0xFF (none). Sectors 3-18 are sixteen empty sectors of 48-byte entries that end with the format's
+"(c) 1980 Tandy" filler. All use the normal data address mark. A data disk has no BOOT/SYS or
+DIR/SYS entries.
+
+**Not measured**: two-sided or 80-cylinder TRSDOS 2.3 and 1.3 (neither DOS formats them), single
+density on the Model 4 (the hardware LS-DOS image is the only evidence), and a double-density LDOS
+disk for the Model I, whose cylinder 0 is single density. `formatTrsdosDataDisk()` refuses the last.
+
 ## Hard disk images
 
 Hard disks are `HardDisk` objects, not `FloppyDisk`s: a flat array of 256-byte
@@ -2592,6 +3021,11 @@ side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
 - **Trap:** sector 3 of each partition's cylinder 0 holds a copy of its GAT (a
   stale one on some disks), followed by filler where the HIT should be. Only
   accept a GAT at sector 0 of the cylinder that the boot sector points to.
+  FORMAT writes that copy once, when it builds the GAT ("Write copy of GAT into
+  0/3" in Tandy's `hdfmt2.asm`, `trshard/` in the LS-DOS 6.3 source, the same
+  routine as the floppy FORMAT's). We found no other code in that source tree
+  that reads or writes it, so it's a snapshot of the freshly formatted GAT, and
+  nothing keeps it current. Our writer leaves it alone, as LDOS does.
 - **GAT fields:** the allocation table is one byte per cylinder from byte 0x00,
   for up to 203 cylinders, and there is no lockout table at 0x60. The cylinder
   count is `GAT[0xCC] + 35`, the granules per cylinder `(GAT[0xCD] & 7) + 1`, and
@@ -2643,6 +3077,82 @@ side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
 - **DBLBIT:** bit 5 of FLAG2, and of GAT byte 0xCD, means each logical cylinder is
   two physical cylinders, for drives of 204 to 406 cylinders (guide, pages 33-34).
   No sample sets it. We skip such partitions.
+
+### Writing to partitions
+
+What `TrsdosWriter` does on an LDOS 5 or LS-DOS 6 partition (through a
+`SectorOverlay` over the `HardDiskPartition`, so a change is all or nothing):
+
+- It writes only the file's granules, the GAT bytes for the partition's own
+  cylinders (byte *c* for cylinder *c*, never past 0xCA), the HIT, directory
+  entry sectors, and for `label` the name, date, password and AUTO fields. GAT
+  bytes 0xCB-0xFF (version, cylinder count, granules, media data block) and the
+  stale copy in sector 3 of cylinder 0 are never touched.
+- There is no lockout table at 0x60 to read or write; those bytes are the
+  allocation of cylinders 96 and up.
+- A partition with more than 203 cylinders isn't written, since its GAT has no
+  byte for the rest (the cylinder count 0xCC allows up to 290).
+- DOSPLUS 3 partitions are never written, because the granules per cylinder
+  aren't recorded and we know them from one disk only.
+- An HDV's write-protect flag (header byte 7, bit 7) blocks the write, and
+  `--force` can override it; the saved image keeps its flag.
+- Extents work as on floppies: the granule offset is 3 bits and the count less
+  one is 5 bits, so a run of up to 32 granules is one extent, and offsets go to
+  7 on a partition with 8 granules per cylinder. The allocator starts from the
+  lowest free granule in the best-fitting run, so a partition's boot cylinder
+  can get files if its GAT shows free granules there.
+- The writer writes every sector of the granules that it allocates, padding the
+  last with zeros.
+- **On a partition, a file's FXDEs go in the same directory sector as its
+  primary entry.** Measured on a copy of a Model 4 LS-DOS 6.3.1 image booted in
+  trs80gp through FreHD: a partition with files of up to four extents lists
+  normally, but with a 132,096-byte file, which needs five extents (a run is at
+  most 32 granules) and so an FXDE, LS-DOS still reaches its prompt (the boot
+  works) but `DIR` never prints anything. What was found, and what wasn't:
+  - Our FXDE isn't at fault. Making LS-DOS write the FXDEs itself (`COPY` of a
+    file into free space in holes, which gives a three-FXDE chain) writes the
+    same bytes as ours (byte 0 = 0x90, byte 1 the previous entry's DEC, zeros in
+    2-21, extents at 22-29, `FE nn` or `FF FF` at 30-31, the HIT byte the
+    primary's hash), and `DIR` hangs on that too.
+  - It depends on where the FXDE is. With the FXDE in the same directory sector as
+    its primary, `DIR` lists the file (extents shown as 5, 129 KB; 10, 320 KB for a
+    three-entry chain), and `COPY` of it is byte-identical. With the FXDE in a
+    different sector, earlier or later, `DIR` hangs (once it dropped into LS-DOS's
+    debug register display), even when the FXDE's own HIT byte is 0 so that the
+    HIT scan never visits it, so it's the walk along the chain that fails; an FXDE
+    that no primary links to, in another sector, is harmless.
+  - Everything else works with an FXDE in another sector: `COPY` reads the file
+    correctly (byte for byte, checked), `FREE` and booting are fine.
+  - The driver isn't the cause. The image's `AUTO` is `vhdutl (get` and its
+    `SYSTEM/JCL` is `vhdutl (mnt,addr=1,vhd="lsdos",halt)`; the hard disk
+    driver is Tandy's, loaded from `CONFIG/SYS` (the same code as `RSHARD6/DCT`;
+    drive 0's DCT vector is `JP 0FF4H`), talking through ports 0xC1 and 0xC8-0xCF
+    to trs80gp's WD1010 emulation. Its read routine returns error 6 when the
+    cylinder equals the DCT's directory cylinder, as `hdwd6a.asm` does. Checked
+    by a small program run under LS-DOS on that partition: `@RDSEC` (SVC 49) of a
+    directory sector returns A = 6 with HL = the buffer and IY intact, `@RDSEC` of
+    a data cylinder and `@RDSSC` of the directory return 0.
+  - The LS-DOS 6.3 source's `DIR` (`lbdirb.asm`, from "ALL15") reads an FXDE's
+    sector with that `@RDSEC` and expects the 6, and its code works on floppies
+    (see below). We didn't find why it fails on this partition, and don't know
+    whether a real machine hangs too. No image in the regression collection has an
+    LS-DOS hard disk FXDE to compare. LS-DOS's own search for an FXDE's slot
+    starts at the primary's directory sector (its chains put the first FXDE in the
+    primary's sector, and later ones in the following sectors).
+  So `TrsdosWriter` puts a partition file's primary entry and FXDEs together
+  in the lowest directory sector that has room for all of them (eight entries
+  per sector, less the reserved ones), and refuses the file, saying the directory
+  is too fragmented, when no sector has room. Files on floppies are
+  unchanged: the lowest free slots, wherever they are. Such a file keeps
+  `DIR` working in LS-DOS, though a file that LS-DOS writes itself, with its FXDEs in
+  other sectors, still hangs `DIR` on this setup.
+- **FXDEs on floppies, under real DOSes** (trs80gp 2.5.8, with a floppy filled
+  with one-granule files and every other one killed, so that a 12 KB text file
+  took eight or ten extents): our LS-DOS 6.3.1 and LDOS 5.3.1 FXDEs (primary at DEC
+  0x08, its FXDE at DEC 0x0A, so in another directory sector) list in `DIR` (extents 8), `COPY` to
+  another disk byte for byte, and are removed by `REMOVE` (LS-DOS) or `KILL`
+  (LDOS), after which `check` finds nothing wrong and the granules are free.
+  TRSDOS 2.3 was run on the Model I with a file it wrote itself (see "An FXDE").
 
 ### Partitions found
 

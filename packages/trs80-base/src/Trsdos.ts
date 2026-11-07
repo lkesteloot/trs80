@@ -15,6 +15,7 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {bytesToText, type DosBanner, findDosBanner} from "./DiskUtils.js";
+import type {AllocatedExtent} from "./TrsdosAllocator.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -29,7 +30,7 @@ const NO_PASSWORD = 0xEF5C;
 const PASSWORD = 0xD38F;
 
 // Name of a disk whose DOS we can't tell.
-const UNKNOWN_DOS = "Unknown DOS";
+export const UNKNOWN_DOS = "Unknown DOS";
 
 // Names (in upper case) of the files that hold the boot track, in the DOSes that have one.
 const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);
@@ -189,6 +190,46 @@ export const TRSDOS_BLANK_PASSWORD_HASH = 0x4296;
  */
 export const TRSDOS_DEFAULT_PASSWORD_HASH = 0x42E0;
 
+/**
+ * The longest password that the 2.3 family accepts.
+ */
+const TRSDOS_PASSWORD_LENGTH = 8;
+
+/**
+ * Hash a password the way the 2.3 family does, for the update and access passwords in a directory
+ * entry and the master password in the GAT. The password is uppercased and padded with spaces to
+ * eight characters (so trailing spaces don't matter), so an empty password gives {@link TRSDOS_BLANK_PASSWORD_HASH}. The algorithm is in
+ * "Password hashes" in FLOPPY_FORMATS.md. (TRSDOS 1.3 hashes differently, and this doesn't do that.)
+ *
+ * @param password one to eight letters and digits, starting with a letter, in any case; or empty for none.
+ * @returns the 16-bit hash.
+ * @throws Error if the DOS wouldn't accept the password.
+ */
+export function hashTrsdosPassword(password: string): number {
+    // Trailing spaces are the padding, so they don't count.
+    const upperPassword = password.toUpperCase().replace(/ +$/, "");
+    if (password.length > TRSDOS_PASSWORD_LENGTH || (upperPassword !== "" && !/^[A-Z][A-Z0-9]*$/.test(upperPassword))) {
+        throw new Error(`Invalid password "${password}": a password is up to ${TRSDOS_PASSWORD_LENGTH} letters and ` +
+            `digits, starting with a letter`);
+    }
+
+    const padded = upperPassword.padEnd(TRSDOS_PASSWORD_LENGTH, " ");
+    let hi = 0xFF;
+    let lo = 0xFF;
+    for (let i = padded.length - 1; i >= 0; i--) {
+        const c = padded.charCodeAt(i);
+        const t = lo ^ ((lo & 7) << 5);
+        const newHi = (t ^ (t >> 4) ^ c) & 0xFF;
+        const newLo = (((t << 4) & 0xFF) ^ (t >> 3) ^ hi) & 0xFF;
+        hi = newHi;
+        lo = newLo;
+    }
+
+    return (hi << 8) | lo;
+}
+
+// The raw name of the directory's own file, as the directory stores it (8 + 3 characters).
+const DIR_SYS_RAW_FILENAME = "DIR     SYS";
 // DEC of DIR/SYS's fixed directory slot in the 2.3 family.
 const DIR_SYS_HIT_INDEX = 0x01;
 // What old Model I disks store in that HIT slot instead of DIR/SYS's real hash (0xC4).
@@ -200,8 +241,17 @@ const OLD_DIR_SYS_HASH = 0x2C;
  * shows it. Accept it only in DIR/SYS's own slot, so that it's as specific as a real match.
  */
 function isOldDirSysHash(version: TrsdosVersion, hitIndex: number, rawFilename: string, hitHash: number): boolean {
+    return hitIndex === DIR_SYS_HIT_INDEX && isOldDirSysHashInAnySlot(version, rawFilename, hitHash);
+}
+
+/**
+ * Whether a HIT byte is the old wrong hash for DIR/SYS, wherever DIR/SYS's entry is. The decoder
+ * accepts it only in DIR/SYS's usual slot (see isOldDirSysHash()), but Percom DoubleDOS keeps
+ * DIR/SYS in DEC 0x00 with the same byte ("The HIT" in FLOPPY_FORMATS.md), so a consistency
+ * check shouldn't call it a mismatch there either.
+ */
+export function isOldDirSysHashInAnySlot(version: TrsdosVersion, rawFilename: string, hitHash: number): boolean {
     return version === TrsdosVersion.V2_3 &&
-        hitIndex === DIR_SYS_HIT_INDEX &&
         rawFilename === "DIR     SYS" &&
         hitHash === OLD_DIR_SYS_HASH;
 }
@@ -419,9 +469,10 @@ function decodeGatText(binary: Uint8Array): string | undefined {
 
 /**
  * Decode the GAT's AUTO command, which ends at 0x0D, 0x00, 0x03 (DOSPLUS 3.x), 0xFF (filler), or
- * the end of the sector. Other bytes outside printable ASCII are shown as ".".
+ * the end of the sector. Other bytes outside printable ASCII are shown as ".". (Exported for
+ * {@link readTrsdosDiskInfo}, which also reads the AUTO command from TRSDOS 6's system information sector.)
  */
-function decodeAutoCommand(binary: Uint8Array): string {
+export function decodeAutoCommand(binary: Uint8Array): string {
     const parts: string[] = [];
 
     for (const b of binary) {
@@ -450,38 +501,85 @@ export enum TrsdosProtectionLevel {
 }
 
 /**
- * Gets the string version of the protection level enum.
+ * Which DOSes' names for the protection levels a disk follows. The levels are numbers 0-7 in the
+ * directory entry, and the DOSes disagree on what to call 1, 3 and 4. See "Protection level names"
+ * under "Directory entries (2.3 family)" in FLOPPY_FORMATS.md.
  */
-export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, version: TrsdosVersion): string {
-    // The names of the levels that differ between the Model I (2.3) and Model II (1.3) lineages.
-    // TRSDOS 2.7 descends from Model II TRSDOS like 1.3 does, so we use 1.3's names for it, but
-    // we haven't confirmed that 2.7 itself uses them.
-    let useModel2Names: boolean;
+export enum TrsdosProtectionNames {
+    /**
+     * 1 is KILL, 3 is unused (reserved for LDOS), and 4 is WRITE. TRSDOS 2.x, LDOS 5, NEWDOS/80 and
+     * the other DOSes on the 2.3 layout.
+     */
+    LDOS,
+
+    /**
+     * 1 is REMOVE, 3 is WRITE, and 4 is UPDATE. TRSDOS 6 and LS-DOS 6, and TRSDOS 1.3 and 2.7, which
+     * descend from Model II TRSDOS.
+     */
+    TRSDOS_6,
+}
+
+/**
+ * Matches the names of the DOSes that number the protection levels like TRSDOS 6 (see
+ * {@link Trsdos.nameAndVersion}). TRSDOS 6 and LS-DOS 6 are the same family, and LDOS 6 is what
+ * some people call them.
+ */
+export const TRSDOS_6_DOS_NAME = /^(?:TRSDOS|LS-DOS) 6\./;
+
+/**
+ * Work out which names a disk's DOS gives the protection levels.
+ *
+ * @param version the disk's layout.
+ * @param dosName the DOS's name and version, as {@link Trsdos.nameAndVersion} gives it.
+ */
+export function trsdosProtectionNamesFor(version: TrsdosVersion, dosName: string): TrsdosProtectionNames {
     switch (version) {
         case TrsdosVersion.V2_3:
-            useModel2Names = false;
-            break;
+            return TRSDOS_6_DOS_NAME.test(dosName) ? TrsdosProtectionNames.TRSDOS_6 : TrsdosProtectionNames.LDOS;
 
         case TrsdosVersion.V1_3:
         case TrsdosVersion.V2_7:
-            useModel2Names = true;
-            break;
+            // TRSDOS 2.7 descends from Model II TRSDOS like 1.3 does, so we use 1.3's names for it,
+            // but we haven't confirmed that 2.7 itself uses them.
+            return TrsdosProtectionNames.TRSDOS_6;
 
         default:
             assertNever(version);
+    }
+}
+
+/**
+ * Gets the string version of the protection level enum.
+ *
+ * @param level the level.
+ * @param names which DOS's names to use, from {@link Trsdos.protectionNames}.
+ */
+export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, names: TrsdosProtectionNames): string {
+    let useTrsdos6Names: boolean;
+    switch (names) {
+        case TrsdosProtectionNames.LDOS:
+            useTrsdos6Names = false;
+            break;
+
+        case TrsdosProtectionNames.TRSDOS_6:
+            useTrsdos6Names = true;
+            break;
+
+        default:
+            assertNever(names);
     }
 
     switch (level) {
         case TrsdosProtectionLevel.FULL:
             return "FULL";
         case TrsdosProtectionLevel.REMOVE:
-            return useModel2Names ? "REMOVE" : "KILL";
+            return useTrsdos6Names ? "REMOVE" : "KILL";
         case TrsdosProtectionLevel.RENAME:
             return "RENAME";
         case TrsdosProtectionLevel.WRITE:
-            return useModel2Names ? "WRITE" : "UNUSED";
+            return useTrsdos6Names ? "WRITE" : "UNUSED";
         case TrsdosProtectionLevel.UPDATE:
-            return useModel2Names ? "UPDATE" : "WRITE";
+            return useTrsdos6Names ? "UPDATE" : "WRITE";
         case TrsdosProtectionLevel.READ:
             return "READ";
         case TrsdosProtectionLevel.EXEC:
@@ -491,6 +589,66 @@ export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, vers
         default:
             return "UNKNOWN";
     }
+}
+
+/**
+ * Every protection level that a DOS names and lets the user choose, in numeric order, so the names can
+ * be listed. This leaves out level 3 on the LDOS names, which LDOS reserves.
+ *
+ * @param names which DOS's names to use.
+ */
+export function trsdosProtectionLevels(names: TrsdosProtectionNames): TrsdosProtectionLevel[] {
+    const levels = [
+        TrsdosProtectionLevel.FULL, TrsdosProtectionLevel.REMOVE, TrsdosProtectionLevel.RENAME,
+        TrsdosProtectionLevel.WRITE, TrsdosProtectionLevel.UPDATE, TrsdosProtectionLevel.READ,
+        TrsdosProtectionLevel.EXEC, TrsdosProtectionLevel.NO_ACCESS,
+    ];
+    switch (names) {
+        case TrsdosProtectionNames.LDOS:
+            return levels.filter(level => level !== TrsdosProtectionLevel.WRITE);
+
+        case TrsdosProtectionNames.TRSDOS_6:
+            return levels;
+
+        default:
+            assertNever(names);
+    }
+}
+
+/**
+ * Find the protection level that the user named, ignoring case. This accepts the names that
+ * {@link trsdosProtectionLevelToString} gives (and "UNUSED" for level 3 on the LDOS names), a few
+ * spellings the manuals use ("ALL" for FULL; "KILL" and "REMOVE" for level 1 under either set of names;
+ * "EXECUTE"; "NONE", "NO ACCESS" and "NO-ACCESS" for level 7), and the numbers 0-7.
+ *
+ * @param text what the user typed.
+ * @param names which DOS's names to use, which decide what 3 and 4 mean.
+ * @returns the level, or undefined if the text is none.
+ */
+export function parseTrsdosProtectionLevel(text: string, names: TrsdosProtectionNames): TrsdosProtectionLevel | undefined {
+    const upperText = text.trim().toUpperCase();
+    if (/^[0-7]$/.test(upperText)) {
+        return Number(upperText) as TrsdosProtectionLevel;
+    }
+
+    if (upperText === "ALL") {
+        return TrsdosProtectionLevel.FULL;
+    }
+    if (upperText === "KILL" || upperText === "REMOVE") {
+        return TrsdosProtectionLevel.REMOVE;
+    }
+    if (upperText === "EXECUTE") {
+        return TrsdosProtectionLevel.EXEC;
+    }
+    if (upperText === "NONE" || upperText === "NO ACCESS" || upperText === "NO-ACCESS") {
+        return TrsdosProtectionLevel.NO_ACCESS;
+    }
+    for (let number = 0; number < 8; number++) {
+        if (trsdosProtectionLevelToString(number as TrsdosProtectionLevel, names) === upperText) {
+            return number as TrsdosProtectionLevel;
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -704,8 +862,6 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
     const granulesPerTrack = (flags & 0x07) + 1;
     const sideCount = (flags & 0x20) !== 0 ? 2 : 1;
     const density = (flags & 0x40) !== 0 ? Density.DOUBLE : Density.SINGLE;
-    // TODO data disks only reserve 2 entries for system files, not 16. But I don't know which two!
-    const isDataDisk = osVersion === 0x60 && (flags & 0x80) !== 0;
 
     return new TrsdosGatInfo(gat, lockOut, password, name, date, autoCommand,
         osVersion, cylinderCount, granulesPerTrack, sideCount, density);
@@ -781,6 +937,65 @@ function decodeHitInfo(binary: Uint8Array, version: TrsdosVersion): TrsdosHitInf
     const hit = binary.subarray(0, hitLength);
 
     return new TrsdosHitInfo(hit, systemFiles);
+}
+
+/**
+ * One active slot of the directory: an entry, primary or extended, and where the HIT lists it.
+ */
+export interface TrsdosDirSlot {
+    /**
+     * The entry, after the decoder has named blank-named entries and linked extended entries to
+     * their primaries (prevDirEntry and nextDirEntry).
+     */
+    dirEntry: TrsdosDirEntry;
+
+    /**
+     * The entry's position in the HIT (its DEC, the directory entry code).
+     */
+    hitIndex: number;
+
+    /**
+     * The HIT's byte for this slot, which should be the hash of the file's name. Undefined when the
+     * HIT is ignored or can't be read.
+     */
+    hitByte: number | undefined;
+
+    /**
+     * Whether the entry's name was blank on disk. The decoder restores or invents a name for these,
+     * so the name's hash can't be compared with the HIT byte.
+     */
+    nameWasBlank: boolean;
+}
+
+/**
+ * Where a directory entry's bytes are on the disk.
+ */
+export interface TrsdosDirEntryLocation {
+    /**
+     * The directory sector that holds the entry.
+     */
+    sectorPosition: SectorPosition;
+
+    /**
+     * The offset of the entry's first byte within that sector.
+     */
+    offset: number;
+}
+
+/**
+ * The result of reading the directory: its slots and the files made from them.
+ */
+export interface TrsdosDirectory {
+    /**
+     * Every active slot, primary and extended, in directory order.
+     */
+    slots: TrsdosDirSlot[];
+
+    /**
+     * The primary entries, including system files and TRSDOS 1.3's synthesized ones. The entries
+     * from slots are the same objects as in the slots.
+     */
+    files: TrsdosDirEntry[];
 }
 
 /**
@@ -902,11 +1117,14 @@ export class TrsdosDirEntry implements FloppyDirEntry {
 
     /**
      * Get a user-visible string version of the flags.
+     *
+     * @param protectionNames which DOS's names to use for the protection level, from
+     * {@link Trsdos.protectionNames}.
      */
-    public getFlagsString(): string {
+    public getFlagsString(protectionNames: TrsdosProtectionNames): string {
         const parts: string[] = [];
 
-        parts.push(trsdosProtectionLevelToString(this.getProtectionLevel(), this.version));
+        parts.push(trsdosProtectionLevelToString(this.getProtectionLevel(), protectionNames));
         if (this.isHidden()) {
             parts.push("hidden");
         }
@@ -1018,7 +1236,7 @@ export class TrsdosDirEntry implements FloppyDirEntry {
  * @param hasTimeStamps whether the disk is an LDOS 5.3 or LS-DOS 6.3 disk, whose entries can
  * hold a time stamp in place of the access password.
  */
-function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, version: TrsdosVersion,
+export function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, version: TrsdosVersion,
                         hitHash: number | undefined, hasTimeStamps: boolean): TrsdosDirEntry | undefined | string {
 
     let flags = binary[0];
@@ -1157,6 +1375,364 @@ function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, version: T
 }
 
 /**
+ * The time of day and year that LDOS 5.3 and LS-DOS 6.3 keep in directory bytes 18-19 in place of
+ * the access password. See "Time stamps (LDOS 5.3 and LS-DOS 6.3)" in FLOPPY_FORMATS.md.
+ */
+export interface Trsdos23TimeStamp {
+    /**
+     * The hour, 0 to 23.
+     */
+    hour: number;
+
+    /**
+     * The minute, 0 to 59.
+     */
+    minute: number;
+
+    /**
+     * The year, 1980 to 2011. Byte 2 of the entry must hold the year's low three bits.
+     */
+    year: number;
+}
+
+/**
+ * The fields of a primary directory entry in the TRSDOS 2.3 family, as {@link encodeTrsdos23DirEntry}
+ * writes them. Each is the raw value that goes in the entry, so that the caller (which knows
+ * the DOS's rules) decides what the bytes mean. See "Directory entries (2.3 family)" in FLOPPY_FORMATS.md.
+ */
+export interface Trsdos23DirEntryFields {
+    /**
+     * Byte 0: the in-use, system and invisible bits and the protection level.
+     */
+    flags: number;
+
+    /**
+     * Byte 1: on the LDOS line the date flags and the month; zero elsewhere.
+     */
+    byte1: number;
+
+    /**
+     * Byte 2: on the LDOS line the day and the low three bits of the year; zero elsewhere.
+     */
+    byte2: number;
+
+    /**
+     * Byte 3: the offset of the end of file within the last sector (0 when it ends on a sector boundary).
+     */
+    eofOffset: number;
+
+    /**
+     * Byte 4: the logical record length, where 256 is stored as 0.
+     */
+    lrl: number;
+
+    /**
+     * Bytes 5-15: the name and extension, space padded, 11 characters.
+     */
+    rawFilename: string;
+
+    /**
+     * Bytes 16-17: the update (owner) password hash.
+     */
+    updatePassword: number;
+
+    /**
+     * Bytes 18-19: the access (user) password hash. Ignored if {@link timeStamp} is given.
+     */
+    accessPassword: number;
+
+    /**
+     * Bytes 18-19 as a time stamp, in place of the access password, or undefined to write the access password.
+     */
+    timeStamp?: Trsdos23TimeStamp | undefined;
+
+    /**
+     * Bytes 20-21: the number of sectors, counting a partly filled last sector.
+     */
+    sectorCount: number;
+
+    /**
+     * Bytes 22-29: up to four extents.
+     */
+    extents: AllocatedExtent[];
+
+    /**
+     * Bytes 30-31: the DEC of the extended entry that continues the file, or undefined for none.
+     */
+    nextDec: number | undefined;
+}
+
+/**
+ * Write up to four extents into bytes 22-29 of a 2.3-family directory entry, as the decoder reads them.
+ *
+ * @param binary the entry's 32 bytes.
+ * @param extents the extents, at most four.
+ * @throws Error if an extent doesn't fit its two bytes.
+ */
+function writeTrsdos23Extents(binary: Uint8Array, extents: AllocatedExtent[]): void {
+    extents.forEach((extent, i) => {
+        if (extent.granuleCount < 1 || extent.granuleCount > 32 || extent.granuleOffset < 0 ||
+            extent.granuleOffset > 7 || extent.lump < 0 || extent.lump > 0xFD) {
+
+            throw new Error(`Extent ${i} (lump ${extent.lump}, granule ${extent.granuleOffset}, ` +
+                `count ${extent.granuleCount}) doesn't fit in a directory entry`);
+        }
+        binary[22 + 2*i] = extent.lump;
+        binary[23 + 2*i] = (extent.granuleOffset << 5) | (extent.granuleCount - 1);
+    });
+}
+
+/**
+ * Pack a time stamp into the 16-bit value that LDOS 5.3 and LS-DOS 6.3 keep in directory bytes 18-19,
+ * high byte first: the hour in bits 15-11, the minute in bits 10-5, and the year minus 1980 in bits 4-0.
+ * See "Time stamps (LDOS 5.3 and LS-DOS 6.3)" in FLOPPY_FORMATS.md.
+ */
+export function trsdos23TimeStampToWord(timeStamp: Trsdos23TimeStamp): number {
+    return (timeStamp.hour << 11) | (timeStamp.minute << 5) | ((timeStamp.year - 1980) & 0x1F);
+}
+
+/**
+ * Build the 32 bytes of a primary directory entry in the TRSDOS 2.3 family, the inverse of what
+ * {@link decodeDirEntry} reads. Unused extents are 0xFF, and so is the link when there's none. The
+ * fields aren't interpreted, only checked to fit their bytes.
+ *
+ * @param fields the entry's fields.
+ * @return the entry's bytes.
+ * @throws Error if a field doesn't fit, such as more than four extents.
+ */
+export function encodeTrsdos23DirEntry(fields: Trsdos23DirEntryFields): Uint8Array {
+    if (fields.rawFilename.length !== 11) {
+        throw new Error(`The raw file name "${fields.rawFilename}" isn't 11 characters`);
+    }
+    if (fields.extents.length > 4) {
+        throw new Error(`A directory entry holds 4 extents, not ${fields.extents.length}`);
+    }
+    if (fields.sectorCount < 0 || fields.sectorCount > 0xFFFF) {
+        throw new Error(`The sector count ${fields.sectorCount} doesn't fit in 16 bits`);
+    }
+
+    const binary = new Uint8Array(32);
+    binary[0] = fields.flags;
+    binary[1] = fields.byte1;
+    binary[2] = fields.byte2;
+    binary[3] = fields.eofOffset;
+    binary[4] = fields.lrl & 0xFF;
+    for (let i = 0; i < 11; i++) {
+        binary[5 + i] = fields.rawFilename.charCodeAt(i);
+    }
+    binary[16] = fields.updatePassword & 0xFF;
+    binary[17] = fields.updatePassword >> 8;
+    if (fields.timeStamp === undefined) {
+        binary[18] = fields.accessPassword & 0xFF;
+        binary[19] = fields.accessPassword >> 8;
+    } else {
+        // Big endian, unlike the password.
+        const stamp = trsdos23TimeStampToWord(fields.timeStamp);
+        binary[18] = stamp >> 8;
+        binary[19] = stamp & 0xFF;
+    }
+    binary[20] = fields.sectorCount & 0xFF;
+    binary[21] = fields.sectorCount >> 8;
+
+    binary.fill(0xFF, 22, 32);
+    writeTrsdos23Extents(binary, fields.extents);
+    if (fields.nextDec !== undefined) {
+        binary[30] = 0xFE;
+        binary[31] = fields.nextDec;
+    }
+
+    return binary;
+}
+
+/**
+ * Byte 0 of an extended directory entry (FXDE) in the TRSDOS 2.3 family: the extended-entry bit
+ * (bit 7) and the in-use bit (bit 4), and nothing else. See "Directory entries (2.3 family)" in
+ * FLOPPY_FORMATS.md.
+ */
+export const TRSDOS_23_EXTENDED_ENTRY_FLAGS = 0x90;
+
+/**
+ * The fields of an extended directory entry (FXDE) in the TRSDOS 2.3 family, as
+ * {@link encodeTrsdos23ExtendedDirEntry} writes them.
+ */
+export interface Trsdos23ExtendedDirEntryFields {
+    /**
+     * Byte 1: the DEC of the entry before this one in the file's chain: the primary entry for the
+     * first FXDE, and the previous FXDE for the later ones.
+     */
+    prevDec: number;
+
+    /**
+     * Bytes 22-29: up to four more extents of the file.
+     */
+    extents: AllocatedExtent[];
+
+    /**
+     * Bytes 30-31: the DEC of the next FXDE in the chain, or undefined for the last.
+     */
+    nextDec: number | undefined;
+}
+
+/**
+ * Build the 32 bytes of an extended directory entry (FXDE) in the TRSDOS 2.3 family, the inverse of
+ * what {@link decodeDirEntry} reads for an entry with bit 7 set. Every byte the FXDE doesn't use
+ * (2-21) is zero, which is what LDOS 5 and DOSPLUS write ("Directory entries (2.3 family)" in
+ * FLOPPY_FORMATS.md). Unused extents are 0xFF, and so is the link when there's none.
+ *
+ * @param fields the entry's fields.
+ * @return the entry's bytes.
+ * @throws Error if a field doesn't fit, such as more than four extents.
+ */
+export function encodeTrsdos23ExtendedDirEntry(fields: Trsdos23ExtendedDirEntryFields): Uint8Array {
+    if (fields.extents.length > 4) {
+        throw new Error(`A directory entry holds 4 extents, not ${fields.extents.length}`);
+    }
+    if (fields.prevDec < 0 || fields.prevDec > 0xFF) {
+        throw new Error(`The previous DEC ${fields.prevDec} doesn't fit in a byte`);
+    }
+
+    const binary = new Uint8Array(32);
+    binary[0] = TRSDOS_23_EXTENDED_ENTRY_FLAGS;
+    binary[1] = fields.prevDec;
+
+    binary.fill(0xFF, 22, 32);
+    writeTrsdos23Extents(binary, fields.extents);
+    if (fields.nextDec !== undefined) {
+        binary[30] = 0xFE;
+        binary[31] = fields.nextDec;
+    }
+
+    return binary;
+}
+
+/**
+ * The most extents that a TRSDOS 1.3 directory entry holds, which is all a file can have since 1.3 has
+ * no extended entries. See "Directory entries (TRSDOS 1.3)" in FLOPPY_FORMATS.md.
+ */
+export const TRSDOS_13_EXTENTS_PER_ENTRY = 13;
+
+/**
+ * The 16-bit hash of a blank password under TRSDOS 1.3's own hash, which is what a 1.3 directory entry
+ * holds when the file has no password. The algorithm is {@link hashTrsdos13Password}'s; see "Password
+ * hashes" in FLOPPY_FORMATS.md.
+ */
+export const TRSDOS_13_BLANK_PASSWORD_HASH = 0x5CEF;
+
+/**
+ * The fields of a TRSDOS 1.3 directory entry, as {@link encodeTrsdos13DirEntry} writes them. Each is
+ * the raw value that goes in the entry, so that the caller (which knows the DOS's rules) decides
+ * what the bytes mean. See "Directory entries (TRSDOS 1.3)" in FLOPPY_FORMATS.md.
+ */
+export interface Trsdos13DirEntryFields {
+    /**
+     * Byte 0: the in-use, system, limited-backup and invisible bits and the protection level.
+     */
+    flags: number;
+
+    /**
+     * Byte 1: the month of the file's creation, 0 for none.
+     */
+    month: number;
+
+    /**
+     * Byte 2: the year of the file's creation minus 1900.
+     */
+    year: number;
+
+    /**
+     * Byte 3: the offset of the end of file within the sector after the full ones (0 when the file
+     * ends on a sector boundary).
+     */
+    eofOffset: number;
+
+    /**
+     * Byte 4: the logical record length, where 256 is stored as 0.
+     */
+    lrl: number;
+
+    /**
+     * Bytes 5-15: the name and extension, space padded, 11 characters.
+     */
+    rawFilename: string;
+
+    /**
+     * Bytes 16-17: the update (owner) password hash.
+     */
+    updatePassword: number;
+
+    /**
+     * Bytes 18-19: the access (user) password hash.
+     */
+    accessPassword: number;
+
+    /**
+     * Bytes 20-21: the number of full sectors in the file, not counting a partly filled last one.
+     */
+    sectorCount: number;
+
+    /**
+     * Bytes 22-47: up to 13 extents, each with a granule count of 1 to 31.
+     */
+    extents: AllocatedExtent[];
+}
+
+/**
+ * Build the 48 bytes of a TRSDOS 1.3 directory entry, the inverse of what {@link decodeDirEntry}
+ * reads for that version. Unused extent bytes are 0xFF, as TRSDOS 1.3 leaves them in a new
+ * entry. The fields aren't interpreted, only checked to fit their bytes.
+ *
+ * @param fields the entry's fields.
+ * @return the entry's bytes.
+ * @throws Error if a field doesn't fit, such as more than 13 extents or an extent of 32 granules.
+ */
+export function encodeTrsdos13DirEntry(fields: Trsdos13DirEntryFields): Uint8Array {
+    if (fields.rawFilename.length !== 11) {
+        throw new Error(`The raw file name "${fields.rawFilename}" isn't 11 characters`);
+    }
+    if (fields.extents.length > TRSDOS_13_EXTENTS_PER_ENTRY) {
+        throw new Error(`A TRSDOS 1.3 directory entry holds ${TRSDOS_13_EXTENTS_PER_ENTRY} extents, ` +
+            `not ${fields.extents.length}`);
+    }
+    if (fields.sectorCount < 0 || fields.sectorCount > 0xFFFF) {
+        throw new Error(`The sector count ${fields.sectorCount} doesn't fit in 16 bits`);
+    }
+    if (fields.month < 0 || fields.month > 0xFF || fields.year < 0 || fields.year > 0xFF) {
+        throw new Error(`The date (month ${fields.month}, year ${fields.year}) doesn't fit in the entry`);
+    }
+
+    const binary = new Uint8Array(48);
+    binary[0] = fields.flags;
+    binary[1] = fields.month;
+    binary[2] = fields.year;
+    binary[3] = fields.eofOffset;
+    binary[4] = fields.lrl & 0xFF;
+    for (let i = 0; i < 11; i++) {
+        binary[5 + i] = fields.rawFilename.charCodeAt(i);
+    }
+    binary[16] = fields.updatePassword & 0xFF;
+    binary[17] = fields.updatePassword >> 8;
+    binary[18] = fields.accessPassword & 0xFF;
+    binary[19] = fields.accessPassword >> 8;
+    binary[20] = fields.sectorCount & 0xFF;
+    binary[21] = fields.sectorCount >> 8;
+
+    binary.fill(0xFF, 22, 48);
+    fields.extents.forEach((extent, i) => {
+        // The count is stored as is (not less one) in five bits, so 1 to 31.
+        if (extent.granuleCount < 1 || extent.granuleCount > 31 || extent.granuleOffset < 0 ||
+            extent.granuleOffset > 7 || extent.lump < 0 || extent.lump > 0xFD) {
+
+            throw new Error(`Extent ${i} (lump ${extent.lump}, granule ${extent.granuleOffset}, ` +
+                `count ${extent.granuleCount}) doesn't fit in a directory entry`);
+        }
+        binary[22 + 2*i] = extent.lump;
+        binary[23 + 2*i] = (extent.granuleOffset << 5) | extent.granuleCount;
+    });
+
+    return binary;
+}
+
+/**
  * The NEWDOS/80 PDRIVE settings that read a disk the way we decoded it, worked out from its layout
  * rather than read from the disk. See "PDRIVE" in FLOPPY_FORMATS.md. The interface letter of TI and
  * the step rate (TSR) leave no trace on the disk, so they're not here.
@@ -1262,6 +1838,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      */
     public readonly gatPassesStrictCheck: boolean;
     /**
+     * Whether DIR/SYS's extents cover exactly this candidate's directory granules, which is the
+     * disk's own record of how big the directory is. See {@link dirSysCoversDirectory}.
+     */
+    public readonly dirSysConfirmsSize: boolean;
+    /**
      * Whether the GAT says this is an LDOS 5.3 or LS-DOS 6.3 disk, whose directory entries
      * can hold a time stamp in place of the access password. NEWDOS 3.0 also writes 0x53 there, but
      * its entries fail the checks in decodeDirEntry().
@@ -1273,6 +1854,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * because it reads the system files.
      */
     public readonly nameAndVersion: string;
+    /**
+     * Which DOS's names this disk's DOS gives the protection levels, from the layout and
+     * {@link nameAndVersion}. Disks whose DOS we don't know get the LDOS names on the 2.3 layout.
+     */
+    public readonly protectionNames: TrsdosProtectionNames;
 
     constructor(
         disk: DiskVolume,
@@ -1312,7 +1898,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.evaluation = this.evaluate();
         this.gatPassesStrictCheck = typeof gatInfo !== "string" &&
             gatInfo.hasValidHighBits(this.granulesPerLump, this.lumpCount, this.version);
+        this.dirSysConfirmsSize = this.evaluation.score >= 0 && this.dirSysCoversDirectory();
         this.nameAndVersion = this.evaluation.score >= 0 ? this.decodeNameAndVersion() : UNKNOWN_DOS;
+        this.protectionNames = trsdosProtectionNamesFor(this.version, this.nameAndVersion);
     }
 
     /**
@@ -1354,6 +1942,15 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // allocated in every lump without any file using them. Fewer granules per lump sort first.
         if (this.granulesPerLump !== other.granulesPerLump) {
             return this.granulesPerLump - other.granulesPerLump;
+        }
+
+        // DIR/SYS is the file that holds the directory, so its extents say how big the directory is.
+        // That settles it where the layouts below can't be told apart by their hashes: on a
+        // two-sided disk, the hashes of a directory that stops at the end of side 0 and one that
+        // runs through side 1 are the same when side 1 holds no files, and only DIR/SYS's extent
+        // says which the DOS made (see "Cylinders, sides, and allocation" in FLOPPY_FORMATS.md).
+        if (this.dirSysConfirmsSize !== other.dirSysConfirmsSize) {
+            return this.dirSysConfirmsSize ? -1 : 1;
         }
 
         // As with sides, for the directory: if the rest of its lump adds nothing, the directory doesn't
@@ -1580,6 +2177,37 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
+     * Whether DIR/SYS's entry exists and its extents cover exactly this candidate's directory
+     * granules, which proves the directory's size from the disk rather than from a guess.
+     */
+    public dirSysCoversDirectory(): boolean {
+        const dirSys = this.getDirEntries(true).find(dirEntry => dirEntry.rawFilename === DIR_SYS_RAW_FILENAME);
+        if (dirSys === undefined) {
+            return false;
+        }
+
+        // Granules counted from the start of the disk.
+        const claimed = new Set<number>();
+        for (const extent of this.getFileExtents(dirSys)) {
+            const start = extent.cylinderNumber*this.granulesPerLump + extent.granuleOffset;
+            for (let granule = start; granule < start + extent.granuleCount; granule++) {
+                claimed.add(granule);
+            }
+        }
+
+        const dirStart = this.dirLumpNumber*this.granulesPerLump;
+        if (claimed.size !== this.granulesPerDir) {
+            return false;
+        }
+        for (let granule = dirStart; granule < dirStart + this.granulesPerDir; granule++) {
+            if (!claimed.has(granule)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Follow an extended entry's back links (each FXDE holds the DEC of the entry it extends)
      * to the file's primary entry. Returns undefined if a link leads to an entry that isn't in
      * the map or the links loop.
@@ -1648,9 +2276,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Map a directory sector and dir entry index to an index into the HIT (zero-based).
+     * Map a directory sector and dir entry index to an index into the HIT (zero-based), the entry's
+     * DEC. The sector index counts directory sectors from the one after the GAT and HIT, as
+     * {@link getDirSectors} does. The result isn't checked against the directory's or the HIT's size.
      */
-    private dirEntryToHitNumber(sectorIndex: number,
+    public dirEntryToHitNumber(sectorIndex: number,
                                 dirEntryIndex: number): number {
 
         switch (this.version) {
@@ -1718,6 +2348,31 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
+     * The number of the first sector on a track, which this DOS's version decides (0 or 1). A track's sectors
+     * are numbered consecutively from it, for the sectors that the file system uses.
+     */
+    public get firstSectorNumber(): number {
+        return getFirstSectorNumber(this.version);
+    }
+
+    /**
+     * The physical positions of the sectors of one granule, in order. A granule need not sit on one track:
+     * where lumps don't line up with cylinders (see "NEWDOS/80 lumps" in FLOPPY_FORMATS.md), or when a
+     * granule is the last on a side, it continues on the next track.
+     *
+     * @param lumpNumber the lump (the cylinder, where lumps are cylinders) that holds the granule.
+     * @param granule the granule's index within its lump.
+     * @return one position for each sector of the granule.
+     */
+    public getGranuleSectorPositions(lumpNumber: number, granule: number): SectorPosition[] {
+        const positions: SectorPosition[] = [];
+        for (let sectorOffset = 0; sectorOffset < this.sectorsPerGranule; sectorOffset++) {
+            positions.push(this.logicalToPhysical(lumpNumber, granule, sectorOffset));
+        }
+        return positions;
+    }
+
+    /**
      * Convert a lump-based sector position to a physical track-based sector position.
      *
      * The granule and sectorOffsets are not checked against bounds, so (for example), the sectorOffset could
@@ -1743,6 +2398,35 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             console.log(`${lumpNumber}:${granule}:${sectorOffset} -> ${sectorPosition.key()}`);
         }
         return sectorPosition;
+    }
+
+    /**
+     * The physical position of the sector that holds the GAT: the first sector of the directory lump.
+     */
+    public getGatPosition(): SectorPosition {
+        return this.logicalToPhysical(this.dirLumpNumber, 0, 0);
+    }
+
+    /**
+     * The physical position of the sector that holds the HIT: the second sector of the directory lump.
+     */
+    public getHitPosition(): SectorPosition {
+        return this.logicalToPhysical(this.dirLumpNumber, 0, 1);
+    }
+
+    /**
+     * Where a directory entry lives, given its index in the HIT (its DEC, as in
+     * {@link TrsdosDirSlot.hitIndex}). Like {@link getDirSectors}, this counts directory sectors
+     * from the one after the GAT and HIT. The index isn't checked against the directory's size.
+     */
+    public getDirEntryLocation(hitIndex: number): TrsdosDirEntryLocation {
+        const position = this.hitNumberToDirEntry(hitIndex);
+        // Skip the GAT and HIT sectors, as getDirSectors() does.
+        const gatHitSectorCount = 2;
+        return {
+            sectorPosition: this.logicalToPhysical(this.dirLumpNumber, 0, position.sectorIndex + gatHitSectorCount),
+            offset: position.dirEntryIndex*this.dirEntryLength,
+        };
     }
 
     public getGatInfo(): TrsdosGatInfo | string {
@@ -1798,11 +2482,34 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * active even if its in-use bit is set: the DOS finds files through the HIT, so it can't reach
      * the entry, which is left over from an earlier directory. Disks made by copying a directory
      * sector have these, often with the same names as live files.
+     *
+     * Only primary entries are returned. See {@link getDirectory} for the extended ones.
      */
     public getDirEntries(includeSystemFiles: boolean): TrsdosDirEntry[] {
-        // Map from position of directory entry to its actual entry. The key is the asKey() result
+        return this.getDirectory().files.filter(d => includeSystemFiles || !d.isSystemFile());
+    }
+
+    /**
+     * Read every active slot of the directory, including extended entries, each with its position in
+     * the HIT and its HIT byte. These are the same slots (and the same entry objects) that
+     * {@link getDirEntries} considers, in directory order, but without TRSDOS 1.3's synthesized
+     * system files, which have no slot. Each call decodes the directory again, so use
+     * {@link getDirectory} when you need the slots and the files together.
+     */
+    public getDirSlots(): TrsdosDirSlot[] {
+        return this.getDirectory().slots;
+    }
+
+    /**
+     * Read the directory once and return both its active slots (primary and extended) and the files
+     * built from them, so that the entry objects in the two agree. Extended entries are linked to
+     * their primaries through prevDirEntry and nextDirEntry. See {@link getDirEntries} for which
+     * entries are active.
+     */
+    public getDirectory(): TrsdosDirectory {
+        // Map from position of directory entry to its slot. The key is the key() result
         // of DirEntryPosition.
-        const dirEntries = new Map<string, TrsdosDirEntry>();
+        const slotsByPosition = new Map<string, TrsdosDirSlot>();
         // Without a readable HIT, or when ignoring it, assume it lists every entry.
         const hitInfo = this.hitIgnored ? "ignored" : this.getHitInfo();
         // Count of entries whose names are still blank, for naming them.
@@ -1829,7 +2536,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                             // blank name extracts as "_" and two of them would overwrite each other.
                             // Do this before the entry goes in the map so that the linking below uses
                             // the renamed objects. No warning here, since this method is called often.
+                            let nameWasBlank = false;
                             if (!dirEntry.isExtendedEntry() && isBlankFilename(dirEntry.rawFilename)) {
+                                nameWasBlank = true;
                                 const reconstructedName = typeof hitInfo === "string" ? undefined :
                                     reconstructBlankFilename(this.version, hitIndex, hitInfo.hit[hitIndex], dirEntry);
                                 if (reconstructedName !== undefined) {
@@ -1839,7 +2548,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                                     dirEntry = dirEntry.withRawFilename(("BLANK" + blankCount).padEnd(11, " "));
                                 }
                             }
-                            dirEntries.set(new DirEntryPosition(sectorIndex, i).key(), dirEntry);
+                            slotsByPosition.set(new DirEntryPosition(sectorIndex, i).key(), {
+                                dirEntry,
+                                hitIndex,
+                                hitByte: typeof hitInfo === "string" ? undefined : hitInfo.hit[hitIndex],
+                                nameWasBlank,
+                            });
                         }
                     }
                 }
@@ -1847,39 +2561,34 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
 
         // Look up continuations by sector/index and update original entries.
-        for (const dirEntry of dirEntries.values()) {
+        for (const {dirEntry} of slotsByPosition.values()) {
             if (dirEntry.prevDec !== undefined) {
                 const position = this.hitNumberToDirEntry(dirEntry.prevDec);
-                const prevDirEntry = dirEntries.get(position.key());
+                const prevDirEntry = slotsByPosition.get(position.key())?.dirEntry;
                 if (prevDirEntry !== undefined) {
                     dirEntry.prevDirEntry = prevDirEntry;
                 }
             }
             if (dirEntry.nextDec !== undefined) {
                 const position = this.hitNumberToDirEntry(dirEntry.nextDec);
-                const nextDirEntry = dirEntries.get(position.key());
+                const nextDirEntry = slotsByPosition.get(position.key())?.dirEntry;
                 if (nextDirEntry !== undefined) {
                     dirEntry.nextDirEntry = nextDirEntry;
                 }
             }
         }
 
-        if (2 > 3) {
-            // Find extended entries, for debugging. TODO remove.
-            for (const dirEntry of dirEntries.values()) {
-                if (dirEntry.isExtendedEntry()) {
-                    console.log("extended entry", dirEntry);
-                }
-            }
-        }
+        const slots = [...slotsByPosition.values()];
 
         // TRSDOS 1.3's system files aren't in the directory.
         const trsdos13SystemFiles = typeof hitInfo === "string" ? [] :
-            this.getTrsdos13SystemFiles(hitInfo, [...dirEntries.values()]);
+            this.getTrsdos13SystemFiles(hitInfo, slots.map(slot => slot.dirEntry));
 
-        // Remove the extended entries and possibly the system files.
-        return [...trsdos13SystemFiles, ...dirEntries.values()]
-            .filter(d => !d.isExtendedEntry() && (includeSystemFiles || !d.isSystemFile()));
+        // The files are the primary entries, leaving out the extended ones.
+        const files = [...trsdos13SystemFiles, ...slots.map(slot => slot.dirEntry)]
+            .filter(d => !d.isExtendedEntry());
+
+        return {slots, files};
     }
 
     /**
@@ -2233,9 +2942,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Generate the extents of a file, following its chain of extended directory entries.
+     * Generate the extents of a file, in order, given its primary directory entry. This follows the
+     * chain of extended directory entries, without revisiting any (a corrupt directory can have
+     * entries that point to each other).
      */
-    private *getFileExtents(firstDirEntry: TrsdosDirEntry): Generator<TrsdosExtent> {
+    public *getFileExtents(firstDirEntry: TrsdosDirEntry): Generator<TrsdosExtent> {
         // Corrupt directories can have entries that point to each other, so don't revisit any.
         const visitedDirEntries = new Set<TrsdosDirEntry>();
         let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
@@ -2300,6 +3011,25 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             });
         }
 
+        return sectorPositions;
+    }
+
+    /**
+     * The positions of the sectors that some extents cover, in order, as the extents of a file
+     * would be read. Unlike {@link getFileSectorPositions}, which stops at the file's size, this
+     * lists every sector of every granule, so that a writer can find where to put a new file's data.
+     * It doesn't change how files are decoded.
+     *
+     * @param extents the extents, in the form that {@link allocateGranules} gives.
+     */
+    public getExtentSectorPositions(extents: AllocatedExtent[]): SectorPosition[] {
+        const sectorPositions: SectorPosition[] = [];
+        for (const extent of extents) {
+            const sectorCount = extent.granuleCount*this.sectorsPerGranule;
+            for (let i = 0; i < sectorCount; i++) {
+                sectorPositions.push(this.logicalToPhysical(extent.lump, extent.granuleOffset, i));
+            }
+        }
         return sectorPositions;
     }
 
@@ -2375,23 +3105,6 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // Clip to size. In principle this is cheap because it's a view.
         return binary.subarray(0, firstDirEntry.getSize());
     }
-
-    /**
-     * Write the binary for a file on the diskette.
-     *
-     * @param binary the bytes to write to the file.
-     * @param filename TRSDOS filename, with a slash for the extension ("FOO/CMD").
-     * @return a string if an error occurred.
-     */
-    public writeFile(binary: Uint8Array, filename: string): string | undefined {
-        const entry = this.findFile(filename);
-        if (entry !== undefined) {
-            return `The file "${filename}" already exists; delete it first`;
-        }
-
-        // TODO actually write the file.
-        return "Writing files isn't implemented";
-    }
 }
 
 // Sectors on a Model II double-density track under LS-DOS and DOSPLUS II.
@@ -2455,7 +3168,8 @@ function generateTrsdos23CandidatesWithGranules(disk: DiskVolume, granulesPerTra
         const granulesPerLump = granulesPerTrack * allocationSides;
 
         // LDOS puts directory entries on both sides of the directory cylinder, DOSPLUS
-        // only on side 0.
+        // only on side 0. If you change the sizes tried, update directorySizesTried() in
+        // TrsdosWriteGate.ts.
         const granulesPerDirOptions = allocationSides === 1 ? [granulesPerLump] : [granulesPerTrack, granulesPerLump];
 
         for (const granulesPerDir of granulesPerDirOptions) {
@@ -2565,7 +3279,8 @@ function generateNewdos80Candidates(disk: DiskVolume, hitIgnored: boolean): Trsd
             // The directory needn't fill its lump (with GPL=6 it can be 3 granules), and reading
             // the rest of the lump as entries hits file data and rejects the candidate.
             // NEWDOS/80 records the size in HIT byte 0x1F, but trying every size is simpler, and
-            // compareTo() prefers a directory that doesn't fill its lump.
+            // compareTo() prefers a directory that doesn't fill its lump. If you change the sizes
+            // tried, update directorySizesTried() in TrsdosWriteGate.ts.
             for (let granulesPerDir = 2; granulesPerDir <= granulesPerLump; granulesPerDir++) {
                 for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
                     const candidate = new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,

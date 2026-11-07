@@ -35,7 +35,7 @@ import {
 } from "./TrackBytes.js";
 import {TRS80_FLOPPY_LOGGER} from "z80-logger";
 
-const FILE_HEADER_SIZE = 16;
+export const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;
 const MAX_TRACKS = 160;
 // The spec says 0x2940, but other writers go past it for 8" and high-density disks (see
@@ -43,7 +43,7 @@ const MAX_TRACKS = 160;
 const MAX_TRACK_LENGTH = 0x4000;
 
 // Header flags.
-const FLAG_SINGLE_SIDED = 0x10;
+export const FLAG_SINGLE_SIDED = 0x10;
 const FLAG_SINGLE_DENSITY = 0x40;
 const FLAG_IGNORE_DENSITY = 0x80;
 
@@ -422,6 +422,47 @@ class DmkTrack {
 }
 
 /**
+ * Lay out a formatted track the way a DMK file stores it: the table of pointers to each ID address
+ * mark, then the track's bytes (single-density ones doubled unless told not to), then gap bytes to
+ * the end of the track. Both formatTrack() and the image builder use it.
+ *
+ * @param formattedTrack the track to store.
+ * @param trackLength the DMK track length, which includes the pointer table.
+ * @param alwaysUseStride1 whether the image's header says not to double single-density bytes.
+ * @return the whole track's bytes, and how many pointers fit in the table. Pointers to ID fields
+ * that don't fit in the track are dropped, the way the end of a real track is lost.
+ */
+export function makeDmkTrackBlob(formattedTrack: FormattedTrack, trackLength: number,
+                                 alwaysUseStride1: boolean): {trackBytes: Uint8Array, pointerCount: number} {
+
+    const byteStride = formattedTrack.doubleDensity || alwaysUseStride1 ? 1 : 2;
+    const trackBytes = new Uint8Array(trackLength);
+
+    // The pointers.
+    let pointerCount = 0;
+    for (const idamIndex of formattedTrack.idamIndices) {
+        const offset = TRACK_HEADER_SIZE + idamIndex*byteStride;
+        // The ID field is the mark and six more bytes.
+        if (pointerCount === TRACK_HEADER_SIZE/2 || offset + 7*byteStride > trackLength) {
+            break;
+        }
+        const pointer = offset | (formattedTrack.doubleDensity ? POINTER_DOUBLE_DENSITY : 0);
+        trackBytes[pointerCount*2] = lo(pointer);
+        trackBytes[pointerCount*2 + 1] = hi(pointer);
+        pointerCount++;
+    }
+
+    // The bytes, then gap bytes to the end of the track.
+    const gapByte = formattedTrack.doubleDensity ? MFM_GAP : FM_GAP;
+    for (let i = TRACK_HEADER_SIZE; i < trackLength; i++) {
+        const index = Math.floor((i - TRACK_HEADER_SIZE)/byteStride);
+        trackBytes[i] = index < formattedTrack.bytes.length ? formattedTrack.bytes[index] : gapByte;
+    }
+
+    return {trackBytes, pointerCount};
+}
+
+/**
  * Handles the DMK floppy disk file format, developed by David M. Keil.
  *
  * http://www.classiccmp.org/cpmarchives/trs80/mirrors/trs-80.com/early/www.trs-80.com/trs80-dm.htm
@@ -429,7 +470,11 @@ class DmkTrack {
  */
 export class DmkFloppyDisk extends FloppyDisk {
     public readonly className = "DmkFloppyDisk";
-    public readonly writeProtected: boolean;
+    /**
+     * Whether the image's header says the disk is write-protected. A tool that has been told to
+     * write anyway (trs80-tool's --force) clears this in memory; the header byte in the binary stays.
+     */
+    public writeProtected: boolean;
     public readonly trackCount: number;
     public readonly trackLength: number;
     public readonly flags: number;
@@ -636,29 +681,7 @@ export class DmkFloppyDisk extends FloppyDisk {
         // DMK stores the track's bytes as written, with single-density bytes doubled unless the
         // header says not to, and a header of pointers to each ID address mark.
         const alwaysUseStride1 = (this.flags & (FLAG_SINGLE_DENSITY | FLAG_IGNORE_DENSITY)) !== 0;
-        const byteStride = formattedTrack.doubleDensity || alwaysUseStride1 ? 1 : 2;
-        const trackBytes = new Uint8Array(this.trackLength);
-
-        // The pointers. Drop any that won't fit, the way the end of a real track is lost.
-        let pointerCount = 0;
-        for (const idamIndex of formattedTrack.idamIndices) {
-            const offset = TRACK_HEADER_SIZE + idamIndex*byteStride;
-            // The ID field is the mark and six more bytes.
-            if (pointerCount === TRACK_HEADER_SIZE/2 || offset + 7*byteStride > this.trackLength) {
-                break;
-            }
-            const pointer = offset | (formattedTrack.doubleDensity ? POINTER_DOUBLE_DENSITY : 0);
-            trackBytes[pointerCount*2] = lo(pointer);
-            trackBytes[pointerCount*2 + 1] = hi(pointer);
-            pointerCount++;
-        }
-
-        // The bytes, then gap bytes to the end of the track.
-        const gapByte = formattedTrack.doubleDensity ? MFM_GAP : FM_GAP;
-        for (let i = TRACK_HEADER_SIZE; i < this.trackLength; i++) {
-            const index = Math.floor((i - TRACK_HEADER_SIZE)/byteStride);
-            trackBytes[i] = index < formattedTrack.bytes.length ? formattedTrack.bytes[index] : gapByte;
-        }
+        const {trackBytes, pointerCount} = makeDmkTrackBlob(formattedTrack, this.trackLength, alwaysUseStride1);
 
         this.write(new FloppyWrite(trackBytes, track.offset));
 
@@ -680,6 +703,10 @@ export class DmkFloppyDisk extends FloppyDisk {
         }
 
         return true;
+    }
+
+    public override clearImageWriteProtected(): void {
+        this.writeProtected = false;
     }
 
     public isWriteProtected(): boolean {

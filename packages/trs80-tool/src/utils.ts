@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { withCommas } from "teamten-ts-utils";
 import {
     ModelIITrsdosDirEntry, Trs80File, TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, XenixTarFile,
     decodeTrs80File } from "trs80-base";
@@ -29,7 +28,7 @@ export function pluralize(count: number, singular: string, plural?: string): str
  * Return the count and the singular or plural version of a string depending on the count.
  */
 export function pluralizeWithCount(count: number, singular: string, plural?: string): string {
-    return `${withCommas(count)} ${pluralize(count, singular, plural)}`;
+    return `${count.toLocaleString()} ${pluralize(count, singular, plural)}`;
 }
 
 /**
@@ -55,6 +54,51 @@ export function loadFile(filename: string): Uint8Array | string {
 
     // A Buffer is a Uint8Array view of (possibly pooled) memory; return it as-is.
     return buffer;
+}
+
+/**
+ * Write a file so that an interrupted write can't leave half a file: write the bytes to a new file in
+ * the same directory (so that the rename can't cross file systems), then rename it over the target.
+ * If the target exists, the new file gets its permission bits, and if the target is a symbolic link
+ * then the file it points to is replaced and the link stays. If anything fails, the new file is removed.
+ *
+ * @param pathname the file to create or replace.
+ * @param binary the bytes to write.
+ * @throws the file system's error if the write or the rename fails, after removing the new file.
+ */
+export function writeFileAtomically(pathname: string, binary: Uint8Array): void {
+    // Replace the file that a symbolic link points to, rather than the link.
+    let targetPathname = pathname;
+    let mode: number | undefined = undefined;
+    try {
+        targetPathname = fs.realpathSync(pathname);
+        mode = fs.statSync(targetPathname).mode & 0o7777;
+    } catch (e) {
+        // The target doesn't exist yet, so it gets the default permissions.
+    }
+
+    const {dir, base} = path.parse(targetPathname);
+    const tempPathname = path.join(dir, "." + base + ".tmp-" + process.pid);
+    try {
+        const fd = fs.openSync(tempPathname, "w");
+        try {
+            fs.writeSync(fd, binary);
+            fs.fsyncSync(fd);
+        } finally {
+            fs.closeSync(fd);
+        }
+        if (mode !== undefined) {
+            fs.chmodSync(tempPathname, mode);
+        }
+        fs.renameSync(tempPathname, targetPathname);
+    } catch (e) {
+        try {
+            fs.rmSync(tempPathname, { force: true });
+        } catch (e2) {
+            // Nothing more we can do; report the original error.
+        }
+        throw e;
+    }
 }
 
 /**
@@ -310,6 +354,36 @@ export function expandInputPattern(arg: string): string {
 }
 
 /**
+ * Find the words that follow a subcommand in the raw command line, exactly as the user typed them.
+ * Commander consumes the program-level options it knows wherever they appear and drops some "--"
+ * words, so a subcommand that parses its own words must not take them from commander.
+ *
+ * Program options are skipped up to the subcommand, along with the values of those that take one
+ * (given as "--color 16" or "--color=16"). The first word that isn't an option must be the subcommand.
+ *
+ * @param argv the command-line arguments, without the node executable and script (process.argv.slice(2)).
+ * @param subcommand the name of the subcommand.
+ * @param programOptionsWithValues the long program options that take a value, such as "--color".
+ * @returns the words after the subcommand, or undefined if the first word that isn't a program
+ * option is not the subcommand (or there is none).
+ */
+export function wordsAfterSubcommand(argv: string[], subcommand: string,
+                                     programOptionsWithValues: string[]): string[] | undefined {
+
+    let i = 0;
+    while (i < argv.length && argv[i].startsWith("-") && argv[i] !== "-" && argv[i] !== "--") {
+        // Skip the value of an option that takes one, unless it was attached with "=".
+        i += programOptionsWithValues.includes(argv[i]) ? 2 : 1;
+    }
+
+    if (i >= argv.length || argv[i] !== subcommand) {
+        return undefined;
+    }
+
+    return argv.slice(i + 1);
+}
+
+/**
  * Whether the name of a file inside a container matches a pattern given to "extract". Matching is
  * case-insensitive. A "*" matches any run of characters except "/", a "?" matches one character
  * except "/", and "**" matches any characters including "/". Every other character is literal.
@@ -352,4 +426,176 @@ export function fileNameMatchesPattern(filename: string, hasDirectories: boolean
     }
 
     return new RegExp("^" + regex + "$", "is").test(name);
+}
+
+/**
+ * Whether a file name pattern has wildcards (see fileNameMatchesPattern()), as opposed to naming one file.
+ *
+ * @param pattern the pattern to check.
+ */
+export function patternHasWildcards(pattern: string): boolean {
+    return pattern.includes("*") || pattern.includes("?");
+}
+
+/**
+ * The end of the error for a pattern that matched no file, saying so if it's a wildcard that would have
+ * matched only system files.
+ *
+ * @param unmatchedOnlySystem the PatternSelection.unmatchedOnlySystem of the selection that failed.
+ * @returns text to put after the closing quote of the pattern: a parenthesized hint, or an empty string.
+ */
+export function systemWildcardHint(unmatchedOnlySystem: boolean): string {
+    return unmatchedOnlySystem ? " (wildcards don't match system files, so name the file)" : "";
+}
+
+/**
+ * How selectByPatterns() reads the files that it chooses from.
+ */
+export interface PatternSelectionAccessors<T> {
+    /** The name of a file, as fileNameMatchesPattern() takes it. */
+    name(file: T): string;
+
+    /** Whether a "/" in the file's name separates directories (see fileNameMatchesPattern()). */
+    hasDirectories(file: T): boolean;
+
+    /** Whether the file is a system file. */
+    isSystem(file: T): boolean;
+}
+
+/**
+ * The result of selectByPatterns().
+ */
+export interface PatternSelection<T> {
+    /** The chosen files, in their original order. */
+    selected: T[];
+
+    /** The first pattern that matched no file at all, or undefined if every pattern matched something. */
+    unmatchedPattern: string | undefined;
+
+    /**
+     * Whether the unmatched pattern is a wildcard that would have matched a system file, if system
+     * files could match wildcards. Always false if unmatchedPattern is undefined.
+     */
+    unmatchedOnlySystem: boolean;
+}
+
+/**
+ * Choose the files whose names match at least one of the patterns (see fileNameMatchesPattern()). This
+ * is the one place that decides which files a pattern can select, for every command that selects files:
+ * a name without wildcards selects the file of that name, system file or not, but a pattern with
+ * wildcards selects a system file only if wildcardsMatchSystemFiles says so.
+ *
+ * @param files the files to choose from, including any system files.
+ * @param patterns the patterns to match, or an empty array to choose every file (as "*" does).
+ * @param accessors how to read the files.
+ * @param wildcardsMatchSystemFiles whether system files can match wildcards (and an empty array of patterns).
+ */
+export function selectByPatterns<T>(files: T[], patterns: string[], accessors: PatternSelectionAccessors<T>,
+                                    wildcardsMatchSystemFiles: boolean): PatternSelection<T> {
+
+    if (patterns.length === 0) {
+        return {
+            selected: files.filter(file => wildcardsMatchSystemFiles || !accessors.isSystem(file)),
+            unmatchedPattern: undefined,
+            unmatchedOnlySystem: false,
+        };
+    }
+
+    const selected: T[] = [];
+    const matchedPatterns = new Set<string>();
+    for (const file of files) {
+        let isSelected = false;
+        for (const pattern of patterns) {
+            const nameMatches = fileNameMatchesPattern(accessors.name(file), accessors.hasDirectories(file), pattern);
+            const allowed = wildcardsMatchSystemFiles || !accessors.isSystem(file) || !patternHasWildcards(pattern);
+            if (nameMatches && allowed) {
+                isSelected = true;
+                matchedPatterns.add(pattern);
+            }
+        }
+        if (isSelected) {
+            selected.push(file);
+        }
+    }
+
+    const unmatchedPattern = patterns.find(pattern => !matchedPatterns.has(pattern));
+    const unmatchedOnlySystem = unmatchedPattern !== undefined && !wildcardsMatchSystemFiles &&
+        patternHasWildcards(unmatchedPattern) &&
+        files.some(file => accessors.isSystem(file) &&
+            fileNameMatchesPattern(accessors.name(file), accessors.hasDirectories(file), unmatchedPattern));
+    return { selected, unmatchedPattern, unmatchedOnlySystem };
+}
+
+/**
+ * Wrap text into lines of at most the given width, breaking at spaces or (optionally) after hyphens where
+ * possible, and indenting all but the first line. A word too long for a line is broken anywhere, or with
+ * breakLongWords off is kept whole on a line of its own, longer than the width.
+ *
+ * @param text the text to wrap.
+ * @param width the maximum length of each line, including its indent.
+ * @param indent the number of spaces before each line after the first.
+ * @param breakAfterHyphens whether a line may end after a hyphen, as in "well-" then "known". Leave this
+ * off for text with names in it, like "trsdos-1.3".
+ * @param breakLongWords whether to break a word that doesn't fit on a line by itself. Leave this off for
+ * text that people copy, like file paths, and on where nothing may go past the width.
+ * @return the lines, at least one.
+ */
+export function wrapText(text: string, width: number, indent: number, breakAfterHyphens = true,
+                         breakLongWords = true): string[] {
+    const lines: string[] = [];
+    const indentText = " ".repeat(indent);
+    let rest = text;
+    let prefix = "";
+
+    // Too narrow to indent and still make progress.
+    if (width <= indent) {
+        return [text];
+    }
+
+    while (prefix.length + rest.length > width) {
+        const room = width - prefix.length;
+        // Break at the last space or after the last hyphen that fits, or anywhere if there's neither.
+        const afterHyphen = breakAfterHyphens ? rest.lastIndexOf("-", room - 1) + 1 : 0;
+        let breakIndex = Math.max(rest.lastIndexOf(" ", room), afterHyphen);
+        if (breakIndex <= 0) {
+            // The first word doesn't fit: break it, or end the line after it.
+            const nextSpace = rest.indexOf(" ", room);
+            breakIndex = breakLongWords ? room : nextSpace;
+            if (breakIndex < 0) {
+                break;
+            }
+        }
+        lines.push(prefix + rest.slice(0, breakIndex).trimEnd());
+        rest = rest.slice(breakIndex).trimStart();
+        prefix = indentText;
+    }
+    lines.push(prefix + rest);
+
+    return lines;
+}
+
+/**
+ * The width to wrap text to for a person at the terminal: the terminal's width if standard output is one,
+ * and otherwise 80, as Commander does for its help.
+ */
+export function terminalWidth(): number {
+    return process.stdout.isTTY && process.stdout.columns > 0 ? process.stdout.columns : 80;
+}
+
+/**
+ * Wrap a message that may have several lines (such as an error with a list under it) to fit the terminal.
+ * Each line wraps at spaces, and the lines that it wraps into are indented as far as it was. A line of a
+ * list, which is indented and has a term and then at least two spaces before its description, wraps
+ * under the description instead.
+ *
+ * @param message the text, with lines separated by "\n".
+ * @param width the width to wrap to; the terminal's width by default.
+ * @return the message with long lines wrapped.
+ */
+export function wrapMessage(message: string, width = terminalWidth()): string {
+    return message.split("\n").map(line => {
+        const listItem = /^ +[^ ]+ {2,}(?=\S)/.exec(line);
+        const indent = listItem !== null ? listItem[0].length : line.length - line.trimStart().length;
+        return wrapText(line, width, indent, false, false).join("\n");
+    }).join("\n");
 }

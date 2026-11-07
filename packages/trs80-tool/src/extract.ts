@@ -1,11 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { withCommas } from "teamten-ts-utils";
 import { type XenixTarExtent } from "trs80-base";
 import { expandContainer, type InputFile, selectInputFiles, XenixTarInputFile } from "./InputFile.js";
 import { filesInfileJson, printInfilesJson } from "./json.js";
 import {
-    DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, ToolError,
+    DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, systemWildcardHint, ToolError,
 } from "./utils.js";
 
 /**
@@ -79,7 +78,7 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
             components[components.length - 1] += DAMAGED_SUFFIX;
         } else {
             console.log("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
-                " of a " + withCommas(extent.fileSize) + "-byte file, and the earlier parts aren't in " +
+                " of a " + extent.fileSize.toLocaleString() + "-byte file, and the earlier parts aren't in " +
                 outDirname + ". Extract the disk with part 1 into this directory first.");
             return false;
         }
@@ -127,22 +126,29 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
         fs.utimesSync(outpath, date, date);
     }
     console.log("Appended part " + extent.number + " of " + extent.count + " to " + outpath + " (" +
-        pluralizeWithCount(binary.length, "byte") + ", now " + withCommas(newSize) + " of " +
-        withCommas(extent.fileSize) + (newSize === extent.fileSize ? ", complete" : "") +
+        pluralizeWithCount(binary.length, "byte") + ", now " + newSize.toLocaleString() + " of " +
+        extent.fileSize.toLocaleString() + (newSize === extent.fileSize ? ", complete" : "") +
         damageNotes(infile) + (renamed ? ", renamed to mark the damage" : "") + ")");
     return true;
 }
 
 /**
+ * Make sure that the output directory can be written to.
+ *
+ * @param outDirname the directory that files will be written to, which may not exist yet.
+ * @throws ToolError if the path exists but isn't a directory.
+ */
+function checkOutputDirectory(outDirname: string): void {
+    const outStat = fs.statSync(outDirname, { throwIfNoEntry: false });
+    if (outStat !== undefined && !outStat.isDirectory()) {
+        throw new ToolError("\"" + outDirname + "\" is not a directory");
+    }
+}
+
+/**
  * Handle the "extract" command: write the files inside a container (a floppy image,
  * CAS file, or cassette WAV file) to a directory, creating the directory if needed. Existing
- * host files with the same names are overwritten.
- *
- * A Xenix tar floppy can hold just a part (an extent) of a file that's split across the disks of
- * a set. The first part is written as a file, with a warning that it's incomplete. Extracting each
- * later disk into the same directory, in order, appends its part to that file, so that the file
- * is whole after the last disk. A later part is skipped, with a message, if the earlier parts aren't
- * in the directory, if the file is already complete, or if the part doesn't fit after what's there.
+ * host files with the same names are overwritten. See extractInputFiles() for the details.
  *
  * @param inFilename the container to extract from.
  * @param outDirname directory to write the files to. It's created if it doesn't exist.
@@ -164,17 +170,50 @@ export function extract(inFilename: string, outDirname: string, patterns: string
                         lowercase: boolean): void {
 
     // Check the destination before reading the input.
-    const outStat = fs.statSync(outDirname, { throwIfNoEntry: false });
-    if (outStat !== undefined && !outStat.isDirectory()) {
-        throw new ToolError("\"" + outDirname + "\" is not a directory");
-    }
+    checkOutputDirectory(outDirname);
 
     const allFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
-    const { selected: inFiles, unmatchedPattern } = selectInputFiles(allFiles, patterns);
+    extractInputFiles(allFiles, inFilename, outDirname, patterns, ucsdPascalRawText, markDamaged, lowercase);
+}
+
+/**
+ * Write the files of an already-loaded container that match the patterns to a directory, creating the
+ * directory if needed. Existing host files with the same names are overwritten. Each file's modification
+ * time is set to its date on the disk, when it has one.
+ *
+ * A Xenix tar floppy can hold just a part (an extent) of a file that's split across the disks of
+ * a set. The first part is written as a file, with a warning that it's incomplete. Extracting each
+ * later disk into the same directory, in order, appends its part to that file, so that the file
+ * is whole after the last disk. A later part is skipped, with a message, if the earlier parts aren't
+ * in the directory, if the file is already complete, or if the part doesn't fit after what's there.
+ *
+ * @param allFiles all the files in the container.
+ * @param containerName how to refer to the container in error messages, such as its host pathname.
+ * @param outDirname directory to write the files to. It's created if it doesn't exist.
+ * @param patterns patterns for the names of the files to extract (see fileNameMatchesPattern()), or
+ * an empty array to extract every file.
+ * @param ucsdPascalRawText whether UCSD Pascal text files are written as they are on the disk,
+ * instead of converted to host text.
+ * @param markDamaged whether to add " [DAMAGED]" to the name of each file that had unreadable
+ * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
+ * @param lowercase whether to write the files with lowercase names, as in "foo.cmd" for "FOO.CMD".
+ * @param wildcardsMatchSystemFiles whether system files in allFiles can match wildcards (see selectInputFiles()).
+ * @throws ToolError if the output path exists but isn't a directory, or if a pattern matches no file.
+ * Nothing is written in either case.
+ */
+export function extractInputFiles(allFiles: InputFile[], containerName: string, outDirname: string,
+                                  patterns: string[], ucsdPascalRawText: boolean, markDamaged: boolean,
+                                  lowercase: boolean, wildcardsMatchSystemFiles = true): void {
+
+    checkOutputDirectory(outDirname);
+
+    const { selected: inFiles, unmatchedPattern, unmatchedOnlySystem } =
+        selectInputFiles(allFiles, patterns, wildcardsMatchSystemFiles);
     if (unmatchedPattern !== undefined) {
         // People used to give the output directory here.
         const isDirectory = fs.statSync(unmatchedPattern, { throwIfNoEntry: false })?.isDirectory() === true;
-        throw new ToolError("No file in \"" + inFilename + "\" matches \"" + unmatchedPattern + "\"" +
+        throw new ToolError("No file in \"" + containerName + "\" matches \"" + unmatchedPattern + "\"" +
+            systemWildcardHint(unmatchedOnlySystem) +
             (isDirectory ? ". To extract into that directory, use --out-dir " + unmatchedPattern : ""));
     }
 
@@ -220,13 +259,59 @@ export function extract(inFilename: string, outDirname: string, patterns: string
             pluralizeWithCount(binary.length, "byte") + damageNotes(infile) + ")");
         if (extent !== undefined) {
             console.log("  Only part " + extent.number + " of " + extent.count + " of a " +
-                withCommas(extent.fileSize) + "-byte file. Extract the disks with the other parts " +
+                extent.fileSize.toLocaleString() + "-byte file. Extract the disks with the other parts " +
                 "into this directory, in order, to complete it.");
         }
     }
 
     console.log("Extracted " + pluralizeWithCount(writtenCount, "file") +
         (appendedCount > 0 ? ", appended " + pluralizeWithCount(appendedCount, "part") : ""));
+}
+
+/**
+ * Write the one file of an already-loaded container that matches the patterns to an exact host
+ * pathname, creating its directory if needed and overwriting any existing file. The file's modification
+ * time is set to its date on the disk, when it has one. A file that's one part of a set split across
+ * disks is written as it is, not appended to an earlier part.
+ *
+ * @param allFiles all the files in the container.
+ * @param containerName how to refer to the container in error messages, such as its host pathname.
+ * @param outPathname the host pathname to write to.
+ * @param patterns patterns for the names of the files to choose (see fileNameMatchesPattern()).
+ * @param ucsdPascalRawText whether a UCSD Pascal text file is written as it is on the disk,
+ * instead of converted to host text.
+ * @param wildcardsMatchSystemFiles whether system files in allFiles can match wildcards (see selectInputFiles()).
+ * @throws ToolError if a pattern matches no file, if the patterns don't choose exactly one file, or if
+ * the output path is a directory. Nothing is written in these cases.
+ */
+export function extractOneInputFile(allFiles: InputFile[], containerName: string, outPathname: string,
+                                    patterns: string[], ucsdPascalRawText: boolean,
+                                    wildcardsMatchSystemFiles = true): void {
+
+    const { selected: inFiles, unmatchedPattern, unmatchedOnlySystem } =
+        selectInputFiles(allFiles, patterns, wildcardsMatchSystemFiles);
+    if (unmatchedPattern !== undefined) {
+        throw new ToolError("No file in \"" + containerName + "\" matches \"" + unmatchedPattern + "\"" +
+            systemWildcardHint(unmatchedOnlySystem));
+    }
+    if (inFiles.length !== 1) {
+        throw new ToolError("--as needs exactly one file, but " + patterns.map(p => "\"" + p + "\"").join(", ") +
+            " matches " + inFiles.length + ": " + inFiles.map(f => f.filename).join(", "));
+    }
+
+    const infile = inFiles[0];
+    const binary = infile.getExtractedBinary(!ucsdPascalRawText);
+    const outStat = fs.statSync(outPathname, { throwIfNoEntry: false });
+    if (outStat !== undefined && outStat.isDirectory()) {
+        throw new ToolError("\"" + outPathname + "\" is a directory");
+    }
+    fs.mkdirSync(path.dirname(outPathname), { recursive: true });
+    fs.writeFileSync(outPathname, binary);
+    const date = infile.getDate();
+    if (date !== undefined) {
+        fs.utimesSync(outPathname, date, date);
+    }
+    console.log("Wrote " + outPathname + " (" + pluralizeWithCount(binary.length, "byte") + damageNotes(infile) + ")");
 }
 
 /**

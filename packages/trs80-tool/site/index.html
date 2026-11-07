@@ -25,6 +25,7 @@
                         <li><a href="#info"><code>info</code></a></li>
                         <li><a href="#convert"><code>convert</code></a></li>
                         <li><a href="#extract"><code>extract</code></a></li>
+                        <li><a href="#disk"><code>disk</code></a></li>
                         <li><a href="#hexdump"><code>hexdump</code></a></li>
                         <li><a href="#sectors"><code>sectors</code></a></li>
                         <li><a href="#asm"><code>asm</code></a></li>
@@ -128,11 +129,11 @@
 
                 <dt><strong><code>.HFE</code></strong></dt>
                 <dd>HxC Floppy Emulator floppy disk format, also used by Gotek drives.
-                    Version 1 only, read-only.</dd>
+                    Version 1 only. Sectors can be written, but disks can’t be formatted.</dd>
 
                 <dt><strong><code>.IMD</code></strong></dt>
                 <dd>ImageDisk floppy disk format, from Dave Dunfield’s ImageDisk program.
-                    Common for Model II and other 8-inch disks. Read-only.</dd>
+                    Common for Model II and other 8-inch disks. Sectors can be written, but disks can’t be formatted.</dd>
 
                 <dt><strong><code>.HDV</code></strong></dt>
                 <dd>A hard disk image, used by xtrs, sdltrs, and the FreHD hard drive emulator.
@@ -284,7 +285,83 @@
             <p>The output must be a file; to extract the contents of an archive, use
             <a href="#extract"><code>extract</code></a>.</p>
 
+            <p id="convert-floppy"><strong>A floppy image can be converted to another floppy image
+            format.</strong> If the input is a floppy image and the output ends in <code>.dmk</code>, <code>.jv1</code>,
+            <code>.jv3</code>, <code>.hfe</code>, or <code>.imd</code>, the whole disk is converted to that
+            image format, whatever file system it has (or if it has none). The input can be any floppy
+            image the tool reads: DMK, JV1, JV3, HFE, IMD, or SCP.</p>
+            <div><pre><code>% trs80-tool convert in.dmk out.hfe
+Wrote out.hfe: HFE floppy, 40 cylinders, 1 side, 720 sectors; nothing lost.
+% trs80-tool convert in.imd out.dmk</code></pre>
+            </div>
+            <p>(<code>.dsk</code> isn’t accepted for the output, because it means JV1 to some programs and JV3 to
+            others: use <code>.jv1</code> or <code>.jv3</code>.)</p>
             <table class="flags">
+                <tr>
+                    <td><code>.dmk</code></td>
+                    <td>Keeps every track as bytes. Converting from HFE keeps the bytes of the tracks (gaps,
+                        sync bytes, and copy protection); from the sector formats (JV1, JV3, IMD) the tracks
+                        are laid out as a DOS’s <code>FORMAT</code> would have, with real CRCs. Holds anything,
+                        including both densities on one track.</td>
+                </tr>
+                <tr>
+                    <td><code>.hfe</code></td>
+                    <td>Version 1 images for Gotek drives and the HxC emulator, with the same header as the
+                        images made on real TRS-80 hardware. Every track is exactly one turn long (100,000 cells
+                        a side for a 5¼-inch disk). Converting from DMK keeps the bytes of the tracks. An ID
+                        field with no data field after it can’t be kept, because the HFE reader finds sectors by
+                        their data marks.</td>
+                </tr>
+                <tr>
+                    <td><code>.jv3</code></td>
+                    <td>Holds sectors of 128 to 1,024 bytes in either density, with their order around the track,
+                        deleted marks, and CRC errors. It can’t hold IDs that disagree with where the sector is,
+                        duplicate sector numbers, sectors without data, bad ID CRCs, or sector numbers above 39.</td>
+                </tr>
+                <tr>
+                    <td><code>.imd</code></td>
+                    <td>Holds one density per track, any sector size, the order of the sectors, IDs that disagree
+                        with their position, sectors without data, deleted marks, and data errors. It can’t hold
+                        which deleted mark (0xF8, 0xFA) was used, or bad ID CRCs. Disks of 8 inches are written
+                        at 500 kbit/s, and 5¼-inch ones at 250.</td>
+                </tr>
+                <tr>
+                    <td><code>.jv1</code></td>
+                    <td>Holds only single-sided, single-density tracks of ten 256-byte sectors numbered 0 to 9.
+                        Anything else is left out, tracks with missing sectors are filled with 0xE5, and its
+                        deleted marks are those it makes up for cylinder 17.</td>
+                </tr>
+            </table>
+            <p>After converting, the tool reads the new image back and compares every sector with the original
+            (its data, ID field, density, deleted mark, and CRC errors), and, if the disk has a file system
+            the tool recognizes, every file. It then reports what the new format couldn’t hold, counted
+            by kind, with a few examples of each:</p>
+            <div><pre><code>% trs80-tool convert protected.dmk out.jv3
+JV3 can't hold everything on this disk:
+  2 sectors missing
+    cylinder 0 side 0 sector 125: sector is missing
+    cylinder 0 side 0 sector 127: sector is missing
+  11 sectors whose ID field CRC error changed
+    cylinder 19 side 0 sector 16: ID field has a bad CRC, so the sector was dropped
+    and 8 more
+Note: 35 tracks whose gaps and sync bytes are regenerated
+Nothing was written to "out.jv3". Use --force to write it anyway.
+% trs80-tool convert --force protected.dmk out.jv3
+% trs80-tool convert in.jv3 out.dmk
+Wrote out.dmk: DMK floppy, 40 cylinders, 2 sides, 1,440 sectors; nothing lost.</code></pre>
+            </div>
+            <p>If anything would be lost, nothing is written unless you give <code>--force</code>. Differences that
+            lose nothing (the interleave of the sectors, sectors added to fill a track, and the gaps of a track
+            that is stored as sectors) are shown as notes and don’t need <code>--force</code>. Converting a disk
+            to its own format makes a copy. To get the files out of a disk, use
+            <a href="#extract"><code>extract</code></a>; to make a new disk, use
+            <a href="#disk"><code>disk</code></a>.</p>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--force</code></td>
+                    <td>Write a floppy image even if the new format can’t hold everything on the disk.</td>
+                </tr>
                 <tr>
                     <td><code>--baud RATE</code></td>
                     <td>Write cassettes at this baud rate (250, 500, or 1500). If not specified,
@@ -390,6 +467,465 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         This can’t be used with <code>--out-dir</code>.</td>
                 </tr>
             </table>
+
+            <h3 id="disk"><code>disk</code></h3>
+            <p>The <code>disk</code> command works on one floppy or hard disk image: give the image, then one
+            or more commands to run on it, separated by a lone <code>:</code>. A hard disk image (HDV) works
+            on one partition at a time; see <a href="#disk-hard-disks">Hard disks</a> below.</p>
+            <div><pre><code>% trs80-tool disk in.dmk dir
+% trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
+% trs80-tool disk in.dmk check</code></pre>
+            </div>
+            <p>The image doesn’t have to exist: <code>create</code> makes a new, blank disk, and the other commands
+            can then work on it in the same run.</p>
+            <div><pre><code>% trs80-tool disk games.dmk create ldos-5.3 : add *.bas</code></pre>
+            </div>
+            <p>Most commands only read the disk; <code>add</code>, <code>kill</code>, <code>rename</code>, <code>attrib</code>, <code>label</code>,
+            <code>create</code> and <code>format</code> change it. Commands that change the disk do
+            so in memory, and the image is written once, after the last command, all or nothing: if any
+            command in the chain or any line of a script fails, nothing is saved. The image is replaced in
+            one step, so an interrupted write can’t leave half a disk.</p>
+            <p>Only some disks can be changed: floppies of the TRSDOS family whose DOS is TRSDOS 2.x,
+            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, or DOSPLUS 3, and LDOS 5 and LS-DOS 6 partitions of
+            hard disks, as long as <code>check</code> finds no problem with the
+            file system. Every change is checked before it is kept:
+            the tool decodes the changed disk again and refuses the change unless the layout and every other file
+            are exactly as they were. <code>--dos</code> and <code>--force</code> below can relax the
+            requirements on the disk when the tool is unsure.</p>
+            <table class="flags">
+                <tr>
+                    <td><code>-o FILE</code>, <code>--output FILE</code></td>
+                    <td>Save the changes to <code>FILE</code> instead of replacing the image. Put it before the
+                        first command.</td>
+                </tr>
+                <tr>
+                    <td><code>--dry-run</code></td>
+                    <td>Write nothing, and say whether the disk would have changed. This overrides
+                        <code>--output</code>. Put it before the first command.</td>
+                </tr>
+                <tr>
+                    <td><code>--partition N|NAME</code></td>
+                    <td>For a hard disk, work on this partition: its number, from 1, or its disk name (in any
+                        case). The <code>partition</code> command lists them. Put it before the first command.</td>
+                </tr>
+                <tr>
+                    <td><code>--dos NAME</code></td>
+                    <td>Write by the rules of this DOS, for a disk that doesn’t say which DOS wrote it or to
+                        override what it says. The names are <code>trsdos-2</code>, <code>trsdos-1.3</code>,
+                        <code>ldos-5</code>, <code>trsdos-6</code> (also <code>ldos-6</code> and
+                        <code>ls-dos-6</code>), and <code>dosplus</code>; <code>help dos</code> lists them. It
+                        doesn’t change how the disk is read, and it only applies to TRSDOS-family disks. It also
+                        changes what <code>info</code> and <code>check</code> say about whether the disk is
+                        writable. Put it before the first command.</td>
+                </tr>
+                <tr>
+                    <td><code>--force</code></td>
+                    <td>Write even where the disk looks doubtful (a layout that had to be guessed, a damaged file
+                        system), after printing a warning. It can’t override a problem with no safe way
+                        around, such as a disk whose DOS can’t be identified, which <code>--dos</code> settles.
+                        Put it before the first command.</td>
+                </tr>
+            </table>
+            <table class="flags">
+                <tr>
+                    <td><code>dir [NAME...]</code></td>
+                    <td>List the files, as the <a href="#dir"><code>dir</code></a> command does, or only
+                        those matching the names, which may have wildcards as in
+                        <a href="#extract"><code>extract</code></a>. System files are listed only with
+                        <code>--system</code>, but a name without wildcards finds a system file either way.</td>
+                </tr>
+                <tr>
+                    <td><code>extract NAME...</code></td>
+                    <td>Copy files to your computer, as the top-level
+                        <a href="#extract"><code>extract</code></a> command does, with the same
+                        names, wildcards and options (<code>--out-dir</code>,
+                        <code>--lowercase</code>, <code>--mark-damaged</code>). A wildcard never matches a
+                        system file; to copy one, give its name.
+                        <code>extract "*"</code> copies them all. With <code>--as PATH</code>, write the
+                        one file that the name matches to that path. Also called <code>get</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>list NAME</code></td>
+                    <td>Show a file’s contents: a BASIC program as a listing, a text file as text (with
+                        your computer’s line endings), and anything else, such as a program, as an annotated hex
+                        dump. A file counts as text if it has no NUL bytes and nearly all of its bytes are printable
+                        characters or line endings; trailing Ctrl-Z and NUL padding is ignored.
+                        <code>--hex</code> shows a hex dump whatever the file is, and <code>--raw</code> writes the
+                        file’s bytes unchanged to standard output, with no pager, for piping.
+                        If the name has wildcards and matches several files, each is shown under a
+                        <code>==&gt; NAME &lt;==</code> line. A wildcard never matches a system file, but its name does.
+                        Output goes through the pager when it’s a terminal (see <code>--no-pager</code>).
+                        A tokenized BASIC program is shown as Model 4 BASIC on a TRSDOS 6 or LS-DOS 6 disk and as
+                        Model I and III BASIC elsewhere, unless its bytes clearly belong to the other one;
+                        <code>--basic 3</code> or <code>--basic 4</code> chooses.
+                        It works on any disk we can read, including a read-only one. Also
+                        called <code>type</code> and <code>cat</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>add HOSTFILE...</code></td>
+                    <td><p>Copy files from your computer onto the disk, converting them as needed. A <code>.bas</code>
+                        file of BASIC text is tokenized (<code>Tokenized hello.bas.</code>), or with
+                        <code>--ascii</code> kept as text with CR line endings (Disk BASIC loads those too);
+                        text that isn’t BASIC is an error that names the line.
+                        TRSDOS 6 and LS-DOS 6 have their own BASIC (Model 4 BASIC), whose tokens differ from the
+                        Model I and III BASIC of every other DOS, so text is tokenized for the disk’s DOS
+                        (<code>Tokenized hello.bas for Model 4 BASIC.</code>); <code>--basic 3</code> or
+                        <code>--basic 4</code> chooses the BASIC instead. A host file that’s already tokenized is
+                        copied as it is if it fits the disk’s BASIC; if its bytes show it’s for the other BASIC,
+                        it’s converted by way of its text (<code>Converted old.bas from Model III to Model 4 BASIC
+                        tokens.</code>); and with <code>--ascii</code> it’s turned back into text, reading its
+                        tokens as the disk’s BASIC when the bytes don’t say. A <code>.3bn</code> system program, or a <code>.cas</code> that holds one, becomes a
+                        CMD program that the DOS can run, named with the extension <code>CMD</code>
+                        (<code>game.3bn</code> becomes <code>GAME/CMD</code>); a <code>.cas</code> that holds
+                        a BASIC program becomes tokenized BASIC, and one with several programs is refused
+                        (use <code>extract</code> on it first). The LF and CRLF line endings of
+                        <code>.txt</code>, <code>.asm</code>, <code>.jcl</code>, <code>.doc</code>, <code>.hlp</code>,
+                        <code>.lst</code>, <code>.fix</code>, and <code>.src</code> files become CR
+                        (<code>Converted line endings of notes.txt.</code>). Every other file is copied byte for
+                        byte, and <code>--binary</code> copies every file that way, with no conversion at all.
+                        (<code>--ascii</code> and <code>--binary</code> can’t be used together.) The host names may have wildcards. Each file’s TRSDOS name is made
+                        from its host name, upper-cased, with other characters dropped and the name cut to
+                        8 letters and a 3-letter extension, and the command says when that changed it
+                        (<code>hello-world.bas will be HELLOWOR/BAS.</code>); <code>--as NAME</code> gives
+                        the name of the one host file instead. <code>--system</code> and
+                        <code>--invisible</code> set those attributes. Nothing is added unless every file
+                        can be: a name that is already on the disk (unless you give <code>--overwrite</code>),
+                        two files with the same TRSDOS name, or too little room is an error. A file that would
+                        need more than four fragments of free space can’t be added yet. It prints
+                        <code>Added HELLO/BAS (1,234 bytes).</code> for each file. Also called
+                        <code>import</code> and <code>put</code>.</p>
+                        <p><code>--overwrite</code> replaces the files that are already on the disk, in the same
+                        directory slot, and prints <code>Replaced HELLO/BAS (1,234 bytes).</code> for them.
+                        The new copy keeps the old file’s attributes, passwords, record length, and date, except
+                        that <code>--system</code>, <code>--invisible</code>, and <code>--date</code> change those
+                        they name (on the LDOS line the file is also marked as changed since the last backup).
+                        <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be replaced. The new copy is
+                        written to free space first and the old copy freed afterward, so the new copy never
+                        lands on the old one’s sectors; only if it wouldn’t fit that way does it take over the
+                        old copy’s space, and the command warns when that happens. As with every change, nothing
+                        is saved unless every file can be added or replaced.</p>
+                        <p>Files get no date unless you give <code>--date YYYY-MM-DD</code>, and only LDOS
+                        and TRSDOS 6 / LS-DOS 6 disks keep one: TRSDOS 2.x and DOSPLUS 3 disks ignore it, with a
+                        warning. Those disks hold the years 1980 to 1987, or 1980 to 2011 on an LDOS 5.3 or
+                        LS-DOS 6.3 disk (which also stores the time of day), and a year outside that is an
+                        error. With no date, the entry is marked as having none.</p></td>
+                </tr>
+                <tr>
+                    <td><code>kill NAME...</code></td>
+                    <td>Remove files from the disk, freeing the space they used. The names may have wildcards,
+                        as in <code>dir</code>; every name must match a file, or nothing is removed.
+                        A wildcard never matches a system file; to remove one, give its name.
+                        <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be removed at all. It prints
+                        <code>Removed HELLO/BAS.</code> for each file. Also called <code>rm</code>,
+                        <code>del</code>, <code>delete</code>, and <code>remove</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>rename OLDNAME NEWNAME</code></td>
+                    <td>Rename a file on the disk. Both names are single TRSDOS names, with no wildcards, and
+                        either <code>/</code> or <code>.</code> may come before the extension. The new name
+                        must not belong to another file. System files can be renamed, but
+                        <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be. Only the name changes, not the file’s contents, dates or attributes.
+                        It prints <code>Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>mv</code>,
+                        <code>ren</code>, and <code>move</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>attrib PATTERN...</code></td>
+                    <td><p>Change the attributes of files, or with no attribute options show them. The patterns
+                        may have wildcards, as in <code>dir</code>; every pattern must match a file, or nothing
+                        is changed. A wildcard never matches a system file; to change one, give its name. The
+                        attributes are <code>--invisible</code> or <code>--visible</code> (whether directory
+                        listings show the file), <code>--system</code> or <code>--no-system</code>
+                        (<code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t change), <code>--protect LEVEL</code>,
+                        <code>--password PW</code> (the update, or owner, password, which allows full access)
+                        and <code>--access-password PW</code> (which allows access up to the protection level);
+                        an empty password removes the password. A password is up to 8 letters and digits, starting
+                        with a letter. <code>--date YYYY-MM-DD</code> or <code>--no-date</code> sets or removes the
+                        date, on the DOSes that store one (see <code>add</code>) and as an error elsewhere.
+                        It prints <code>Changed HELLO/BAS: invisible, protection READ.</code> for each file.
+                        Also called <code>attr</code>.</p>
+                        <p>The protection level is a name or a number from 0 to 7, in any case. The names
+                        are the disk’s DOS’s: <code>FULL</code> (0), <code>KILL</code> (1), <code>RENAME</code> (2),
+                        <code>WRITE</code> (4), <code>READ</code> (5), <code>EXEC</code> (6), and
+                        <code>NO_ACCESS</code> (7) on TRSDOS 2.x, LDOS 5, and the other DOSes of that family, but
+                        <code>REMOVE</code> (1), <code>WRITE</code> (3), and <code>UPDATE</code> (4) on TRSDOS 6 and
+                        LS-DOS 6. An unknown name lists the ones that fit the disk. LDOS 5.3 and LS-DOS 6.3 disks
+                        keep a time stamp where the access password would go, so they have no access password
+                        to set, and system files there have no dates.</p></td>
+                </tr>
+                <tr>
+                    <td><code>label</code></td>
+                    <td><p>Show or change the disk’s name, date, master password and AUTO command. With no
+                        options it shows them, and needs no write access: the name, the date as the disk
+                        stores it, whether the master password is <code>PASSWORD</code> (the usual one), blank,
+                        or something else (shown as its hash, since the password itself isn’t stored), and the
+                        AUTO command, which is the command the DOS runs when it boots. The options each change one
+                        field and leave the others alone: <code>--name NAME</code> (up to 8 characters, uppercased
+                        except on DOSPLUS), <code>--date YYYY-MM-DD</code> (the DOS keeps only two digits of
+                        the year, so the year must be one it can enter: 1980 to 1999, or to 2011 on LDOS 5.3 and
+                        LS-DOS 6.3 disks), <code>--password PW</code> (up to 8 letters and digits, starting with a
+                        letter; an empty one makes it blank), and <code>--auto COMMAND</code> or
+                        <code>--no-auto</code>. It prints what changed, such as <code>Name is now GAMES. AUTO
+                        command is now BASIC RUN"MENU".</code></p>
+                        <p>The AUTO command is up to 31 characters on TRSDOS 2.x, LDOS 5 and DOSPLUS 3, which keep it
+                        in the same sector as the name, and up to 79 on TRSDOS 6 and LS-DOS 6, which keep it in
+                        the system information sector of the boot track. A TRSDOS 6 disk that has no such sector
+                        (one that another program formatted) can’t be given an AUTO command. Changing the
+                        name or date doesn’t change the DOS release banner that TRSDOS 6 keeps in that sector.</p></td>
+                </tr>
+                <tr>
+                    <td><code>info</code></td>
+                    <td>Describe the image and its file system, as <code>info --verbose</code> does,
+                        with the free space and whether the disk can be written. For a hard disk it
+                        lists the partitions, or describes the selected one.</td>
+                </tr>
+                <tr>
+                    <td><code>partition [N|NAME]</code></td>
+                    <td>For a hard disk, list the partitions (number, where they are, disk name, DOS, number of
+                        files, and whether they can be written), or with a number or a disk name choose the
+                        partition that the following commands work on. Also called <code>part</code>. It
+                        changes nothing on the disk. See <a href="#disk-hard-disks">Hard disks</a>.</td>
+                </tr>
+                <tr>
+                    <td><code>free</code></td>
+                    <td>Show the space left for new files on a TRSDOS-family disk: granules that
+                        the GAT says are free and that no file uses.</td>
+                </tr>
+                <tr>
+                    <td><code>map [PATTERN...]</code></td>
+                    <td><p>Draw the disk sector by sector, so you can see where everything is: a line for each
+                        cylinder and a cell for each sector on it, numbered by a ruler on top. On a double-sided
+                        disk each cylinder has a line for side 0 and one for side 1, so reading left to right and top
+                        to bottom follows the order the DOS allocates sectors in. A <code>│</code> ends each granule.
+                        A file is a run of <code>─</code> that starts with its name, in a color of its own; the name
+                        repeats at the start of each cylinder (but not when a file runs from side 0 to side 1). The
+                        directory and the boot granule are drawn the same way. <code>·</code> is a free sector and
+                        <code>x</code> a locked-out one. Damage shows in red:
+                        <code>!</code> for a granule that two or more files claim, <code>?</code> for one that a
+                        file claims but the GAT says is free, and <code>u</code> for one the GAT says is used
+                        that no file claims. With patterns, only the matching files get names and colors, and
+                        the rest show as a plain <code>─</code>; the matching files are listed below the map.
+                        A wildcard never matches a system file; to show one, name it.
+                        It changes nothing, so it works on a read-only disk, and only on TRSDOS-family disks.</p>
+<pre><code>cyl   0  1  2  3  4  5  6  7  8  9
+  0  BOOT/SYS ─────│·  ·  ·  ·  · │
+  1  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  2  HELLO/BAS ────│──────────────│
+  3  HELLO/BAS ────│·  ·  ·  ·  · │
+  4  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  5  ·  ·  ·  ·  · │WORLD/BAS ────│
+  6  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  7  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+  8  KERNEL/SYS ───│──────────────│
+  9  ·  ·  ·  ·  · │·  ·  ·  ·  · │
+ ...
+ 17  DIR/SYS ──────│──────────────│
+
+· free
+9 of 36 granules used, 27 free (33.8 KB). A granule is 1,280 bytes.</code></pre></td>
+                </tr>
+                <tr>
+                    <td><code>check</code></td>
+                    <td>Check a TRSDOS-family file system for problems, changing nothing:
+                        files that share granules, files in granules the GAT says are free,
+                        extents past the end of the disk, HIT bytes that don’t match names,
+                        and damaged files. It also says whether the disk would be safe to write,
+                        and if not, why not.</td>
+                </tr>
+                <tr>
+                    <td><code>repair [--free-unclaimed]</code></td>
+                    <td><p>Fix the damage that <code>check</code> finds, where it can be fixed without guessing, in
+                        the GAT, the HIT and the directory only: granules that a file uses and the GAT says are free
+                        are marked used, HIT bytes that aren’t the hash of the file’s name are set to it, and
+                        extended directory entries that no file reaches are deleted. It prints what it changed,
+                        then the damage it can’t fix (files that share granules, extents past the end of the disk,
+                        damaged files), and says whether the disk is now safe to write. It works on a disk that
+                        is damaged but otherwise sound, which is the only kind of write that such a disk allows, so
+                        <code>repair : add FILE</code> works. It refuses a disk that can’t be written for another
+                        reason, such as an uncertain layout, even with <code>--force</code>. Under TRSDOS 2.x’s
+                        rules the HIT bytes of extended directory entries are left alone, since we don’t know what
+                        the DOS puts there.</p>
+                        <p>Granules that the GAT marks used but no file claims are left alone, since some programs
+                        keep data there; <code>--free-unclaimed</code> frees them. Granules on the boot cylinder
+                        and locked-out ones are never freed. Like any other change, a repair can be taken back
+                        with <code>undo</code>.</p></td>
+                </tr>
+                <tr>
+                    <td><code>create DOS</code></td>
+                    <td><p>Make a new, blank, formatted data disk, with no files, the way the DOS’s own
+                        <code>FORMAT</code> leaves one (or, with <code>--system</code>, a bootable system disk). It works when the image doesn’t exist yet (the disk is
+                        saved under that name at the end), or with <code>--force</code> to replace in memory the
+                        disk that the image has. The image is always a DMK one, so a name ending in
+                        <code>.jv1</code>, <code>.jv3</code>, <code>.dsk</code>, <code>.hfe</code> or <code>.imd</code> is
+                        refused. The disk can be used by later commands in the same run, and a
+                        <code>quit</code> or the end of the run saves it.</p>
+                        <p>The DOS to make the disk for is required, and comes first. It is one of
+                        <code>trsdos-2.3</code>, <code>trsdos-1.3</code>, <code>ldos-5.3</code>,
+                        <code>trsdos-6.2</code> and <code>lsdos-6.3</code>; <code>help create</code>, and the error for
+                        a missing or unknown DOS, list them with what each makes. (This is not the
+                        <code>--dos</code> option that goes before the first command.) The
+                        options are <code>--cylinders N</code> (default 40, or 35 for TRSDOS 2.3; the DOS sets the
+                        limits), <code>--sides 1|2</code> (default 1; TRSDOS 2.3 and 1.3 have only one),
+                        <code>--density single|double</code> (default: single for TRSDOS 2.3, double for the others),
+                        <code>--model 1|3|4</code> (only chooses LDOS 5.3’s default density: single for the
+                        Model I, double otherwise), <code>--name NAME</code> (default <code>DATADISK</code>) and
+                        <code>--date YYYY-MM-DD</code> (default today, as <code>FORMAT</code> does).</p>
+                        <p>The disk gets the DOS’s own data-disk boot sectors, copied from disks that the DOS formatted,
+                        so apart from the name and date it is the same as what <code>FORMAT</code> makes. It is still
+                        a data disk, not a system disk. (Where we haven’t measured the DOS’s own, which is
+                        single-density TRSDOS 6 and LS-DOS 6 disks, the disk gets a boot sector of our own that only
+                        prints a message and halts; the DOS and this tool still recognize the disk by its other
+                        sectors.)</p>
+                        <p>With <code>--system</code>, <code>create</code> instead makes a bootable system disk: a copy
+                        of the DOS’s own system disk, with all its files. Each DOS has one disk (LDOS 5.3 has one for
+                        the Model I and one for the Model III, and <code>--model 1</code> chooses the first), which
+                        fixes the shape of the disk, so <code>--cylinders</code>, <code>--sides</code> and
+                        <code>--density</code> are refused if they differ from it. <code>--name</code> and
+                        <code>--date</code> change the copy’s name and date. <code>--minimal</code> removes every file
+                        that isn’t a system file, keeping what the DOS needs to boot (and saying what it removed), to
+                        leave room on the disk. The result can be changed by later commands in the same run, such as
+                        <code>add</code>, like any other disk.</p>
+                        <p>The bundled system disks, which <code>help create</code> also lists, are:</p>
+                        <ul>
+                            <li>TRSDOS 2.3 for the Model I</li>
+                            <li>TRSDOS 1.3 for the Model III</li>
+                            <li>LDOS 5.3.1 for the Model I</li>
+                            <li>LDOS 5.3.1 for the Model III</li>
+                            <li>TRSDOS 6.2.1 for the Model 4</li>
+                            <li>LS-DOS 6.3.1 for the Model 4</li>
+                        </ul>
+                        <p>These disks and the DOSes’ boot sectors are the DOS publishers’ software, shipped inside the
+                        tool as the trs80gp emulator ships them. They will be taken out of the tool if the rights holders
+                        ask.</p></td>
+                </tr>
+                <tr>
+                    <td><code>format [DOS]</code></td>
+                    <td><p>Erase the disk and format it as an empty data disk. It takes the same options as
+                        <code>create</code>, with an optional DOS that defaults to the disk’s own (it is required if
+                        that isn’t one of the five), the cylinders and sides default to the disk’s, and an
+                        LDOS-family disk keeps its density. If the disk has files, <code>format</code> says how many
+                        would be lost and needs <code>--force</code>. The result is a DMK image, so
+                        for an image of another kind give <code>-o NEW.dmk</code> to save it under a new name.
+                        Like everything else it changes the disk in memory, and nothing is saved until the end.</p></td>
+                </tr>
+                <tr>
+                    <td><code>trim</code></td>
+                    <td><p>Drop tracks that the disk doesn’t use from the image, which wastes space and confuses
+                        other tools: an 80-cylinder image of a 40-cylinder disk, or a blank second side. It works on
+                        DMK, JV1 and JV3 images, rebuilding the image without those tracks, and checks that the result
+                        decodes as the same file system with every file reading the same; if not, nothing changes.
+                        With no options it drops the cylinders past the ones the file system uses (the ones that the
+                        GAT marks as beyond the disk’s end), and any cylinders at the end with no readable sectors,
+                        and says what it dropped. Some DOSes, such as TRSDOS 1.3, don’t mark their end, so only the
+                        unreadable cylinders go. If there’s nothing to drop it says so and changes nothing.</p>
+                        <p><code>--cylinders N</code> keeps cylinders 0 to N-1. It refuses if a file or the directory
+                        has data on a dropped cylinder (naming them and the cylinders the file system covers), or if
+                        the dropped cylinders are free space that the file system expects to have, unless you give
+                        <code>--force</code>. On a disk with no file system, it refuses if a dropped track holds data
+                        that isn’t filler (each sector the same byte, or the same two bytes alternating), unless
+                        <code>--force</code>.</p>
+                        <p><code>--side 0</code> drops side 1. It refuses if the file system allocates on both sides,
+                        or, with no file system, if side 1 holds data that isn’t filler (unless <code>--force</code>).
+                        A single-sided image has nothing to drop. <code>--force</code> also lets <code>trim</code> work
+                        on an image marked write-protected.</p>
+                        <p>Like everything else, <code>trim</code> changes the disk in memory and nothing is saved
+                        until the end, so <code>--dry-run</code> and <code>-o</code> work.</p></td>
+                </tr>
+                <tr>
+                    <td><code>boot [--model 1|3|4] [--write-protected]</code></td>
+                    <td><p>Boot the disk, as it is in memory, in the emulator, drawn in the terminal the way
+                        <code>run</code> draws it. Ctrl-C stops the emulator and returns to the prompt (or to the
+                        next command in a chain). It says which model it chose and why: a Model I for TRSDOS 2.x and
+                        for other DOSes on single-density disks, a Model III for TRSDOS 1.3 and for other DOSes on
+                        double-density disks, and a Model 4 for TRSDOS 6 and LS-DOS 6; a disk with no DOS we recognize
+                        gets a Model III. <code>--model</code> overrides this. Also called <code>run</code>.</p>
+                        <p>The DOS can write to the disk, but only in memory: the whole session is one change that
+                        <code>undo</code> takes back, and <code>save</code> or <code>quit</code> saves, so the
+                        image file is not touched until then. <code>--write-protected</code> mounts the disk
+                        write-protected, and a disk whose image is marked write-protected stays so. Afterward the
+                        file system is read again, since the DOS may have changed anything. It needs a terminal, and
+                        refuses to run in a script.</p></td>
+                </tr>
+                <tr>
+                    <td><code>undo</code></td>
+                    <td><p>Take back the most recent change to the disk (an <code>add</code>, <code>kill</code>,
+                        <code>label</code>, <code>create</code>, <code>format</code>, <code>trim</code> and so on),
+                        restoring the disk exactly as it was, including its image format, and say which command it undid.
+                        It can be repeated to go further back, up to the last 100 changes (fewer on a large image, since
+                        each step holds a copy of the whole image; a hard disk keeps up to 256 MB of them, and says so
+                        the first time it drops the oldest). If undoing takes the disk back
+                        to what was last saved then there are no changes to save. It says so if there’s nothing to undo.
+                        It works in a chain too: <code>kill HELLO.BAS : undo</code>.</p></td>
+                </tr>
+                <tr>
+                    <td><code>redo</code></td>
+                    <td>Do again the change that <code>undo</code> took back. Making a new change after an
+                        <code>undo</code> forgets what could have been redone.</td>
+                </tr>
+                <tr>
+                    <td><code>revert</code></td>
+                    <td>Go back to the disk as it was when last saved (or as it was opened, if it hasn’t been saved), in one
+                        step. It counts as a change, so <code>undo</code> takes the revert back.</td>
+                </tr>
+                <tr>
+                    <td><code>save</code></td>
+                    <td>Save the changes now and carry on. Useful in the prompt; it says so if there’s nothing to save.</td>
+                </tr>
+                <tr>
+                    <td><code>quit</code></td>
+                    <td>Save the changes, if any, and leave the prompt. Also called <code>exit</code>; Ctrl-D does the same.</td>
+                </tr>
+                <tr>
+                    <td><code>abort</code></td>
+                    <td>Leave the prompt, discarding any changes. Ctrl-C at an empty prompt does the same; with text on the line, Ctrl-C only clears the line and shows a new prompt.</td>
+                </tr>
+                <tr>
+                    <td><code>help [COMMAND]</code></td>
+                    <td>List the commands, or describe one with its options and other names
+                        (<code>ls</code> for <code>dir</code>, for example).</td>
+                </tr>
+            </table>
+            <p>With no commands after the image, <code>disk</code> opens a prompt where you type
+            the same commands, one line at a time, with tab completion of command and file names.
+            <code>quit</code> saves any changes to the disk and leaves it. If the input isn’t a terminal, the commands are read from
+            it instead, so <code>trs80-tool disk in.dmk &lt; script.txt</code> runs a script, stopping at
+            the first error. Lines starting with <code>#</code> are comments.</p>
+            <div><pre><code>% trs80-tool disk in.dmk
+in.dmk: Floppy disk (DMK), LDOS 5.1, 26 files, 157 KB free
+Type "help" for a list of commands, and "quit" to leave.
+&gt;free
+157 KB free (105 granules of 1,536 bytes each)
+&gt;quit</code></pre>
+            </div>
+            <p>Flags such as <code>--color</code> go before <code>disk</code>; after the image,
+            everything belongs to the disk commands.</p>
+
+            <h4 id="disk-hard-disks">Hard disks</h4>
+            <p><code>disk</code> opens HDV hard disk images (the format of xtrs, sdltrs, and FreHD) and works on
+            their LDOS 5 and LS-DOS 6 (TRSDOS 6) partitions, with the same commands, checks, and safeguards as a
+            floppy: <code>dir</code>, <code>extract</code>, <code>list</code>, <code>add</code>, <code>kill</code>,
+            <code>rename</code>, <code>attrib</code>, <code>label</code>, <code>info</code>, <code>free</code>,
+            <code>check</code>, <code>repair</code>, <code>undo</code>, <code>redo</code>, <code>revert</code>, and
+            <code>save</code>. Changes are made in memory, checked by decoding the partition again, and written once at the
+            end (or to <code>--output</code>, or not at all with <code>--dry-run</code>), and only the sectors of the
+            partition that the change needs are altered.</p>
+            <div><pre><code>% trs80-tool disk hard.hdv partition
+  1  cylinders 0-139, heads 0-5  HARDA  LS-DOS 6.3  80 files  writable
+  2  cylinders 140-279, heads 0-5  HARDB  LS-DOS 6.3  18 files  writable
+% trs80-tool disk hard.hdv --partition HARDB add hello.bas : dir
+% trs80-tool disk hard.hdv partition 2 : add game.cmd</code></pre>
+            </div>
+            <p>A hard disk holds one or more partitions, each with a file system of its own. A partition is chosen with
+            <code>--partition</code> or the <code>partition</code> command, and its name (the disk name, or
+            <code>partition N</code> if it has none) shows in the prompt of the interactive shell. If the disk has only
+            one partition then it is used without being chosen. If it has several, every command that needs files fails
+            with a list of the partitions until one is chosen, since writing to the wrong partition is easy to do and hard to notice.
+            Choosing a partition is not a change to the disk, and <code>undo</code> never changes it.</p>
+            <p>What isn’t supported: creating, formatting, or partitioning a hard disk image (<code>create</code>,
+            <code>format</code>, <code>trim</code>, <code>boot</code>, and <code>map</code> work on floppy images and
+            say so); DOSPLUS 3 partitions, which are read but never written, because their GAT doesn’t record how many
+            granules each cylinder has; NEWDOS/80 and CP/M hard disks, which aren’t read at all yet; and the HDV
+            version 2 format. A write-protected HDV (its header’s flag) can be written only with <code>--force</code>,
+            and the saved image keeps its flag.</p>
 
             <h3 id="hexdump"><code>hexdump</code></h3>
 
@@ -571,7 +1107,7 @@ C CRC error (ID or data).
                     <td><code>--writable</code></td>
                     <td>Let the emulator write to floppies, and save the changes to their
                         files. A floppy stays write-protected, with a warning, if its file is
-                        read-only or its image (DMK or JV3) is marked write-protected.</td>
+                        read-only or its image (DMK, JV3, or HFE) is marked write-protected.</td>
                 </tr>
                 <tr>
                     <td><code>--printer FILE</code></td>
@@ -672,12 +1208,14 @@ C CRC error (ID or data).
 
             <h2 id="limitations">Limitations</h2>
             <ul>
-                <li>The tool can only read floppy disks and hard disks; writing is currently
-                    not supported.</li>
+                <li>The tool reads floppy disks and hard disks. It changes floppies and the LDOS 5 and LS-DOS 6
+                    partitions of HDV hard disks, with <a href="#disk"><code>disk</code></a>, and writes files only
+                    on the TRSDOS-family DOSes listed there. It can’t create or format a hard disk.</li>
                 <li>Hard disks can’t be mounted in the emulator (<a href="#run"><code>run</code></a>
                     and <a href="#mcp"><code>mcp</code></a>), and the
                     <a href="#sectors"><code>sectors</code></a> command shows only floppies.</li>
-                <li>On hard disks, only LDOS 5, LS-DOS 6, and DOSPLUS 3 partitions are read.</li>
+                <li>On hard disks, only LDOS 5, LS-DOS 6, and DOSPLUS 3 partitions are read, and DOSPLUS 3 ones
+                    aren’t written.</li>
             </ul>
 
             <h2 id="change-log">Change log</h2>

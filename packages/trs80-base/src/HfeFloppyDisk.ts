@@ -4,7 +4,8 @@
  * stores each track as its raw cell stream, one bit per half-cell, already clocked, so no
  * flux timing is involved. We find the address marks in that stream and decode the sectors
  * from them. Only version 1 ("HXCPICFE") is supported, not version 3 ("HXCHFEV3"), which
- * adds opcodes to the stream. Reading only; we don't write HFE.
+ * adds opcodes to the stream. To write a sector we re-encode its data address mark, data, and CRC
+ * as cells, in place in the track, which leaves the rest of the file as it was.
  *
  * https://hxc2001.com/download/floppy_drive_emulator/SDCard_HxC_Floppy_Emulator_HFE_file_format.pdf
  * MAME's implementation: src/lib/formats/hxchfe_dsk.cpp
@@ -18,6 +19,9 @@ import {
     FloppyDisk,
     FloppyDecodeOptions,
     FloppyDiskGeometry,
+    FloppyWrite,
+    laterSectorReplaces,
+    SectorCopy,
     SectorCrc,
     SectorData,
     SectorInfo,
@@ -38,13 +42,17 @@ import {
 const DEBUG = false;
 
 // The size of the header, and of the blocks that everything else is laid out in.
-const BLOCK_SIZE = 512;
+export const BLOCK_SIZE = 512;
 
 // Each side's half of an interleaved block.
-const SIDE_BLOCK_SIZE = BLOCK_SIZE/2;
+export const SIDE_BLOCK_SIZE = BLOCK_SIZE/2;
+
+// The offset in the header of the byte that says whether writing is allowed: 0xFF means yes, 0x00 means no.
+const WRITE_ALLOWED_OFFSET = 20;
+const WRITE_PROTECTED_VALUE = 0x00;
 
 // The first eight bytes of a version 1 file.
-const HFE_V1_MAGIC = "HXCPICFE";
+export const HFE_V1_MAGIC = "HXCPICFE";
 
 // The first eight bytes of a version 3 file, which we don't support.
 const HFE_V3_MAGIC = "HXCHFEV3";
@@ -53,11 +61,14 @@ const HFE_V3_MAGIC = "HXCHFEV3";
 const MFM_SYNC_CELLS = 0x4489;
 
 // The clock bits of an FM address mark, which is missing some of them.
-const FM_MARK_CLOCK = 0xC7;
+export const FM_MARK_CLOCK = 0xC7;
+
+// The clock bits of an FM data byte, which has all of them.
+export const FM_DATA_CLOCK = 0xFF;
 
 // Number of cells in an encoded byte. FM has four per data bit and MFM has two.
-const FM_CELLS_PER_BYTE = 32;
-const MFM_CELLS_PER_BYTE = 16;
+export const FM_CELLS_PER_BYTE = 32;
+export const MFM_CELLS_PER_BYTE = 16;
 
 // Maximum gap between the end of an ID field and the start of its data address mark, in bytes,
 // from the WD179x data sheet.
@@ -124,15 +135,21 @@ class HfeSector {
     public readonly side: number;
     public readonly sectorNumber: number;
     public readonly sizeCode: number;
-    public readonly dataMark: number;
-    public readonly data: Uint8Array;
+    // Cell index of the first cell after the data address mark, which is where the data starts.
+    // This can be past the end of the stream, when the data wraps around to the start.
+    public readonly dataBegin: number;
+    // The data address mark, data, and data CRC change when the sector is written.
+    public dataMark: number;
+    public data: Uint8Array;
     public readonly idCrc: CrcInfo;
-    public readonly dataCrc: CrcInfo;
+    public dataCrc: CrcInfo;
 
     constructor(start: number, density: Density, cylinder: number, side: number, sectorNumber: number,
-                sizeCode: number, dataMark: number, data: Uint8Array, idCrc: CrcInfo, dataCrc: CrcInfo) {
+                sizeCode: number, dataBegin: number, dataMark: number, data: Uint8Array, idCrc: CrcInfo,
+                dataCrc: CrcInfo) {
 
         this.start = start;
+        this.dataBegin = dataBegin;
         this.density = density;
         this.cylinder = cylinder;
         this.side = side;
@@ -159,10 +176,50 @@ class HfeTrack {
     public readonly trackPosition: TrackPosition;
     // In the order they are on the disk.
     public readonly sectors: HfeSector[];
+    // Where the track's blocks start in the file, in bytes.
+    private readonly begin: number;
+    // The number of bytes in this side's cell stream.
+    private readonly sideLength: number;
 
-    constructor(trackPosition: TrackPosition, sectors: HfeSector[]) {
+    constructor(trackPosition: TrackPosition, sectors: HfeSector[], offsetBlocks: number, sideLength: number) {
         this.trackPosition = trackPosition;
         this.sectors = sectors;
+        this.begin = offsetBlocks*BLOCK_SIZE;
+        this.sideLength = sideLength;
+    }
+
+    /**
+     * The number of cells in this side's stream.
+     */
+    public cellCount(): number {
+        return this.sideLength*8;
+    }
+
+    /**
+     * Read this side's cell stream out of the file's binary, for a converter that wants the raw cells.
+     *
+     * @param binary the whole file, which the track was decoded from.
+     * @throws if the track runs off the end of the file, which the decoder doesn't allow.
+     */
+    public readStream(binary: Uint8Array): CellStream {
+        const bytes = extractSide(binary, this.begin/BLOCK_SIZE, this.sideLength*2, this.trackPosition.side);
+        if (bytes === undefined) {
+            throw new Error("HFE track " + this.trackPosition.key() + " runs off the end of the file");
+        }
+        return new CellStream(bytes);
+    }
+
+    /**
+     * Where a cell is in the file, the inverse of extractSide(): the offset of its byte, and the mask of
+     * its bit within that byte. The index wraps around either end of the stream.
+     */
+    public locateCell(cellIndex: number): { offset: number, mask: number } {
+        const cellCount = this.cellCount();
+        const wrapped = ((cellIndex % cellCount) + cellCount) % cellCount;
+        const byteIndex = wrapped >> 3;
+        const offset = this.begin + Math.floor(byteIndex/SIDE_BLOCK_SIZE)*BLOCK_SIZE +
+            this.trackPosition.side*SIDE_BLOCK_SIZE + byteIndex%SIDE_BLOCK_SIZE;
+        return {offset, mask: 1 << (wrapped & 7)};
     }
 }
 
@@ -176,12 +233,15 @@ export class HfeFloppyDisk extends FloppyDisk {
     // Only the tracks that have sectors.
     public readonly tracks: HfeTrack[];
     private readonly tracksByPosition = new Map<string,HfeTrack>();
+    // Whether the file's header says that it's write-protected, until clearImageWriteProtected().
+    public writeProtected: boolean;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
-                tracks: HfeTrack[]) {
+                tracks: HfeTrack[], writeProtected: boolean) {
 
         super(binary, error, annotations);
         this.tracks = tracks;
+        this.writeProtected = writeProtected;
         for (const track of tracks) {
             this.tracksByPosition.set(track.trackPosition.key(), track);
         }
@@ -222,21 +282,168 @@ export class HfeFloppyDisk extends FloppyDisk {
         return this.geometry;
     }
 
-    readSector(sectorPosition: SectorPosition): SectorData | undefined {
+    /**
+     * Forget, in memory, that the header says the image is write-protected. The header byte in the
+     * binary is untouched.
+     */
+    public override clearImageWriteProtected(): void {
+        this.writeProtected = false;
+    }
+
+    /**
+     * Whether the header says the image is write-protected, or it was mounted that way.
+     */
+    public isWriteProtected(): boolean {
+        return this.writeProtected || this.mountedWriteProtected;
+    }
+
+    /**
+     * Find the sector at a physical position. A sector number can repeat on a track (dual-boot disks have the
+     * same numbers in both densities), and then the later sector replaces the earlier one unless it's worse, the
+     * rule that the geometry and the DMK reader use (see laterSectorReplaces()), so that every format reads the
+     * same sector.
+     */
+    private findSector(sectorPosition: SectorPosition): { track: HfeTrack, sector: HfeSector } | undefined {
         const track = this.tracksByPosition.get(sectorPosition.trackPosition.key());
         if (track === undefined) {
             return undefined;
         }
 
-        // If a sector number repeats, we return the first one.
-        const sector = track.sectors.find(sector => sector.sectorNumber === sectorPosition.sectorNumber);
+        // Every HFE sector has a data field, so only the ID's CRC tells copies apart.
+        const copyOf = (sector: HfeSector): SectorCopy => ({
+            hasValidIdCrc: () => sector.idCrc.valid(),
+            hasData: () => true,
+        });
+        let found: HfeSector | undefined = undefined;
+        for (const sector of track.sectors) {
+            if (sector.sectorNumber === sectorPosition.sectorNumber &&
+                (found === undefined || laterSectorReplaces(copyOf(found), copyOf(sector)))) {
+
+                found = sector;
+            }
+        }
+        return found === undefined ? undefined : {track, sector: found};
+    }
+
+    /**
+     * Write a sector's data field in the track's cells: the data address mark (the sync bytes before it
+     * stay), the data, and a new CRC, in the sector's density. The sector's ID field and everything around
+     * the data field are left alone, except that in MFM the clock cell of the byte after the CRC depends on
+     * the CRC's last bit, so that cell is recomputed. Only the file bytes that change are written, and
+     * a sector that would be written exactly as it is, with a good CRC, is left alone.
+     *
+     * @throws if the disk is write-protected, has no such sector, or the data is the wrong size.
+     */
+    public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
+        if (this.isWriteProtected()) {
+            throw new Error("tried to write sector to HFE but it's write protected");
+        }
+
+        const found = this.findSector(sectorPosition);
+        if (found === undefined) {
+            throw new Error(`HFE has no sector ${sectorPosition.key()} to write`);
+        }
+        const {track, sector} = found;
+        const size = sector.getLength();
+        if (data.data.length !== size) {
+            throw new Error(`size mismatch when writing sector (${size} vs. ${data.data.length})`);
+        }
+
+        const density = sector.density;
+        const mark = data.getDataAddressMark();
+        const unchanged = mark === sector.dataMark && sector.dataCrc.valid() &&
+            data.data.every((byte, index) => byte === sector.data[index]);
+        if (unchanged) {
+            // Leave the cells alone. Some images have clock bits that a fresh encoding wouldn't, and
+            // there's no reason to rewrite them.
+            return;
+        }
+
+        const crc = computeFieldCrc(density, mark, data.data, size);
+
+        // The cells of the mark, data, and CRC, starting at the mark byte.
+        const markBegin = sector.dataBegin - cellsPerByte(density);
+        const newCells: number[] = [];
+        // The data bit before each MFM byte decides its first clock bit. It's the last cell before the byte.
+        let previousDataBit = this.readCell(track, markBegin - 1);
+        const addByte = (byte: number, isMark: boolean): void => {
+            switch (density) {
+                case Density.SINGLE:
+                    newCells.push(... fmByteCells(byte, isMark ? FM_MARK_CLOCK : FM_DATA_CLOCK));
+                    break;
+
+                case Density.DOUBLE:
+                    newCells.push(... mfmByteCells(byte, previousDataBit));
+                    previousDataBit = byte & 1;
+                    break;
+
+                default:
+                    assertNever(density);
+            }
+        };
+        addByte(mark, true);
+        for (let i = 0; i < size; i++) {
+            addByte(data.data[i], false);
+        }
+        addByte(crc >> 8, false);
+        addByte(crc & 0xFF, false);
+
+        // Collect the changed bytes of the file, from file offset to new value.
+        const changedBytes = new Map<number,number>();
+        const setCell = (cellIndex: number, value: number): void => {
+            const {offset, mask} = track.locateCell(cellIndex);
+            const current = changedBytes.get(offset) ?? this.binary[offset];
+            changedBytes.set(offset, value === 1 ? current | mask : current & ~mask);
+        };
+        for (let i = 0; i < newCells.length; i++) {
+            setCell(markBegin + i, newCells[i]);
+        }
+        if (density === Density.DOUBLE) {
+            // The clock cell of the first byte after the CRC is present only between two zero data bits.
+            const afterCrc = markBegin + newCells.length;
+            const nextDataBit = this.readCell(track, afterCrc + 1);
+            setCell(afterCrc, previousDataBit === 0 && nextDataBit === 0 ? 1 : 0);
+        }
+
+        // Write the runs of bytes that differ from the file.
+        const offsets = [... changedBytes.keys()].filter(offset => changedBytes.get(offset) !== this.binary[offset]);
+        offsets.sort((a, b) => a - b);
+        let runBegin = 0;
+        for (let i = 1; i <= offsets.length; i++) {
+            if (i === offsets.length || offsets[i] !== offsets[i - 1] + 1) {
+                const run = new Uint8Array(i - runBegin);
+                for (let j = runBegin; j < i; j++) {
+                    run[j - runBegin] = changedBytes.get(offsets[j])!;
+                }
+                this.write(new FloppyWrite(run, offsets[runBegin]));
+                runBegin = i;
+            }
+        }
+
+        sector.data = new Uint8Array(data.data);
+        sector.dataMark = mark;
+        sector.dataCrc = new CrcInfo(crc, crc);
+    }
+
+    /**
+     * Read one cell of a track's side from the current binary, wrapping around the end of the stream.
+     */
+    private readCell(track: HfeTrack, cellIndex: number): number {
+        const {offset, mask} = track.locateCell(cellIndex);
+        return (this.binary[offset] & mask) !== 0 ? 1 : 0;
+    }
+
+    readSector(sectorPosition: SectorPosition): SectorData | undefined {
+        // If a sector number repeats, see findSector().
+        const sector = this.findSector(sectorPosition)?.sector;
         if (sector === undefined) {
             return undefined;
         }
 
         // What the sector says about itself, which can differ from where it physically is.
         const logicalSectorPosition = SectorPosition.make(sector.cylinder, sector.side, sector.sectorNumber);
-        const sectorData = new SectorData(sector.data, logicalSectorPosition, sector.density);
+        // Copy the data, because the caller may change it.
+        const sectorData = new SectorData(sector.data.slice(), logicalSectorPosition, sector.density);
         sectorData.crc = new SectorCrc(sector.idCrc, sector.dataCrc);
         sectorData.crcError = !sectorData.crc.valid();
         sectorData.deleted = isDeletedDataAddressMark(sector.dataMark);
@@ -259,10 +466,44 @@ function matchesAscii(binary: Uint8Array, begin: number, text: string): boolean 
 }
 
 /**
+ * Generate the 32 raw cells of an FM byte, each data bit being a clock cell, a zero, a data cell, and a
+ * zero. The first cell is first in the array.
+ *
+ * @param clock the clock bits, most significant first: 0xFF for data and 0xC7 for an address mark.
+ */
+export function fmByteCells(byte: number, clock: number): number[] {
+    const cells: number[] = [];
+
+    for (let bit = 7; bit >= 0; bit--) {
+        cells.push((clock >> bit) & 1, 0, (byte >> bit) & 1, 0);
+    }
+
+    return cells;
+}
+
+/**
+ * Generate the 16 raw cells of an MFM byte, alternating clock and data. A clock bit is present only
+ * between two zero data bits.
+ *
+ * @param previousDataBit the last data bit before this byte.
+ */
+export function mfmByteCells(byte: number, previousDataBit: number): number[] {
+    const cells: number[] = [];
+
+    for (let bit = 7; bit >= 0; bit--) {
+        const dataBit = (byte >> bit) & 1;
+        cells.push(previousDataBit === 0 && dataBit === 0 ? 1 : 0, dataBit);
+        previousDataBit = dataBit;
+    }
+
+    return cells;
+}
+
+/**
  * A side's cell stream, which is treated as circular: a sector whose data runs off the end
  * of the stream continues from the start. Cells are stored least significant bit first.
  */
-class CellStream {
+export class CellStream {
     public readonly bytes: Uint8Array;
     public readonly length: number;
 
@@ -375,7 +616,7 @@ class CellStream {
 /**
  * The number of cells in an encoded byte of the given density.
  */
-function cellsPerByte(density: Density): number {
+export function cellsPerByte(density: Density): number {
     switch (density) {
         case Density.SINGLE:
             return FM_CELLS_PER_BYTE;
@@ -405,10 +646,11 @@ function maxDataMarkGap(density: Density): number {
 }
 
 /**
- * The number of data bytes for a sector's size code. Like DMK, we use 256 for codes we don't know.
+ * The number of data bytes for a sector's size code. Like DMK, and like the WD179x, we use only the low
+ * two bits, so a code above 3 wraps around.
  */
 function sectorSizeFromCode(sizeCode: number): number {
-    return sizeCode <= 3 ? 128 << sizeCode : 256;
+    return 128 << (sizeCode & 0x03);
 }
 
 /**
@@ -515,7 +757,7 @@ function decodeSide(stream: CellStream): HfeSector[] {
             computeFieldCrc(density, dataMark.mark, data, size));
 
         const sector = new HfeSector(idMark.start, density, idBytes[0], idBytes[1], idBytes[2], sizeCode,
-            dataMark.mark, data, idCrc, dataCrc);
+            dataBegin, dataMark.mark, data, idCrc, dataCrc);
         sectors.push(sector);
 
         // Ignore anything that looks like a mark inside this sector's data. MFM data can
@@ -558,7 +800,8 @@ function annotateHeader(binary: Uint8Array, annotations: ProgramAnnotation[], tr
     annotations.push(new ProgramAnnotation("Interface mode: " + (interfaceModes[binary[16]] ?? "unknown"), 16, 17));
     annotations.push(new ProgramAnnotation("Unused", 17, 18));
     annotations.push(new ProgramAnnotation("Track list at block " + trackListOffset, 18, 20));
-    annotations.push(new ProgramAnnotation(binary[20] === 0xFF ? "Write allowed" : "Write protected", 20, 21));
+    annotations.push(new ProgramAnnotation(
+        binary[WRITE_ALLOWED_OFFSET] === WRITE_PROTECTED_VALUE ? "Write protected" : "Write allowed", 20, 21));
     annotations.push(new ProgramAnnotation(binary[21] === 0xFF ? "Single step" : "Double step", 21, 22));
     annotations.push(new ProgramAnnotation("Alternate track 0 encoding, side 0", 22, 24));
     annotations.push(new ProgramAnnotation("Alternate track 0 encoding, side 1", 24, 26));
@@ -665,12 +908,14 @@ export function decodeHfeFloppyDisk(binary: Uint8Array, options: FloppyDecodeOpt
 
             const sectors = decodeSide(new CellStream(sideBytes));
             if (sectors.length > 0) {
-                tracks.push(new HfeTrack(new TrackPosition(trackIndex, side), sectors));
+                tracks.push(new HfeTrack(new TrackPosition(trackIndex, side), sectors, offsetBlocks,
+                    sideBytes.length));
             }
         }
     }
 
-    const floppyDisk = new HfeFloppyDisk(binary, undefined, annotations, tracks);
+    const writeProtected = binary[WRITE_ALLOWED_OFFSET] === WRITE_PROTECTED_VALUE;
+    const floppyDisk = new HfeFloppyDisk(binary, undefined, annotations, tracks, writeProtected);
     const geometryValid = floppyDisk.computeGeometry();
     if (!geometryValid) {
         if (DEBUG) console.log("HFE: No sectors");

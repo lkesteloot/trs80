@@ -356,8 +356,8 @@ function reportTrsdosFile(trsdos: Trsdos, dirEntry: TrsdosDirEntry): FileReport 
         filename: dirEntry.getFilename("/"),
         size: dirEntry.getSize(),
         date: dirEntry.getFullDateString().trim(),
-        protection: trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), trsdos.version),
-        flags: dirEntry.getFlagsString(),
+        protection: trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), trsdos.protectionNames),
+        flags: dirEntry.getFlagsString(trsdos.protectionNames),
         isSystem: dirEntry.isSystemFile(),
         isHidden: dirEntry.isHidden(),
     };

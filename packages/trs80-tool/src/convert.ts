@@ -4,7 +4,10 @@ import { expandFile } from "./InputFile.js";
 import {pluralizeWithCount, ToolError} from "./utils.js";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio,
     concatAudio, writeWavFile } from "trs80-cassette";
-import {CassetteSpeed, Trs80File} from "trs80-base";
+import {
+    CassetteSpeed, decodeTrs80File, floppyImageFormatFromExtension, isFloppy, Trs80File, Trs80Floppy,
+} from "trs80-base";
+import {convertFloppyFile} from "./convertDisk.js";
 import { concatByteArrays } from "teamten-ts-utils";
 
 /**
@@ -17,16 +20,23 @@ import { concatByteArrays } from "teamten-ts-utils";
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of ending
  * text files at their Ctrl-Z.
+ * @param force whether to write a floppy image even if the new format can't hold everything on the disk.
  */
 export function convert(inFilenames: string[], outFilename: string, speed: CassetteSpeed | undefined,
                  start: number | "auto" | undefined, includeSystemFiles: boolean,
-                 cpmWholeRecords: boolean): void {
+                 cpmWholeRecords: boolean, force: boolean): void {
 
     const outStat = fs.statSync(outFilename, { throwIfNoEntry: false });
     const outputIsDirectory = outStat !== undefined && outStat.isDirectory();
     if (outputIsDirectory) {
         throw new ToolError("\"" + outFilename + "\" is a directory. " +
             "Use \"trs80-tool extract\" to extract the files from a floppy or cassette into a directory.");
+    }
+
+    // Floppy images convert to other floppy images as a whole, not file by file.
+    const outExtension = path.parse(outFilename).ext.toLowerCase();
+    if (convertDisk(inFilenames, outFilename, outExtension, force)) {
+        return;
     }
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
@@ -369,4 +379,49 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
             console.log("Can't put multiple files into " + outExt.toUpperCase());
         }
     }
+}
+
+/**
+ * Handle a conversion that involves a floppy image format on the output: a floppy image to another image
+ * format, or the refusal to make a floppy image from anything else. Does nothing for other conversions,
+ * including a floppy to a cassette, which expands the floppy into its files as it always did.
+ *
+ * @param inFilenames the input filenames.
+ * @param outFilename the output filename.
+ * @param outExtension the output filename's extension, with its dot, in lower case.
+ * @param force whether to write the new image even if it differs from the original.
+ * @return whether the conversion was handled, by converting the floppy or throwing.
+ * @throws ToolError if the conversion is refused or fails.
+ */
+function convertDisk(inFilenames: string[], outFilename: string, outExtension: string, force: boolean): boolean {
+    const outFormat = floppyImageFormatFromExtension(outExtension);
+    const outIsFloppy = outFormat !== undefined || outExtension === ".dsk";
+    if (!outIsFloppy) {
+        return false;
+    }
+
+    // A single input might be a floppy image.
+    let floppy: Trs80Floppy | undefined = undefined;
+    if (inFilenames.length === 1 && path.parse(inFilenames[0]).ext.toLowerCase() !== ".wav") {
+        let binary: Uint8Array;
+        try {
+            binary = fs.readFileSync(inFilenames[0]);
+        } catch (e: any) {
+            throw new ToolError("Can't open \"" + inFilenames[0] + "\": " + e.message);
+        }
+        const trs80File = decodeTrs80File(binary, {filename: inFilenames[0]});
+        floppy = isFloppy(trs80File) ? trs80File : undefined;
+    }
+
+    if (floppy === undefined) {
+        throw new ToolError("Can't convert to the floppy image \"" + outFilename + "\": only another floppy " +
+            "image can be converted to one. Use \"trs80-tool disk\" to make a floppy and put files on it.");
+    }
+    if (outFormat === undefined) {
+        throw new ToolError("\".dsk\" doesn't say which kind of floppy image to write: " +
+            "use .jv1 or .jv3 (or .dmk, .hfe, or .imd)");
+    }
+
+    convertFloppyFile(floppy, inFilenames[0], outFilename, outFormat, force);
+    return true;
 }

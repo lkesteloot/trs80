@@ -1,19 +1,19 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
-    CassetteFile,
+    BasicDialect, CassetteFile,
     CassetteSpeed,
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem,
-    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, getTrs80FileExtension, isFloppy, isHardDisk, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
+    TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type KnownFloppyFileSystem,
+    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {
-    ToolError, fileNameMatchesPattern, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
-    xenixTarTypeLetter,
+    ToolError, type PatternSelection, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
+    xenixTarTypeLetter, selectByPatterns,
 } from "./utils.js";
 import {colorDate} from "./lscolors.js";
 import type {ContainerJson, GranuleExtentJson, TrsdosIIFileJson, XenixTarFileJson} from "./json.js";
@@ -102,6 +102,14 @@ export class InputFile {
     }
 
     /**
+     * Whether the container marks the file as a system file. A subclass overrides this. Wildcards
+     * don't select system files (see selectInputFiles()).
+     */
+    public isSystemFile(): boolean {
+        return false;
+    }
+
+    /**
      * Whether a "/" in the filename separates directories, which extract recreates. Only on
      * file systems that have directories; elsewhere a "/" is just a character of the name.
      */
@@ -181,6 +189,21 @@ export class CasInputFile extends InputFile {
 }
 
 /**
+ * Which BASIC to read tokenized programs on a disk as.
+ */
+export interface BasicChoice {
+    /** The BASIC of the disk's DOS, or the one the user chose. */
+    dialect: BasicDialect;
+
+    /**
+     * Whether the user chose the BASIC, so that it's used for every program. Otherwise a program whose bytes
+     * clearly belong to the other BASIC is read as that one (see guessBasicDialect()), since a disk can hold
+     * programs from either.
+     */
+    forced: boolean;
+}
+
+/**
  * Input file that came from a TRSDOS floppy, or from a partition of a hard disk.
  */
 export class TrsdosInputFile extends InputFile {
@@ -194,15 +217,26 @@ export class TrsdosInputFile extends InputFile {
      * @param trsdos the file system that holds the file.
      * @param dirEntry the file's directory entry.
      * @param directory the directory to put the file in, ending in "/", or an empty string for none.
+     * @param basicChoice which BASIC to read a tokenized program as. Default is the one that the file
+     * system's DOS runs, unless the file's bytes say otherwise.
      */
-    constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry, directory = "") {
+    constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry, directory = "", basicChoice?: BasicChoice) {
         const name = dirEntry.getFilename(".");
         const {binary, damage} = trsdos.readFileWithDamage(dirEntry);
-        const trs80File = decodeTrs80File(binary, { filename: name });
+        const choice = basicChoice ?? {dialect: trsdosBasicDialect(trsdos), forced: false};
+        const basicDialect = choice.forced ? choice.dialect : guessBasicDialect(binary) ?? choice.dialect;
+        const trs80File = decodeTrs80File(binary, { filename: name, basicDialect });
         super(directory + name, binary, trs80File, damage);
         this.trsdos = trsdos;
         this.dirEntry = dirEntry;
         this.directory = directory;
+    }
+
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.dirEntry.isSystemFile();
     }
 
     /**
@@ -218,7 +252,7 @@ export class TrsdosInputFile extends InputFile {
         const date = this.dirEntry.getFullDateString().padEnd(this.trsdos.hasTimeStamps ? 16 : 10, " ");
         return [
             colorDate(date),
-            trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.version),
+            trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.protectionNames),
         ];
     }
 
@@ -271,7 +305,7 @@ export class TrsdosInputFile extends InputFile {
             trsdos: {
                 osFile: this.dirEntry.isSystemFile(),
                 hidden: this.dirEntry.isHidden(),
-                protection: trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.version),
+                protection: trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.protectionNames),
                 extents,
             },
         };
@@ -295,6 +329,13 @@ export class CpmInputFile extends InputFile {
         this.cpm = cpm;
         this.cpmFile = cpmFile;
         this.showUser = showUser;
+    }
+
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.cpmFile.isSystemFile();
     }
 
     public override getDirExtras(): string[] {
@@ -349,6 +390,13 @@ export class MicroDosInputFile extends InputFile {
         this.microDosFile = microDosFile;
     }
 
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.microDosFile.isSystemFile();
+    }
+
     public override getDirExtras(): string[] {
         return [
             microDosFileTypeToString(this.microDosFile.type).padEnd(5),
@@ -387,6 +435,13 @@ export class UcsdPascalInputFile extends InputFile {
         super(filename, binary, trs80File, damage);
         this.ucsdPascal = ucsdPascal;
         this.file = file;
+    }
+
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.file.isSystemFile();
     }
 
     /**
@@ -452,6 +507,13 @@ export class ModelIITrsdosInputFile extends InputFile {
     }
 
     /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.dirEntry.isSystemFile();
+    }
+
+    /**
      * The date last updated (blank if the entry has none, padded to line up), the flags
      * (S for system, P for program), and the protection level.
      */
@@ -511,6 +573,13 @@ export class TrsdosIIInputFile extends InputFile {
         super(filename, binary, trs80File, damage);
         this.trsdosII = trsdosII;
         this.file = file;
+    }
+
+    /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.file.isSystemFile();
     }
 
     /**
@@ -597,6 +666,13 @@ export class XenixTarInputFile extends InputFile {
     }
 
     /**
+     * Whether the file is a system file.
+     */
+    public override isSystemFile(): boolean {
+        return this.file.isSystemFile();
+    }
+
+    /**
      * The modification time in UTC, the permission bits in octal, and the owner's user and group IDs.
      */
     public override getDirExtras(): string[] {
@@ -653,6 +729,55 @@ export class XenixTarInputFile extends InputFile {
     public override hasDirectories(): boolean {
         return true;
     }
+}
+
+/**
+ * The files of a decoded floppy file system, as input files.
+ *
+ * @param fileSystem the file system of the floppy.
+ * @param includeSystemFiles whether to include system files.
+ * @param basicChoice which BASIC to read tokenized programs as, on a TRSDOS-family disk. Default is the one
+ * that the DOS runs.
+ */
+export function floppyInputFiles(fileSystem: KnownFloppyFileSystem, includeSystemFiles: boolean,
+                                 basicChoice?: BasicChoice): InputFile[] {
+    const inFiles: InputFile[] = [];
+
+    if (fileSystem instanceof Trsdos) {
+        for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new TrsdosInputFile(fileSystem, dirEntry, "", basicChoice));
+        }
+    } else if (fileSystem instanceof Cpm) {
+        const cpmFiles = fileSystem.getDirEntries(includeSystemFiles);
+        const showUser = cpmFiles.some(cpmFile => cpmFile.user !== 0);
+        for (const cpmFile of cpmFiles) {
+            inFiles.push(new CpmInputFile(fileSystem, cpmFile, showUser));
+        }
+    } else if (fileSystem instanceof MicroDos) {
+        for (const microDosFile of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new MicroDosInputFile(fileSystem, microDosFile));
+        }
+    } else if (fileSystem instanceof ModelIITrsdos) {
+        for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new ModelIITrsdosInputFile(fileSystem, dirEntry));
+        }
+    } else if (fileSystem instanceof TrsdosII) {
+        for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new TrsdosIIInputFile(fileSystem, file));
+        }
+    } else if (fileSystem instanceof UcsdPascal) {
+        for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new UcsdPascalInputFile(fileSystem, file));
+        }
+    } else if (fileSystem instanceof XenixTar) {
+        for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
+            inFiles.push(new XenixTarInputFile(fileSystem, file));
+        }
+    } else {
+        assertNever(fileSystem);
+    }
+
+    return inFiles;
 }
 
 /**
@@ -718,40 +843,7 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
 
             os = fileSystem.nameAndVersion;
 
-            // Expand floppy.
-            if (fileSystem instanceof Trsdos) {
-                for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new TrsdosInputFile(fileSystem, dirEntry));
-                }
-            } else if (fileSystem instanceof Cpm) {
-                const cpmFiles = fileSystem.getDirEntries(includeSystemFiles);
-                const showUser = cpmFiles.some(cpmFile => cpmFile.user !== 0);
-                for (const cpmFile of cpmFiles) {
-                    inFiles.push(new CpmInputFile(fileSystem, cpmFile, showUser));
-                }
-            } else if (fileSystem instanceof MicroDos) {
-                for (const microDosFile of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new MicroDosInputFile(fileSystem, microDosFile));
-                }
-            } else if (fileSystem instanceof ModelIITrsdos) {
-                for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new ModelIITrsdosInputFile(fileSystem, dirEntry));
-                }
-            } else if (fileSystem instanceof TrsdosII) {
-                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new TrsdosIIInputFile(fileSystem, file));
-                }
-            } else if (fileSystem instanceof UcsdPascal) {
-                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new UcsdPascalInputFile(fileSystem, file));
-                }
-            } else if (fileSystem instanceof XenixTar) {
-                for (const file of fileSystem.getDirEntries(includeSystemFiles)) {
-                    inFiles.push(new XenixTarInputFile(fileSystem, file));
-                }
-            } else {
-                assertNever(fileSystem);
-            }
+            inFiles.push(...floppyInputFiles(fileSystem, includeSystemFiles));
         } else if (isHardDisk(trs80File)) {
             const ldosPartitions = findLdosPartitions(trs80File);
             if (ldosPartitions.length === 0) {
@@ -826,36 +918,24 @@ export function expandContainer(inFilename: string, includeSystemFiles: boolean,
 }
 
 /**
- * Choose the files whose names match at least one of the patterns (see fileNameMatchesPattern()).
+ * Choose the files whose names match at least one of the patterns (see selectByPatterns(), which decides
+ * what a pattern can select).
  *
  * @param inFiles the files in a container.
  * @param patterns the patterns to match, or an empty array to choose every file.
- * @returns the chosen files, in their original order, and the first pattern that matched no file at
- * all (undefined if every pattern matched something).
+ * @param wildcardsMatchSystemFiles whether system files can match wildcards. Names without wildcards always
+ * select system files that are in inFiles. The default is for the commands that choose which system files
+ * are in inFiles in the first place.
+ * @returns the chosen files, in their original order, the first pattern that matched no file at
+ * all (undefined if every pattern matched something), and whether that pattern is a wildcard that only
+ * system files would match.
  */
-export function selectInputFiles(inFiles: InputFile[], patterns: string[]):
-    { selected: InputFile[], unmatchedPattern: string | undefined } {
+export function selectInputFiles(inFiles: InputFile[], patterns: string[], wildcardsMatchSystemFiles = true):
+    PatternSelection<InputFile> {
 
-    if (patterns.length === 0) {
-        return { selected: inFiles, unmatchedPattern: undefined };
-    }
-
-    const selected: InputFile[] = [];
-    const matchedPatterns = new Set<string>();
-    for (const inFile of inFiles) {
-        let isSelected = false;
-        for (const pattern of patterns) {
-            const matches = fileNameMatchesPattern(inFile.filename, inFile.hasDirectories(), pattern);
-            if (matches) {
-                isSelected = true;
-                matchedPatterns.add(pattern);
-            }
-        }
-        if (isSelected) {
-            selected.push(inFile);
-        }
-    }
-
-    const unmatchedPattern = patterns.find(pattern => !matchedPatterns.has(pattern));
-    return { selected, unmatchedPattern };
+    return selectByPatterns(inFiles, patterns, {
+        name: inFile => inFile.filename,
+        hasDirectories: inFile => inFile.hasDirectories(),
+        isSystem: inFile => inFile.isSystemFile(),
+    }, wildcardsMatchSystemFiles);
 }

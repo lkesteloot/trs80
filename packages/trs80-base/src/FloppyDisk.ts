@@ -2,7 +2,7 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 import {DATA_ADDRESS_MARK, DELETED_DATA_ADDRESS_MARK} from "./TrackBytes.js";
-import type {DiskVolume, VolumeGeometry} from "./DiskVolume.js";
+import type {VolumeGeometry, WritableDiskVolume} from "./DiskVolume.js";
 
 // Determined by the floppy controller.
 export const BYTES_PER_SECTOR = 256;
@@ -851,7 +851,7 @@ export class FloppyWrite {
 /**
  * Abstract class for virtual floppy disk file formats.
  */
-export abstract class FloppyDisk extends AbstractTrs80File implements DiskVolume {
+export abstract class FloppyDisk extends AbstractTrs80File implements WritableDiskVolume {
     public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
     protected mountedWriteProtected = false;
     // Cache for getBootTrackText(), cleared when the disk is written.
@@ -874,6 +874,15 @@ export abstract class FloppyDisk extends AbstractTrs80File implements DiskVolume
      */
     public setMountedWriteProtected(mountedWriteProtected: boolean): void {
         this.mountedWriteProtected = mountedWriteProtected;
+    }
+
+    /**
+     * Forget, in memory, that the image's own header says it's write-protected, for a caller that has
+     * been told to write anyway. The header byte in the binary is untouched, so the saved image keeps its
+     * flag. This does nothing for formats with no such flag; see {@link setMountedWriteProtected} for the
+     * other kind of protection.
+     */
+    public clearImageWriteProtected(): void {
     }
 
     /**
@@ -963,6 +972,19 @@ export abstract class FloppyDisk extends AbstractTrs80File implements DiskVolume
      */
     protected write(floppyWrite: FloppyWrite): void {
         this.binary.set(floppyWrite.data, floppyWrite.offset);
+        this.bootTrackText = undefined;
+        this.onWrite.dispatch(floppyWrite);
+    }
+
+    /**
+     * Replace the in-memory binary with one of a different length, for a format whose records
+     * grow when written. The caller has built the new binary, and "floppyWrite" describes the change
+     * to the old file: its data runs from its offset to the end of the new binary, so applying it
+     * to the old file at that offset (which extends the file) gives the new file. This is valid only
+     * if the new binary is at least as long as the old one and the bytes before the offset are the same.
+     */
+    protected replaceBinary(newBinary: Uint8Array, floppyWrite: FloppyWrite): void {
+        this.setBinary(newBinary);
         this.bootTrackText = undefined;
         this.onWrite.dispatch(floppyWrite);
     }

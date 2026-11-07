@@ -14,7 +14,11 @@ import {isDeletedDataAddressMark, USER_DATA_ADDRESS_MARK_FA} from "./TrackBytes.
 
 const SECTORS_PER_TRACK = 10;
 const BYTES_PER_TRACK = BYTES_PER_SECTOR * SECTORS_PER_TRACK;
-const DIRECTORY_CYLINDER = 17;
+/**
+ * The cylinder whose sectors JV1 reads with a deleted data address mark, where TRSDOS 2.3 keeps its
+ * directory. JV1 can't record marks, so this is the only place a directory's deleted marks survive.
+ */
+export const JV1_DIRECTORY_CYLINDER = 17;
 
 /**
  * Floppy disk in the JV1 format.
@@ -45,7 +49,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
             const sectorNumber = i % SECTORS_PER_TRACK;
             const sectorPosition = SectorPosition.make(cylinderNumber, 0, sectorNumber);
             const sectorInfo = new SectorInfo(sectorPosition, density, BYTES_PER_SECTOR);
-            if (cylinderNumber === DIRECTORY_CYLINDER) {
+            if (cylinderNumber === JV1_DIRECTORY_CYLINDER) {
                 // Directory sectors are marked as deleted in TRSDOS 2.3.
                 sectorInfo.deleted = true;
                 sectorInfo.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
@@ -101,7 +105,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
         if (writtenDataAddressMark !== undefined) {
             sectorData.deleted = isDeletedDataAddressMark(writtenDataAddressMark);
             sectorData.dataAddressMark = writtenDataAddressMark;
-        } else if (sectorPosition.cylinderNumber === DIRECTORY_CYLINDER) {
+        } else if (sectorPosition.cylinderNumber === JV1_DIRECTORY_CYLINDER) {
             // Directory sectors are marked as deleted in TRSDOS 2.3, with the Model I's mark.
             sectorData.deleted = true;
             sectorData.dataAddressMark = USER_DATA_ADDRESS_MARK_FA;
@@ -212,4 +216,76 @@ export function decodeJv1FloppyDisk(binary: Uint8Array): Jv1FloppyDisk | undefin
     }
 
     return new Jv1FloppyDisk(binary, undefined, annotations);
+}
+
+/**
+ * Make a copy of a JV1 image that keeps only its first cylinders. JV1 is just the sectors in order, so
+ * this is the start of the file. (JV1 has only one side, so there's no side to drop.)
+ *
+ * @param disk the image to copy. It isn't changed.
+ * @param cylinderCount the cylinders to keep, from cylinder 0. Asking for more than the image has keeps
+ * what it has.
+ * @return the new image, or undefined if the count isn't a positive whole number.
+ */
+export function trimJv1FloppyDisk(disk: Jv1FloppyDisk, cylinderCount: number): Jv1FloppyDisk | undefined {
+    if (!Number.isInteger(cylinderCount) || cylinderCount < 1) {
+        return undefined;
+    }
+
+    const byteCount = Math.min(disk.binary.length, cylinderCount*BYTES_PER_TRACK);
+    return decodeJv1FloppyDisk(disk.binary.slice(0, byteCount));
+}
+
+/**
+ * One sector to put in a new JV1 image.
+ */
+export interface Jv1SectorToWrite {
+    /**
+     * The cylinder, which is also the track.
+     */
+    cylinder: number;
+
+    /**
+     * The sector number, 0 to 9.
+     */
+    sectorNumber: number;
+
+    /**
+     * The sector's 256 bytes.
+     */
+    data: Uint8Array;
+}
+
+/**
+ * The byte that fills the sectors of a new JV1 image that nothing was written to.
+ */
+const JV1_FILL_BYTE = 0xE5;
+
+/**
+ * Make a JV1 image from sectors. JV1 has a sector at every position of every track up to the last, so a
+ * sector that isn't given is filled with 0xE5. The image has no marks or CRCs: the reader makes the
+ * directory cylinder's sectors deleted, and everything else normal.
+ *
+ * @param sectors the sectors to place. Their positions must be valid and distinct.
+ * @param cylinderCount how many cylinders the image has.
+ * @return the new image, or undefined if the count is out of range, a sector is outside the image or the wrong
+ * size, or the image has no sectors.
+ */
+export function makeJv1FloppyDisk(sectors: Jv1SectorToWrite[], cylinderCount: number): Jv1FloppyDisk | undefined {
+    if (!Number.isInteger(cylinderCount) || cylinderCount < 1 || cylinderCount > 254) {
+        return undefined;
+    }
+
+    const binary = new Uint8Array(cylinderCount*BYTES_PER_TRACK).fill(JV1_FILL_BYTE);
+    for (const sector of sectors) {
+        const valid = sector.cylinder >= 0 && sector.cylinder < cylinderCount &&
+            sector.sectorNumber >= 0 && sector.sectorNumber < SECTORS_PER_TRACK &&
+            sector.data.length === BYTES_PER_SECTOR;
+        if (!valid) {
+            return undefined;
+        }
+        binary.set(sector.data, (sector.cylinder*SECTORS_PER_TRACK + sector.sectorNumber)*BYTES_PER_SECTOR);
+    }
+
+    return decodeJv1FloppyDisk(binary);
 }

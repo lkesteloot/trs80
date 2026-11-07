@@ -5,7 +5,7 @@ import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
-    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, findLdosPartitions, getFloppyDetails, isFloppy,
+    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findLdosPartitions, getFloppyDetails, isFloppy,
     isHardDisk, MicroDos,
     modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
     UcsdPascal, XenixTar} from "trs80-base";
@@ -35,6 +35,16 @@ function getWavFileMetadataEntries(wavFile: AudioFile): [string, string][] {
  */
 function getWavFileMetadata(wavFile: AudioFile): string[] {
     return getWavFileMetadataEntries(wavFile).map(([key, value]) => `${key}: ${value}`);
+}
+
+/**
+ * The detail lines that "info --verbose" shows for a floppy, as "label: value".
+ *
+ * @param floppy the decoded floppy image.
+ * @param fileSystem the DOS on the floppy, or undefined if none was recognized.
+ */
+export function floppyDetailLines(floppy: FloppyDisk, fileSystem: KnownFloppyFileSystem | undefined): string[] {
+    return getFloppyDetails(floppy, fileSystem).map(detail => detail.label + ": " + detail.value);
 }
 
 /**
@@ -93,9 +103,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                     }
 
                     if (verbose) {
-                        for (const detail of getFloppyDetails(trs80File, fileSystem)) {
-                            verboseLines.push(detail.label + ": " + detail.value);
-                        }
+                        verboseLines.push(...floppyDetailLines(trs80File, fileSystem));
                     }
                 } else if (isHardDisk(trs80File)) {
                     // Users don't care about system files, but do care about each partition.
@@ -396,7 +404,7 @@ function trackGeometryToJson(trackGeometry: TrackGeometry): TrackGeometryInfoJso
  *
  * @param fileSystem the file system.
  */
-function fileSystemDetailsToJson(fileSystem: NonNullable<ReturnType<typeof decodeFloppyFileSystem>>):
+function fileSystemDetailsToJson(fileSystem: KnownFloppyFileSystem):
     Pick<OsInfoJson, "trsdos" | "cpm" | "microDos" | "ucsdPascal" | "modelIITrsdos" | "trsdosII" | "xenixTar"> {
 
     if (fileSystem instanceof Trsdos) {

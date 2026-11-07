@@ -245,8 +245,16 @@ class Jv3SectorInfo {
  */
 export class Jv3FloppyDisk extends FloppyDisk {
     public readonly className = "Jv3FloppyDisk";
-    private readonly sectorInfos: Jv3SectorInfo[];
-    public readonly writeProtected: boolean;
+    /**
+     * Every entry of the image's directory, free ones included, in file order. Only
+     * {@link trimJv3FloppyDisk} reads this from outside.
+     */
+    public readonly sectorInfos: Jv3SectorInfo[];
+    /**
+     * Whether the image's header says the disk is write-protected. A tool that has been told to
+     * write anyway (trs80-tool's --force) clears this in memory; the header byte in the binary stays.
+     */
+    public writeProtected: boolean;
     // Rebuilt when a track is formatted.
     private geometry: FloppyDiskGeometry;
     // From sector position key string to our sector info.
@@ -269,6 +277,10 @@ export class Jv3FloppyDisk extends FloppyDisk {
 
     public getGeometry(): FloppyDiskGeometry {
         return this.geometry;
+    }
+
+    public override clearImageWriteProtected(): void {
+        this.writeProtected = false;
     }
 
     public isWriteProtected(): boolean {
@@ -514,4 +526,198 @@ export function decodeJv3FloppyDisk(binary: Uint8Array, options: FloppyDecodeOpt
     }
 
     return new Jv3FloppyDisk(binary, error, annotations, sectorInfos, writeProtected, geometry, sectorInfoMap);
+}
+
+/**
+ * Make a copy of a JV3 image that keeps only some of its sectors, such as the first 40 cylinders of an
+ * 80-cylinder image, or only the front side. The kept sectors keep their flags and their order, and
+ * their data is copied byte for byte. The directory is rewritten without the dropped sectors, and
+ * without the free entries (the image gets as many directory blocks as the sectors need). The
+ * write-protect byte is copied. Nothing here knows about file systems, so the caller decides what's
+ * safe to drop.
+ *
+ * @param disk the image to copy. It isn't changed.
+ * @param cylinderCount the cylinders to keep, from cylinder 0.
+ * @param sideCount the sides to keep, from side 0: 1 or 2.
+ * @return the new image, or undefined if the arguments are out of range, no sector is kept, a kept sector's
+ * data is cut off by the end of the original file, or the result doesn't decode.
+ */
+export function trimJv3FloppyDisk(disk: Jv3FloppyDisk, cylinderCount: number, sideCount: number): Jv3FloppyDisk | undefined {
+    const validCounts = Number.isInteger(cylinderCount) && cylinderCount >= 1 &&
+        (sideCount === 1 || sideCount === 2);
+    if (!validCounts) {
+        return undefined;
+    }
+
+    const kept = disk.sectorInfos.filter(info => !info.isFree() &&
+        info.sectorPosition.cylinderNumber < cylinderCount && info.sectorPosition.side < sideCount);
+    if (kept.length === 0 || kept.some(info => info.offset + info.size > disk.binary.length)) {
+        return undefined;
+    }
+
+    // Each block is a directory of RECORD_COUNT entries, then the data of the sectors that they list.
+    // Every block but the last is full. The last has free entries at the end, which take no room in
+    // the file, so it's cut off after its last sector.
+    const blockCount = Math.ceil(kept.length/RECORD_COUNT);
+    let totalSize = 0;
+    for (const info of kept) {
+        totalSize += info.size;
+    }
+    const binary = new Uint8Array(blockCount*HEADER_SIZE + totalSize);
+    let blockOffset = 0;
+    for (let blockIndex = 0; blockIndex < blockCount; blockIndex++) {
+        const blockKept = kept.slice(blockIndex*RECORD_COUNT, (blockIndex + 1)*RECORD_COUNT);
+        binary.fill(FREE, blockOffset, blockOffset + HEADER_SIZE);
+        let sectorOffset = blockOffset + HEADER_SIZE;
+        for (let i = 0; i < blockKept.length; i++) {
+            const info = blockKept[i];
+            const dirOffset = blockOffset + i*DIR_ENTRY_SIZE;
+            binary[dirOffset] = info.sectorPosition.cylinderNumber;
+            binary[dirOffset + 1] = info.sectorPosition.sectorNumber;
+            binary[dirOffset + 2] = info.flags;
+            binary.set(disk.binary.subarray(info.offset, info.offset + info.size), sectorOffset);
+            sectorOffset += info.size;
+        }
+        blockOffset = sectorOffset;
+    }
+
+    // The first block's last directory byte is the write-protect marker. The other blocks' is reserved.
+    binary[RECORD_COUNT*DIR_ENTRY_SIZE] = disk.binary[RECORD_COUNT*DIR_ENTRY_SIZE];
+
+    return decodeJv3FloppyDisk(binary, {requireBootTrack: false});
+}
+
+/**
+ * One sector to put in a new JV3 image.
+ */
+export interface Jv3SectorToWrite {
+    /**
+     * The cylinder in the sector's header, which is the track it's on.
+     */
+    cylinder: number;
+
+    /**
+     * The side, 0 or 1.
+     */
+    side: number;
+
+    sectorNumber: number;
+    density: Density;
+
+    /**
+     * The data address mark, 0xF8 to 0xFB. Double density records only whether it's deleted.
+     */
+    dataAddressMark: number;
+
+    /**
+     * Whether the sector has a data CRC error.
+     */
+    crcError: boolean;
+
+    /**
+     * The sector's data, 128, 256, 512 or 1024 bytes.
+     */
+    data: Uint8Array;
+}
+
+/**
+ * The flags byte for a sector in a new JV3 image: its size, side, density, data address mark and
+ * CRC state. Returns undefined if the size can't be recorded.
+ */
+function makeJv3Flags(sector: Jv3SectorToWrite): Flags | undefined {
+    const sizeCode = [128, 256, 512, 1024].indexOf(sector.data.length);
+    if (sizeCode < 0) {
+        return undefined;
+    }
+
+    // Used sectors store the size code with its low bit flipped (see Jv3SectorInfo).
+    let flags = sizeCode ^ 0x01;
+    if (sector.side === 1) {
+        flags |= Flags.SIDE;
+    }
+    if (sector.crcError) {
+        flags |= Flags.BAD_CRC;
+    }
+    if (sector.density === Density.DOUBLE) {
+        flags |= Flags.DOUBLE_DENSITY;
+        if (isDeletedDataAddressMark(sector.dataAddressMark)) {
+            flags |= Flags.DAM_DD_F8;
+        }
+    } else {
+        switch (sector.dataAddressMark) {
+            case USER_DATA_ADDRESS_MARK_FA:
+                flags |= Flags.DAM_SD_FA;
+                break;
+            case USER_DATA_ADDRESS_MARK_F9:
+                flags |= Flags.DAM_SD_F9;
+                break;
+            case DELETED_DATA_ADDRESS_MARK:
+                flags |= Flags.DAM_SD_F8;
+                break;
+            default:
+                flags |= Flags.DAM_SD_FB;
+                break;
+        }
+    }
+
+    return flags as Flags;
+}
+
+/**
+ * Make a JV3 image from sectors, in the order given (which is the order that they go around each
+ * track, so interleave is kept). The directory has no free entries except the unused ones at the end of
+ * the last block, and an image with more than 2,901 sectors has more blocks, as Tim Mann's specification
+ * says.
+ *
+ * @param sectors the sectors to write. Two can't have the same cylinder, side and sector number.
+ * @param writeProtected whether to set the write-protect byte.
+ * @return the new image, or undefined if there are no sectors, a sector can't be recorded (its size, or a
+ * cylinder past what readers accept), or two have the same position.
+ */
+export function makeJv3FloppyDisk(sectors: Jv3SectorToWrite[], writeProtected: boolean): Jv3FloppyDisk | undefined {
+    const flagsList: Flags[] = [];
+    const keys = new Set<string>();
+    for (const sector of sectors) {
+        const flags = makeJv3Flags(sector);
+        const position = SectorPosition.make(sector.cylinder, sector.side, sector.sectorNumber);
+        if (flags === undefined || !position.isPlausible() ||
+            (sector.sectorNumber === FREE && sector.cylinder === FREE)) {
+            return undefined;
+        }
+        keys.add(position.key());
+        flagsList.push(flags);
+    }
+    if (sectors.length === 0 || keys.size !== sectors.length) {
+        return undefined;
+    }
+
+    // Each block is a directory of RECORD_COUNT entries, then the data of the sectors that it lists. Every
+    // block but the last is full, and the last has free entries at the end, which take no room in the file.
+    const blockCount = Math.ceil(sectors.length/RECORD_COUNT);
+    let totalSize = 0;
+    for (const sector of sectors) {
+        totalSize += sector.data.length;
+    }
+    const binary = new Uint8Array(blockCount*HEADER_SIZE + totalSize);
+    let blockOffset = 0;
+    for (let blockIndex = 0; blockIndex < blockCount; blockIndex++) {
+        binary.fill(FREE, blockOffset, blockOffset + HEADER_SIZE);
+        let sectorOffset = blockOffset + HEADER_SIZE;
+        const first = blockIndex*RECORD_COUNT;
+        const last = Math.min(sectors.length, first + RECORD_COUNT);
+        for (let i = first; i < last; i++) {
+            const dirOffset = blockOffset + (i - first)*DIR_ENTRY_SIZE;
+            binary[dirOffset] = sectors[i].cylinder;
+            binary[dirOffset + 1] = sectors[i].sectorNumber;
+            binary[dirOffset + 2] = flagsList[i];
+            binary.set(sectors[i].data, sectorOffset);
+            sectorOffset += sectors[i].data.length;
+        }
+        blockOffset = sectorOffset;
+    }
+
+    // The first block's last directory byte is the write-protect marker.
+    binary[RECORD_COUNT*DIR_ENTRY_SIZE] = writeProtected ? 0x00 : 0xFF;
+
+    return decodeJv3FloppyDisk(binary, {requireBootTrack: false});
 }

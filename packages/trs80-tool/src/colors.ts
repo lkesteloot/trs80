@@ -40,7 +40,9 @@ export const colors = {
     data: chalk.green,
     /** A note that explains nearby data, like a hex dump's annotations. */
     annotation: chalk.magenta,
-    /** The REPL's prompt. */
+    /** The name of a command or an option, in help text. */
+    command: chalk.cyan,
+    /** The prompt of the REPL and of the disk shell. */
     prompt: chalk.yellowBright,
     /** The frame drawn around the emulated screen by the "run" command. */
     frame: chalk.green,
@@ -49,6 +51,16 @@ export const colors = {
     /** Normal text, for a table of styles that needs an entry for it. */
     plain: chalk.reset,
 } satisfies { [role: string]: Style };
+
+/**
+ * Styles that tell files apart from each other in a drawing, such as the "disk" command's "map". They cycle,
+ * so neighboring files differ. Red and yellow are left out because they mean errors and warnings, and
+ * the second half of the list is bold so that there are enough of them to tell neighbors apart.
+ */
+export const filePalette: Style[] = [
+    chalk.cyan, chalk.green, chalk.blue, chalk.magenta,
+    chalk.cyan.bold, chalk.green.bold, chalk.blue.bold, chalk.magenta.bold,
+];
 
 /**
  * Whether the byte is a printable ASCII character, including space.

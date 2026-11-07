@@ -1,8 +1,9 @@
 import fs from "fs";
-import {Option, program} from "commander";
+import {Command, Option, program} from "commander";
 import {version} from "./version.js";
 import {HexFormat} from "z80-disasm";
 import {colors, honorNoColor, setColorLevel} from "./colors.js";
+import {HELP_OUTPUT_COLORS, HELP_STYLE} from "./helpStyle.js";
 import {BasicLevel, basicLevelFromString, Config, ModelType, modelTypeFromString,} from "trs80-emulator";
 import {dir} from "./dir.js";
 import {info} from "./info.js";
@@ -16,11 +17,18 @@ import {run} from "./run.js";
 import {repl} from "./repl.js";
 import {mcp} from "./mcp.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
-import {mount} from "./mount.js";
+import {disk} from "./disk/disk.js";
+import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS} from "./disk/DiskCommands.js";
+import {diskOverviewSections, renderHelpSections} from "./disk/DiskHelp.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
-import {expandInputPattern, expandInputPatterns, ToolError} from "./utils.js";
+import {expandInputPattern, expandInputPatterns, ToolError, wordsAfterSubcommand, wrapMessage} from "./utils.js";
 import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
+
+/**
+ * The program-level options that take a value, which the disk command must skip to find its words.
+ */
+const PROGRAM_OPTIONS_WITH_VALUES = ["--color", "--trace", "--log-file"];
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -120,6 +128,9 @@ async function main(): Promise<void> {
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
     program
         .storeOptionsAsProperties(false)
+        // Set before adding commands, since they inherit these.
+        .configureHelp(HELP_STYLE)
+        .configureOutput(HELP_OUTPUT_COLORS)
         .name("trs80-tool")
         .addHelpText("after", HELP_TEXT)
         .version(fullVersion)
@@ -166,12 +177,14 @@ async function main(): Promise<void> {
     program
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
-            files: "one or more infiles (any TRS-80 file), then the outfile (WAV, CAS, CMD, 3BN, BAS, or ASC file)",
+            files: "one or more infiles (any TRS-80 file), then the outfile (WAV, CAS, CMD, 3BN, BAS, or ASC file), " +
+                "or a floppy image (DMK, JV1, JV3, HFE, or IMD) to convert to another floppy image format",
         })
         .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
         .option("--system", "include system files from source floppies and hard disks")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
+        .option("--force", "write a floppy image even if its new format can't hold everything on the disk")
         .action((files, options) => {
             const speed = parseBaud(options.baud);
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
@@ -181,7 +194,7 @@ async function main(): Promise<void> {
             }
             const infiles = expandInputPatterns(files.slice(0, files.length - 1));
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, speed, start, includeSystemFiles, options.cpmRecords);
+            convert(infiles, outfile, speed, start, includeSystemFiles, options.cpmRecords, options.force ?? false);
         });
     program
         .command("extract <infile> [names...]")
@@ -213,17 +226,30 @@ async function main(): Promise<void> {
                     options.lowercase ?? false);
             }
         });
-    if (2 > 3) {
-        program
-            .command("mount <diskfile> [commands...]")
-            .description("mount a floppy file and perform operations on it", {
-                diskfile: "JV1, JV3, DMK, or DSK file",
-                commands: "import FILE [as FILE], export FILE [as FILE], delete FILE, rename FILE to FILE"
-            })
-            .action((diskfile, commands, options) => {
-                mount(diskfile, commands);
-            });
-    }
+    program
+        .command("disk [image] [words...]")
+        .description("operate on one floppy or hard disk image: disk IMAGE [COMMAND ... [: COMMAND ...]]", {
+            image: "floppy image (JV1, JV3, DMK, DSK, HFE, IMD, SCP) or hard disk image (HDV, one partition at a time)",
+            words: "commands to run in order, separated by a lone \":\" (try \"dir\"); program options such as " +
+                "--color must come before \"disk\"",
+        })
+        .addHelpText("after", ({command}) => "\n" +
+            renderHelpSections(command, diskOverviewSections(DISK_COMMANDS.map(c => c.spec), DISK_GLOBAL_OPTIONS)))
+        .helpOption(false)
+        .allowUnknownOption()
+        .allowExcessArguments()
+        .action(async (_image, _words, _options, command: Command) => {
+            // Commander eats options it knows anywhere on the line and drops some "--", so ignore its
+            // idea of the arguments and take the raw words.
+            const words = wordsAfterSubcommand(process.argv.slice(2), "disk", PROGRAM_OPTIONS_WITH_VALUES) ?? [];
+            if (words.length === 0 || words[0] === "-h" || words[0] === "--help") {
+                command.outputHelp();
+            } else if (words[0].startsWith("-")) {
+                throw new ToolError("The disk image comes first: trs80-tool disk IMAGE [COMMAND ...]");
+            } else {
+                await disk([expandInputPattern(words[0]), ...words.slice(1)]);
+            }
+        });
     program
         .command("sectors <infiles...>")
         .description("show a sector map for each floppy file", {
@@ -356,7 +382,7 @@ async function main(): Promise<void> {
         await program.parseAsync();
     } catch (e) {
         if (e instanceof ToolError) {
-            console.log(e.message);
+            console.log(wrapMessage(e.message));
             process.exitCode = 1;
         } else if (!(e instanceof PagerClosedError)) {
             error = e;
