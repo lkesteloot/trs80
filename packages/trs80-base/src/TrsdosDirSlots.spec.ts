@@ -160,3 +160,31 @@ describe("chooseDirSlots", () => {
         expect(chooseDirSlots(trsdos, TrsdosRuleSet.TRSDOS_1_3, hit, 1)).to.eql([0x02]);
     });
 });
+
+describe("chooseDirSlots in one sector", () => {
+    it("takes the lowest sector with room, and the lowest free slots in it", () => {
+        const trsdos = makeTrsdos();
+        const hit = getHit(trsdos);
+        // Sector 0 has entries 2 to 7 free, so three entries fit there.
+        expect(chooseDirSlots(trsdos, TrsdosRuleSet.TRSDOS_2, hit, 3, true)).to.eql([0x40, 0x60, 0x80]);
+    });
+
+    it("skips a sector that's too full, and gives the same answer as before for one entry", () => {
+        const trsdos = makeTrsdos();
+        const hit = getHit(trsdos);
+        // Leave only entry 7 free in sector 0 (take entries 2 to 6).
+        for (const dec of [0x40, 0x60, 0x80, 0xA0, 0xC0]) {
+            hit[dec] = 0x55;
+        }
+        expect(chooseDirSlots(trsdos, TrsdosRuleSet.TRSDOS_2, hit, 2, true)).to.eql([0x41, 0x61]);
+        expect(chooseDirSlots(trsdos, TrsdosRuleSet.TRSDOS_2, hit, 1, true)).to.eql([0x41]);
+    });
+
+    it("reports when no sector has room", () => {
+        const trsdos = makeTrsdos();
+        const hit = getHit(trsdos);
+        expect(chooseDirSlots(trsdos, TrsdosRuleSet.TRSDOS_2, hit, 7, true)).to.be.a("string");
+        expect(chooseDirSlots(trsdos, TrsdosRuleSet.TRSDOS_2, hit, 6, true)).to.have.length(6);
+    });
+});
+

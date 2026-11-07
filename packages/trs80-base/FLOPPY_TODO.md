@@ -72,8 +72,10 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       LDOS, TRSDOS 6 and DOSPLUS disks an FXDE's HIT byte is its primary's name
       hash, but not on the TRSDOS 2.x disks that have FXDEs (see "An FXDE" in
       FLOPPY_FORMATS.md). Until it's known, `TrsdosWriter.addFile()` refuses a
-      file that would need one under TRSDOS 2.x rules. *TRSDOS 2.3 Decoded* or
-      letting TRSDOS 2.3 write a fragmented file in the emulator would settle it.
+      file that would need one under TRSDOS 2.x rules. A real TRSDOS 2.3 does
+      write the primary's hash (measured in trs80gp; see "An FXDE" in
+      FLOPPY_FORMATS.md), so the refusal could be lifted for 2.3 once `check` and
+      `repair` agree and the disks with other HIT bytes are explained.
 - [ ] **TRSDOS 1.x entries with bit 7 set read as orphaned extended entries.**
       `TrsdosDirEntry.isExtendedEntry()` tests bit 7 of byte 0, but 1.3's
       directory has no extended entries and calls that bit unused. Entries with
@@ -487,12 +489,15 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       cylinder need a second disk or the manual to confirm), partitions with
       more than 203 cylinders, creating and formatting hard disks, and a
       per-sector undo instead of a copy of the whole image per step.
-- [ ] **Extended directory entries (FXDEs) on hard disk partitions.** A partition
-      with a file of five extents didn't boot in LS-DOS 6.3 under trs80gp, though
-      four extents did, so the writer refuses a file that needs more than four
-      (see "Writing to partitions" in `FLOPPY_FORMATS.md`). Find out why, probably by
-      watching the DOS's directory search on a partition with a real FXDE, and
-      lift the limit. Whether the same entry boots on a floppy hasn't been tried.
+- [ ] **Why LS-DOS's `DIR` hangs on an FXDE in another directory sector, on a
+      partition.** The writer works around it by keeping a file's FXDEs in its
+      primary entry's sector (see "Writing to partitions" in `FLOPPY_FORMATS.md`),
+      refusing a file for which no sector has room. LS-DOS's own FXDEs, which it
+      puts in other sectors, hang `DIR` too on trs80gp with FreHD, and the driver
+      returns the error 6 that `DIR` expects, so the cause is still unknown.
+      Find whether a real machine hangs (then `repair` could move such FXDEs, and
+      `check` should warn), or it's trs80gp, by tracing `DIR`'s `ALL15` sector
+      read in the emulator.
 - [ ] **The emulator:** no hard disk controller, and none of FreHD's extras, so
       `Trs80.runTrs80File()` doesn't know what to do with a hard disk. See
       "Emulating a hard disk" below.

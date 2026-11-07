@@ -1170,15 +1170,6 @@ export class TrsdosWriter {
         if (extents.some(extent => extent.lump > 0xFD)) {
             throw new TrsdosWriteError(`Can't ${verb} ${name}: it would need a lump that a directory entry can't hold`);
         }
-        // Measured on a real LS-DOS: a hard disk partition whose directory has an extended entry written
-        // like a floppy's failed to boot, while files of up to four extents were fine. So until that is
-        // understood, a file on a partition gets one directory entry. See "Writing to partitions" in FLOPPY_FORMATS.md.
-        if (this.overlay.base instanceof HardDiskPartition && extents.length > EXTENTS_PER_ENTRY) {
-            throw new TrsdosWriteError(`Can't ${verb} ${name}: it needs ${extents.length} extents (a run of up to 32 ` +
-                `granules is one), and a file on a hard disk partition can have at most ${EXTENTS_PER_ENTRY} until ` +
-                `extended directory entries are supported there`);
-        }
-
         // The directory slots: one for the primary entry, and one for each extended entry (FXDE) that
         // holds the extents past the first four. Asking for them all at once reports a full directory
         // before anything changes.
@@ -1207,10 +1198,28 @@ export class TrsdosWriter {
             }
             oldSlots.push(slot);
         }
-        const reusedDecs = oldSlots.slice(0, extentGroups.length).map(slot => slot.hitIndex);
+        // On a hard disk partition, a file's FXDEs must be in the same directory sector as its primary
+        // entry: LS-DOS's DIR hangs otherwise, even on the entries that LS-DOS itself writes (see "Writing
+        // to partitions" in FLOPPY_FORMATS.md). So all of a multi-entry file's slots are chosen together in
+        // one sector, with the replaced file's old slots counted as free.
+        const mustShareSector = this.overlay.base instanceof HardDiskPartition && extentGroups.length > 1;
+        const reusedDecs = mustShareSector ? [] : oldSlots.slice(0, extentGroups.length).map(slot => slot.hitIndex);
         const decs = [...reusedDecs];
         const moreEntriesNeeded = extentGroups.length - reusedDecs.length;
-        if (moreEntriesNeeded > 0) {
+        if (mustShareSector) {
+            const hitWithoutOld = new Uint8Array(this.hit.bytes);
+            for (const slot of oldSlots) {
+                hitWithoutOld[slot.hitIndex] = 0;
+            }
+            const sameSectorDecs = chooseDirSlots(trsdos, this.ruleSet, hitWithoutOld, extentGroups.length, true);
+            if (typeof sameSectorDecs === "string") {
+                throw new TrsdosWriteError(`Can't ${verb} ${name}: it needs ${extents.length} extents (a run of up to ` +
+                    `32 granules is one), so ${extentGroups.length} directory entries, and on a hard disk they must be ` +
+                    `in one directory sector because LS-DOS's DIR fails otherwise. The directory is too fragmented ` +
+                    `for a file this size: ${sameSectorDecs.charAt(0).toLowerCase()}${sameSectorDecs.substring(1)}`);
+            }
+            decs.push(...sameSectorDecs);
+        } else if (moreEntriesNeeded > 0) {
             const moreDecs = chooseDirSlots(trsdos, this.ruleSet, this.hit.bytes, moreEntriesNeeded);
             if (typeof moreDecs === "string") {
                 const reason = `${moreDecs.charAt(0).toLowerCase()}${moreDecs.substring(1)}`;

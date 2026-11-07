@@ -89,10 +89,15 @@ export function reservedDecs(trsdos: Trsdos, ruleSet: TrsdosRuleSet): Set<number
  * @param hit the HIT bytes to consult, which may include changes (deletions or earlier choices)
  * that aren't on the disk yet.
  * @param count the number of entries needed.
- * @return the DECs in increasing order, or a message saying that the directory is full.
+ * @param sameSector if true, all the entries must be in one directory sector: the lowest sector that
+ * has {@link count} free slots, and the lowest free slots in it. This is for a file's primary entry
+ * and its FXDEs on a hard disk partition, where LS-DOS's DIR fails if an FXDE is in another sector
+ * ("Writing to partitions" in FLOPPY_FORMATS.md).
+ * @return the DECs in increasing order, or a message saying that the directory is full or, with
+ * sameSector, that no sector has room.
  */
 export function chooseDirSlots(trsdos: Trsdos, ruleSet: TrsdosRuleSet, hit: Uint8Array,
-                               count: number): number[] | string {
+                               count: number, sameSector: boolean = false): number[] | string {
 
     const hitInfo = trsdos.getHitInfo();
     if (typeof hitInfo === "string") {
@@ -102,15 +107,32 @@ export function chooseDirSlots(trsdos: Trsdos, ruleSet: TrsdosRuleSet, hit: Uint
     const reserved = reservedDecs(trsdos, ruleSet);
 
     const freeDecs: number[] = [];
+    const freeDecsBySector: number[][] = [];
     for (const {sectorIndex} of trsdos.getDirSectors()) {
+        const freeInSector: number[] = [];
         for (let entryIndex = 0; entryIndex < trsdos.dirEntriesPerSector; entryIndex++) {
             const dec = trsdos.dirEntryToHitNumber(sectorIndex, entryIndex);
             if (dec < hitLength && hit[dec] === 0 && !reserved.has(dec)) {
                 freeDecs.push(dec);
+                freeInSector.push(dec);
             }
         }
+        freeDecsBySector.push(freeInSector);
     }
     freeDecs.sort((a, b) => a - b);
+
+    if (sameSector) {
+        // The lowest sector (by its lowest free slot) with room for them all.
+        const roomy = freeDecsBySector
+            .filter(freeInSector => freeInSector.length >= count)
+            .sort((a, b) => (a[0] ?? 0) - (b[0] ?? 0));
+        const chosen = roomy[0];
+        if (chosen === undefined) {
+            return `No directory sector has ${count} free entries for the file's primary and extended entries ` +
+                `(the most in one is ${Math.max(0, ...freeDecsBySector.map(freeInSector => freeInSector.length))})`;
+        }
+        return chosen.sort((a, b) => a - b).slice(0, count);
+    }
 
     if (freeDecs.length < count) {
         const entryWord = count === 1 ? "entry" : "entries";

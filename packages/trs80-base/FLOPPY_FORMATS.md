@@ -1210,6 +1210,17 @@ Where they differ:
   `peter/Bobby Lee (100).dmk`, has the same bytes but no usable HIT.) `TrsdosWriter` writes the
   LDOS 5 and DOSPLUS form under LDOS 5, TRSDOS 6 and DOSPLUS rules, and refuses a
   file that would need an FXDE under TRSDOS 2.x rules until that HIT byte is understood.
+  **Measured on a real TRSDOS 2.3** (trs80gp, Model I, `COPY` of a 12 KB file into a
+  floppy whose free space was ten one-granule holes): it wrote a primary entry and
+  two FXDEs, with the HIT byte of every one of the three equal to the primary's name
+  hash, as on LDOS. The FXDEs have byte 0 = 0x90, byte 1 the DEC of the entry before
+  them (the primary, then the first FXDE), zeros in bytes 2-21, `FE nn` to the next
+  and `FF FF` on the last; the primary has `FE nn` in bytes 30-31 and its sector count
+  is the file's. Our `extract` returns the file intact and `check` finds nothing wrong. So this
+  TRSDOS 2.3 behaves like LDOS; the disks with other HIT bytes (0x93, 0x34) were
+  written by something else, or an earlier TRSDOS 2.x. TRSDOS 2.3 put its primary at DEC 0xE7
+  and its FXDEs at 0x40 and 0x60 (entries 2 and 3 of the first directory sector), a
+  choice we don't copy: our writer takes the lowest free slots.
 - **Bit 7 on a primary entry.** Four Sunburst disks for the Model III (`Thinking
   Skills`, `Teasers by Tobbs`, and both copies of `WhatsIt Corporation`) use a
   MultiDOS whose system files are dated 08/82 and 01/83 (`DOSRES/sys`, `INTERP/sys`,
@@ -3092,15 +3103,56 @@ What `TrsdosWriter` does on an LDOS 5 or LS-DOS 6 partition (through a
   can get files if its GAT shows free granules there.
 - The writer writes every sector of the granules that it allocates, padding the
   last with zeros.
-- **A file with more than four extents (so, an FXDE) is refused on a
-  partition.** On a copy of a Model 4 LS-DOS 6.3 image booted in trs80gp
-  through FreHD, a partition with files of up to four extents (a 131,072-byte
-  file on 1 KB granules) booted and listed normally, but the same partition with a
-  132,096-byte file, which needs five extents and so an FXDE written as
-  described under "An FXDE", didn't boot. We don't know why: the FXDE
-  matches the ones on the real hard disk images (byte 0 = 0x90, byte 1 the
-  previous entry's DEC, zeros, extents at 22-29, `FF FF` at the end). So
-  `TrsdosWriter` doesn't write one on a partition; see `FLOPPY_TODO.md`.
+- **On a partition, a file's FXDEs go in the same directory sector as its
+  primary entry.** Measured on a copy of a Model 4 LS-DOS 6.3.1 image booted in
+  trs80gp through FreHD: a partition with files of up to four extents lists
+  normally, but with a 132,096-byte file, which needs five extents (a run is at
+  most 32 granules) and so an FXDE, LS-DOS still reaches its prompt (the boot
+  works) but `DIR` never prints anything. What was found, and what wasn't:
+  - Our FXDE isn't at fault. Making LS-DOS write the FXDEs itself (`COPY` of a
+    file into free space in holes, which gives a three-FXDE chain) writes the
+    same bytes as ours (byte 0 = 0x90, byte 1 the previous entry's DEC, zeros in
+    2-21, extents at 22-29, `FE nn` or `FF FF` at 30-31, the HIT byte the
+    primary's hash), and `DIR` hangs on that too.
+  - It depends on where the FXDE is. With the FXDE in the same directory sector as
+    its primary, `DIR` lists the file (extents shown as 5, 129 KB; 10, 320 KB for a
+    three-entry chain), and `COPY` of it is byte-identical. With the FXDE in a
+    different sector, earlier or later, `DIR` hangs (once it dropped into LS-DOS's
+    debug register display), even when the FXDE's own HIT byte is 0 so that the
+    HIT scan never visits it, so it's the walk along the chain that fails; an FXDE
+    that no primary links to, in another sector, is harmless.
+  - Everything else works with an FXDE in another sector: `COPY` reads the file
+    correctly (byte for byte, checked), `FREE` and booting are fine.
+  - The driver isn't the cause. The image's `AUTO` is `vhdutl (get` and its
+    `SYSTEM/JCL` is `vhdutl (mnt,addr=1,vhd="lsdos",halt)`; the hard disk
+    driver is Tandy's, loaded from `CONFIG/SYS` (the same code as `RSHARD6/DCT`;
+    drive 0's DCT vector is `JP 0FF4H`), talking through ports 0xC1 and 0xC8-0xCF
+    to trs80gp's WD1010 emulation. Its read routine returns error 6 when the
+    cylinder equals the DCT's directory cylinder, as `hdwd6a.asm` does. Checked
+    by a small program run under LS-DOS on that partition: `@RDSEC` (SVC 49) of a
+    directory sector returns A = 6 with HL = the buffer and IY intact, `@RDSEC` of
+    a data cylinder and `@RDSSC` of the directory return 0.
+  - The LS-DOS 6.3 source's `DIR` (`lbdirb.asm`, from "ALL15") reads an FXDE's
+    sector with that `@RDSEC` and expects the 6, and its code works on floppies
+    (see below). We didn't find why it fails on this partition, and don't know
+    whether a real machine hangs too. No image in the regression collection has an
+    LS-DOS hard disk FXDE to compare. LS-DOS's own search for an FXDE's slot
+    starts at the primary's directory sector (its chains put the first FXDE in the
+    primary's sector, and later ones in the following sectors).
+  So `TrsdosWriter` puts a partition file's primary entry and FXDEs together
+  in the lowest directory sector that has room for all of them (eight entries
+  per sector, less the reserved ones), and refuses the file, saying the directory
+  is too fragmented, when no sector has room. Files on floppies are
+  unchanged: the lowest free slots, wherever they are. Such a file keeps
+  `DIR` working in LS-DOS, though a file that LS-DOS writes itself, with its FXDEs in
+  other sectors, still hangs `DIR` on this setup.
+- **FXDEs on floppies, under real DOSes** (trs80gp 2.5.8, with a floppy filled
+  with one-granule files and every other one killed, so that a 12 KB text file
+  took eight or ten extents): our LS-DOS 6.3.1 and LDOS 5.3.1 FXDEs (primary at DEC
+  0x08, its FXDE at DEC 0x0A, so in another directory sector) list in `DIR` (extents 8), `COPY` to
+  another disk byte for byte, and are removed by `REMOVE` (LS-DOS) or `KILL`
+  (LDOS), after which `check` finds nothing wrong and the granules are free.
+  TRSDOS 2.3 was run on the Model I with a file it wrote itself (see "An FXDE").
 
 ### Partitions found
 

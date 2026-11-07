@@ -7,7 +7,7 @@ import {
     ldosTestSector, type LdosTestPartition, makeLdosTestHardDisk, makeLdosTestHardDiskBinary,
 } from "./LdosTestHardDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
-import {decodeTrsdosHardDiskPartition, TrsdosProtectionLevel} from "./Trsdos.js";
+import {decodeTrsdosHardDiskPartition, hashForFilename, TrsdosProtectionLevel} from "./Trsdos.js";
 import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
 import {checkTrsdos, TrsdosFindingKind} from "./TrsdosCheck.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
@@ -17,6 +17,7 @@ import {
     unsupportedLayoutMessage,
 } from "./TrsdosWriteGate.js";
 import {decodeTrsdosOnOverlay, TrsdosWriter} from "./TrsdosWriter.js";
+import {chooseDirSlots} from "./TrsdosDirSlots.js";
 
 const HEADER_SIZE = 256;
 const SECTOR_SIZE = 256;
@@ -435,12 +436,85 @@ describe("TrsdosWriter on a hard disk partition", () => {
         expect(again.readFile(again.findFile("HUGE/DAT")!)).to.eql(contents);
     });
 
-    it("refuses a file that would need an extended directory entry, which a real LS-DOS didn't boot with", () => {
+    /**
+     * The DECs of a file's primary entry and its extended entries, in chain order.
+     */
+    function chainDecs(trsdos: ReturnType<typeof decodeTrsdosOnOverlay> & {}, fileName: string): number[] {
+        const directory = trsdos.getDirectory();
+        const decs: number[] = [];
+        for (let dirEntry = directory.files.find(file => file.getFilename("/") === fileName);
+             dirEntry !== undefined; dirEntry = dirEntry.nextDirEntry) {
+
+            const slot = directory.slots.find(candidate => candidate.dirEntry === dirEntry);
+            expect(slot, `slot in the chain of ${fileName}`).to.not.equal(undefined);
+            decs.push(slot!.hitIndex);
+        }
+        return decs;
+    }
+
+    it("puts a five-extent file's extended entry in its primary entry's directory sector", () => {
+        const {disk, partitions} = makeTwoPartitions();
+        const {overlay, writer} = startWriter(partitions[0]);
+        // 129 granules of 8 sectors need five extents, so a primary entry and one extended entry.
+        const contents = new Uint8Array(129*8*SECTOR_SIZE).map((_, i) => (i*7) & 0xFF);
+        writer.addFile(name("FIVE/DAT"), contents);
+        const newTrsdos = writer.flush();
+        overlay.commit();
+
+        const decs = chainDecs(newTrsdos, "FIVE/DAT");
+        expect(decs.length).to.equal(2);
+        // The sector is the low five bits of a DEC. Both entries are in the lowest sector with two free slots.
+        expect(decs[0] & 0x1F).to.equal(decs[1] & 0x1F);
+        expect(decs[0]).to.not.equal(decs[1]);
+
+        const again = findLdosPartitions(decodeHdvHardDisk(disk.binary)!)[0].trsdos;
+        expect(again.readFile(again.findFile("FIVE/DAT")!)).to.eql(contents);
+        const primary = again.findFile("FIVE/DAT")!;
+        expect(primary.nextDirEntry).to.not.equal(undefined);
+        const hit = again.getHitInfo();
+        expect(typeof hit).to.equal("object");
+        for (const dec of decs) {
+            expect((hit as {hit: Uint8Array}).hit[dec]).to.equal(hashForFilename("FIVE    DAT"));
+        }
+    });
+
+    it("puts a ten-extent file's three entries in one directory sector", () => {
+        const {disk, partitions} = makeTwoPartitions();
+        const {overlay, writer} = startWriter(partitions[0]);
+        // 320 granules of 8 sectors are ten full extents, so a primary entry and two extended entries.
+        const contents = new Uint8Array(320*8*SECTOR_SIZE).map((_, i) => (i*13) & 0xFF);
+        writer.addFile(name("TEN/DAT"), contents);
+        const newTrsdos = writer.flush();
+        overlay.commit();
+
+        const decs = chainDecs(newTrsdos, "TEN/DAT");
+        expect(decs.length).to.equal(3);
+        expect(new Set(decs.map(dec => dec & 0x1F)).size).to.equal(1);
+        expect(new Set(decs).size).to.equal(3);
+
+        const again = findLdosPartitions(decodeHdvHardDisk(disk.binary)!)[0].trsdos;
+        expect(again.readFile(again.findFile("TEN/DAT")!)).to.eql(contents);
+    });
+
+    it("refuses a multi-entry file when no directory sector has room for all its entries, changing nothing", () => {
         const {disk, partitions, before} = makeTwoPartitions();
         const {overlay, writer} = startWriter(partitions[0]);
-        // 129 granules of 8 sectors need five extents.
-        expect(() => writer.addFile(name("FIVE/DAT"), new Uint8Array(129*8*SECTOR_SIZE)))
-            .to.throw("needs 5 extents");
+
+        // Slots are handed out in DEC order, entry by entry across the sectors, so filling all but one
+        // slot per sector leaves exactly one free slot in every directory sector.
+        const trsdos = partitions[0].trsdos;
+        const hitInfo = trsdos.getHitInfo();
+        expect(typeof hitInfo).to.equal("object");
+        const freeMessage = chooseDirSlots(trsdos, TrsdosRuleSet.TRSDOS_6, (hitInfo as {hit: Uint8Array}).hit, 1000);
+        const freeCount = Number(/there are (\d+) free/.exec(freeMessage as string)![1]);
+        const sectorCount = [...trsdos.getDirSectors()].length;
+        for (let i = 0; i < freeCount - sectorCount; i++) {
+            writer.addFile(name(`F${i}/DAT`), new Uint8Array(10));
+        }
+        expect(() => writer.addFile(name("TEN/DAT"), new Uint8Array(129*8*SECTOR_SIZE)))
+            .to.throw("too fragmented for a file this size");
+        // A one-entry file still fits.
+        writer.addFile(name("SMALL/DAT"), new Uint8Array(10));
         overlay.discard();
         expect(disk.binary).to.eql(before);
     });
