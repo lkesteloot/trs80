@@ -1,5 +1,5 @@
 import {
-    parseTrsdosFormatDos, parseTrsdosRuleSet, TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosCliName, TRSDOS_RULE_SETS,
+    BasicDialect, parseBasicDialect, parseTrsdosFormatDos, parseTrsdosRuleSet, TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosCliName, TRSDOS_RULE_SETS,
     TrsdosRuleSet, trsdosRuleSetAliases, trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
 import {Command} from "commander";
@@ -29,6 +29,21 @@ export function parseDosName(name: string): TrsdosRuleSet {
             " (\"help dos\" has more).");
     }
     return ruleSet;
+}
+
+/**
+ * The value of --basic as the BASIC it names.
+ *
+ * @param name what the user typed.
+ * @throws ToolError if it's not a name of a BASIC, listing the ones that are.
+ */
+export function parseBasicName(name: string): BasicDialect {
+    const dialect = parseBasicDialect(name);
+    if (dialect === undefined) {
+        throw new ToolError("Unknown BASIC \"" + name + "\" for --basic. The choices are 3 (the Model I and III's) " +
+            "and 4 (the Model 4's).");
+    }
+    return dialect;
 }
 
 /**

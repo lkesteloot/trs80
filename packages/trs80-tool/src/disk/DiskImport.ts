@@ -1,7 +1,7 @@
 import path from "path";
 import {
-    BASIC_HEADER_BYTE, BASIC_TAPE_HEADER_BYTE, BasicProgram, decodeBasicProgram, decodeTrs80File,
-    parseBasicText, type Trs80File,
+    BASIC_HEADER_BYTE, BASIC_TAPE_HEADER_BYTE, BasicDialect, basicDialectToString, BasicProgram, decodeBasicProgram,
+    decodeTrs80File, guessBasicDialect, parseBasicText, type Trs80File,
 } from "trs80-base";
 import {concatByteArrays} from "teamten-ts-utils";
 import {assertNever} from "z80-base";
@@ -27,6 +27,12 @@ export interface ImportOptions {
     ascii: boolean;
     /** Copy every file exactly as it is, with no conversion. */
     binary: boolean;
+    /**
+     * The BASIC that the disk's programs are for: BASIC text is tokenized for it, and a tokenized program that
+     * is clearly for the other one is converted. It's also the one that a tokenized program's tokens are read as
+     * when the bytes don't say which BASIC they're for.
+     */
+    basic: BasicDialect;
 }
 
 /**
@@ -70,9 +76,9 @@ export function importHostFile(hostPathname: string, bytes: Uint8Array, options:
     const hostExtension = path.extname(hostName).toLowerCase();
 
     if (hostExtension === ".bas") {
-        return importBasicFile(hostName, bytes, options.ascii);
+        return importBasicFile(hostName, bytes, options.ascii, options.basic);
     } else if (hostExtension === ".cas") {
-        return importCassetteFile(hostName, bytes, options.ascii);
+        return importCassetteFile(hostName, bytes, options.ascii, options.basic);
     } else if (hostExtension === ".3bn") {
         return importSystemProgramFile(hostName, bytes);
     } else if (TEXT_FILE_EXTENSIONS.includes(hostExtension)) {
@@ -121,22 +127,62 @@ export function convertLineEndings(bytes: Uint8Array): Uint8Array {
 }
 
 /**
+ * The words that say which BASIC a program was tokenized for, or nothing for the Model III's, which is
+ * what everything assumes without being told.
+ *
+ * @param basic the BASIC.
+ * @returns text that follows "Tokenized x.bas", such as " for Model 4 BASIC".
+ */
+function forBasicNote(basic: BasicDialect): string {
+    switch (basic) {
+        case BasicDialect.MODEL_III:
+            return "";
+        case BasicDialect.MODEL_4:
+            return " for " + basicDialectToString(basic) + " BASIC";
+        default:
+            assertNever(basic);
+    }
+}
+
+/**
+ * The words that say which BASIC a tokenized program was read as, or nothing for the Model III's.
+ *
+ * @param basic the BASIC.
+ * @returns text that follows "Converted x.bas to text", such as ", reading its tokens as Model 4 BASIC".
+ */
+function readAsNote(basic: BasicDialect): string {
+    switch (basic) {
+        case BasicDialect.MODEL_III:
+            return "";
+        case BasicDialect.MODEL_4:
+            return ", reading its tokens as " + basicDialectToString(basic) + " BASIC";
+        default:
+            assertNever(basic);
+    }
+}
+
+/**
  * Convert a .bas file. Tokenized BASIC is kept (or turned back into text with --ascii), and BASIC
  * text is tokenized (or kept as text with --ascii).
+ *
+ * A tokenized program doesn't say which BASIC it's for. We read it as the one its bytes fit (see
+ * guessBasicDialect()) or else as the disk's, and if it's clearly for the other BASIC we convert it to the disk's.
  *
  * @param hostName the host file's name.
  * @param bytes the host file's contents.
  * @param ascii whether the BASIC program should be stored as text.
+ * @param basic the disk's BASIC.
  * @throws ToolError if the file is neither tokenized BASIC nor BASIC text.
  */
-function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean): ImportResult {
-    const program = decodeBasicProgram(bytes);
+function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean, basic: BasicDialect): ImportResult {
+    const sourceBasic = guessBasicDialect(bytes) ?? basic;
+    const program = decodeBasicProgram(bytes, sourceBasic);
     if (program !== undefined) {
         if (program.error !== undefined) {
             throw new ToolError("Can't add " + hostName + ": it looks like tokenized BASIC but is damaged (" +
                 program.error + "). Use --binary to copy it as it is.");
         }
-        return basicProgramResult(hostName, program, ascii, "");
+        return basicProgramResult(hostName, program, sourceBasic, ascii, basic, "");
     }
 
     // Not tokenized, so it should be text.
@@ -148,11 +194,15 @@ function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean): I
         };
     }
 
-    const tokenized = parseBasicText(bytes);
+    const tokenized = parseBasicText(bytes, basic);
     if (typeof tokenized === "string") {
-        throw new ToolError(basicTextErrorMessage(hostName, bytes, tokenized));
+        throw new ToolError(basicTextErrorMessage(hostName, bytes, tokenized, basic));
     }
-    return {contents: tokenized, extension: undefined, messages: ["Tokenized " + hostName + "."]};
+    return {
+        contents: tokenized,
+        extension: undefined,
+        messages: ["Tokenized " + hostName + forBasicNote(basic) + "."],
+    };
 }
 
 /**
@@ -160,17 +210,30 @@ function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean): I
  *
  * @param hostName the host file's name, for messages.
  * @param program the decoded program.
+ * @param sourceBasic the BASIC that the program was decoded as.
  * @param ascii whether the program should be stored as text.
+ * @param basic the disk's BASIC. A program for a different one is converted to it by way of its text.
  * @param extension the TRSDOS extension to suggest, or the empty string for none.
  */
-function basicProgramResult(hostName: string, program: BasicProgram, ascii: boolean,
-                            extension: string): ImportResult {
+function basicProgramResult(hostName: string, program: BasicProgram, sourceBasic: BasicDialect, ascii: boolean,
+                            basic: BasicDialect, extension: string): ImportResult {
 
     const messages: string[] = [];
     let contents: Uint8Array;
     if (ascii) {
         contents = ensureFinalCr(convertLineEndings(latin1Bytes(program.asAscii())));
-        messages.push("Converted " + hostName + " to text.");
+        messages.push("Converted " + hostName + " to text" + readAsNote(sourceBasic) + ".");
+    } else if (sourceBasic !== basic) {
+        // The text of the program is the same in any BASIC, so tokenize it again for the disk's.
+        const tokenized = parseBasicText(program.asAscii(), basic);
+        if (typeof tokenized === "string") {
+            throw new ToolError("Can't convert " + hostName + " from " + basicDialectToString(sourceBasic) +
+                " to " + basicDialectToString(basic) + " BASIC (" + tokenized + "). Use --ascii to keep it as " +
+                "text, or --binary to copy it as it is.");
+        }
+        contents = tokenized;
+        messages.push("Converted " + hostName + " from " + basicDialectToString(sourceBasic) + " to " +
+            basicDialectToString(basic) + " BASIC tokens.");
     } else {
         contents = diskFormatBasic(program.binary);
         if (contents !== program.binary) {
@@ -223,8 +286,9 @@ function ensureFinalCr(bytes: Uint8Array): Uint8Array {
  * @param hostName the host file's name.
  * @param bytes the file's contents.
  * @param parseError the message that parseBasicText() gave for the whole file.
+ * @param basic the BASIC that the text was being tokenized for.
  */
-function basicTextErrorMessage(hostName: string, bytes: Uint8Array, parseError: string): string {
+function basicTextErrorMessage(hostName: string, bytes: Uint8Array, parseError: string, basic: BasicDialect): string {
     const suffix = ". Use --ascii to keep it as text, or --binary to copy it as it is.";
     let text: string;
     try {
@@ -241,7 +305,7 @@ function basicTextErrorMessage(hostName: string, bytes: Uint8Array, parseError: 
     let high = lines.length;
     while (low < high) {
         const mid = (low + high) >> 1;
-        const result = parseBasicText(lines.slice(0, mid).join("\n"));
+        const result = parseBasicText(lines.slice(0, mid).join("\n"), basic);
         if (typeof result === "string") {
             high = mid;
         } else {
@@ -258,9 +322,10 @@ function basicTextErrorMessage(hostName: string, bytes: Uint8Array, parseError: 
  * @param hostName the host file's name.
  * @param bytes the host file's contents.
  * @param ascii whether a BASIC program should be stored as text.
+ * @param basic the disk's BASIC.
  * @throws ToolError if the cassette is empty, has several programs, or has something else.
  */
-function importCassetteFile(hostName: string, bytes: Uint8Array, ascii: boolean): ImportResult {
+function importCassetteFile(hostName: string, bytes: Uint8Array, ascii: boolean, basic: BasicDialect): ImportResult {
     const trs80File = decodeTrs80File(bytes, {filename: hostName});
     if (trs80File.className !== "Cassette" || trs80File.error !== undefined) {
         throw new ToolError("Can't add " + hostName + ": it isn't a CAS file that can be read" +
@@ -278,7 +343,7 @@ function importCassetteFile(hostName: string, bytes: Uint8Array, ascii: boolean)
             "programs out of it first, or --binary to copy it as it is.");
     }
 
-    return importProgram(hostName, trs80File.files[0].file, ascii);
+    return importProgram(hostName, trs80File.files[0].file, ascii, basic);
 }
 
 /**
@@ -296,7 +361,7 @@ function importSystemProgramFile(hostName: string, bytes: Uint8Array): ImportRes
             ". Use --binary to copy it as it is.");
     }
 
-    return importProgram(hostName, trs80File, false);
+    return importProgram(hostName, trs80File, false, BasicDialect.MODEL_III);
 }
 
 /**
@@ -306,9 +371,10 @@ function importSystemProgramFile(hostName: string, bytes: Uint8Array): ImportRes
  * @param hostName the host file's name, whose base name names a system program that has no name of its own.
  * @param trs80File the decoded program.
  * @param ascii whether a BASIC program should be stored as text.
+ * @param basic the disk's BASIC. A cassette's BASIC program is a Model III one.
  * @throws ToolError if it's some other kind of program.
  */
-function importProgram(hostName: string, trs80File: Trs80File, ascii: boolean): ImportResult {
+function importProgram(hostName: string, trs80File: Trs80File, ascii: boolean, basic: BasicDialect): ImportResult {
     switch (trs80File.className) {
         case "SystemProgram": {
             const baseName = path.parse(hostName).name.toUpperCase();
@@ -321,7 +387,7 @@ function importProgram(hostName: string, trs80File: Trs80File, ascii: boolean): 
         }
 
         case "BasicProgram":
-            return basicProgramResult(hostName, trs80File, ascii, "BAS");
+            return basicProgramResult(hostName, trs80File, BasicDialect.MODEL_III, ascii, basic, "BAS");
 
         case "CmdProgram":
         case "Level1Program":

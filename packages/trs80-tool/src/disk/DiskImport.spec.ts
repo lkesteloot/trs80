@@ -1,12 +1,12 @@
 import {
-    CassetteSpeed, decodeBasicProgram, decodeTrs80File, encodeSystemProgram, parseBasicText, SystemProgramBuilder,
+    BasicDialect, CassetteSpeed, decodeBasicProgram, decodeTrs80File, encodeSystemProgram, parseBasicText, SystemProgramBuilder,
 } from "trs80-base";
 import {binaryAsCasFile} from "trs80-cassette";
 import {describe, expect, it} from "vitest";
 import {ToolError} from "../utils.js";
 import {importHostFile, type ImportOptions} from "./DiskImport.js";
 
-const DEFAULT_OPTIONS: ImportOptions = {ascii: false, binary: false};
+const DEFAULT_OPTIONS: ImportOptions = {ascii: false, binary: false, basic: BasicDialect.MODEL_III};
 
 /**
  * Make the bytes of text.
@@ -70,14 +70,14 @@ describe("importHostFile", () => {
 
     it("keeps BASIC text as text with CR line endings with --ascii", () => {
         const result = importHostFile("hello.bas", bytesOf("10 PRINT 1\r\n20 GOTO 10"),
-            {ascii: true, binary: false});
+            {ascii: true, binary: false, basic: BasicDialect.MODEL_III});
         expect(textOf(result.contents)).to.equal("10 PRINT 1\r20 GOTO 10\r");
         expect(result.messages).to.eql([]);
     });
 
     it("turns tokenized BASIC into text with --ascii", () => {
         const tokenized = parseBasicText(listing) as Uint8Array;
-        const result = importHostFile("hello.bas", tokenized, {ascii: true, binary: false});
+        const result = importHostFile("hello.bas", tokenized, {ascii: true, binary: false, basic: BasicDialect.MODEL_III});
         expect(textOf(result.contents)).to.equal("10 PRINT \"HELLO\"\r20 GOTO 10\r");
         expect(result.messages).to.eql(["Converted hello.bas to text."]);
     });
@@ -155,7 +155,7 @@ describe("importHostFile", () => {
     });
 
     it("copies every file exactly with --binary", () => {
-        const options = {ascii: false, binary: true};
+        const options = {ascii: false, binary: true, basic: BasicDialect.MODEL_III};
         for (const [name, bytes] of [
             ["hello.bas", bytesOf(listing)], ["game.3bn", makeSystemProgram()], ["notes.txt", bytesOf("a\nb\n")],
         ] as [string, Uint8Array][]) {
@@ -176,6 +176,6 @@ describe("importHostFile", () => {
     });
 
     it("refuses --ascii together with --binary", () => {
-        expect(() => importHostFile("a.txt", bytesOf("x"), {ascii: true, binary: true})).to.throw(ToolError, "not both");
+        expect(() => importHostFile("a.txt", bytesOf("x"), {ascii: true, binary: true, basic: BasicDialect.MODEL_III})).to.throw(ToolError, "not both");
     });
 });

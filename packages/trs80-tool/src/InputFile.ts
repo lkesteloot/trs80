@@ -1,14 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
-    CassetteFile,
+    BasicDialect, CassetteFile,
     CassetteSpeed,
     FileDamage,
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
     TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type KnownFloppyFileSystem,
-    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, getTrs80FileExtension, isFloppy, isHardDisk, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
+    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {
@@ -189,6 +189,21 @@ export class CasInputFile extends InputFile {
 }
 
 /**
+ * Which BASIC to read tokenized programs on a disk as.
+ */
+export interface BasicChoice {
+    /** The BASIC of the disk's DOS, or the one the user chose. */
+    dialect: BasicDialect;
+
+    /**
+     * Whether the user chose the BASIC, so that it's used for every program. Otherwise a program whose bytes
+     * clearly belong to the other BASIC is read as that one (see guessBasicDialect()), since a disk can hold
+     * programs from either.
+     */
+    forced: boolean;
+}
+
+/**
  * Input file that came from a TRSDOS floppy, or from a partition of a hard disk.
  */
 export class TrsdosInputFile extends InputFile {
@@ -202,11 +217,15 @@ export class TrsdosInputFile extends InputFile {
      * @param trsdos the file system that holds the file.
      * @param dirEntry the file's directory entry.
      * @param directory the directory to put the file in, ending in "/", or an empty string for none.
+     * @param basicChoice which BASIC to read a tokenized program as. Default is the one that the file
+     * system's DOS runs, unless the file's bytes say otherwise.
      */
-    constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry, directory = "") {
+    constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry, directory = "", basicChoice?: BasicChoice) {
         const name = dirEntry.getFilename(".");
         const {binary, damage} = trsdos.readFileWithDamage(dirEntry);
-        const trs80File = decodeTrs80File(binary, { filename: name });
+        const choice = basicChoice ?? {dialect: trsdosBasicDialect(trsdos), forced: false};
+        const basicDialect = choice.forced ? choice.dialect : guessBasicDialect(binary) ?? choice.dialect;
+        const trs80File = decodeTrs80File(binary, { filename: name, basicDialect });
         super(directory + name, binary, trs80File, damage);
         this.trsdos = trsdos;
         this.dirEntry = dirEntry;
@@ -717,14 +736,16 @@ export class XenixTarInputFile extends InputFile {
  *
  * @param fileSystem the file system of the floppy.
  * @param includeSystemFiles whether to include system files.
+ * @param basicChoice which BASIC to read tokenized programs as, on a TRSDOS-family disk. Default is the one
+ * that the DOS runs.
  */
-export function floppyInputFiles(fileSystem: KnownFloppyFileSystem,
-                                 includeSystemFiles: boolean): InputFile[] {
+export function floppyInputFiles(fileSystem: KnownFloppyFileSystem, includeSystemFiles: boolean,
+                                 basicChoice?: BasicChoice): InputFile[] {
     const inFiles: InputFile[] = [];
 
     if (fileSystem instanceof Trsdos) {
         for (const dirEntry of fileSystem.getDirEntries(includeSystemFiles)) {
-            inFiles.push(new TrsdosInputFile(fileSystem, dirEntry));
+            inFiles.push(new TrsdosInputFile(fileSystem, dirEntry, "", basicChoice));
         }
     } else if (fileSystem instanceof Cpm) {
         const cpmFiles = fileSystem.getDirEntries(includeSystemFiles);

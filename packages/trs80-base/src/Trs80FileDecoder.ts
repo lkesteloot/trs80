@@ -1,4 +1,5 @@
 import {BasicProgram, decodeBasicProgram, parseBasicText} from "./Basic.js";
+import {BasicDialect} from "./BasicDialect.js";
 import {Cassette, decodeCassette} from "./Cassette.js";
 import {CmdProgram, decodeCmdProgram} from "./CmdProgram.js";
 import {RawBinaryFile} from "./RawBinaryFile.js";
@@ -162,11 +163,16 @@ export interface DecodeTrs80FileOptions {
 
     // Whether to disassemble program files and include the disassembly in the annotations.
     disassemble?: boolean;
+
+    // The Basic that a tokenized Basic program is for (the header can't say), and that Basic text is
+    // tokenized for. Defaults to the Model III's.
+    basicDialect?: BasicDialect;
 }
 
 const DECODE_TRS80_FILE_OPTIONS_DEFAULTS: Required<DecodeTrs80FileOptions> = {
     filename: "",
     disassemble: false,
+    basicDialect: BasicDialect.MODEL_III,
 };
 
 /**
@@ -176,7 +182,7 @@ const DECODE_TRS80_FILE_OPTIONS_DEFAULTS: Required<DecodeTrs80FileOptions> = {
  * @param options optional object to control decoding.
  */
 export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOptions): Trs80File {
-    const { filename, disassemble } = {
+    const { filename, disassemble, basicDialect } = {
         ... DECODE_TRS80_FILE_OPTIONS_DEFAULTS,
         ... options,
     };
@@ -259,7 +265,7 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
         return trs80File;
     }
 
-    trs80File = decodeBasicProgram(binary);
+    trs80File = decodeBasicProgram(binary, basicDialect);
     if (trs80File !== undefined) {
         return trs80File;
     }
@@ -274,9 +280,9 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
         return trs80File;
     }
 
-    const basicBinary = parseBasicText(binary);
+    const basicBinary = parseBasicText(binary, basicDialect);
     if (basicBinary instanceof Uint8Array) {
-        trs80File = decodeBasicProgram(basicBinary);
+        trs80File = decodeBasicProgram(basicBinary, basicDialect);
         if (trs80File !== undefined) {
             return trs80File;
         }

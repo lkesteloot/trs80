@@ -1,4 +1,5 @@
 import {assertNever} from "z80-base";
+import {BasicDialect} from "./BasicDialect.js";
 import {type Trsdos, TRSDOS_6_DOS_NAME, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
 
 /**
@@ -220,4 +221,34 @@ export function identifyTrsdosRuleSet(trsdos: Trsdos): TrsdosDosIdentity {
         ruleSet: ruleSetForDosName(trsdos.nameAndVersion, trsdos.version),
         recognized: trsdos.nameAndVersion !== UNKNOWN_DOS,
     };
+}
+
+/**
+ * The Basic that a DOS's disks run, which decides what its tokenized programs look like. Only TRSDOS 6
+ * and LS-DOS 6, on the Model 4, have their own.
+ */
+export function trsdosRuleSetBasicDialect(ruleSet: TrsdosRuleSet): BasicDialect {
+    switch (ruleSet) {
+        case TrsdosRuleSet.TRSDOS_2:
+        case TrsdosRuleSet.TRSDOS_1_3:
+        case TrsdosRuleSet.LDOS_5:
+        case TrsdosRuleSet.DOSPLUS:
+            return BasicDialect.MODEL_III;
+        case TrsdosRuleSet.TRSDOS_6:
+            return BasicDialect.MODEL_4;
+        default:
+            assertNever(ruleSet);
+    }
+}
+
+/**
+ * The Basic that a decoded disk's own DOS runs. A disk whose DOS we don't know gets the Model III's, as
+ * everything does by default.
+ *
+ * @param trsdos the decoded file system.
+ * @param givenRuleSet the rule set the user chose (with --dos), which overrides what the disk says.
+ */
+export function trsdosBasicDialect(trsdos: Trsdos, givenRuleSet?: TrsdosRuleSet): BasicDialect {
+    const ruleSet = givenRuleSet ?? identifyTrsdosRuleSet(trsdos).ruleSet;
+    return ruleSet === undefined ? BasicDialect.MODEL_III : trsdosRuleSetBasicDialect(ruleSet);
 }

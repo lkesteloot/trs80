@@ -1,8 +1,8 @@
 import fs from "fs";
 import {
-    decodeFloppyFileSystem, decodeTrs80File, decodeTrsdos, evaluateTrsdosWriteGate, FloppyDisk, isFloppy,
-    isHardDisk, type KnownFloppyFileSystem, SectorOverlay, Trsdos, TrsdosGranuleMap, type TrsdosRuleSet, TrsdosWriteAccess,
-    TrsdosWriteError, type TrsdosWriteGate, TrsdosWriter,
+    BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdos, evaluateTrsdosWriteGate, FloppyDisk, isFloppy,
+    isHardDisk, type KnownFloppyFileSystem, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
+    type TrsdosRuleSet, TrsdosWriteAccess, TrsdosWriteError, type TrsdosWriteGate, TrsdosWriter,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
@@ -611,15 +611,27 @@ export class DiskSession {
      * The files on the disk, as input files so that commands can reuse the listing and extraction code.
      *
      * @param includeSystemFiles whether to include system files.
+     * @param basic the BASIC that the user chose to read tokenized programs as, or undefined to use the DOS's
+     * (see {@link getBasicDialect}), unless a program's bytes clearly say it's for the other.
      * @throws ToolError if the session has no disk, or the disk has no file system we recognize.
      */
-    public getInputFiles(includeSystemFiles: boolean): InputFile[] {
+    public getInputFiles(includeSystemFiles: boolean, basic?: BasicDialect): InputFile[] {
         this.requireDisk();
         if (this.fileSystem === undefined) {
             throw new ToolError("Can't find a DOS directory on \"" + this.pathname + "\"");
         }
 
-        return floppyInputFiles(this.fileSystem, includeSystemFiles);
+        const basicChoice = {dialect: basic ?? this.getBasicDialect(), forced: basic !== undefined};
+        return floppyInputFiles(this.fileSystem, includeSystemFiles, basicChoice);
+    }
+
+    /**
+     * The BASIC that the disk's programs are for, from its DOS (going by the rules the user named with --dos, if
+     * any). The Model III's, unless the DOS is TRSDOS 6 or LS-DOS 6.
+     */
+    public getBasicDialect(): BasicDialect {
+        return this.fileSystem instanceof Trsdos ? trsdosBasicDialect(this.fileSystem, this.ruleSet) :
+            BasicDialect.MODEL_III;
     }
 
     /**

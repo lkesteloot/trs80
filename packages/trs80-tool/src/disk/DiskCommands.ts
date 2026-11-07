@@ -24,7 +24,7 @@ import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {importHostFile} from "./DiskImport.js";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
-import {printDiskHelp} from "./DiskHelp.js";
+import {parseBasicName, printDiskHelp} from "./DiskHelp.js";
 
 /**
  * One command of the "disk" command: its syntax (for the parser and for help) and what it does.
@@ -555,6 +555,11 @@ const ADD_COMMAND: DiskCommand = {
                 description: "copy every file exactly as it is, with no conversion",
             },
             {
+                name: "--basic",
+                valueName: "3|4",
+                description: "tokenize BASIC for Model III or Model 4 BASIC (default: the disk's DOS's)",
+            },
+            {
                 name: "--system",
                 valueName: undefined,
                 description: "make the files system files",
@@ -593,7 +598,12 @@ const ADD_COMMAND: DiskCommand = {
         const dateText = command.options.getString("--date");
         const date = dateText === undefined ? undefined : parseAddDate(dateText);
 
-        const importOptions = {ascii: command.options.has("--ascii"), binary: command.options.has("--binary")};
+        const basicText = command.options.getString("--basic");
+        const importOptions = {
+            ascii: command.options.has("--ascii"),
+            binary: command.options.has("--binary"),
+            basic: basicText === undefined ? session.getBasicDialect() : parseBasicName(basicText),
+        };
 
         const hostPathnames = expandInputPatterns(command.args);
         if (asText !== undefined && hostPathnames.length !== 1) {

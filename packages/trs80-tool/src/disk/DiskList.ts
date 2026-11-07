@@ -1,5 +1,5 @@
 import {program} from "commander";
-import {BasicProgram, decodeTrs80File} from "trs80-base";
+import {BasicDialect, BasicProgram, decodeTrs80File} from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
 import {hexdumpLines} from "../hexdump.js";
@@ -8,6 +8,7 @@ import {selectInputFiles} from "../InputFile.js";
 import {pageTextSync} from "../pager.js";
 import {systemWildcardHint, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
+import {parseBasicName} from "./DiskHelp.js";
 import type {DiskSession} from "./DiskSession.js";
 
 /**
@@ -227,11 +228,12 @@ export function printLines(lines: string[]): void {
  *
  * @param session the open disk.
  * @param pattern the name or pattern the user gave. A name selects a system file, but a wildcard doesn't.
+ * @param basic the BASIC the user chose to read tokenized programs as, or undefined for the disk's.
  * @throws ToolError if no file matches, saying so if only a system file would match the wildcard.
  */
-function selectListFiles(session: DiskSession, pattern: string): InputFile[] {
+function selectListFiles(session: DiskSession, pattern: string, basic: BasicDialect | undefined): InputFile[] {
     const { selected, unmatchedPattern, unmatchedOnlySystem } =
-        selectInputFiles(session.getInputFiles(true), [pattern], false);
+        selectInputFiles(session.getInputFiles(true, basic), [pattern], false);
     if (unmatchedPattern === undefined) {
         return selected;
     }
@@ -260,6 +262,12 @@ export const LIST_COMMAND: DiskCommand = {
                 valueName: undefined,
                 description: "write the file's bytes unchanged to standard output, with no pager, for piping",
             },
+            {
+                name: "--basic",
+                valueName: "3|4",
+                description: "read tokenized BASIC programs as Model III or Model 4 BASIC (default: the disk's " +
+                    "DOS's, unless a program's bytes say it's for the other)",
+            },
         ],
         extraHelp: [
             "A pattern that matches several files shows each, under a header line with its name.",
@@ -282,7 +290,9 @@ export const LIST_COMMAND: DiskCommand = {
             throw new ToolError("Use either --hex or --raw, not both");
         }
 
-        const inFiles = selectListFiles(session, command.args[0]);
+        const basicText = command.options.getString("--basic");
+        const basic = basicText === undefined ? undefined : parseBasicName(basicText);
+        const inFiles = selectListFiles(session, command.args[0], basic);
         if (raw) {
             for (const inFile of inFiles) {
                 process.stdout.write(inFile.binary);

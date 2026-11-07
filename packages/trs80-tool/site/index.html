@@ -545,6 +545,9 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         If the name has wildcards and matches several files, each is shown under a
                         <code>==&gt; NAME &lt;==</code> line. A wildcard never matches a system file, but its name does.
                         Output goes through the pager when it’s a terminal (see <code>--no-pager</code>).
+                        A tokenized BASIC program is shown as Model 4 BASIC on a TRSDOS 6 or LS-DOS 6 disk and as
+                        Model I and III BASIC elsewhere, unless its bytes clearly belong to the other one;
+                        <code>--basic 3</code> or <code>--basic 4</code> chooses.
                         It works on any disk we can read, including a read-only one. Also
                         called <code>type</code> and <code>cat</code>.</td>
                 </tr>
@@ -553,8 +556,15 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td><p>Copy files from your computer onto the disk, converting them as needed. A <code>.bas</code>
                         file of BASIC text is tokenized (<code>Tokenized hello.bas.</code>), or with
                         <code>--ascii</code> kept as text with CR line endings (Disk BASIC loads those too);
-                        tokenized BASIC is copied as it is, and text that isn’t BASIC is an error that names the
-                        line. A <code>.3bn</code> system program, or a <code>.cas</code> that holds one, becomes a
+                        text that isn’t BASIC is an error that names the line.
+                        TRSDOS 6 and LS-DOS 6 have their own BASIC (Model 4 BASIC), whose tokens differ from the
+                        Model I and III BASIC of every other DOS, so text is tokenized for the disk’s DOS
+                        (<code>Tokenized hello.bas for Model 4 BASIC.</code>); <code>--basic 3</code> or
+                        <code>--basic 4</code> chooses the BASIC instead. A host file that’s already tokenized is
+                        copied as it is if it fits the disk’s BASIC; if its bytes show it’s for the other BASIC,
+                        it’s converted by way of its text (<code>Converted old.bas from Model III to Model 4 BASIC
+                        tokens.</code>); and with <code>--ascii</code> it’s turned back into text, reading its
+                        tokens as the disk’s BASIC when the bytes don’t say. A <code>.3bn</code> system program, or a <code>.cas</code> that holds one, becomes a
                         CMD program that the DOS can run, named with the extension <code>CMD</code>
                         (<code>game.3bn</code> becomes <code>GAME/CMD</code>); a <code>.cas</code> that holds
                         a BASIC program becomes tokenized BASIC, and one with several programs is refused
