@@ -1,10 +1,14 @@
 import {assertNever} from "z80-base";
 import {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {FloppyDisk} from "./FloppyDisk.js";
+import {type HardDisk} from "./HardDisk.js";
+import {HardDiskPartition} from "./HardDiskPartition.js";
+import {HdvHardDisk} from "./HdvHardDisk.js";
 import {HfeFloppyDisk} from "./HfeFloppyDisk.js";
 import {ImdFloppyDisk} from "./ImdFloppyDisk.js";
 import {Jv1FloppyDisk, JV1_DIRECTORY_CYLINDER} from "./Jv1FloppyDisk.js";
 import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
+import {SectorOverlay} from "./SectorOverlay.js";
 import {type Trsdos, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
 import {
     checkTrsdos,
@@ -25,6 +29,10 @@ const NEWDOS80_SECTORS_PER_GRANULE = 5;
 // The range of granules per lump that the NEWDOS/80 candidates try.
 const NEWDOS80_MIN_GRANULES_PER_LUMP = 2;
 const NEWDOS80_MAX_GRANULES_PER_LUMP = 8;
+
+// The number of cylinders that a hard disk partition's GAT has a byte for: bytes 0x00 to 0xCA, since
+// 0xCB is the version. See "Partitions" in FLOPPY_FORMATS.md.
+const HARD_DISK_GAT_CYLINDER_BYTES = 0xCB;
 
 /**
  * How much we'll let a write tool do to a disk, by default (without the user forcing it).
@@ -69,7 +77,8 @@ export function trsdosWriteAccessToString(access: TrsdosWriteAccess): string {
 export enum TrsdosWriteBlockerKind {
     /**
      * We have no writer for this layout: lumps that aren't cylinders (NEWDOS/80 style), the TRSDOS 2.7
-     * layout, or a volume that isn't a floppy (a hard disk partition).
+     * layout, a hard disk partition of a DOS other than LDOS 5 and TRSDOS 6, or a volume that is neither
+     * a floppy nor a hard disk partition.
      */
     UNSUPPORTED_LAYOUT,
 
@@ -249,8 +258,21 @@ export function trsdosWriteAccessForBlockerKinds(kinds: TrsdosWriteBlockerKind[]
  * @param trsdos the decoded file system.
  */
 export function unsupportedLayoutMessage(trsdos: Trsdos): string | undefined {
-    if (!(trsdos.disk instanceof FloppyDisk)) {
-        return "Writing to a hard disk partition isn't supported yet.";
+    const volume = volumeOf(trsdos);
+    if (volume instanceof HardDiskPartition) {
+        // The layout is the LDOS one, which the writer handles. Only the DOSPLUS 3 partitions differ.
+        if (identifyTrsdosRuleSet(trsdos).ruleSet === TrsdosRuleSet.DOSPLUS) {
+            return dosplusPartitionMessage();
+        }
+        // The GAT keeps one byte per cylinder up to 0xCA, and the version and geometry fields follow.
+        if (trsdos.lumpCount > HARD_DISK_GAT_CYLINDER_BYTES) {
+            return `This hard disk partition has ${trsdos.lumpCount} cylinders, but a GAT only records ` +
+                `${HARD_DISK_GAT_CYLINDER_BYTES} of them, so writing it isn't supported.`;
+        }
+        return undefined;
+    }
+    if (!(volume instanceof FloppyDisk)) {
+        return "Writing to this kind of disk isn't supported yet.";
     }
     if (!trsdos.lumpsAreCylinders) {
         return "This disk allocates space in lumps that aren't whole cylinders (as NEWDOS/80 does), " +
@@ -260,6 +282,40 @@ export function unsupportedLayoutMessage(trsdos: Trsdos): string | undefined {
         return "Writing the TRSDOS 2.7 layout isn't supported yet.";
     }
     return undefined;
+}
+
+/**
+ * The volume that a file system lives on, looking through a {@link SectorOverlay}, which the
+ * writer's decoding goes through.
+ */
+function volumeOf(trsdos: Trsdos): Trsdos["disk"] {
+    return trsdos.disk instanceof SectorOverlay ? trsdos.disk.base : trsdos.disk;
+}
+
+/**
+ * Why DOSPLUS 3 hard disk partitions can't be written. Their GAT doesn't record the granules per
+ * cylinder, which we only know from one disk ("Hard disk images" in FLOPPY_FORMATS.md).
+ */
+function dosplusPartitionMessage(): string {
+    return "DOSPLUS 3 hard disk partitions are read-only: their GAT doesn't record how many granules " +
+        "each cylinder has, so writing one would be a guess.";
+}
+
+/**
+ * Why a hard disk image can't be written, or undefined if it can. (Exported for tests.) This looks
+ * at the disk as it is, including any flag that the session cleared in memory.
+ *
+ * @param disk the hard disk image.
+ */
+export function hardDiskWriteProtectionMessage(disk: HardDisk): string | undefined {
+    if (!disk.isWriteProtected()) {
+        return undefined;
+    }
+
+    if (disk instanceof HdvHardDisk && disk.writeProtected) {
+        return "The image's write-protect flag is set.";
+    }
+    return "The hard disk is write-protected.";
 }
 
 /**
@@ -561,10 +617,25 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRul
         ruleSet = verdict.ruleSet;
     }
 
-    if (trsdos.disk instanceof FloppyDisk) {
-        const protectionMessage = writeProtectionMessage(trsdos.disk);
+    const volume = volumeOf(trsdos);
+    if (volume instanceof FloppyDisk) {
+        const protectionMessage = writeProtectionMessage(volume);
         if (protectionMessage !== undefined) {
             blockers.push({kind: TrsdosWriteBlockerKind.WRITE_PROTECTED, message: protectionMessage, forceable: true});
+        }
+    } else if (volume instanceof HardDiskPartition) {
+        const protectionMessage = hardDiskWriteProtectionMessage(volume.disk);
+        if (protectionMessage !== undefined) {
+            blockers.push({kind: TrsdosWriteBlockerKind.WRITE_PROTECTED, message: protectionMessage, forceable: true});
+        }
+
+        // The DOSPLUS rules, named with --dos, don't make a partition's layout one that we know.
+        if (unsupported === undefined && ruleSet === TrsdosRuleSet.DOSPLUS) {
+            blockers.push({
+                kind: TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT,
+                message: dosplusPartitionMessage(),
+                forceable: false,
+            });
         }
     }
 
@@ -592,8 +663,10 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRul
             });
         }
 
-        const sizesTried = directorySizesTried(trsdos.version, trsdos.allocationSides, trsdos.granulesPerLump,
-            trsdos.sectorsPerGranule, trsdos.geometry.cylinder0Differs);
+        // A partition's directory is always its whole cylinder: the partition decoder tries no other size.
+        const sizesTried = volume instanceof HardDiskPartition ? [trsdos.granulesPerDir] :
+            directorySizesTried(trsdos.version, trsdos.allocationSides, trsdos.granulesPerLump,
+                trsdos.sectorsPerGranule, trsdos.geometry.cylinder0Differs);
         const directorySizeIsOnlyChoice = sizesTried.length <= 1;
         if (!directorySizeIsOnlyChoice && !dirSysCoversDirectory(trsdos)) {
             blockers.push({

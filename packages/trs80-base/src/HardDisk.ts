@@ -1,3 +1,4 @@
+import {SimpleEventDispatcher} from "strongly-typed-events";
 import {AbstractTrs80File} from "./Trs80File.js";
 
 /**
@@ -38,12 +39,41 @@ export interface HardDiskGeometry {
 }
 
 /**
+ * Represents a write to the underlying disk file, as {@link FloppyWrite} does for floppies.
+ */
+export class HardDiskWrite {
+    /**
+     * The bytes written.
+     */
+    public readonly data: Uint8Array;
+
+    /**
+     * The offset into the underlying file.
+     */
+    public readonly offset: number;
+
+    /**
+     * @param data the bytes written.
+     * @param offset the offset into the underlying file.
+     */
+    constructor(data: Uint8Array, offset: number) {
+        this.data = data;
+        this.offset = offset;
+    }
+}
+
+/**
  * Abstract class for virtual hard disk file formats. A hard disk is a flat array of sectors
  * addressed by cylinder, head, and sector, and holds one or more partitions, each with a file system
  * of its own. It doesn't model the way the sectors are recorded, as FloppyDisk does for floppies.
  * See HardDiskPartition for the part of a disk that a file system sees.
  */
 export abstract class HardDisk extends AbstractTrs80File {
+    /**
+     * Dispatched after every sector write, with the bytes written to the image file.
+     */
+    public readonly onWrite = new SimpleEventDispatcher<HardDiskWrite>();
+
     /**
      * @param binary the bytes of the whole image file.
      * @param error the error encountered while decoding, if any.
@@ -67,4 +97,30 @@ export abstract class HardDisk extends AbstractTrs80File {
      * doesn't hold that sector.
      */
     public abstract readSector(cylinder: number, head: number, sector: number): Uint8Array | undefined;
+
+    /**
+     * Whether writeSector() would refuse: the image says it's write-protected, or its format can't
+     * be written.
+     */
+    public abstract isWriteProtected(): boolean;
+
+    /**
+     * Forget, in memory, that the image's own header says it's write-protected, for a caller that
+     * has been told to write anyway. The header in the binary is untouched, so the saved image keeps
+     * its flag. Does nothing for formats with no such flag.
+     */
+    public clearImageWriteProtected(): void {
+    }
+
+    /**
+     * Write a sector, replacing the bytes of the image in place. Check first with isWriteProtected().
+     *
+     * @param cylinder the cylinder number, from 0.
+     * @param head the head number, from 0.
+     * @param sector the sector number within the track, from 0.
+     * @param data the new contents, which must be exactly one sector.
+     * @throws Error if the disk is write-protected, the sector isn't on the disk or isn't held by the
+     * image, or the data is the wrong size. The messages are suitable for showing to a user.
+     */
+    public abstract writeSector(cylinder: number, head: number, sector: number, data: Uint8Array): void;
 }

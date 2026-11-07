@@ -1,8 +1,9 @@
 import {assertNever, toHexByte, word} from "z80-base";
 import type {SectorPosition} from "./FloppyDisk.js";
+import {HardDiskPartition} from "./HardDiskPartition.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
-    decodeDirEntry, decodeTrsdos, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
+    decodeDirEntry, decodeTrsdos, decodeTrsdosHardDiskPartition, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
     hashForFilename, hashTrsdosPassword, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_13_EXTENTS_PER_ENTRY,
     TRSDOS_BLANK_PASSWORD_HASH, type Trsdos, type Trsdos23TimeStamp, trsdos23TimeStampToWord,
     type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosProtectionLevel, TrsdosVersion,
@@ -490,7 +491,25 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /**
- * Makes changes to a TRSDOS floppy: the writer's core and its operations, deleting, adding,
+ * Decode the file system on an overlay, as the file system that it was before the change was made
+ * was decoded. A floppy is decoded afresh, which finds its layout again. A hard disk partition's
+ * layout isn't found but given (by its boot sector and GAT), so it's decoded with the same
+ * directory cylinder and granules per cylinder as the original. See "Hard disk images" in
+ * FLOPPY_FORMATS.md.
+ *
+ * @param overlay the overlay, over a floppy or a hard disk partition.
+ * @param like the file system as it was decoded before the change.
+ * @return the file system, or undefined if the overlay doesn't decode as one.
+ */
+export function decodeTrsdosOnOverlay(overlay: SectorOverlay, like: Trsdos): Trsdos | undefined {
+    if (overlay.base instanceof HardDiskPartition) {
+        return decodeTrsdosHardDiskPartition(overlay, like.dirLumpNumber, like.granulesPerLump);
+    }
+    return decodeTrsdos(overlay);
+}
+
+/**
+ * Makes changes to a TRSDOS floppy or hard disk partition: the writer's core and its operations, deleting, adding,
  * replacing and renaming files and changing their attributes.
  *
  * The writer reads the GAT, the HIT and the directory sectors it changes into memory, makes every
@@ -1150,6 +1169,14 @@ export class TrsdosWriter {
         }
         if (extents.some(extent => extent.lump > 0xFD)) {
             throw new TrsdosWriteError(`Can't ${verb} ${name}: it would need a lump that a directory entry can't hold`);
+        }
+        // Measured on a real LS-DOS: a hard disk partition whose directory has an extended entry written
+        // like a floppy's failed to boot, while files of up to four extents were fine. So until that is
+        // understood, a file on a partition gets one directory entry. See "Writing to partitions" in FLOPPY_FORMATS.md.
+        if (this.overlay.base instanceof HardDiskPartition && extents.length > EXTENTS_PER_ENTRY) {
+            throw new TrsdosWriteError(`Can't ${verb} ${name}: it needs ${extents.length} extents (a run of up to 32 ` +
+                `granules is one), and a file on a hard disk partition can have at most ${EXTENTS_PER_ENTRY} until ` +
+                `extended directory entries are supported there`);
         }
 
         // The directory slots: one for the primary entry, and one for each extended entry (FXDE) that
@@ -2248,7 +2275,7 @@ export class TrsdosWriter {
             }
         }
 
-        const newTrsdos = decodeTrsdos(this.overlay);
+        const newTrsdos = decodeTrsdosOnOverlay(this.overlay, this.trsdos);
         if (newTrsdos === undefined) {
             throw new TrsdosWriteError("After the change, the disk doesn't decode as a TRSDOS disk");
         }

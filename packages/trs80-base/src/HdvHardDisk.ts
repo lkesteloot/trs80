@@ -4,6 +4,7 @@ import {
     HARD_DISK_SECTORS_PER_TRACK,
     HardDisk,
     type HardDiskGeometry,
+    HardDiskWrite,
 } from "./HardDisk.js";
 
 /**
@@ -72,6 +73,12 @@ export class HdvHardDisk extends HardDisk {
     private readonly geometry: HardDiskGeometry;
 
     /**
+     * Whether writes are refused. It starts as the header's flag, and clearImageWriteProtected()
+     * clears it in memory.
+     */
+    private writesRefused: boolean;
+
+    /**
      * Use decodeHdvHardDisk() to make one from a file.
      */
     constructor(binary: Uint8Array, headerVersion: number, writeProtected: boolean,
@@ -82,6 +89,7 @@ export class HdvHardDisk extends HardDisk {
         this.writeProtected = writeProtected;
         this.autoBootDos = autoBootDos;
         this.geometry = geometry;
+        this.writesRefused = writeProtected;
     }
 
     /**
@@ -99,6 +107,21 @@ export class HdvHardDisk extends HardDisk {
     }
 
     /**
+     * Whether the header's write-protect flag is set (and hasn't been cleared in memory).
+     */
+    public isWriteProtected(): boolean {
+        return this.writesRefused;
+    }
+
+    /**
+     * Stop refusing writes in memory. The header byte stays as it is in the binary, so the saved
+     * image is still marked write-protected.
+     */
+    public override clearImageWriteProtected(): void {
+        this.writesRefused = false;
+    }
+
+    /**
      * The geometry, which comes from the header's heads and the file's length.
      */
     public getGeometry(): HardDiskGeometry {
@@ -110,6 +133,19 @@ export class HdvHardDisk extends HardDisk {
      * the sectors that a truncated last cylinder is missing are undefined.
      */
     public readSector(cylinder: number, head: number, sector: number): Uint8Array | undefined {
+        const offset = this.sectorOffset(cylinder, head, sector);
+        if (offset === undefined) {
+            return undefined;
+        }
+
+        return this.binary.subarray(offset, offset + this.geometry.sectorSize);
+    }
+
+    /**
+     * The offset in the file of a sector, or undefined if the position is outside the disk or the
+     * image doesn't hold the sector (a truncated last cylinder).
+     */
+    private sectorOffset(cylinder: number, head: number, sector: number): number | undefined {
         const geometry = this.geometry;
         if (cylinder < 0 || cylinder >= geometry.cylinderCount ||
             head < 0 || head >= geometry.headCount ||
@@ -120,12 +156,31 @@ export class HdvHardDisk extends HardDisk {
 
         const sectorIndex = (cylinder*geometry.headCount + head)*geometry.sectorsPerTrack + sector;
         const offset = HEADER_SIZE + sectorIndex*geometry.sectorSize;
-        const end = offset + geometry.sectorSize;
-        if (end > this.binary.length) {
-            return undefined;
+        return offset + geometry.sectorSize > this.binary.length ? undefined : offset;
+    }
+
+    /**
+     * Write a sector into the file's bytes in place. A sector past the end of a truncated file
+     * doesn't exist and can't be written.
+     */
+    public writeSector(cylinder: number, head: number, sector: number, data: Uint8Array): void {
+        const description = `cylinder ${cylinder}, head ${head}, sector ${sector}`;
+        if (this.writesRefused) {
+            throw new Error(`Can't write ${description}: the disk is write-protected`);
         }
 
-        return this.binary.subarray(offset, end);
+        const offset = this.sectorOffset(cylinder, head, sector);
+        if (offset === undefined) {
+            throw new Error(`Can't write ${description}: the image doesn't hold that sector`);
+        }
+        if (data.length !== this.geometry.sectorSize) {
+            throw new Error(`Can't write ${description}: the data is ${data.length} bytes ` +
+                `but a sector holds ${this.geometry.sectorSize}`);
+        }
+
+        const copy = new Uint8Array(data);
+        this.binary.set(copy, offset);
+        this.onWrite.dispatch(new HardDiskWrite(copy, offset));
     }
 }
 

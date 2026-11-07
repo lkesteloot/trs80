@@ -228,8 +228,8 @@ async function main(): Promise<void> {
         });
     program
         .command("disk [image] [words...]")
-        .description("operate on one floppy image: disk IMAGE [COMMAND ... [: COMMAND ...]]", {
-            image: "floppy image (JV1, JV3, DMK, DSK, HFE, IMD, SCP)",
+        .description("operate on one floppy or hard disk image: disk IMAGE [COMMAND ... [: COMMAND ...]]", {
+            image: "floppy image (JV1, JV3, DMK, DSK, HFE, IMD, SCP) or hard disk image (HDV, one partition at a time)",
             words: "commands to run in order, separated by a lone \":\" (try \"dir\"); program options such as " +
                 "--color must come before \"disk\"",
         })

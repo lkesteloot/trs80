@@ -481,7 +481,18 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       (`HD_Images/DREM/` and `HD_Images/DG/`, 45-85 MB each), and the readers in
       xfile and trsfs (`hd_image_hdv2.cpp`, `hd_image_drem.cpp`,
       `hd_image_emu.cpp`) are references. No HDV2 sample is known.
-- [ ] **Writing** to hard disks.
+- [x] **Writing** to hard disks: LDOS 5 and LS-DOS 6 partitions of HDV images are
+      written by `trs80-tool disk` (see "Writing to partitions" in
+      `FLOPPY_FORMATS.md`). Still to do: DOSPLUS 3 partitions (the granules per
+      cylinder need a second disk or the manual to confirm), partitions with
+      more than 203 cylinders, creating and formatting hard disks, and a
+      per-sector undo instead of a copy of the whole image per step.
+- [ ] **Extended directory entries (FXDEs) on hard disk partitions.** A partition
+      with a file of five extents didn't boot in LS-DOS 6.3 under trs80gp, though
+      four extents did, so the writer refuses a file that needs more than four
+      (see "Writing to partitions" in `FLOPPY_FORMATS.md`). Find out why, probably by
+      watching the DOS's directory search on a partition with a real FXDE, and
+      lift the limit. Whether the same entry boots on a floppy hasn't been tried.
 - [ ] **The emulator:** no hard disk controller, and none of FreHD's extras, so
       `Trs80.runTrs80File()` doesn't know what to do with a hard disk. See
       "Emulating a hard disk" below.

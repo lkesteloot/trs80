@@ -752,6 +752,7 @@ export const MAP_COMMAND: DiskCommand = {
     },
 
     endsSession: false,
+    floppyOnly: true,
 
     /**
      * Draw the map, through the pager if it's taller than the screen. It only reads, so it works on any

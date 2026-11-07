@@ -5,7 +5,7 @@ import {DiskSession} from "./DiskSession.js";
 import {runDiskShell} from "./DiskShell.js";
 
 /**
- * Handle the "disk" command: open one floppy image and run commands on it, in order.
+ * Handle the "disk" command: open one floppy or hard disk image and run commands on it, in order.
  * The first command to fail stops the rest, and so does a command that ends the session
  * (such as "quit"). Changes are saved once, after the last command, but only if every command
  * worked (and "abort" discards them). With no commands, open a shell: interactive on a terminal, otherwise
@@ -29,6 +29,7 @@ export async function disk(words: string[]): Promise<void> {
     const session = DiskSession.open(pathname, {
         outputPathname: globalOptions.getString("--output"),
         dryRun: globalOptions.has("--dry-run"),
+        partition: globalOptions.getString("--partition"),
         ruleSet,
         force: globalOptions.has("--force"),
     });

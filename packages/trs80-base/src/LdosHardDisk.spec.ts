@@ -1,154 +1,43 @@
 import {describe, expect, it} from "vitest";
 import {decodeHdvHardDisk, HdvHardDisk} from "./HdvHardDisk.js";
 import {findLdosPartitions, makeDirectoryNames} from "./LdosHardDisk.js";
-import {hashForFilename} from "./Trsdos.js";
+import {
+    ldosTestSector, makeBlankTestHdv, type ResolvedLdosTestPartition, resolveLdosTestPartition,
+    writeLdosTestPartition,
+} from "./LdosTestHardDisk.js";
 
-const HEADER_SIZE = 256;
-const SECTORS_PER_TRACK = 32;
+/**
+ * Describes a partition to write into an HDV, with every field filled in.
+ */
+type PartitionSpec = ResolvedLdosTestPartition;
+
+const DEFAULT_SPEC: PartitionSpec = resolveLdosTestPartition({});
 
 /**
  * Make an HDV of 0xE5 filler with the given geometry. The caller fills in the partitions.
  */
 function makeBlankHdv(cylinderCount: number, headCount: number): Uint8Array {
-    const binary = new Uint8Array(HEADER_SIZE + cylinderCount*headCount*SECTORS_PER_TRACK*256);
-    binary.fill(0xE5, HEADER_SIZE);
-    binary.set([0x56, 0xCB, 0x10, 0x00, 1, 4, 0, 0, 0]);
-    binary[29] = (headCount*SECTORS_PER_TRACK) & 0xFF;
-    return binary;
+    return makeBlankTestHdv(cylinderCount, headCount);
 }
 
 /**
- * Describes a partition to write into an HDV.
- */
-interface PartitionSpec {
-    cylinderOffset: number;
-    headOffset: number;
-    cylinderCount: number;
-    headCount: number;
-    granulesPerCylinder: number;
-    // Relative to the partition.
-    dirCylinder: number;
-    name: string;
-    // The byte at GAT 0xCB.
-    version: number;
-    // Whether to write the media data block.
-    mediaData: boolean;
-    // The text of the partition's one user file, HELLO/TXT.
-    fileText: string;
-}
-
-const DEFAULT_SPEC: PartitionSpec = {
-    cylinderOffset: 0,
-    headOffset: 0,
-    cylinderCount: 40,
-    headCount: 2,
-    granulesPerCylinder: 8,
-    dirCylinder: 20,
-    name: "TESTPART",
-    version: 0x63,
-    mediaData: true,
-    fileText: "HELLO WORLD",
-};
-
-/**
- * The bytes of sector "sector" of logical cylinder "cylinder" of the partition, in the HDV. This
- * deliberately doesn't use HardDiskPartition, which is being tested.
+ * The bytes of a sector of the partition, in the HDV.
  */
 function logicalSector(binary: Uint8Array, diskHeads: number, spec: PartitionSpec, cylinder: number,
                        sector: number): Uint8Array {
 
-    const physicalCylinder = spec.cylinderOffset + cylinder;
-    const head = spec.headOffset + Math.floor(sector/SECTORS_PER_TRACK);
-    const index = (physicalCylinder*diskHeads + head)*SECTORS_PER_TRACK + sector % SECTORS_PER_TRACK;
-    return binary.subarray(HEADER_SIZE + index*256, HEADER_SIZE + (index + 1)*256);
+    return ldosTestSector(binary, diskHeads, spec, cylinder, sector);
 }
 
 /**
- * Writes the text into the bytes, padded with spaces on the right.
+ * Write an LDOS partition into the HDV, with BOOT/SYS, DIR/SYS and the file HELLO/TXT, whose text
+ * is given.
  */
-function writePadded(bytes: Uint8Array, offset: number, text: string, length: number): void {
-    for (let i = 0; i < length; i++) {
-        bytes[offset + i] = i < text.length ? text.charCodeAt(i) : 0x20;
-    }
-}
-
-/**
- * Writes a directory entry for a file into a directory sector.
- */
-function writeDirEntry(sector: Uint8Array, entryIndex: number, flags: number, filename: string,
-                       sectorCount: number, lastSectorSize: number, extents: [number, number][]): void {
-
-    const entry = sector.subarray(entryIndex*32, (entryIndex + 1)*32);
-    entry.fill(0);
-    entry[0] = flags;
-    entry[1] = 3;
-    entry[2] = (15 << 3) | 2;
-    entry[3] = lastSectorSize;
-    entry[4] = 0;
-    writePadded(entry, 5, filename, 11);
-    // The blank password hash.
-    entry.set([0x96, 0x42, 0x96, 0x42], 16);
-    entry[20] = sectorCount & 0xFF;
-    entry[21] = sectorCount >> 8;
-    entry.fill(0xFF, 22, 32);
-    extents.forEach(([cylinder, granuleByte], i) => {
-        entry[22 + i*2] = cylinder;
-        entry[23 + i*2] = granuleByte;
+function writePartition(binary: Uint8Array, diskHeads: number, spec: PartitionSpec, fileText = "HELLO WORLD"): void {
+    writeLdosTestPartition(binary, diskHeads, {
+        ...spec,
+        files: [{name: "HELLO/TXT", contents: new TextEncoder().encode(fileText)}],
     });
-}
-
-/**
- * Write an LDOS partition into the HDV: a boot sector, a GAT, a HIT, and directory entries for BOOT/SYS,
- * DIR/SYS, and a one-granule file HELLO/TXT.
- */
-function writePartition(binary: Uint8Array, diskHeads: number, spec: PartitionSpec): void {
-    const span = spec.headCount*SECTORS_PER_TRACK;
-    const sectorsPerGranule = span/spec.granulesPerCylinder;
-    const sector = (cylinder: number, s: number) => logicalSector(binary, diskHeads, spec, cylinder, s);
-
-    sector(0, 0).set([0x00, 0xFE, spec.dirCylinder]);
-
-    const gat = sector(spec.dirCylinder, 0);
-    gat.fill(0);
-    gat[0] = 0x01;
-    gat[spec.dirCylinder] = 0xFF;
-    gat[spec.dirCylinder + 1] = 0x01;
-    gat[0xCB] = spec.version;
-    gat[0xCC] = spec.cylinderCount - 35;
-    gat[0xCD] = (spec.granulesPerCylinder - 1) | 0x80;
-    writePadded(gat, 0xD0, spec.name, 8);
-    writePadded(gat, 0xD8, "01/01/90", 8);
-    if (spec.mediaData) {
-        gat.set([0x03, 0x52, 0x53, 0x48], 0xF5);
-        gat[0xF9] = 0x0C | (spec.cylinderOffset >> 8);
-        gat[0xFA] = 0x10 | spec.headOffset;
-        gat[0xFB] = spec.cylinderOffset & 0xFF;
-        gat[0xFC] = spec.cylinderCount - 1;
-        gat[0xFD] = ((spec.headCount - 1) << 5) | (SECTORS_PER_TRACK - 1);
-        gat[0xFE] = ((spec.granulesPerCylinder - 1) << 5) | (sectorsPerGranule - 1);
-        gat[0xFF] = spec.dirCylinder;
-    }
-
-    // The first directory entry sector is logical sector 2, after the GAT and the HIT.
-    const firstEntrySector = sector(spec.dirCylinder, 2);
-    const secondEntrySector = sector(spec.dirCylinder, 3);
-    firstEntrySector.fill(0);
-    secondEntrySector.fill(0);
-    writeDirEntry(firstEntrySector, 0, 0x58, "BOOT    SYS", 1, 0, [[0, 0]]);
-    writeDirEntry(secondEntrySector, 0, 0x58, "DIR     SYS", span, 0,
-        [[spec.dirCylinder, spec.granulesPerCylinder - 1]]);
-    writeDirEntry(firstEntrySector, 2, 0x10, "HELLO   TXT", 1, spec.fileText.length, [[spec.dirCylinder + 1, 0]]);
-
-    const hit = sector(spec.dirCylinder, 1);
-    hit.fill(0);
-    hit[0] = hashForFilename("BOOT    SYS");
-    hit[1] = hashForFilename("DIR     SYS");
-    hit[(2 << 5) | 0] = hashForFilename("HELLO   TXT");
-
-    const fileSector = sector(spec.dirCylinder + 1, 0);
-    for (let i = 0; i < spec.fileText.length; i++) {
-        fileSector[i] = spec.fileText.charCodeAt(i);
-    }
 }
 
 /**
@@ -185,11 +74,10 @@ describe("makeDirectoryNames", () => {
 describe("findLdosPartitions", () => {
     it("finds partitions split by cylinder, with and without a media data block", () => {
         const binary = makeBlankHdv(80, 2);
-        const first: PartitionSpec = {...DEFAULT_SPEC, name: "FIRST", fileText: "HELLO WORLD"};
-        const second: PartitionSpec = {...DEFAULT_SPEC, name: "SECOND", cylinderOffset: 40, mediaData: false,
-            fileText: "SECOND FILE"};
+        const first: PartitionSpec = {...DEFAULT_SPEC, name: "FIRST"};
+        const second: PartitionSpec = {...DEFAULT_SPEC, name: "SECOND", cylinderOffset: 40, mediaData: false};
         writePartition(binary, 2, first);
-        writePartition(binary, 2, second);
+        writePartition(binary, 2, second, "SECOND FILE");
 
         const partitions = findLdosPartitions(decodeHdv(binary));
         expect(partitions.length).to.equal(2);
@@ -222,11 +110,9 @@ describe("findLdosPartitions", () => {
         const binary = makeBlankHdv(40, 3);
         const specs = [0, 1, 2].map((head): PartitionSpec => ({
             ...DEFAULT_SPEC, headOffset: head, headCount: 1, cylinderCount: 40, dirCylinder: 10,
-            name: "HEAD" + head, fileText: "FILE " + head,
+            name: "HEAD" + head,
         }));
-        for (const spec of specs) {
-            writePartition(binary, 3, spec);
-        }
+        specs.forEach((spec, head) => writePartition(binary, 3, spec, "FILE " + head));
 
         const partitions = findLdosPartitions(decodeHdv(binary));
         expect(partitions.map(p => p.partition.headOffset)).to.eql([0, 1, 2]);

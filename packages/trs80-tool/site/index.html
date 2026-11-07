@@ -466,8 +466,9 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
             </table>
 
             <h3 id="disk"><code>disk</code></h3>
-            <p>The <code>disk</code> command works on one floppy image: give the image, then one
-            or more commands to run on it, separated by a lone <code>:</code>.</p>
+            <p>The <code>disk</code> command works on one floppy or hard disk image: give the image, then one
+            or more commands to run on it, separated by a lone <code>:</code>. A hard disk image (HDV) works
+            on one partition at a time; see <a href="#disk-hard-disks">Hard disks</a> below.</p>
             <div><pre><code>% trs80-tool disk in.dmk dir
 % trs80-tool disk in.dmk extract "*.bas" --out-dir out : free
 % trs80-tool disk in.dmk check</code></pre>
@@ -482,7 +483,8 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
             command in the chain or any line of a script fails, nothing is saved. The image is replaced in
             one step, so an interrupted write can’t leave half a disk.</p>
             <p>Only some disks can be changed: floppies of the TRSDOS family whose DOS is TRSDOS 2.x,
-            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, or DOSPLUS 3, as long as <code>check</code> finds no problem with the
+            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, or DOSPLUS 3, and LDOS 5 and LS-DOS 6 partitions of
+            hard disks, as long as <code>check</code> finds no problem with the
             file system. Every change is checked before it is kept:
             the tool decodes the changed disk again and refuses the change unless the layout and every other file
             are exactly as they were. <code>--dos</code> and <code>--force</code> below can relax the
@@ -497,6 +499,11 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td><code>--dry-run</code></td>
                     <td>Write nothing, and say whether the disk would have changed. This overrides
                         <code>--output</code>. Put it before the first command.</td>
+                </tr>
+                <tr>
+                    <td><code>--partition N|NAME</code></td>
+                    <td>For a hard disk, work on this partition: its number, from 1, or its disk name (in any
+                        case). The <code>partition</code> command lists them. Put it before the first command.</td>
                 </tr>
                 <tr>
                     <td><code>--dos NAME</code></td>
@@ -655,7 +662,15 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                 <tr>
                     <td><code>info</code></td>
                     <td>Describe the image and its file system, as <code>info --verbose</code> does,
-                        with the free space and whether the disk can be written.</td>
+                        with the free space and whether the disk can be written. For a hard disk it
+                        lists the partitions, or describes the selected one.</td>
+                </tr>
+                <tr>
+                    <td><code>partition [N|NAME]</code></td>
+                    <td>For a hard disk, list the partitions (number, where they are, disk name, DOS, number of
+                        files, and whether they can be written), or with a number or a disk name choose the
+                        partition that the following commands work on. Also called <code>part</code>. It
+                        changes nothing on the disk. See <a href="#disk-hard-disks">Hard disks</a>.</td>
                 </tr>
                 <tr>
                     <td><code>free</code></td>
@@ -822,7 +837,9 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td><p>Take back the most recent change to the disk (an <code>add</code>, <code>kill</code>,
                         <code>label</code>, <code>create</code>, <code>format</code>, <code>trim</code> and so on),
                         restoring the disk exactly as it was, including its image format, and say which command it undid.
-                        It can be repeated to go further back, up to the last 100 changes. If undoing takes the disk back
+                        It can be repeated to go further back, up to the last 100 changes (fewer on a large image, since
+                        each step holds a copy of the whole image; a hard disk keeps up to 256 MB of them, and says so
+                        the first time it drops the oldest). If undoing takes the disk back
                         to what was last saved then there are no changes to save. It says so if there’s nothing to undo.
                         It works in a chain too: <code>kill HELLO.BAS : undo</code>.</p></td>
                 </tr>
@@ -868,6 +885,34 @@ Type "help" for a list of commands, and "quit" to leave.
             </div>
             <p>Flags such as <code>--color</code> go before <code>disk</code>; after the image,
             everything belongs to the disk commands.</p>
+
+            <h4 id="disk-hard-disks">Hard disks</h4>
+            <p><code>disk</code> opens HDV hard disk images (the format of xtrs, sdltrs, and FreHD) and works on
+            their LDOS 5 and LS-DOS 6 (TRSDOS 6) partitions, with the same commands, checks, and safeguards as a
+            floppy: <code>dir</code>, <code>extract</code>, <code>list</code>, <code>add</code>, <code>kill</code>,
+            <code>rename</code>, <code>attrib</code>, <code>label</code>, <code>info</code>, <code>free</code>,
+            <code>check</code>, <code>repair</code>, <code>undo</code>, <code>redo</code>, <code>revert</code>, and
+            <code>save</code>. Changes are made in memory, checked by decoding the partition again, and written once at the
+            end (or to <code>--output</code>, or not at all with <code>--dry-run</code>), and only the sectors of the
+            partition that the change needs are altered.</p>
+            <div><pre><code>% trs80-tool disk hard.hdv partition
+  1  cylinders 0-139, heads 0-5  HARDA  LS-DOS 6.3  80 files  writable
+  2  cylinders 140-279, heads 0-5  HARDB  LS-DOS 6.3  18 files  writable
+% trs80-tool disk hard.hdv --partition HARDB add hello.bas : dir
+% trs80-tool disk hard.hdv partition 2 : add game.cmd</code></pre>
+            </div>
+            <p>A hard disk holds one or more partitions, each with a file system of its own. A partition is chosen with
+            <code>--partition</code> or the <code>partition</code> command, and its name (the disk name, or
+            <code>partition N</code> if it has none) shows in the prompt of the interactive shell. If the disk has only
+            one partition then it is used without being chosen. If it has several, every command that needs files fails
+            with a list of the partitions until one is chosen, since writing to the wrong partition is easy to do and hard to notice.
+            Choosing a partition is not a change to the disk, and <code>undo</code> never changes it.</p>
+            <p>What isn’t supported: creating, formatting, or partitioning a hard disk image (<code>create</code>,
+            <code>format</code>, <code>trim</code>, <code>boot</code>, and <code>map</code> work on floppy images and
+            say so); DOSPLUS 3 partitions, which are read but never written, because their GAT doesn’t record how many
+            granules each cylinder has; NEWDOS/80 and CP/M hard disks, which aren’t read at all yet; and the HDV
+            version 2 format. A write-protected HDV (its header’s flag) can be written only with <code>--force</code>,
+            and the saved image keeps its flag.</p>
 
             <h3 id="hexdump"><code>hexdump</code></h3>
 
@@ -1150,13 +1195,14 @@ C CRC error (ID or data).
 
             <h2 id="limitations">Limitations</h2>
             <ul>
-                <li>The tool reads floppy disks and hard disks. It changes only floppies, with
-                    <a href="#disk"><code>disk</code></a>, and writes files only on the TRSDOS-family DOSes
-                    listed there.</li>
+                <li>The tool reads floppy disks and hard disks. It changes floppies and the LDOS 5 and LS-DOS 6
+                    partitions of HDV hard disks, with <a href="#disk"><code>disk</code></a>, and writes files only
+                    on the TRSDOS-family DOSes listed there. It can’t create or format a hard disk.</li>
                 <li>Hard disks can’t be mounted in the emulator (<a href="#run"><code>run</code></a>
                     and <a href="#mcp"><code>mcp</code></a>), and the
                     <a href="#sectors"><code>sectors</code></a> command shows only floppies.</li>
-                <li>On hard disks, only LDOS 5, LS-DOS 6, and DOSPLUS 3 partitions are read.</li>
+                <li>On hard disks, only LDOS 5, LS-DOS 6, and DOSPLUS 3 partitions are read, and DOSPLUS 3 ones
+                    aren’t written.</li>
             </ul>
 
             <h2 id="change-log">Change log</h2>

@@ -486,6 +486,7 @@ export const TRIM_COMMAND: DiskCommand = {
     },
 
     endsSession: false,
+    floppyOnly: true,
 
     /**
      * Rebuild the image without the tracks that nothing needs, and replace the session's disk with it, so that

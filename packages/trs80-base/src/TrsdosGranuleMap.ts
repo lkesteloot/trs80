@@ -126,14 +126,16 @@ export class TrsdosGranuleMap {
         //
         // - TRSDOS 1.3's table at the same place is a "track existence table" that FORMAT leaves zero,
         //   and other versions don't define it.
-        // - Hard disk partitions have no lockout table at all. A floppy being written, through a
-        //   SectorOverlay, has the floppy's.
+        // - Hard disk partitions have no lockout table at all: their GAT's bytes from 0x60 on are the
+        //   allocation of later cylinders. A floppy being written, through a SectorOverlay, has the
+        //   floppy's, but a partition being written through one doesn't.
         // - A disk with more than 96 lumps has the GAT running over the lockout table ("NEWDOS/80 lumps").
         // - Lumps that aren't cylinders have no cylinder-per-byte table to mirror them.
         const hasLockoutTable = trsdos.version === TrsdosVersion.V2_3 &&
             trsdos.lumpsAreCylinders &&
             lumpCount <= MAX_LUMPS_WITH_LOCKOUT_TABLE &&
-            (trsdos.disk instanceof FloppyDisk || trsdos.disk instanceof SectorOverlay);
+            (trsdos.disk instanceof FloppyDisk ||
+                (trsdos.disk instanceof SectorOverlay && trsdos.disk.base instanceof FloppyDisk));
 
         // The directory's range, as in Trsdos.getTrsdos13SystemFiles().
         const dirStart = trsdos.dirLumpNumber*granulesPerLump;

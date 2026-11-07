@@ -3010,6 +3010,11 @@ side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
 - **Trap:** sector 3 of each partition's cylinder 0 holds a copy of its GAT (a
   stale one on some disks), followed by filler where the HIT should be. Only
   accept a GAT at sector 0 of the cylinder that the boot sector points to.
+  FORMAT writes that copy once, when it builds the GAT ("Write copy of GAT into
+  0/3" in Tandy's `hdfmt2.asm`, `trshard/` in the LS-DOS 6.3 source, the same
+  routine as the floppy FORMAT's). We found no other code in that source tree
+  that reads or writes it, so it's a snapshot of the freshly formatted GAT, and
+  nothing keeps it current. Our writer leaves it alone, as LDOS does.
 - **GAT fields:** the allocation table is one byte per cylinder from byte 0x00,
   for up to 203 cylinders, and there is no lockout table at 0x60. The cylinder
   count is `GAT[0xCC] + 35`, the granules per cylinder `(GAT[0xCD] & 7) + 1`, and
@@ -3061,6 +3066,41 @@ side, a lump is a cylinder, `granulesPerLump` is the granules per cylinder,
 - **DBLBIT:** bit 5 of FLAG2, and of GAT byte 0xCD, means each logical cylinder is
   two physical cylinders, for drives of 204 to 406 cylinders (guide, pages 33-34).
   No sample sets it. We skip such partitions.
+
+### Writing to partitions
+
+What `TrsdosWriter` does on an LDOS 5 or LS-DOS 6 partition (through a
+`SectorOverlay` over the `HardDiskPartition`, so a change is all or nothing):
+
+- It writes only the file's granules, the GAT bytes for the partition's own
+  cylinders (byte *c* for cylinder *c*, never past 0xCA), the HIT, directory
+  entry sectors, and for `label` the name, date, password and AUTO fields. GAT
+  bytes 0xCB-0xFF (version, cylinder count, granules, media data block) and the
+  stale copy in sector 3 of cylinder 0 are never touched.
+- There is no lockout table at 0x60 to read or write; those bytes are the
+  allocation of cylinders 96 and up.
+- A partition with more than 203 cylinders isn't written, since its GAT has no
+  byte for the rest (the cylinder count 0xCC allows up to 290).
+- DOSPLUS 3 partitions are never written, because the granules per cylinder
+  aren't recorded and we know them from one disk only.
+- An HDV's write-protect flag (header byte 7, bit 7) blocks the write, and
+  `--force` can override it; the saved image keeps its flag.
+- Extents work as on floppies: the granule offset is 3 bits and the count less
+  one is 5 bits, so a run of up to 32 granules is one extent, and offsets go to
+  7 on a partition with 8 granules per cylinder. The allocator starts from the
+  lowest free granule in the best-fitting run, so a partition's boot cylinder
+  can get files if its GAT shows free granules there.
+- The writer writes every sector of the granules that it allocates, padding the
+  last with zeros.
+- **A file with more than four extents (so, an FXDE) is refused on a
+  partition.** On a copy of a Model 4 LS-DOS 6.3 image booted in trs80gp
+  through FreHD, a partition with files of up to four extents (a 131,072-byte
+  file on 1 KB granules) booted and listed normally, but the same partition with a
+  132,096-byte file, which needs five extents and so an FXDE written as
+  described under "An FXDE", didn't boot. We don't know why: the FXDE
+  matches the ones on the real hard disk images (byte 0 = 0x90, byte 1 the
+  previous entry's DEC, zeros, extents at 22-29, `FF FF` at the end). So
+  `TrsdosWriter` doesn't write one on a partition; see `FLOPPY_TODO.md`.
 
 ### Partitions found
 

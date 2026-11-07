@@ -1,5 +1,5 @@
-import type {DiskVolume, VolumeGeometry} from "./DiskVolume.js";
-import {type FloppyDisk, SectorData, SectorPosition} from "./FloppyDisk.js";
+import type {DiskVolume, VolumeGeometry, WritableDiskVolume} from "./DiskVolume.js";
+import {SectorData, SectorPosition} from "./FloppyDisk.js";
 
 /**
  * A DiskVolume that sees the sectors of another, with changes laid over them until they're committed.
@@ -9,15 +9,15 @@ import {type FloppyDisk, SectorData, SectorPosition} from "./FloppyDisk.js";
  *
  * A write replaces only a sector's data. The sector keeps its data address mark (which matters:
  * TRSDOS 2.3-family directory sectors are marked deleted), its density, and its size. Sectors are
- * never created.
+ * never created. A hard disk partition's sectors have only data, so there's nothing else to keep.
  *
- * For now this wraps floppies only; hard disk partitions can be added later.
+ * This wraps any {@link WritableDiskVolume}: a floppy or a hard disk partition.
  */
 export class SectorOverlay implements DiskVolume {
     /**
      * The disk underneath, which isn't changed until {@link commit}.
      */
-    public readonly base: FloppyDisk;
+    public readonly base: WritableDiskVolume;
 
     /**
      * The changed sectors, by position key. Each has the base sector's mark and density, and the
@@ -26,9 +26,9 @@ export class SectorOverlay implements DiskVolume {
     private readonly changes = new Map<string, SectorData>();
 
     /**
-     * @param base the floppy to lay changes over.
+     * @param base the floppy or partition to lay changes over.
      */
-    constructor(base: FloppyDisk) {
+    constructor(base: WritableDiskVolume) {
         this.base = base;
     }
 

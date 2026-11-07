@@ -313,7 +313,7 @@ describe("unsupportedLayoutMessage", () => {
         expect(unsupportedLayoutMessage(trsdos)).to.contain("lumps");
     });
 
-    it("rejects a volume that isn't a floppy", () => {
+    it("rejects a volume that is neither a floppy nor a hard disk partition", () => {
         const trsdos = decode();
         const volume = {
             getGeometry: () => trsdos.geometry,
@@ -322,7 +322,7 @@ describe("unsupportedLayoutMessage", () => {
             getBootTrackText: () => trsdos.disk.getBootTrackText(),
         };
         const partition = new Trsdos(volume, trsdos.geometry, TrsdosVersion.V2_3, 1, 2, 5, 17, 2, 0);
-        expect(unsupportedLayoutMessage(partition)).to.contain("hard disk");
+        expect(unsupportedLayoutMessage(partition)).to.contain("kind of disk");
     });
 });
 

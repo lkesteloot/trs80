@@ -72,3 +72,22 @@ export interface DiskVolume {
      */
     getBootTrackText(): string;
 }
+
+/**
+ * A DiskVolume that can also be written: a floppy, or a hard disk partition. A {@link SectorOverlay}
+ * can be laid over any of these.
+ */
+export interface WritableDiskVolume extends DiskVolume {
+    /**
+     * Whether writeSector() would refuse, because the image says it's write-protected, was mounted
+     * that way, or has a format that can't be written.
+     */
+    isWriteProtected(): boolean;
+
+    /**
+     * Replace the data of the sector at a position. Check first with isWriteProtected(). What else
+     * of the sector is kept (data address mark, density) is up to the volume; a hard disk partition
+     * has only data.
+     */
+    writeSector(sectorPosition: SectorPosition, data: SectorData): void;
+}

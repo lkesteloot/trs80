@@ -372,6 +372,7 @@ export const CREATE_COMMAND: DiskCommand = {
     },
 
     endsSession: false,
+    floppyOnly: true,
 
     worksWithoutDisk: true,
 
@@ -497,6 +498,7 @@ export const FORMAT_COMMAND: DiskCommand = {
     },
 
     endsSession: false,
+    floppyOnly: true,
 
     /**
      * Replace the disk in memory with a blank one, as "create" makes. The cylinders and sides default to the

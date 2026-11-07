@@ -1,8 +1,9 @@
 import fs from "fs";
 import {
-    decodeFloppyFileSystem, decodeTrs80File, decodeTrsdos, evaluateTrsdosWriteGate, FloppyDisk, isFloppy,
-    isHardDisk, type KnownFloppyFileSystem, SectorOverlay, Trsdos, TrsdosGranuleMap, type TrsdosRuleSet, TrsdosWriteAccess,
-    TrsdosWriteError, type TrsdosWriteGate, TrsdosWriter,
+    decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosOnOverlay,
+    evaluateTrsdosWriteGate, findLdosPartitions, FloppyDisk, type HdvHardDisk, isFloppy, isHardDisk,
+    type KnownFloppyFileSystem, type LdosPartition, SectorOverlay, Trsdos, TrsdosGranuleMap, type TrsdosRuleSet,
+    TrsdosWriteAccess, TrsdosWriteError, type TrsdosWriteGate, TrsdosWriter, type WritableDiskVolume,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
@@ -89,6 +90,11 @@ export function decideWrite(gate: TrsdosWriteGate | undefined, fileSystemName: s
  * How a session saves its changes. These come from the global options of the "disk" command.
  */
 export interface DiskSessionOptions {
+    /**
+     * The hard disk partition to work on (--partition): its number from 1, or its disk name. Undefined
+     * to choose automatically when there is only one.
+     */
+    partition?: string | undefined;
     /** Where to save changes instead of the image (--output), or undefined to replace the image. */
     outputPathname?: string | undefined;
     /** Whether to never write anything, which wins over outputPathname (--dry-run). */
@@ -109,6 +115,33 @@ export const MAX_UNDO_STATES = 100;
  * recent state, which is always kept). Large images, such as HFE ones, would otherwise use a lot of memory.
  */
 export const MAX_UNDO_BYTES = 64*1024*1024;
+
+/**
+ * The same limit for a hard disk, whose every undo state is a copy of the whole image, which can be
+ * tens of megabytes. A 64 MB image leaves room for about three states.
+ */
+export const MAX_HARD_DISK_UNDO_BYTES = 256*1024*1024;
+
+/**
+ * The file name extension that makes decodeTrs80File() decode a hard disk image.
+ */
+const HARD_DISK_EXTENSION = ".hdv";
+
+/**
+ * The kinds of images that a session holds.
+ */
+type DiskImage = FloppyDisk | HdvHardDisk;
+
+/**
+ * The name of a partition as the user types it and as the prompt shows it: its disk name, or
+ * "partition N" if the disk has no name.
+ *
+ * @param partition the partition.
+ * @param number its number, from 1.
+ */
+export function partitionDisplayName(partition: LdosPartition, number: number): string {
+    return partition.diskName !== "" ? partition.diskName : "partition " + number;
+}
 
 /**
  * The file name extension that makes decodeTrs80File() use the decoder that produced each kind of floppy,
@@ -169,9 +202,24 @@ export interface DiskShellTerminal {
 export class DiskSession {
     /** The host pathname of the image. */
     public readonly pathname: string;
-    /** The decoded floppy, or undefined if the image doesn't exist yet and no command has made a disk. */
-    private currentFloppy: FloppyDisk | undefined;
-    /** The DOS on the floppy, or undefined if we didn't recognize one. Decoded again after each change. */
+    /**
+     * The decoded floppy or hard disk, or undefined if the image doesn't exist yet and no command has made a disk.
+     */
+    private currentImage: DiskImage | undefined;
+    /**
+     * The LDOS-family partitions of the hard disk, in disk order. Empty for a floppy and for a hard disk with
+     * none that we recognize. After a change, the changed partition's entry is decoded again.
+     */
+    private partitions: LdosPartition[] = [];
+    /**
+     * The index in {@link partitions} of the partition that the commands work on, or undefined if none is
+     * chosen. The choice is part of the session and not of the undo states, so undo never changes it.
+     */
+    private selectedPartitionIndex: number | undefined = undefined;
+    /**
+     * The DOS on the floppy or the selected partition, or undefined if we didn't recognize one. Decoded again
+     * after each change.
+     */
     private currentFileSystem: KnownFloppyFileSystem | undefined;
     /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
     private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
@@ -191,6 +239,8 @@ export class DiskSession {
     private readonly force: boolean;
     /** Whether requireWritable() has already shown the warning about forcing. */
     private forceWarningShown = false;
+    /** Whether we've said that old undo states were dropped to save memory. */
+    private undoDropWarningShown = false;
     /** How many times the floppy has been written or replaced, so that a command can tell if it changed anything. */
     private modificationCount = 0;
     /** The revision number of the current version of the disk. Every change makes a new number. */
@@ -214,43 +264,53 @@ export class DiskSession {
     /**
      * Use DiskSession.open() instead.
      */
-    private constructor(pathname: string, floppy: FloppyDisk | undefined, fileSystem: KnownFloppyFileSystem | undefined,
+    private constructor(pathname: string, image: DiskImage | undefined, fileSystem: KnownFloppyFileSystem | undefined,
                         options: DiskSessionOptions) {
 
         this.pathname = pathname;
-        this.currentFloppy = floppy;
+        this.currentImage = image;
         this.currentFileSystem = fileSystem;
         this.savePathname = options.outputPathname ?? pathname;
         this.dryRun = options.dryRun ?? false;
         this.ruleSet = options.ruleSet;
         this.force = options.force ?? false;
-        if (floppy !== undefined) {
-            this.watchFloppy(floppy);
+        if (image !== undefined) {
+            this.watchImage(image);
         }
         this.savedState = this.captureState();
     }
 
     /**
-     * Note a change to the floppy whenever it's written.
+     * Note a change to the floppy or hard disk whenever it's written.
      */
-    private watchFloppy(floppy: FloppyDisk): void {
-        floppy.onWrite.subscribe(() => {
-            if (floppy === this.currentFloppy) {
+    private watchImage(image: DiskImage): void {
+        const noteWrite = (): void => {
+            if (image === this.currentImage) {
                 this.changed = true;
                 this.modificationCount++;
             }
-        });
+        };
+        // The two kinds of disk have dispatchers of different types.
+        if (image instanceof FloppyDisk) {
+            image.onWrite.subscribe(noteWrite);
+        } else {
+            image.onWrite.subscribe(noteWrite);
+        }
     }
 
     /**
-     * Read and decode a floppy image. A floppy whose file system we don't recognize still opens,
+     * Read and decode a floppy or hard disk image. A floppy whose file system we don't recognize still opens,
      * since commands that work on the image itself don't need one. If the file doesn't exist then the
      * session has no disk (see {@link hasDisk}), for a command such as "create" to make one.
+     *
+     * A hard disk opens with its LDOS-family partitions found. If options.partition names one then it's
+     * selected, and otherwise it's selected if it's the only one. See {@link selectPartition}.
      *
      * @param pathname the host pathname of the image.
      * @param options where and whether to save changes.
      * @throws ToolError if the file exists but can't be read, isn't a TRS-80 file we can decode, isn't a
-     * floppy, or if options.ruleSet is given and the file system isn't TRSDOS-family.
+     * floppy or a hard disk, if options.ruleSet is given and the file system isn't TRSDOS-family, or if
+     * options.partition is given and doesn't name a partition.
      */
     public static open(pathname: string, options: DiskSessionOptions = {}): DiskSession {
         let binary: Uint8Array;
@@ -268,10 +328,18 @@ export class DiskSession {
             throw new ToolError("Can't open \"" + pathname + "\": " + trs80File.error);
         }
         if (isHardDisk(trs80File)) {
-            throw new ToolError("Can't open \"" + pathname + "\": the disk command doesn't handle hard disks yet");
+            const session = new DiskSession(pathname, trs80File, undefined, options);
+            session.findPartitions(options.partition);
+            if (options.ruleSet !== undefined && session.partitions.length === 0) {
+                throw new ToolError("--dos only applies to TRSDOS-family disks");
+            }
+            return session;
         }
         if (!isFloppy(trs80File)) {
-            throw new ToolError("Can't open \"" + pathname + "\": it's not a floppy image");
+            throw new ToolError("Can't open \"" + pathname + "\": it's not a floppy or hard disk image");
+        }
+        if (options.partition !== undefined) {
+            throw new ToolError("--partition only applies to hard disks");
         }
 
         const fileSystem = decodeFloppyFileSystem(trs80File);
@@ -283,10 +351,179 @@ export class DiskSession {
     }
 
     /**
+     * Find the partitions of the hard disk, and choose the one the commands work on: the one asked for, or
+     * the only one. The selection starts over from whatever was asked for, so call this when the disk
+     * is new or has been put back by an undo.
+     *
+     * @param wanted the number or disk name that the user gave, or undefined for none.
+     * @throws ToolError if wanted doesn't name exactly one partition.
+     */
+    private findPartitions(wanted: string | undefined): void {
+        const image = this.currentImage;
+        this.partitions = image === undefined || image instanceof FloppyDisk ? [] : findLdosPartitions(image);
+        this.selectedPartitionIndex = undefined;
+        if (wanted !== undefined) {
+            this.selectedPartitionIndex = this.resolvePartition(wanted);
+        } else if (this.partitions.length === 1) {
+            this.selectedPartitionIndex = 0;
+        }
+        this.currentFileSystem = this.selectedPartitionIndex === undefined ? undefined :
+            this.partitions[this.selectedPartitionIndex].trsdos;
+        this.granuleMap = null;
+        this.writeGate = null;
+        this.forceWarningShown = false;
+    }
+
+    /**
+     * Whether the session's disk is a hard disk.
+     */
+    public isHardDisk(): boolean {
+        return this.currentImage !== undefined && !(this.currentImage instanceof FloppyDisk);
+    }
+
+    /**
+     * The LDOS-family partitions of the hard disk, in disk order (partition 1 first). Empty for a floppy.
+     */
+    public getPartitions(): readonly LdosPartition[] {
+        return this.partitions;
+    }
+
+    /**
+     * The number (from 1) of the partition that the commands work on, or undefined if none is chosen,
+     * which is also the case for a floppy.
+     */
+    public get selectedPartitionNumber(): number | undefined {
+        return this.selectedPartitionIndex === undefined ? undefined : this.selectedPartitionIndex + 1;
+    }
+
+    /**
+     * The name of the selected partition, as the prompt shows it, or undefined if none is selected.
+     */
+    public get selectedPartitionName(): string | undefined {
+        const index = this.selectedPartitionIndex;
+        return index === undefined ? undefined : partitionDisplayName(this.partitions[index], index + 1);
+    }
+
+    /**
+     * Find the partition that the user means.
+     *
+     * @param wanted a partition number from 1, or a disk name (ignoring case), or a partition's directory
+     * name (which is its disk name made safe, and unique).
+     * @return the partition's index.
+     * @throws ToolError if there's no such partition or the name fits several.
+     */
+    private resolvePartition(wanted: string): number {
+        const text = wanted.trim();
+        if (this.partitions.length === 0) {
+            throw new ToolError("The disk has no partitions that we recognize");
+        }
+        if (/^\d+$/.test(text)) {
+            const number = Number(text);
+            if (number >= 1 && number <= this.partitions.length) {
+                return number - 1;
+            }
+            throw new ToolError("There is no partition " + text + ".\n" + this.describePartitionChoices());
+        }
+
+        const upperText = text.toUpperCase();
+        const byDiskName = this.partitions.flatMap((p, i) => p.diskName.toUpperCase() === upperText ? [i] : []);
+        if (byDiskName.length === 1) {
+            return byDiskName[0];
+        }
+        if (byDiskName.length > 1) {
+            throw new ToolError("Several partitions are named \"" + text + "\"; choose one by number.\n" +
+                this.describePartitionChoices());
+        }
+        const byDirectoryName = this.partitions.flatMap((p, i) => p.directoryName.toUpperCase() === upperText ? [i] : []);
+        if (byDirectoryName.length === 1) {
+            return byDirectoryName[0];
+        }
+        throw new ToolError("No partition is named \"" + text + "\".\n" + this.describePartitionChoices());
+    }
+
+    /**
+     * Choose the partition that the following commands work on.
+     *
+     * @param wanted a partition number from 1, or a disk name.
+     * @throws ToolError if the disk isn't a hard disk, or wanted doesn't name exactly one partition.
+     */
+    public selectPartition(wanted: string): void {
+        if (!this.isHardDisk()) {
+            throw new ToolError("The disk is a floppy, which has no partitions");
+        }
+        this.selectedPartitionIndex = this.resolvePartition(wanted);
+        this.currentFileSystem = this.partitions[this.selectedPartitionIndex].trsdos;
+        this.granuleMap = null;
+        this.writeGate = null;
+        this.forceWarningShown = false;
+    }
+
+    /**
+     * Whether a partition can be written, as the write gate sees it, or the reason it can't. Uses the
+     * rules the user named with --dos, if any.
+     *
+     * @param partition the partition.
+     * @return undefined if it can be written, or the blockers' messages.
+     */
+    private partitionReadOnlyReason(partition: LdosPartition): string | undefined {
+        const gate = evaluateTrsdosWriteGate(partition.trsdos, this.ruleSet);
+        switch (gate.access) {
+            case TrsdosWriteAccess.WRITABLE:
+                return undefined;
+            case TrsdosWriteAccess.REPAIR_ONLY:
+            case TrsdosWriteAccess.READ_ONLY:
+                return gate.blockers.map(blocker => blocker.message).join(" ");
+            default:
+                assertNever(gate.access);
+        }
+    }
+
+    /**
+     * One line for each partition, for choosing among them: its number, where it is, its disk name, its DOS,
+     * its number of files, and whether it can be written. The selected one is marked with "*".
+     */
+    public describePartitionLines(): string[] {
+        return this.partitions.map((partition, index) => {
+            const readOnlyReason = this.partitionReadOnlyReason(partition);
+            const files = pluralizeWithCount(partition.trsdos.getDirEntries(false).length, "file");
+            const mark = index === this.selectedPartitionIndex ? "*" : " ";
+            return [
+                mark + (index + 1).toString().padStart(2),
+                "  " + partition.partition.describeLocation(),
+                partition.diskName === "" ? "(no name)" : partition.diskName,
+                partition.trsdos.nameAndVersion,
+                files,
+                readOnlyReason === undefined ? "writable" : "read-only",
+            ].join("  ");
+        });
+    }
+
+    /**
+     * The partitions listed for the user to choose from, with how to choose, for an error message.
+     */
+    private describePartitionChoices(): string {
+        return "Partitions:\n" + this.describePartitionLines().map(line => "  " + line).join("\n") +
+            "\nChoose one with --partition N|NAME on the command line, or the \"partition\" command.";
+    }
+
+    /**
+     * The error for a command that needs a file system on a hard disk where none is chosen: either there
+     * are no partitions, or there are several and the user hasn't said which.
+     */
+    private makeNoPartitionError(): ToolError {
+        if (this.partitions.length === 0) {
+            return new ToolError("Can't find an LDOS, LS-DOS or DOSPLUS partition on \"" + this.pathname +
+                "\" (NEWDOS/80 and CP/M hard disks aren't supported yet)");
+        }
+        return new ToolError("This hard disk has " + this.partitions.length + " partitions, and the command works " +
+            "on one.\n" + this.describePartitionChoices());
+    }
+
+    /**
      * Whether the session has a disk: the image existed when it was opened, or a command has made one.
      */
     public hasDisk(): boolean {
-        return this.currentFloppy !== undefined;
+        return this.currentImage !== undefined;
     }
 
     /**
@@ -295,7 +532,7 @@ export class DiskSession {
      * @throws ToolError saying that the image doesn't exist and how to make it, if there's no disk.
      */
     public requireDisk(): void {
-        if (this.currentFloppy === undefined) {
+        if (this.currentImage === undefined) {
             throw this.makeNoDiskError();
         }
     }
@@ -308,15 +545,44 @@ export class DiskSession {
     }
 
     /**
-     * The decoded floppy.
+     * The decoded floppy, for the commands that only work on floppy images.
+     *
+     * @throws ToolError if the session has no disk, or the disk is a hard disk.
+     */
+    public get floppy(): FloppyDisk {
+        const image = this.currentImage;
+        if (image === undefined) {
+            throw this.makeNoDiskError();
+        }
+        if (!(image instanceof FloppyDisk)) {
+            throw new ToolError("This command works on floppy images, not hard disks");
+        }
+        return image;
+    }
+
+    /**
+     * The decoded hard disk.
+     *
+     * @throws ToolError if the session has no disk, or the disk is a floppy.
+     */
+    public get hardDisk(): HdvHardDisk {
+        const image = this.image;
+        if (image instanceof FloppyDisk) {
+            throw new ToolError("This command works on hard disks, not floppy images");
+        }
+        return image;
+    }
+
+    /**
+     * The decoded floppy or hard disk.
      *
      * @throws ToolError if the session has no disk.
      */
-    public get floppy(): FloppyDisk {
-        if (this.currentFloppy === undefined) {
+    public get image(): FloppyDisk | HdvHardDisk {
+        if (this.currentImage === undefined) {
             throw this.makeNoDiskError();
         }
-        return this.currentFloppy;
+        return this.currentImage;
     }
 
     /**
@@ -335,14 +601,16 @@ export class DiskSession {
      * @param floppy the new floppy, with the contents to be saved.
      */
     public setFloppy(floppy: FloppyDisk): void {
-        this.currentFloppy = floppy;
+        this.currentImage = floppy;
+        this.partitions = [];
+        this.selectedPartitionIndex = undefined;
         this.currentFileSystem = decodeFloppyFileSystem(floppy);
         this.granuleMap = null;
         this.writeGate = null;
         this.forceWarningShown = false;
         this.changed = true;
         this.modificationCount++;
-        this.watchFloppy(floppy);
+        this.watchImage(floppy);
     }
 
     /**
@@ -358,10 +626,16 @@ export class DiskSession {
     }
 
     /**
-     * The DOS on the floppy, or undefined if we didn't recognize one. After a change to the
-     * disk this is a new object, so don't hold on to the old one.
+     * The DOS on the floppy, or on the selected partition of a hard disk, or undefined if we didn't recognize
+     * one. After a change to the disk this is a new object, so don't hold on to the old one.
+     *
+     * @throws ToolError if the disk is a hard disk and no partition is selected: there are none that we
+     * recognize, or several and the user hasn't chosen one.
      */
     public get fileSystem(): KnownFloppyFileSystem | undefined {
+        if (this.isHardDisk() && this.selectedPartitionIndex === undefined) {
+            throw this.makeNoPartitionError();
+        }
         return this.currentFileSystem;
     }
 
@@ -387,7 +661,7 @@ export class DiskSession {
         }
 
         try {
-            writeFileAtomically(this.savePathname, this.floppy.binary);
+            writeFileAtomically(this.savePathname, this.image.binary);
         } catch (e: any) {
             throw new ToolError("Can't save \"" + this.savePathname + "\": " + (e.message ?? String(e)));
         }
@@ -448,24 +722,28 @@ export class DiskSession {
      * Capture the current disk, with a private copy of its bytes.
      */
     private captureState(): DiskState {
-        const floppy = this.currentFloppy;
+        const image = this.currentImage;
         return {
             // Not binary.slice(): the binary can be a Node Buffer, whose slice() shares memory with the original.
-            binary: floppy === undefined ? undefined : new Uint8Array(floppy.binary),
-            extension: floppy === undefined ? undefined : DiskSession.extensionForFloppy(floppy),
+            binary: image === undefined ? undefined : new Uint8Array(image.binary),
+            extension: image === undefined ? undefined : DiskSession.extensionForImage(image),
             revision: this.currentRevision,
         };
     }
 
     /**
-     * The file name extension that makes {@link decodeTrs80File} choose the decoder that makes this kind of floppy.
+     * The file name extension that makes {@link decodeTrs80File} choose the decoder that makes this kind of
+     * floppy or hard disk.
      *
-     * @throws Error if the floppy is of a kind that the session doesn't know (a bug).
+     * @throws Error if the image is of a kind that the session doesn't know (a bug).
      */
-    private static extensionForFloppy(floppy: FloppyDisk): string {
-        const extension = FLOPPY_CLASS_EXTENSIONS[floppy.className];
+    private static extensionForImage(image: DiskImage): string {
+        if (!(image instanceof FloppyDisk)) {
+            return HARD_DISK_EXTENSION;
+        }
+        const extension = FLOPPY_CLASS_EXTENSIONS[image.className];
         if (extension === undefined) {
-            throw new Error("Unknown kind of floppy: " + floppy.className);
+            throw new Error("Unknown kind of floppy: " + image.className);
         }
         return extension;
     }
@@ -477,17 +755,38 @@ export class DiskSession {
      */
     private restoreState(state: DiskState): void {
         if (state.binary === undefined || state.extension === undefined) {
-            this.currentFloppy = undefined;
+            this.currentImage = undefined;
             this.currentFileSystem = undefined;
+            this.partitions = [];
+            this.selectedPartitionIndex = undefined;
         } else {
             // The extension sends the bytes to the decoder that made this kind of floppy in the first place.
             const trs80File = decodeTrs80File(new Uint8Array(state.binary), { filename: "state" + state.extension });
-            if (trs80File.error !== undefined || !isFloppy(trs80File)) {
-                throw new Error("Can't restore the disk: " + (trs80File.error ?? "it didn't decode as a floppy"));
+            if (trs80File.error !== undefined) {
+                throw new Error("Can't restore the disk: " + trs80File.error);
             }
-            this.currentFloppy = trs80File;
-            this.currentFileSystem = decodeFloppyFileSystem(trs80File);
-            this.watchFloppy(trs80File);
+            if (isHardDisk(trs80File)) {
+                this.currentImage = trs80File;
+                // The partitions are where they were, so keep the user's choice of one.
+                const selected = this.selectedPartitionIndex;
+                this.findPartitions(undefined);
+                if (selected !== undefined && selected < this.partitions.length) {
+                    this.selectedPartitionIndex = selected;
+                    this.currentFileSystem = this.partitions[selected].trsdos;
+                } else {
+                    this.selectedPartitionIndex = this.partitions.length === 1 ? 0 : undefined;
+                    this.currentFileSystem = this.selectedPartitionIndex === undefined ? undefined :
+                        this.partitions[this.selectedPartitionIndex].trsdos;
+                }
+            } else if (isFloppy(trs80File)) {
+                this.currentImage = trs80File;
+                this.partitions = [];
+                this.selectedPartitionIndex = undefined;
+                this.currentFileSystem = decodeFloppyFileSystem(trs80File);
+            } else {
+                throw new Error("Can't restore the disk: it didn't decode as a floppy or a hard disk");
+            }
+            this.watchImage(trs80File);
         }
         this.granuleMap = null;
         this.writeGate = null;
@@ -531,13 +830,24 @@ export class DiskSession {
 
     /**
      * Drop the oldest undo states while there are too many, or while they hold too many bytes in total.
-     * The newest state is always kept.
+     * The newest state is always kept. The first time that states are dropped for their size, say so.
      */
     private trimUndoHistory(): void {
-        while (this.undoStack.length > MAX_UNDO_STATES ||
-            (this.undoStack.length > 1 && this.historyByteCount() > MAX_UNDO_BYTES)) {
+        const maxBytes = this.isHardDisk() ? MAX_HARD_DISK_UNDO_BYTES : MAX_UNDO_BYTES;
+        for (;;) {
+            const tooMany = this.undoStack.length > MAX_UNDO_STATES;
+            const tooBig = this.undoStack.length > 1 && this.historyByteCount() > maxBytes;
+            if (!tooMany && !tooBig) {
+                break;
+            }
 
             this.undoStack.shift();
+            if (!tooMany && !this.undoDropWarningShown) {
+                // Say so once, since losing the ability to undo is a surprise.
+                this.undoDropWarningShown = true;
+                console.log(colors.warning("Each undo step holds a copy of the whole disk image, so the " +
+                    "oldest changes can no longer be undone."));
+            }
         }
     }
 
@@ -657,6 +967,10 @@ export class DiskSession {
         if (!this.hasDisk()) {
             return this.pathname + " doesn't exist yet.";
         }
+        if (this.isHardDisk() && this.selectedPartitionIndex === undefined) {
+            // Each partition has its own answer; "partition" lists them.
+            return this.partitions.length === 0 ? "No file system was found on the disk." : undefined;
+        }
         if (this.fileSystem === undefined) {
             return "No file system was found on the disk.";
         }
@@ -719,10 +1033,10 @@ export class DiskSession {
             throw new ToolError("Writing " + (sessionTrsdos?.nameAndVersion ?? "this") + " disks isn't supported.");
         }
 
-        const overlay = new SectorOverlay(this.floppy);
+        const overlay = new SectorOverlay(this.writableVolume());
         let committed = false;
         try {
-            const trsdos = decodeTrsdos(overlay);
+            const trsdos = decodeTrsdosOnOverlay(overlay, sessionTrsdos);
             if (trsdos === undefined || !DiskSession.sameLayout(sessionTrsdos, trsdos)) {
                 throw new ToolError("Can't change this disk: it doesn't decode the same way when it is prepared for writing.");
             }
@@ -748,7 +1062,7 @@ export class DiskSession {
         }
 
         if (committed) {
-            this.currentFileSystem = decodeFloppyFileSystem(this.floppy);
+            this.currentFileSystem = this.decodeFileSystemAfterChange(sessionTrsdos);
             this.granuleMap = null;
             this.writeGate = null;
             if (!(this.currentFileSystem instanceof Trsdos)) {
@@ -762,14 +1076,67 @@ export class DiskSession {
     }
 
     /**
-     * Let the floppy be written. The gate lets a write-protected image through only with --force, and
+     * The volume that the file system is on, which changes are written to: the floppy, or the selected
+     * partition of the hard disk.
+     *
+     * @throws ToolError if the session has no disk, or the disk is a hard disk with no partition selected.
+     */
+    private writableVolume(): WritableDiskVolume {
+        const image = this.image;
+        if (image instanceof FloppyDisk) {
+            return image;
+        }
+        const index = this.selectedPartitionIndex;
+        if (index === undefined) {
+            throw this.makeNoPartitionError();
+        }
+        return this.partitions[index].partition;
+    }
+
+    /**
+     * Decode the file system again after a change was committed to the disk. A floppy's layout is found
+     * again, and a partition's is the one it had, since a partition's layout is given by its GAT and not
+     * guessed. The partition's entry in the list gets the new file system, and its disk name, which a change
+     * can make different.
+     *
+     * @param before the file system as it was decoded before the change.
+     * @return the new file system, or undefined if it doesn't decode.
+     */
+    private decodeFileSystemAfterChange(before: Trsdos): KnownFloppyFileSystem | undefined {
+        const image = this.image;
+        if (image instanceof FloppyDisk) {
+            return decodeFloppyFileSystem(image);
+        }
+
+        const index = this.selectedPartitionIndex;
+        if (index === undefined) {
+            return undefined;
+        }
+        const old = this.partitions[index];
+        const trsdos = decodeTrsdosHardDiskPartition(old.partition, before.dirLumpNumber, before.granulesPerLump);
+        if (trsdos !== undefined) {
+            const gatInfo = trsdos.getGatInfo();
+            this.partitions[index] = {
+                ...old,
+                trsdos,
+                diskName: typeof gatInfo === "string" ? old.diskName : gatInfo.name,
+            };
+        }
+        return trsdos;
+    }
+
+    /**
+     * Let the disk be written. The gate lets a write-protected image through only with --force, and
      * then it's the user's call, so clear the write-protect state in memory. The image's own flag stays
      * in its header, so the saved image is still marked write-protected. Formats that can't be written at
      * all stay write-protected, and the write fails with that message.
      */
     private clearWriteProtection(): void {
-        this.floppy.setMountedWriteProtected(false);
-        this.floppy.clearImageWriteProtected();
+        const image = this.image;
+        if (image instanceof FloppyDisk) {
+            image.setMountedWriteProtected(false);
+        }
+        image.clearImageWriteProtected();
     }
 
     /**
@@ -815,6 +1182,33 @@ export class DiskSession {
     }
 
     /**
+     * The end of the one-line summary of a hard disk: how many partitions it has, or the selected one's DOS,
+     * files and free space.
+     */
+    private describePartitionSummary(): string {
+        const index = this.selectedPartitionIndex;
+        if (this.partitions.length === 0) {
+            return ", no LDOS, LS-DOS or DOSPLUS partitions found";
+        }
+        if (index === undefined) {
+            return ", " + pluralizeWithCount(this.partitions.length, "partition") +
+                " (use \"partition\" to choose one)";
+        }
+
+        const fileSystem = this.fileSystem;
+        let description = ", partition " + (index + 1) + " (" + this.selectedPartitionName + ")";
+        if (fileSystem !== undefined) {
+            description += ": " + fileSystem.nameAndVersion + ", " +
+                pluralizeWithCount(fileSystem.getDirEntries(false).length, "file");
+            const granuleMap = this.getGranuleMap();
+            if (granuleMap !== undefined && typeof granuleMap !== "string") {
+                description += ", " + freeKilobytesText(granuleMap);
+            }
+        }
+        return description;
+    }
+
+    /**
      * A one-line summary of the disk, such as "disk.dmk: Floppy disk (DMK), TRSDOS 2.3, 12 files, 23 KB free",
      * or a note that the image doesn't exist yet.
      */
@@ -823,7 +1217,10 @@ export class DiskSession {
             return this.pathname + " doesn't exist yet; use \"create\" to make it.";
         }
 
-        let description = this.pathname + ": " + this.floppy.getDescription();
+        let description = this.pathname + ": " + this.image.getDescription();
+        if (this.isHardDisk()) {
+            return description + this.describePartitionSummary();
+        }
         if (this.fileSystem === undefined) {
             description += ", no file system found";
         } else {

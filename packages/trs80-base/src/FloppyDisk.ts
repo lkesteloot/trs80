@@ -2,7 +2,7 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 import {DATA_ADDRESS_MARK, DELETED_DATA_ADDRESS_MARK} from "./TrackBytes.js";
-import type {DiskVolume, VolumeGeometry} from "./DiskVolume.js";
+import type {VolumeGeometry, WritableDiskVolume} from "./DiskVolume.js";
 
 // Determined by the floppy controller.
 export const BYTES_PER_SECTOR = 256;
@@ -851,7 +851,7 @@ export class FloppyWrite {
 /**
  * Abstract class for virtual floppy disk file formats.
  */
-export abstract class FloppyDisk extends AbstractTrs80File implements DiskVolume {
+export abstract class FloppyDisk extends AbstractTrs80File implements WritableDiskVolume {
     public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
     protected mountedWriteProtected = false;
     // Cache for getBootTrackText(), cleared when the disk is written.

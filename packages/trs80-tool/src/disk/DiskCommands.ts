@@ -25,6 +25,7 @@ import {importHostFile} from "./DiskImport.js";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
 import {printDiskHelp} from "./DiskHelp.js";
+import {PARTITION_COMMAND} from "./DiskPartition.js";
 
 /**
  * One command of the "disk" command: its syntax (for the parser and for help) and what it does.
@@ -49,6 +50,12 @@ export interface DiskCommand {
      * to the disk is recorded so that "undo" can take it back.
      */
     managesHistory?: boolean;
+
+    /**
+     * Whether the command only works on floppy images (because it makes or reshapes a floppy, or runs
+     * its sectors), and so is refused on a hard disk. Leave it out for the commands that work on a file system.
+     */
+    floppyOnly?: boolean;
 
     /**
      * Run the command.
@@ -77,6 +84,11 @@ export const DISK_GLOBAL_OPTIONS: DiskOptionSpec[] = [
         name: "--dry-run",
         valueName: undefined,
         description: "write nothing, and say whether the disk would have changed (overrides --output)",
+    },
+    {
+        name: "--partition",
+        valueName: "N|NAME",
+        description: "work on this partition of a hard disk, by number (from 1) or disk name (see \"partition\")",
     },
     {
         name: "--dos",
@@ -843,6 +855,62 @@ const LABEL_COMMAND: DiskCommand = {
 };
 
 /**
+ * Print the details of a hard disk for "info", after its one-line description: the partitions, if none
+ * is selected, or the selected partition's layout and file system.
+ *
+ * @param session the open hard disk.
+ */
+function printHardDiskInfo(session: DiskSession): void {
+    const geometry = session.hardDisk.getGeometry();
+    console.log("    Geometry: " + pluralizeWithCount(geometry.cylinderCount, "cylinder") + ", " +
+        pluralizeWithCount(geometry.headCount, "head") + ", " + geometry.sectorsPerTrack + " sectors per track, " +
+        geometry.sectorSize + " bytes per sector");
+    for (const line of session.describePartitionLines()) {
+        console.log("    Partition " + line.trimStart());
+    }
+
+    const partitionNumber = session.selectedPartitionNumber;
+    const partition = partitionNumber === undefined ? undefined : session.getPartitions()[partitionNumber - 1];
+    if (partition === undefined) {
+        if (session.getPartitions().length > 1) {
+            console.log("    No partition is selected; use \"partition N|NAME\" to choose one.");
+        }
+        return;
+    }
+
+    const trsdos = partition.trsdos;
+    console.log("    Selected partition: " + partitionNumber + " (" + session.selectedPartitionName + "), " +
+        partition.partition.describeLocation());
+    const gatInfo = trsdos.getGatInfo();
+    if (typeof gatInfo === "string") {
+        console.log("    Error: " + gatInfo);
+    } else {
+        console.log("    Disk name: " + gatInfo.name);
+        if (gatInfo.date !== "") {
+            console.log("    Disk date: " + gatInfo.date);
+        }
+        if (gatInfo.autoCommand !== "") {
+            console.log("    Auto command: " + gatInfo.autoCommand);
+        }
+    }
+    console.log("    Directory cylinder: " + trsdos.dirLumpNumber);
+    console.log("    Granules per cylinder: " + trsdos.granulesPerLump);
+    console.log("    Sectors per granule: " + trsdos.sectorsPerGranule);
+    const granuleMap = session.getGranuleMap();
+    if (typeof granuleMap === "string") {
+        console.log("    Free space: unknown (" + granuleMap + ")");
+    } else if (granuleMap !== undefined) {
+        console.log("    Free space: " + session.getFreeSpaceText());
+    }
+    const gate = session.getWriteGate();
+    if (gate !== undefined) {
+        console.log("    Rules: " + (gate.ruleSet === undefined ? "unknown" : trsdosRuleSetToString(gate.ruleSet)));
+    }
+    const readOnlyReason = session.getReadOnlyReason();
+    console.log("    Writable: " + (readOnlyReason === undefined ? "yes" : "no. " + readOnlyReason));
+}
+
+/**
  * The "info" command: describe the disk and its layout.
  */
 const INFO_COMMAND: DiskCommand = {
@@ -862,6 +930,10 @@ const INFO_COMMAND: DiskCommand = {
      */
     run(session) {
         console.log(session.describe());
+        if (session.isHardDisk()) {
+            printHardDiskInfo(session);
+            return;
+        }
         for (const line of floppyDetailLines(session.floppy, session.fileSystem)) {
             console.log("    " + line);
         }
@@ -1072,6 +1144,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     ATTRIB_COMMAND,
     LABEL_COMMAND,
     INFO_COMMAND,
+    PARTITION_COMMAND,
     FREE_COMMAND,
     MAP_COMMAND,
     CHECK_COMMAND,
@@ -1121,6 +1194,9 @@ export async function runDiskCommands(session: DiskSession, commands: ParsedDisk
         }
         if (diskCommand.worksWithoutDisk !== true) {
             session.requireDisk();
+        }
+        if (diskCommand.floppyOnly === true && session.isHardDisk()) {
+            throw new ToolError(diskCommand.spec.name + " works on floppy images, not hard disks");
         }
         if (diskCommand.managesHistory === true) {
             await diskCommand.run(session, command, globalOptions);

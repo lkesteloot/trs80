@@ -7,9 +7,14 @@ import {DiskOptionValues, parseDiskCommandLine, splitCommandLine} from "./DiskCo
 import {DiskSession, type DiskShellTerminal} from "./DiskSession.js";
 
 /**
- * The text of the prompt of the interactive shell, before it's colored.
+ * The text of the prompt of the interactive shell, before it's colored: ">", with the name of the
+ * selected partition of a hard disk before it, such as "HARDA>".
+ *
+ * @param partitionName the name of the selected partition, or undefined if there is none (or the disk is a floppy).
  */
-const PROMPT = ">";
+export function makeDiskPrompt(partitionName: string | undefined): string {
+    return (partitionName ?? "") + ">";
+}
 
 /**
  * Complete the word at the end of a line typed into the shell. The first word of each command
@@ -192,6 +197,8 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
                 sessionEnded = true;
                 rl.close();
             } else {
+                // A command may have chosen a partition.
+                rl.setPrompt(colors.prompt(makeDiskPrompt(session.selectedPartitionName)));
                 rl.prompt();
             }
         };
@@ -219,7 +226,7 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
             rl = readline.createInterface({
                 input: process.stdin,
                 output: process.stdout,
-                prompt: colors.prompt(PROMPT),
+                prompt: colors.prompt(makeDiskPrompt(session.selectedPartitionName)),
                 completer,
                 history,
             });

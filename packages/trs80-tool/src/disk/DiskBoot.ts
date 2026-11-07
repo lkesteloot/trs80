@@ -171,6 +171,7 @@ export const BOOT_COMMAND: DiskCommand = {
     },
 
     endsSession: false,
+    floppyOnly: true,
 
     /**
      * Boot the session's disk, as it is in memory, in a machine drawn in the terminal, and wait until the
