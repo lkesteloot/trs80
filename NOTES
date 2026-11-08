@@ -12,6 +12,8 @@ first: vite, esbuild, and tsx compile it directly.
 
 ---
 
-To make a new release of trs80-tool, bump the version in its package.json
-and commit/push. Github will build the binaries.
+To make a new release of trs80-tool, bump the version in its package.json,
+rebuild the tree, push, then:
+
+    git push origin master:release
 
