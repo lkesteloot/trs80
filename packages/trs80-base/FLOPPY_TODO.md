@@ -299,6 +299,13 @@ more.
   with good IDs) after them. Files reach cylinder 45, so reading that track would
   recover 18 of the 156 missing sectors. Decide whether the reader should load
   whole tracks past the header's count.
+- `lanhawk/Archive2a/ARCH067.DSK`, `ARCH146.DSK`, `ARCH158.DSK`: "Unknown DOS", since
+  0xCB is 0x50, but the boot sector is byte for byte the `F3 FE` one of eight DOSPLUS 3.3
+  disks (including `ARCH121` and `ARCH151` of the same set), and BOOT/SYS fills cylinder 0
+  as DOSPLUS's does. Something rewrote 0xCB along with the name and date (all three say
+  "DISK", in capitals). Naming DOSPLUS from its boot sectors would fix these, but other
+  DOSPLUS boot sectors are shared by 3.3, 3.4 and 3.5, so a boot sector names the DOS, not
+  the version, and "DOSPLUS" alone means 4.0 or 3.4a today (see `DOS_NAME_RULES`).
 - `ira/no-extract/Dot Writer ... [M4].dmk` (both): GAT byte 0xCB is 0x40 with no
   "VTOS" or "DOSPLUS" on the boot track, so the DOS is "Unknown DOS". The files
   read cleanly.

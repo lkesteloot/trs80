@@ -50,6 +50,7 @@ const LAYOUT_2_3_NAMES: [string, TrsdosRuleSet | undefined][] = [
     ["NEWDOS 2.1", undefined],
     ["MultiDOS 1.6", undefined],
     ["VTOS 4.0", undefined],
+    ["Super Utility+ 3.1 data disk", undefined],
     ["Unknown DOS", undefined],
 ];
 
@@ -107,6 +108,12 @@ describe("identifyTrsdosRuleSet", () => {
     it("doesn't recognize a disk of an unknown DOS", () => {
         const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]))!;
         Object.defineProperty(trsdos, "nameAndVersion", {value: "Unknown DOS"});
+        expect(identifyTrsdosRuleSet(trsdos)).to.eql({ruleSet: undefined, recognized: false});
+    });
+
+    it("doesn't recognize a disk named only by the utility that formatted it", () => {
+        const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]))!;
+        Object.defineProperty(trsdos, "nameAndVersion", {value: "Super Utility+ 3.1 data disk"});
         expect(identifyTrsdosRuleSet(trsdos)).to.eql({ruleSet: undefined, recognized: false});
     });
 

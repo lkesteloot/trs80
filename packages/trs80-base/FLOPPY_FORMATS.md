@@ -1018,12 +1018,58 @@ Strongest first. Measured on all 274 images.
   MultiDOS 1.4-1.7 boot sectors start with 3B FE, which identifies their data
   disks, whose GATs say 0x16 (MultiDOS 1.6) and which hold a mixed-case
   `NoDOS/Ind` file.
-- **0xCB values that don't name a DOS:** 0x22 and 0x50 are written by the
-  formatter on Kim Watt's utility disks (Super Utility, Power-Copy, Make-80,
-  Lazy Writer), not by TRSDOS 2.2 (which writes 0x21) or LDOS 5.0; 0x55 is
-  UltraDOS's "U"; the "Not A System Disk:" formatter writes 0x31-0x34 without
-  being DOSPLUS; 0x40 is DOSPLUS 4.0, DOSPLUS 3.4a or VTOS 4.0. These name a
-  data disk "Unknown DOS" rather than a wrong one.
+- **0xCB values that don't name a DOS:** Super Utility+ writes its own version
+  there (0x21, 0x22, 0x31, 0x32; see "Super Utility+" below), not TRSDOS 2.2's
+  or DOSPLUS 3.1's; 0x50 is on disks of Kim Watt's other programs (Power-Copy,
+  Make-80, Multi-Disk Copy), with Super Utility+ 2.x's boot sector, not LDOS
+  5.0's; 0x55 is UltraDOS's "U"; 0x40 is DOSPLUS 4.0, DOSPLUS 3.4a or VTOS 4.0.
+  These name a data disk "Unknown DOS", or by its formatter, rather than by a
+  wrong DOS.
+
+### Super Utility+
+
+Kim Watt's Super Utility+ (Breeze/QSD) formats disks for whichever DOS it's
+configured for, and writes on them a boot sector and a GAT of its own. Its GAT
+template starts at 0xCB with Super Utility+'s version in BCD, then two zero bytes,
+the hash of "PASSWORD" (0x42E0), a name and a date. Pete Carr's technical notes
+on the program say the same of an earlier release, whose template has 0x21, "the
+version number for SU+" ([sutech.txt](https://tim-mann.org/trs80/doc/sutech.txt)).
+Measured on the three programs of `ira/lk-341-set-1/Super Utility + v2.2 …`,
+extracted:
+
+| Program | Banner | 0xCB | Name, date | Boot message |
+|---|---|---|---|---|
+| SUPER1/CMD | Ver. 2.2z Rev. 21, 1981 | 0x22 | `DataDisk`, `00/00/00` | `NOT A SYSTEM DISK. ` |
+| SUPER2/CMD | Version 3.1a, March 16, 1983 | 0x31 | `* Data *`, `* Disk *` | `Not A System Disk:` |
+| SUPER3/CMD | (none found) | 0x32 | `* Data *`, `* Disk *` | `Not A System Disk:` |
+
+Each major version has one boot sector, the same in every release: 2.x's is `00
+FE dd 21 14 42 7E 23 B7 28 05 CD 33 00 18 F6 CD 40 00 76 1C 1F 17` and its
+message, and 3.x's is `00 FE dd CD 0B 00 11 13 00 19 7E 23 FE 00 28 05 CD 33 00
+18 F5 CD 40 00 C7 1C 1F` and its message, where `dd` is the directory cylinder
+(without DOSPLUS's high bit). Across the suite, every boot sector with either
+message is exactly one of these, on 52 and 96 disks. Super Utility+ 3.x's 0xCC is
+the cylinders minus 35 even below 35, wrapping to a byte (0xEA on 13 cylinders).
+
+So a 2.3-layout disk with one of these boot sectors, whose 0xCB has the same major
+version, is a data disk that Super Utility+ formatted, and it says nothing about
+which DOS then used it; we name it "Super Utility+ 3.1 data disk" and the like,
+which the write gate treats as an unknown DOS. When 0xCB has another major version,
+a DOS rewrote the GAT later, and its 0xCB is the DOS's: two 2.x disks say 0x34 and
+are DOSPLUS 3.4 disks (`peter/64 Elephant #2 …` holds Newscript under DOSPLUS, and
+`lanhawk/Archive2a/ARCH098.DSK` has a DOSPLUS date). Kim Watt's own program disks
+(Power-Copy III, Make-80, Multi-Disk Copy III) have the 2.x boot sector with 0x50,
+which stays unknown. Super Utility+ also writes its boot sector on TRSDOS 1.3-layout
+disks (about ten in `ira/lk-341-set-1`), where the GAT has no version byte.
+
+The 158 disks of `lanhawk/Archive2a` are one owner's, mostly double-density
+DOSPLUS data disks: 77 were formatted by Super Utility+ 3.1, 2 by 3.2 and 38 by
+2.2, against 36 that name DOSPLUS 3.3-3.5 (and three more in `FLOPPY_TODO.md`). Their names and dates ("Disk  90",
+"41-DD+") were rewritten later, the same way whichever program formatted them, so
+they're no evidence. Its `Listing2a.csv`, from an unknown tool, agrees with our
+decoding on every file's name and size, but leaves out hidden files, truncates
+sizes to their first digits (12263 as 1226), and calls disks "DOSPLUS" or
+"MULTIDOS" inconsistently, so its DOS column isn't evidence either.
 
 ### Booting as ground truth
 
@@ -3313,9 +3359,9 @@ evidence: there are, for example, about 100 double-sided LS-DOS data disks.
 
 **DOSPLUS 3.2 existed** (trs-80.org: Micro-Systems released 3.1 through 3.4 in
 1980-1982). `willus/dsp1321a.dmk` is 3.2.1 for the Model I, with 0xCB = 0x32
-and DOSPLUS's `F3 FE` boot sector. The six 0x32 disks in `peter/` are not
+and DOSPLUS's `F3 FE` boot sector. The 0x32 disks in `peter/` (five that decode) are not
 DOSPLUS: they share another boot sector, which says "Not A System Disk:", from
-a formatter that also writes 0x34. It also writes 0x31 (`ira/tamer`, 1983,
+Super Utility+ 3.2 (see "Super Utility+"). Super Utility+ 3.1 writes 0x31 (`ira/tamer`, 1983,
 with LDOS-style 32-byte entries and a HIT), and its 0xCC is the cylinders minus
 35 even below 35, wrapping to a byte: 0xEA there for 13 cylinders, which the
 lockout table confirms. The image has 22 cylinders; 13-21 hold only the

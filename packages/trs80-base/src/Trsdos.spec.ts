@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import {
     decodeDirEntry, decodeTrsdos, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
-    hashTrsdosPassword, parseTrsdosProtectionLevel, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
+    hashTrsdosPassword, isUnknownDosName, parseTrsdosProtectionLevel, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
     Trsdos, TrsdosProtectionLevel, TrsdosProtectionNames, trsdosProtectionLevels, trsdosProtectionLevelToString,
     trsdosProtectionNamesFor, TrsdosVersion, type Trsdos13DirEntryFields, type Trsdos23DirEntryFields,
 } from "./Trsdos.js";
@@ -241,6 +241,54 @@ describe("hashTrsdosPassword", () => {
             expect(() => hashTrsdosPassword(bad)).to.throw(Error, "Invalid password");
         }
         hashTrsdosPassword("A1234567");
+    });
+});
+
+/**
+ * The bytes of a boot sector from byte 3 on: some code, then a message.
+ */
+function bootCode(code: number[], message: string): Uint8Array {
+    return new Uint8Array([...code, ...[...message].map(c => c.charCodeAt(0))]);
+}
+
+// Super Utility+ 3.x's boot code and message.
+const SUPER_UTILITY_3_BOOT = bootCode([0xCD, 0x0B, 0x00, 0x11, 0x13, 0x00, 0x19, 0x7E, 0x23, 0xFE, 0x00, 0x28,
+    0x05, 0xCD, 0x33, 0x00, 0x18, 0xF5, 0xCD, 0x40, 0x00, 0xC7, 0x1C, 0x1F], "Not A System Disk:");
+
+// Super Utility+ 2.x's boot code and message.
+const SUPER_UTILITY_2_BOOT = bootCode([0x21, 0x14, 0x42, 0x7E, 0x23, 0xB7, 0x28, 0x05, 0xCD, 0x33, 0x00, 0x18,
+    0xF6, 0xCD, 0x40, 0x00, 0x76, 0x1C, 0x1F, 0x17], "NOT A SYSTEM DISK. ");
+
+describe("Super Utility+ data disks", () => {
+    /**
+     * Decode a test disk with this boot code and GAT version byte, and return its DOS name.
+     */
+    function nameOf(code: Uint8Array, dosVersion: number): string {
+        return decodeTrsdos(makeTrsdos23TestDisk([], {bootCode: code, dosVersion}))!.nameAndVersion;
+    }
+
+    it("names the disk by the Super Utility+ version at 0xCB", () => {
+        expect(nameOf(SUPER_UTILITY_3_BOOT, 0x31)).to.equal("Super Utility+ 3.1 data disk");
+        expect(nameOf(SUPER_UTILITY_3_BOOT, 0x32)).to.equal("Super Utility+ 3.2 data disk");
+        expect(nameOf(SUPER_UTILITY_2_BOOT, 0x22)).to.equal("Super Utility+ 2.2 data disk");
+        expect(nameOf(SUPER_UTILITY_2_BOOT, 0x21)).to.equal("Super Utility+ 2.1 data disk");
+    });
+
+    it("trusts 0xCB when it's from another major version", () => {
+        expect(nameOf(SUPER_UTILITY_2_BOOT, 0x34)).to.equal("DOSPLUS 3.4");
+        expect(nameOf(SUPER_UTILITY_2_BOOT, 0x50)).to.equal("Unknown DOS");
+    });
+
+    it("needs the whole boot code, not just the message", () => {
+        const damaged = SUPER_UTILITY_3_BOOT.slice();
+        damaged[0] = 0x00;
+        expect(nameOf(damaged, 0x31)).to.equal("DOSPLUS 3.1");
+    });
+
+    it("counts as naming no DOS", () => {
+        expect(isUnknownDosName("Unknown DOS")).to.equal(true);
+        expect(isUnknownDosName("Super Utility+ 3.1 data disk")).to.equal(true);
+        expect(isUnknownDosName("DOSPLUS 3.4")).to.equal(false);
     });
 });
 

@@ -239,6 +239,15 @@ describe("the gate's DOS rules", () => {
         expect(gate.ruleSet).to.be.undefined;
     });
 
+    it("treats a Super Utility+ data disk like one that doesn't say", () => {
+        const name = "Super Utility+ 3.1 data disk";
+        const blocked = evaluateTrsdosWriteGate(withName(decode(), name));
+        expect(kinds(blocked.blockers)).to.eql([TrsdosWriteBlockerKind.UNKNOWN_DOS]);
+        const named = evaluateTrsdosWriteGate(withName(decode(), name), TrsdosRuleSet.DOSPLUS);
+        expect(named.blockers).to.eql([]);
+        expect(named.ruleSet).to.equal(TrsdosRuleSet.DOSPLUS);
+    });
+
     it("blocks a DOS that we have no rules for", () => {
         const gate = evaluateTrsdosWriteGate(withName(decode(), "TRSDOS 2.3B"));
         expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);

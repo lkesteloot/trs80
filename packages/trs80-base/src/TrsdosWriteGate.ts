@@ -9,7 +9,7 @@ import {ImdFloppyDisk} from "./ImdFloppyDisk.js";
 import {Jv1FloppyDisk, JV1_DIRECTORY_CYLINDER} from "./Jv1FloppyDisk.js";
 import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
-import {type Trsdos, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
+import {isUnknownDosName, type Trsdos, TrsdosVersion} from "./Trsdos.js";
 import {
     checkTrsdos,
     type TrsdosCheckResult,
@@ -512,7 +512,7 @@ export function evaluateDosRules(nameAndVersion: string, layout: TrsdosVersion,
                                  givenRuleSet: TrsdosRuleSet | undefined): TrsdosDosRulesVerdict {
 
     const identifiedRuleSet = ruleSetForDosName(nameAndVersion, layout);
-    const recognized = nameAndVersion !== UNKNOWN_DOS;
+    const recognized = !isUnknownDosName(nameAndVersion);
 
     if (givenRuleSet !== undefined) {
         const ruleSetLayout = trsdosRuleSetLayout(givenRuleSet);

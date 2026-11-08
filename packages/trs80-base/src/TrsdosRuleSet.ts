@@ -1,6 +1,6 @@
 import {assertNever} from "z80-base";
 import {BasicDialect} from "./BasicDialect.js";
-import {type Trsdos, TRSDOS_6_DOS_NAME, TrsdosVersion, UNKNOWN_DOS} from "./Trsdos.js";
+import {isUnknownDosName, type Trsdos, TRSDOS_6_DOS_NAME, TrsdosVersion} from "./Trsdos.js";
 
 /**
  * The rules of the DOS that a disk is written under. The TRSDOS 2.3 family's DOSes share a layout
@@ -219,7 +219,7 @@ export interface TrsdosDosIdentity {
 export function identifyTrsdosRuleSet(trsdos: Trsdos): TrsdosDosIdentity {
     return {
         ruleSet: ruleSetForDosName(trsdos.nameAndVersion, trsdos.version),
-        recognized: trsdos.nameAndVersion !== UNKNOWN_DOS,
+        recognized: !isUnknownDosName(trsdos.nameAndVersion),
     };
 }
 

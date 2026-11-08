@@ -145,6 +145,17 @@ export interface TestDiskOptions {
      * Extended entries to put in the free user slots after the files' own, which no chain reaches.
      */
     strayExtendedEntries?: TestStrayExtendedEntry[] | undefined;
+
+    /**
+     * The DOS version byte at GAT 0xCB, default 0x21 (TRSDOS 2.x).
+     */
+    dosVersion?: number | undefined;
+
+    /**
+     * Bytes to put in the boot sector from byte 3 on, after the 00 FE and the directory cylinder.
+     * By default it's left zero.
+     */
+    bootCode?: Uint8Array | undefined;
 }
 
 const SECTORS_PER_TRACK = 10;
@@ -330,6 +341,9 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
 
     // Boot sector: byte 2 is the directory cylinder.
     binary[sectorOffset(0, 0) + 2] = DIR_CYLINDER;
+    if (options.bootCode !== undefined) {
+        binary.set(options.bootCode, sectorOffset(0, 0) + 3);
+    }
 
     // GAT sector. Lumps past the disk's end are 0xFF.
     const gatOffset = sectorOffset(DIR_CYLINDER, 0);
@@ -496,7 +510,7 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
     binary.set(lockout, gatOffset + GAT_LOCKOUT_OFFSET);
 
     // The GAT's trailer. TRSDOS 2.x writes 0x21 for the version and leaves the LDOS fields zero.
-    binary[gatOffset + GAT_DOS_VERSION_OFFSET] = 0x21;
+    binary[gatOffset + GAT_DOS_VERSION_OFFSET] = options.dosVersion ?? 0x21;
     binary[gatOffset + GAT_DOS_VERSION_OFFSET + 1] = 0;
     binary[gatOffset + GAT_DOS_VERSION_OFFSET + 2] = 0;
     writeWord(binary, gatOffset + GAT_PASSWORD_OFFSET, TRSDOS_DEFAULT_PASSWORD_HASH);

@@ -32,6 +32,52 @@ const PASSWORD = 0xD38F;
 // Name of a disk whose DOS we can't tell.
 export const UNKNOWN_DOS = "Unknown DOS";
 
+// Names of data disks whose DOS we can't tell, but whose formatter we can, such as "Super
+// Utility+ 3.1 data disk".
+const FORMATTER_DATA_DISK_NAME = /^Super Utility\+ \d\.\d data disk$/;
+
+/**
+ * Whether a DOS name, as {@link Trsdos.nameAndVersion} gives it, names no DOS: it's
+ * {@link UNKNOWN_DOS}, or it names only the utility that formatted the disk. Such a disk can be
+ * written only under a DOS that the user names.
+ */
+export function isUnknownDosName(name: string): boolean {
+    return name === UNKNOWN_DOS || FORMATTER_DATA_DISK_NAME.test(name);
+}
+
+/**
+ * The boot sector that one major version of Kim Watt's Super Utility+ writes on a disk that it
+ * formats, from byte 3 (after the 00 FE that the directory cylinder follows) through the end of its
+ * message. Super Utility+ also writes its own version at GAT byte 0xCB. See "Super Utility+" in
+ * FLOPPY_FORMATS.md.
+ */
+interface SuperUtilityBootSector {
+    // The major version, which is the high digit of the version at 0xCB.
+    readonly major: number;
+    // The boot code, which prints the message and halts.
+    readonly code: readonly number[];
+    // The message that the code prints.
+    readonly message: string;
+}
+
+/**
+ * The boot sectors of Super Utility+ 2.x and 3.x.
+ */
+const SUPER_UTILITY_BOOT_SECTORS: readonly SuperUtilityBootSector[] = [
+    {
+        major: 2,
+        code: [0x21, 0x14, 0x42, 0x7E, 0x23, 0xB7, 0x28, 0x05, 0xCD, 0x33, 0x00, 0x18, 0xF6, 0xCD, 0x40, 0x00,
+            0x76, 0x1C, 0x1F, 0x17],
+        message: "NOT A SYSTEM DISK. ",
+    },
+    {
+        major: 3,
+        code: [0xCD, 0x0B, 0x00, 0x11, 0x13, 0x00, 0x19, 0x7E, 0x23, 0xFE, 0x00, 0x28, 0x05, 0xCD, 0x33, 0x00,
+            0x18, 0xF5, 0xCD, 0x40, 0x00, 0xC7, 0x1C, 0x1F],
+        message: "Not A System Disk:",
+    },
+];
+
 // Names (in upper case) of the files that hold the boot track, in the DOSes that have one.
 const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);
 
@@ -2767,12 +2813,16 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             const match = bootTrack.match(/Version (\d\.\d)/);
             return match === null ? "RAPIDOS" : `RAPIDOS ${match[1]}`;
         }
-        // This formatter writes 0x31 to 0x34 at 0xCB, like DOSPLUS, but isn't DOSPLUS.
-        if (bootTrack.includes("Not A System Disk")) {
-            return UNKNOWN_DOS;
+        const osVersion = gatInfo.osVersion;
+
+        // Super Utility+ writes its own version at 0xCB (0x22 and 0x31 look like TRSDOS 2.2 and
+        // DOSPLUS 3.1, but aren't), so its data disks don't say which DOS used them. A version from
+        // another major release means a DOS rewrote the GAT later, so then it's that DOS's.
+        const superUtilityMajor = this.getSuperUtilityMajorVersion();
+        if (superUtilityMajor !== undefined && osVersion >> 4 === superUtilityMajor && (osVersion & 0x0F) <= 9) {
+            return `Super Utility+ ${superUtilityMajor}.${osVersion & 0x0F} data disk`;
         }
 
-        const osVersion = gatInfo.osVersion;
         switch (osVersion) {
             case 0x00:
                 return this.hasTrsdos23BBootSector() ? "TRSDOS 2.3B" : UNKNOWN_DOS;
@@ -2917,6 +2967,30 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
         const bootSector = this.disk.readSector(bootTrack.firstSectorPosition());
         return bootSector !== undefined && bytes.every((b, i) => bootSector.data[i] === b);
+    }
+
+    /**
+     * The major version of the Super Utility+ whose boot sector this disk has, or undefined if it
+     * has another or no boot track.
+     */
+    private getSuperUtilityMajorVersion(): number | undefined {
+        const bootTrack = this.geometry.bootTrack;
+        if (bootTrack === undefined) {
+            return undefined;
+        }
+        const bootSector = this.disk.readSector(bootTrack.firstSectorPosition());
+        if (bootSector === undefined) {
+            return undefined;
+        }
+        const data = bootSector.data;
+        for (const superUtility of SUPER_UTILITY_BOOT_SECTORS) {
+            const expected = [...superUtility.code, ...[...superUtility.message].map(c => c.charCodeAt(0))];
+            const matches = data.length >= 3 + expected.length && expected.every((b, i) => data[3 + i] === b);
+            if (matches) {
+                return superUtility.major;
+            }
+        }
+        return undefined;
     }
 
     /**
