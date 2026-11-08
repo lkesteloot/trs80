@@ -38,6 +38,6 @@
   },
   "devDependencies": {
     "@types/gtag.js": "^0.0.20",
-    "vite": "^8.3.0"
+    "vite": "^8.3.6"
   }
 }
