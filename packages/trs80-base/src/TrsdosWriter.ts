@@ -1180,8 +1180,9 @@ export class TrsdosWriter {
         }
         const extendedEntriesUnderstood = this.ruleSet !== TrsdosRuleSet.TRSDOS_2;
         if (extentGroups.length > 1 && !extendedEntriesUnderstood) {
-            // TRSDOS 2.x's FXDEs don't carry their primary's hash in the HIT, and we don't know what
-            // they carry. See "An FXDE" in FLOPPY_FORMATS.md.
+            // Some TRSDOS 2.x disks have FXDEs whose HIT byte isn't their primary's hash. A real TRSDOS
+            // 2.3 writes the hash, but until the others are explained and check and repair agree, we don't
+            // write them. See "An FXDE" in FLOPPY_FORMATS.md and FLOPPY_TODO.md.
             throw new TrsdosWriteError(`Can't ${verb} ${name}: the free space is fragmented, so it needs ` +
                 `${extents.length} extents, and writing TRSDOS 2.x's extended directory entries isn't ` +
                 `supported yet`);
@@ -1411,7 +1412,7 @@ export class TrsdosWriter {
      *
      * The 2.3 family's layouts and TRSDOS 1.3's are supported. BOOT/SYS and DIR/SYS can't be renamed. Renaming a
      * file to its own name changes nothing. A file with extended entries can't be renamed under TRSDOS 2.x
-     * rules, whose extended entries have HIT bytes that we don't understand yet.
+     * rules, whose extended entries' HIT bytes aren't settled yet (see FLOPPY_TODO.md).
      *
      * @param dirEntry the file's primary entry, from {@link findFile} or the writer's directory.
      * @param newFilename the new name, which must not belong to another file (case doesn't matter).
@@ -1458,8 +1459,9 @@ export class TrsdosWriter {
 
         const chain = TrsdosWriter.entryChain(dirEntry);
         if (chain.length > 1 && this.ruleSet === TrsdosRuleSet.TRSDOS_2) {
-            // TRSDOS 2.x's FXDEs don't carry their primary's hash in the HIT, and we don't know what
-            // they carry. See "An FXDE" in FLOPPY_FORMATS.md.
+            // Some TRSDOS 2.x disks have FXDEs whose HIT byte isn't their primary's hash. A real TRSDOS
+            // 2.3 writes the hash, but until the others are explained and check and repair agree, we don't
+            // write them. See "An FXDE" in FLOPPY_FORMATS.md and FLOPPY_TODO.md.
             throw new TrsdosWriteError(`Can't rename ${name}: it has extended directory entries, and ` +
                 `TRSDOS 2.x's HIT bytes for those aren't understood yet`);
         }

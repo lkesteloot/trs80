@@ -76,6 +76,14 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       write the primary's hash (measured in trs80gp; see "An FXDE" in
       FLOPPY_FORMATS.md), so the refusal could be lifted for 2.3 once `check` and
       `repair` agree and the disks with other HIT bytes are explained.
+      Users see it as a refusal to add (or rename) a file on a TRSDOS 2.x disk
+      when free space is so fragmented that the file needs more than 4 extents
+      (a run of up to 32 granules is one extent, so contiguous files never do).
+      To lift it for 2.3: write the primary's hash in each FXDE's HIT byte, make
+      `check` and `repair` expect that under TRSDOS 2.x rules, and test our FXDEs
+      under real TRSDOS 2.3 (DIR, COPY, KILL) as was done for LDOS 5.3.1 and
+      LS-DOS 6.3.1. The other 2.x versions stay refused until their disks are
+      explained.
 - [ ] **TRSDOS 1.x entries with bit 7 set read as orphaned extended entries.**
       `TrsdosDirEntry.isExtendedEntry()` tests bit 7 of byte 0, but 1.3's
       directory has no extended entries and calls that bit unused. Entries with
@@ -497,7 +505,12 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       returns the error 6 that `DIR` expects, so the cause is still unknown.
       Find whether a real machine hangs (then `repair` could move such FXDEs, and
       `check` should warn), or it's trs80gp, by tracing `DIR`'s `ALL15` sector
-      read in the emulator.
+      read in the emulator, or by trying it on a real FreHD.
+      Users see the workaround as a refusal to add a file on a partition that
+      needs more than 8 directory entries (one sector's worth, about 29 extents,
+      so only a badly fragmented file), or that needs fewer when no directory
+      sector has that many free slots. If it turns out to be trs80gp only, place
+      FXDEs as on floppies and drop the refusal.
 - [ ] **The emulator:** no hard disk controller, and none of FreHD's extras, so
       `Trs80.runTrs80File()` doesn't know what to do with a hard disk. See
       "Emulating a hard disk" below.
