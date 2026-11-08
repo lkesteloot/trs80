@@ -339,11 +339,11 @@ more.
   A finer fallback would trust the HIT bytes that do match and ignore only the
   rest, or detect the one-byte shift.
 - The 20 one-off disks in `ira/lk-341-set-1` all decode. The last two did in
-  November 2026, and their DOS names are wrong: `Super Utility + Copy Utility
-  [Set 3]` (directory moved to cylinder 3, see "Cylinders, sides, and
-  allocation" in `FLOPPY_FORMATS.md`) is called "LDOS 5.3" from GAT byte 0xCB
-  (0x53), though its GAT is named `NEWDOS30`, and `Defense Command [Set 1]`
-  (see "A HIT can be rebuilt over leftover bytes") is called "MultiDOS".
+  November 2026: `Super Utility + Copy Utility [Set 3]` (directory moved to
+  cylinder 3, see "Cylinders, sides, and allocation" in `FLOPPY_FORMATS.md`),
+  named NEWDOS 3.0 from its boot sector, and `Defense Command [Set 1]` (see "A
+  HIT can be rebuilt over leftover bytes"), whose name, "MultiDOS", is
+  probably wrong.
   `French Teacher #1` and `MultiDOS II [Incomplete]` only needed IDs with bad
   CRCs ignored (see "An IDAM pointer can point at data" in `FLOPPY_FORMATS.md`).
 
