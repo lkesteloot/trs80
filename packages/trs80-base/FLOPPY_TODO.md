@@ -187,8 +187,9 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       NEWDOS 2.1 or DoubleDOS formatted it; 0x53 is "LDOS 5.3" even when
       NEWDOS 3.0 did; LDOS 5.1/5.3 and TRSDOS 6.x get no third digit; NEWDOS/80
       data disks are "v1.0" or "v2.0" (the versions Apparat advertised), though
-      0x80 also covers 1.1 and 0x82 covers 2.5; and the Kim Watt, "Not A System
-      Disk:" and Planet Makruk disks are "Unknown DOS". A table of boot sector hashes, labelled from the
+      0x80 also covers 1.1 and 0x82 covers 2.5; Super Utility+'s data
+      disks are named by its version, not a DOS (see "Super Utility+" in
+      `FLOPPY_FORMATS.md`); and Kim Watt's 0x50 and the Planet Makruk disks are "Unknown DOS". A table of boot sector hashes, labelled from the
       banners of system disks that share them, would name most data disks
       (FORMAT writes the same boot sector on both). MultiDOS's version is never
       given: its banners and 0xCB disagree. NEWDOS/80 v2's banner gives "2.X"
@@ -287,7 +288,9 @@ ends with them, grouped by message.
 - [ ] **Percom disks with no directory** (OS-80 III, MicroDOS 2.10 for the Model
       III, and the hacked MicroDOS 1.12; see "Unresolved disks" below) fail their `os`
       facts because nothing decodes them. Naming them would need a file system
-      with no files, or a way to report a DOS without one.
+      with no files, or a way to report a DOS without one. Telling which DOS is easy
+      once that exists: MicroDOS's and OS-80 III's boot sectors match Ira's prefixes on
+      all 17 and 5 of ours (see "Boot sector code by DOS" in `FLOPPY_FORMATS.md`).
 
 ## Unresolved disks
 

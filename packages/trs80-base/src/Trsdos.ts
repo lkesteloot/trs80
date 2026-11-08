@@ -390,6 +390,157 @@ export function hashForFilename(filename: string): number {
     return hash;
 }
 
+/**
+ * The DOS whose FORMAT wrote a disk's boot sector, as far as the boot sector's opening bytes can
+ * tell. Some entries name a family of DOSes that share a FORMAT. See "Boot sector code by DOS" in
+ * FLOPPY_FORMATS.md.
+ */
+export enum BootSectorDos {
+    TRSDOS_1,
+    TRSDOS_2,
+    VTOS_3,
+    LDOS,
+    TRSDOS_6,
+    DOSPLUS_3,
+    DOSPLUS_EMPTY,
+    DOSPLUS_IV,
+    NEWDOS_80,
+    MULTIDOS,
+    MULTIDOS_ESOTERIC,
+    ULTRADOS,
+    RAPIDOS,
+}
+
+/**
+ * Convert the enum to a string, for debugging and notes.
+ */
+export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
+    switch (bootSectorDos) {
+        case BootSectorDos.TRSDOS_1:
+            return "TRSDOS 1.x";
+
+        case BootSectorDos.TRSDOS_2:
+            return "TRSDOS 2.x family";
+
+        case BootSectorDos.VTOS_3:
+            return "VTOS 3";
+
+        case BootSectorDos.LDOS:
+            return "LDOS 5 and VTOS 4.0";
+
+        case BootSectorDos.TRSDOS_6:
+            return "TRSDOS 6 and LS-DOS 6.3";
+
+        case BootSectorDos.DOSPLUS_3:
+            return "DOSPLUS 3";
+
+        case BootSectorDos.DOSPLUS_EMPTY:
+            return "DOSPLUS 3.5 and IV data disks";
+
+        case BootSectorDos.DOSPLUS_IV:
+            return "DOSPLUS IV";
+
+        case BootSectorDos.NEWDOS_80:
+            return "NEWDOS/80";
+
+        case BootSectorDos.MULTIDOS:
+            return "MultiDOS";
+
+        case BootSectorDos.MULTIDOS_ESOTERIC:
+            return "MultiDOS/Esoteric";
+
+        case BootSectorDos.ULTRADOS:
+            return "UltraDOS";
+
+        case BootSectorDos.RAPIDOS:
+            return "RAPIDOS";
+
+        default:
+            assertNever(bootSectorDos);
+    }
+}
+
+/**
+ * Openings of boot sectors, as space-separated hex bytes, with "xx" for a byte to ignore. FORMAT
+ * writes the same boot sector on every disk it makes, data disks included, so the opening bytes
+ * name the DOS that formatted the disk (see "Boot sector code by DOS" in FLOPPY_FORMATS.md). The
+ * ignored bytes are the directory cylinder (byte 2 when byte 1 is FE, byte 1 when byte 0 is FE)
+ * and MultiDOS's format flag (byte 0). The first match wins, so keep DOSPLUS_EMPTY, which is
+ * mostly zeros, last.
+ */
+const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[] = [
+    {dos: BootSectorDos.TRSDOS_1, prefix: "FE xx 3E D0 D3 F0 21 02 00 22 EA 43"},
+    {dos: BootSectorDos.TRSDOS_1, prefix: "FE xx 3A D0 00 D3 F0"},
+    {dos: BootSectorDos.TRSDOS_2, prefix: "00 FE xx F3 31 FC 41 21 E2 42 CD 9A 42 3E 01 32 E1 37"},
+    {dos: BootSectorDos.VTOS_3, prefix: "00 FE xx F3 31 E0 41 21 E2 42 CD 9A 42 3E 01 32 E1 37"},
+    // Model I single density.
+    {dos: BootSectorDos.LDOS, prefix: "00 FE xx F3 31 E0 41 FD 21 00 00"},
+    // Model I double density.
+    {dos: BootSectorDos.LDOS, prefix: "00 FE xx F3 31 E0 41 FD 21 1C 42"},
+    // Model III.
+    {dos: BootSectorDos.LDOS, prefix: "00 FE xx F3 3A 02 43 57 1E 04"},
+    // Lobo MAX-80, whose byte 1 isn't FE.
+    {dos: BootSectorDos.LDOS, prefix: "00 1E 14 06 00"},
+    {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 21 0E 43"},
+    // Data disks.
+    {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 00 00 00 00 00 00 00 00 00 00 00 00 11 87 FB"},
+    {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 00 00 00 00 00 00 00 00 00 00 00 00 11 8D FB"},
+    // System disks.
+    {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 3E 86 D3 84 32 78 00"},
+    // 3.1.
+    {dos: BootSectorDos.DOSPLUS_3, prefix: "00 FE xx F3 31 FC 41 CD C9 01 3E 01 32 E1 37 3A 02 42 57"},
+    // 3.2.
+    {dos: BootSectorDos.DOSPLUS_3, prefix: "F3 FE xx 31 FC 41 CD C9 01 3A 02 42 57"},
+    // 3.4.
+    {dos: BootSectorDos.DOSPLUS_3, prefix: "00 FE xx 06 0C 21 13 43 7E 23 CD 33 00"},
+    {dos: BootSectorDos.DOSPLUS_IV, prefix: "00 FE xx 3E 86 D3 84 21 00 F8"},
+    // 1.0.
+    {dos: BootSectorDos.NEWDOS_80, prefix: "00 FE xx 21 11 42 7E 23 CD 33 00"},
+    // 2.x Model I.
+    {dos: BootSectorDos.NEWDOS_80, prefix: "00 FE xx F3 21 EC 37 36 xx 36 D0"},
+    // 2.x Model III.
+    {dos: BootSectorDos.NEWDOS_80, prefix: "00 FE xx F3 11 05 00 D9 31 E0 41 21 FF 51 CD 45 43"},
+    // 3.0 Model III.
+    {dos: BootSectorDos.NEWDOS_80, prefix: "00 FE xx F3 11 05 00 D9 31 E0 41 21 FF 51 CD 47 43"},
+    {dos: BootSectorDos.MULTIDOS, prefix: "00 FE xx 32 20 40 0F C5 F5 7B AD 47"},
+    {dos: BootSectorDos.MULTIDOS, prefix: "xx FE xx CD 0B 00 11 0E 00 19 CD 67 44"},
+    {dos: BootSectorDos.MULTIDOS, prefix: "xx FE xx CD 0B 00 11 2E 00 19 7E 23 B7"},
+    {dos: BootSectorDos.MULTIDOS, prefix: "xx FE xx 3A 03 00 FE 17 28 24 CD 0B 00 11 2F 00"},
+    {dos: BootSectorDos.MULTIDOS, prefix: "00 FE xx ED 56 3A 00 42 B7 20 6F"},
+    {dos: BootSectorDos.MULTIDOS_ESOTERIC, prefix: "xx FE xx CD 0B 00 11 10 00 19 7E 23 CD 33 00 B7 20 F8"},
+    {dos: BootSectorDos.ULTRADOS, prefix: "00 FE xx F3 31 00 42 CD C9 01 01 00 4D"},
+    {dos: BootSectorDos.ULTRADOS, prefix: "00 FE xx F3 31 00 42 21 4A 42"},
+    // Model III.
+    {dos: BootSectorDos.RAPIDOS, prefix: "FE xx 21 10 43 11 00 3C 01 11 00 ED B0 C3 0D 43"},
+    // Model 4.
+    {dos: BootSectorDos.RAPIDOS, prefix: "00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43"},
+    // Last, since it's mostly zeros.
+    {dos: BootSectorDos.DOSPLUS_EMPTY, prefix: "00 FE xx 00 00 00 00 00 00 00 00 00 00 00 00 00"},
+];
+
+/**
+ * The boot sector prefixes parsed, with undefined for each byte to ignore.
+ */
+const BOOT_SECTOR_PREFIXES: readonly {dos: BootSectorDos, bytes: (number | undefined)[]}[] =
+    BOOT_SECTOR_PREFIX_SOURCES.map(({dos, prefix}) => ({
+        dos,
+        bytes: prefix.split(" ").map(b => b === "xx" ? undefined : parseInt(b, 16)),
+    }));
+
+/**
+ * Find the DOS whose FORMAT wrote a boot sector, from its opening bytes, or undefined if
+ * we don't recognize it.
+ */
+export function matchBootSectorDos(sector: Uint8Array): BootSectorDos | undefined {
+    for (const {dos, bytes} of BOOT_SECTOR_PREFIXES) {
+        if (bytes.every((b, i) => b === undefined || sector[i] === b)) {
+            return dos;
+        }
+    }
+
+    return undefined;
+}
+
 // Various TRSDOS versions. All other TRS-80 DOS formats are variants of one of these.
 export enum TrsdosVersion {
     V2_3,  // TRSDOS 2.3
@@ -2748,6 +2899,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
 
         const bootTrack = this.disk.getBootTrackText();
+        const bootSector = this.getBootSector();
+        const bootSectorDos = bootSector?.dos;
 
         switch (this.version) {
             case TrsdosVersion.V2_3:
@@ -2763,7 +2916,18 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     return banner;
                 }
                 const match = bootTrack.match(/version (1\.\d)/);
-                return match === null ? "TRSDOS 1.x" : `TRSDOS ${match[1]}`;
+                if (match !== null) {
+                    return `TRSDOS ${match[1]}`;
+                }
+                // Tandy's boot sector keeps the version in BCD at 0xFE, with 0x28 at 0xFF. GRL's
+                // TRSDOS 1.5 keeps 1.3's, but its FORMAT adds a BOOT/SYS entry, which 1.1-1.4 don't.
+                const hasBootSys = this.findFile("BOOT/SYS") !== undefined;
+                if (bootSectorDos === BootSectorDos.TRSDOS_1 && bootSector !== undefined && !hasBootSys &&
+                    bootSector.data[0xFF] === 0x28 && bootSector.data[0xFE] >= 0x10 && bootSector.data[0xFE] <= 0x19) {
+
+                    return `TRSDOS 1.${bootSector.data[0xFE] & 0x0F}`;
+                }
+                return "TRSDOS 1.x";
             }
 
             case TrsdosVersion.V2_7: {
@@ -2775,6 +2939,17 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
             default:
                 assertNever(this.version);
+        }
+
+        // German NEWDOS/80 builds rename BOOT/SYS to GDOS/SYS or HDOS/SYS and DIR/SYS to INHALT/SYS,
+        // and keep NEWDOS/80's banner.
+        if (this.findFile("INHALT/SYS") !== undefined) {
+            if (this.findFile("GDOS/SYS") !== undefined) {
+                return "G-DOS";
+            }
+            if (this.findFile("HDOS/SYS") !== undefined) {
+                return "H-DOS";
+            }
         }
 
         // A banner only counts if its DOS could have written this layout: lumps that aren't whole
@@ -2797,8 +2972,13 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
         // MultiDOS 1.4 through 1.7 boot sectors start with 3B FE, and their data disks have
         // nothing else to go on.
-        if (/MULTIDOS|Cosmopolitan|C\.E\.C\.|\(c\) CEC/.test(bootTrack) || this.bootSectorStartsWith(0x3B, 0xFE)) {
+        if (/MULTIDOS|Cosmopolitan|C\.E\.C\.|\(c\) CEC/.test(bootTrack) || this.bootSectorStartsWith(0x3B, 0xFE) ||
+            bootSectorDos === BootSectorDos.MULTIDOS) {
+
             return "MultiDOS";
+        }
+        if (bootSectorDos === BootSectorDos.MULTIDOS_ESOTERIC) {
+            return "MultiDOS/Esoteric";
         }
         if (bootTrack.includes("ULTRADOS")) {
             const match = bootTrack.match(/ULTRADOS DISK OPERATING SYSTEM VERSION (\d\.\d)/);
@@ -2813,16 +2993,31 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             const match = bootTrack.match(/Version (\d\.\d)/);
             return match === null ? "RAPIDOS" : `RAPIDOS ${match[1]}`;
         }
-        const osVersion = gatInfo.osVersion;
+        if (bootSectorDos === BootSectorDos.RAPIDOS) {
+            return "RAPIDOS";
+        }
 
         // Super Utility+ writes its own version at 0xCB (0x22 and 0x31 look like TRSDOS 2.2 and
         // DOSPLUS 3.1, but aren't), so its data disks don't say which DOS used them. A version from
         // another major release means a DOS rewrote the GAT later, so then it's that DOS's.
         const superUtilityMajor = this.getSuperUtilityMajorVersion();
-        if (superUtilityMajor !== undefined && osVersion >> 4 === superUtilityMajor && (osVersion & 0x0F) <= 9) {
-            return `Super Utility+ ${superUtilityMajor}.${osVersion & 0x0F} data disk`;
+        const gatVersion = gatInfo.osVersion;
+        if (superUtilityMajor !== undefined && gatVersion >> 4 === superUtilityMajor && (gatVersion & 0x0F) <= 9) {
+            return `Super Utility+ ${superUtilityMajor}.${gatVersion & 0x0F} data disk`;
         }
 
+        // The LDOS line also writes its release number in the system sector. It can disagree
+        // with the GAT's, so use it only when the boot sector is the LDOS line's and the GAT's
+        // is outside the line's range. See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
+        const isLdosVersion = (version: number): boolean =>
+            (version >= 0x50 && version <= 0x53) || (version >= 0x60 && version <= 0x63);
+        const systemSectorVersion = this.getSystemSectorVersion();
+        let osVersion = gatVersion;
+        if ((bootSectorDos === BootSectorDos.TRSDOS_6 || bootSectorDos === BootSectorDos.LDOS) &&
+            !isLdosVersion(osVersion) && systemSectorVersion !== undefined && isLdosVersion(systemSectorVersion)) {
+
+            osVersion = systemSectorVersion;
+        }
         switch (osVersion) {
             case 0x00:
                 return this.hasTrsdos23BBootSector() ? "TRSDOS 2.3B" : UNKNOWN_DOS;
@@ -2841,13 +3036,31 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 if (bootTrack.includes("VTOS")) {
                     return "VTOS 4.0";
                 }
+                if (bootSectorDos === BootSectorDos.LDOS) {
+                    // VTOS 4.0 shares LDOS's boot sector.
+                    return "VTOS 4.0";
+                }
+                if (bootSectorDos === BootSectorDos.DOSPLUS_3) {
+                    return "DOSPLUS 3.4";
+                }
+                if (bootSectorDos === BootSectorDos.DOSPLUS_EMPTY) {
+                    // Could be 3.4a or 4.0.
+                    return "DOSPLUS";
+                }
                 return bootTrack.includes("DOSPLUS") ? "DOSPLUS" : UNKNOWN_DOS;
-            case 0x51: case 0x53:
-                // NEWDOS 3.0 also writes 0x53; its system disks are named by their banner.
-                return `LDOS 5.${osVersion & 0x0F}`;
+            case 0x50:
+                // Kim Watt's utility disks also write 0x50, with neither of these.
+                return bootSectorDos === BootSectorDos.LDOS || systemSectorVersion === 0x50 ? "LDOS 5.0" : UNKNOWN_DOS;
+            case 0x51:
+                return "LDOS 5.1";
+            case 0x53:
+                // NEWDOS 3.0 uses TRSDOS 2.x's boot sector and also writes 0x53; LDOS has its
+                // own boot sector. NEWDOS 3.0's system disks are named by their banner.
+                return bootSectorDos === BootSectorDos.TRSDOS_2 ? "NEWDOS 3.0" : "LDOS 5.3";
             case 0x60:
                 // DOSPLUS IV writes the TRSDOS 6 GAT.
-                return bootTrack.includes("DOSPLUS") ? "DOSPLUS IV" : "TRSDOS 6.0";
+                return bootTrack.includes("DOSPLUS") || bootSectorDos === BootSectorDos.DOSPLUS_IV ||
+                    bootSectorDos === BootSectorDos.DOSPLUS_EMPTY ? "DOSPLUS IV" : "TRSDOS 6.0";
             case 0x61: case 0x62:
                 return `TRSDOS 6.${osVersion & 0x0F}`;
             case 0x63:
@@ -2856,9 +3069,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 return "NEWDOS/80 v1.0";
             case 0x82:
                 return "NEWDOS/80 v2.0";
+            case 0xFC:
+                return "TRSDOS 3.0";
             default:
-                // Among others: 0x50 and 0x22 (Kim Watt's utility disks, not LDOS 5.0 or
-                // TRSDOS 2.2), 0x55 (UltraDOS's "U"), and 0xFC.
+                // Among others: 0x22 (Super Utility+ 2.2's version, not TRSDOS 2.2, on a disk
+                // whose boot sector isn't Super Utility+'s), and 0x55 (UltraDOS's "U").
                 return UNKNOWN_DOS;
         }
     }
@@ -2955,6 +3170,49 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     private getGatText(begin: number, end: number): string {
         const gatSector = this.disk.readSector(this.logicalToPhysical(this.dirLumpNumber, 0, 0));
         return gatSector === undefined ? "" : bytesToText(gatSector.data.subarray(begin, end));
+    }
+
+    /**
+     * The boot sector's contents and the DOS whose FORMAT wrote it, if we recognize it. This looks
+     * at the boot track's first sector, then at cylinder 0 sector 1 on the same side, since the
+     * Model III and 4 ROMs boot that one. Undefined if there's no boot track, the sectors can't
+     * be read, or nothing matches.
+     */
+    private getBootSector(): {dos: BootSectorDos, data: Uint8Array} | undefined {
+        const bootTrack = this.geometry.bootTrack;
+        if (bootTrack === undefined) {
+            return undefined;
+        }
+
+        // Only sectors that exist, so that disks without a sector 1 log nothing.
+        const side = bootTrack.trackPosition.side;
+        const sectorPositions = [bootTrack.firstSectorPosition(), SectorPosition.make(0, side, 1)]
+            .filter(sectorPosition => this.disk.hasSectorData(sectorPosition));
+        for (const sectorPosition of sectorPositions) {
+            const data = this.disk.readSector(sectorPosition)?.data;
+            if (data !== undefined) {
+                const dos = matchBootSectorDos(data);
+                if (dos !== undefined) {
+                    return {dos, data};
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Byte 0 of cylinder 0 sector 2 (on the boot track's side), where the LDOS line writes its
+     * release number. Undefined if there's no boot track or the sector can't be read.
+     */
+    private getSystemSectorVersion(): number | undefined {
+        const bootTrack = this.geometry.bootTrack;
+        if (bootTrack === undefined) {
+            return undefined;
+        }
+
+        const sectorPosition = SectorPosition.make(0, bootTrack.trackPosition.side, 2);
+        return this.disk.hasSectorData(sectorPosition) ? this.disk.readSector(sectorPosition)?.data[0] : undefined;
     }
 
     /**

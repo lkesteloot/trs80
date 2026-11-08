@@ -490,3 +490,45 @@ describe("Trsdos.getGranuleSectorPositions", () => {
         expect(keys(trsdos, 0, 0)).to.eql(["1:0:0", "1:0:1", "1:0:2", "1:0:3", "1:0:4"]);
     });
 });
+
+describe("Trsdos DOS name from the boot sector", () => {
+    /**
+     * Name the DOS of a test disk whose boot sector starts with these bytes (after the directory
+     * cylinder at byte 2, which is kept), whose GAT version byte is the given one, and whose
+     * system sector (sector 2) starts with the given byte.
+     */
+    function nameOf(bootPrefix: number[], gatVersion: number, systemSectorByte = 0): string {
+        const disk = makeTrsdos23TestDisk([]);
+        const binary = disk.binary;
+        const dirCylinder = binary[2];
+        binary.set(bootPrefix, 0);
+        binary[2] = dirCylinder;
+        binary[2*256] = systemSectorByte;
+        // The GAT is the first sector of cylinder 17, with 10 sectors per track.
+        binary[17*10*256 + 0xCB] = gatVersion;
+        const trsdos = decodeTrsdos(disk);
+        if (trsdos === undefined) {
+            throw new Error("Test disk didn't decode as TRSDOS");
+        }
+        return trsdos.nameAndVersion;
+    }
+
+    const TRSDOS_2_BOOT = [0x00, 0xFE, 0x11, 0xF3, 0x31, 0xFC, 0x41, 0x21, 0xE2, 0x42, 0xCD, 0x9A, 0x42, 0x3E, 0x01, 0x32, 0xE1, 0x37];
+    const LDOS_BOOT = [0x00, 0xFE, 0x11, 0xF3, 0x31, 0xE0, 0x41, 0xFD, 0x21, 0x00, 0x00];
+    const ESOTERIC_BOOT = [0x00, 0xFE, 0x11, 0xCD, 0x0B, 0x00, 0x11, 0x10, 0x00, 0x19, 0x7E, 0x23, 0xCD, 0x33, 0x00, 0xB7, 0x20, 0xF8];
+
+    it("names MultiDOS/Esoteric from its boot sector", () => {
+        expect(nameOf(ESOTERIC_BOOT, 0x21)).to.eql("MultiDOS/Esoteric");
+    });
+
+    it("tells NEWDOS 3.0 from LDOS 5.3 by the boot sector", () => {
+        expect(nameOf(TRSDOS_2_BOOT, 0x53)).to.eql("NEWDOS 3.0");
+        expect(nameOf(LDOS_BOOT, 0x53)).to.eql("LDOS 5.3");
+    });
+
+    it("names LDOS 5.0 only with LDOS's boot sector or system sector", () => {
+        expect(nameOf(LDOS_BOOT, 0x50)).to.eql("LDOS 5.0");
+        expect(nameOf(TRSDOS_2_BOOT, 0x50, 0x50)).to.eql("LDOS 5.0");
+        expect(nameOf(TRSDOS_2_BOOT, 0x50)).to.eql("Unknown DOS");
+    });
+});
