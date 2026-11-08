@@ -1473,6 +1473,12 @@ tell the two rules apart.
   `newdos80-DSSD-80T.dmk` shows: 160 lumps, running through 0x9F. The DOS detects
   this by checking whether byte 0x60 is 0xFF. Trailing 0xFF bytes mean "beyond
   `TC`": cylinders the DOS will never allocate even though they're formatted.
+- **`TC` isn't limited to real drives.** The manual gives no maximum, and the GAT
+  allows 192 lumps, so on an emulator a single-sided, single-density disk can have
+  190 cylinders with `GPL=2` (190 lumps, through GAT byte 0xBD). Ira's
+  `ira/large_dmk` working disk is one: a data disk (BOOT/SYS and DIR/SYS, so its
+  boot sector says `NO SYS`) whose directory is still at cylinder 17. A DMK's
+  header holds the cylinder count in one byte, so readers shouldn't cap it below 255.
 
 The arithmetic, all of it confirmed against the disks:
 

@@ -6,7 +6,7 @@
 
 import {hi, lo} from "z80-base";
 import {DiskSize} from "./FloppyConvertModel.js";
-import {decodeDmkFloppyDisk, DmkFloppyDisk, FILE_HEADER_SIZE, FLAG_SINGLE_SIDED} from "./DmkFloppyDisk.js";
+import {decodeDmkFloppyDisk, DMK_MAX_CYLINDERS, DmkFloppyDisk, FILE_HEADER_SIZE, FLAG_SINGLE_SIDED} from "./DmkFloppyDisk.js";
 import {Density, TrackPosition} from "./FloppyDisk.js";
 import {ID_ADDRESS_MARK, MFM_SYNC, MFM_SYNC_COUNT} from "./TrackBytes.js";
 import {gapByte, slotsPerByte, TrackStream} from "./TrackStream.js";
@@ -30,11 +30,6 @@ const POINTER_DOUBLE_DENSITY = 0x8000;
  * The longest track a DMK can have, which is all that the pointers' 14-bit offsets reach.
  */
 const DMK_MAX_TRACK_LENGTH = 0x4000;
-
-/**
- * The most cylinders a DMK can have.
- */
-export const DMK_MAX_CYLINDERS = 160;
 
 /**
  * The DMK track length for a disk size: 0x1900 for 5.25 inch (6,272 bytes after the table, a little

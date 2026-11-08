@@ -37,7 +37,11 @@ import {TRS80_FLOPPY_LOGGER} from "z80-logger";
 
 export const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;
-const MAX_TRACKS = 160;
+/**
+ * The most cylinders a DMK can have, which is all that the header's one-byte count can say. NEWDOS/80
+ * can use far more than 80 (see "NEWDOS/80 lumps" in FLOPPY_FORMATS.md).
+ */
+export const DMK_MAX_CYLINDERS = 255;
 // The spec says 0x2940, but other writers go past it for 8" and high-density disks (see
 // FLOPPY_FORMATS.md). The real limit is what the IDAM pointers' 14-bit offsets can reach.
 const MAX_TRACK_LENGTH = 0x4000;
@@ -754,12 +758,10 @@ export function decodeDmkFloppyDisk(binary: Uint8Array, options: FloppyDecodeOpt
     //
     // [DMK] Note: This field should NEVER be modified. Changing this number will cause TRS-80
     // operating system disk errors. (Like reading an 80 track disk in a 40 track drive)
+    //
+    // Any count is possible (up to DMK_MAX_CYLINDERS). The file must still hold at least one track,
+    // which is checked below.
     const trackCount = binary[1];
-    if (trackCount > MAX_TRACKS) {
-        // Not sure what a reasonable maximum is. I've only seen 80.
-        TRS80_FLOPPY_LOGGER.trace("DMK: Too many tracks (" + trackCount + " > " + MAX_TRACKS + ")");
-        return undefined;
-    }
     annotations.push(new ProgramAnnotation(trackCount + " tracks", 1, 2));
 
     // [DMK] This is the track length for the virtual disk. By default the value is 1900H, 80H bytes

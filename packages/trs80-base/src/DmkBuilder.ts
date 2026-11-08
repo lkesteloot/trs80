@@ -3,7 +3,7 @@
  */
 
 import {hi, lo} from "z80-base";
-import {decodeDmkFloppyDisk, DmkFloppyDisk, FILE_HEADER_SIZE, FLAG_SINGLE_SIDED, makeDmkTrackBlob} from "./DmkFloppyDisk.js";
+import {decodeDmkFloppyDisk, DMK_MAX_CYLINDERS, DmkFloppyDisk, FILE_HEADER_SIZE, FLAG_SINGLE_SIDED, makeDmkTrackBlob} from "./DmkFloppyDisk.js";
 import {FormattedTrack, TrackPosition} from "./FloppyDisk.js";
 import {buildFormattedTrack, TrackLayout} from "./TrackLayout.js";
 
@@ -13,11 +13,6 @@ import {buildFormattedTrack, TrackLayout} from "./TrackLayout.js";
  * are stored with doubled bytes, which fit. See "Image formats" in FLOPPY_FORMATS.md.
  */
 export const DMK_TRACK_LENGTH = 0x1900;
-
-/**
- * Most tracks a DMK file can hold per side.
- */
-const MAX_CYLINDERS = 160;
 
 /**
  * Build a DMK image from formatted tracks, and decode it.
@@ -31,7 +26,7 @@ const MAX_CYLINDERS = 160;
  * sectors at all.
  */
 export function makeDmkImage(tracks: FormattedTrack[], cylinderCount: number, sideCount: number): DmkFloppyDisk | undefined {
-    const validCounts = Number.isInteger(cylinderCount) && cylinderCount >= 1 && cylinderCount <= MAX_CYLINDERS &&
+    const validCounts = Number.isInteger(cylinderCount) && cylinderCount >= 1 && cylinderCount <= DMK_MAX_CYLINDERS &&
         (sideCount === 1 || sideCount === 2);
     if (!validCounts) {
         return undefined;
