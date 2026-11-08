@@ -151,8 +151,11 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       2.x's 0x2C DIR/SYS hash counts as a hit. The 1.3 blank disk,
       `m3-trsdos-blank.dmk`, has no entries, but the floor applies only to 2.3.)
 - [ ] **Boot byte 2 as evidence.** It names the directory cylinder (or NEWDOS/80's
-      starting lump) on all 76 decoded Model I/4 disks, but candidates don't use
-      it. A score bonus, not a gate, so game disks just go without.
+      starting lump) on all 76 decoded Model I/4 disks. Candidates use it only to
+      accept a DIR/SYS that points elsewhere (`Super Utility [Set 3]`, see
+      "Cylinders, sides, and allocation" in `FLOPPY_FORMATS.md`). A score bonus,
+      not a gate, would help 1.3 and 2.3B directories, which have no DIR/SYS, so
+      game disks just go without.
 - [ ] **Garbage directory slots reject whole candidates.** An in-use slot with an
       unprintable name returns "can't decode directory entry filename" and a
       score of −1. Count it as a miss instead (`Abacux X ... [M3][Original].dmk`
@@ -335,14 +338,14 @@ more.
   directories. Ignoring the HIT also lists in-use entries the DOS can't reach.
   A finer fallback would trust the HIT bytes that do match and ignore only the
   rest, or detect the one-byte shift.
-- Two of the one-off disks in `ira/lk-341-set-1` (tagged `unresolved`) still
-  don't decode; their sidecars say why. `Super Utility + Copy Utility [Set 3]`
-  keeps its directory on cylinder 3 while DIR/SYS points at 17, a cylinder of
-  CRC errors (boot byte 2 as evidence, above, could override DIR/SYS there).
-  `Defense Command [Set 1]` has tracks of garbage or deliberately confusing
-  sector IDs. The other 18 decode since October 2026; `French Teacher #1` and
-  `MultiDOS II [Incomplete]` only needed IDs with bad CRCs ignored (see "An IDAM
-  pointer can point at data" in `FLOPPY_FORMATS.md`).
+- The 20 one-off disks in `ira/lk-341-set-1` all decode. The last two did in
+  November 2026, and their DOS names are wrong: `Super Utility + Copy Utility
+  [Set 3]` (directory moved to cylinder 3, see "Cylinders, sides, and
+  allocation" in `FLOPPY_FORMATS.md`) is called "LDOS 5.3" from GAT byte 0xCB
+  (0x53), though its GAT is named `NEWDOS30`, and `Defense Command [Set 1]`
+  (see "A HIT can be rebuilt over leftover bytes") is called "MultiDOS".
+  `French Teacher #1` and `MultiDOS II [Incomplete]` only needed IDs with bad
+  CRCs ignored (see "An IDAM pointer can point at data" in `FLOPPY_FORMATS.md`).
 
 ## New formats
 
