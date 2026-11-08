@@ -2559,7 +2559,7 @@ describe("TrsdosWriter.repair", () => {
     it("changes nothing on a healthy disk", () => {
         const {writer} = makeFixture([HELLO, WORLD]);
         const result = writer.repair();
-        expect(result).to.eql({changes: [], remaining: [], keptUnclaimed: [], freeableUnclaimed: []});
+        expect(result).to.eql({changes: [], remaining: [], keptUnclaimed: [], freeableUnclaimed: [], fixablePrograms: []});
         expect(writer.hasChanges()).to.eql(false);
         expect(problemKinds(writer.flush())).to.eql([]);
     });
@@ -2572,6 +2572,157 @@ describe("TrsdosWriter.repair", () => {
         const second = makeFixture([HELLO, WORLD]);
         second.writer.repair();
         expect(() => second.writer.repair()).to.throw(TrsdosWriteError, "already repaired");
+    });
+
+    describe("a program that runs past its EOF byte", () => {
+        /**
+         * Whether the check notes a program that runs past its EOF byte.
+         */
+        function hasPastEof(trsdos: Trsdos): boolean {
+            return checkTrsdos(trsdos).findings.some(finding => finding.kind === TrsdosFindingKind.PROGRAM_PAST_EOF);
+        }
+
+        /**
+         * A CMD program of the given length: load blocks at 0x5200, then a transfer record to it.
+         */
+        function makeProgram(length: number): Uint8Array {
+            const program = new Uint8Array(length);
+            // Load blocks of up to 100 data bytes (104 with the header), then the transfer record. The lengths
+            // the tests use never leave a remainder too small for a block.
+            let offset = 0;
+            while (offset < length - 4) {
+                const cost = Math.min(104, length - 4 - offset);
+                const dataLength = cost - 4;
+                program.set([0x01, dataLength + 2, 0x00, 0x52], offset);
+                for (let i = 0; i < dataLength; i++) {
+                    program[offset + 4 + i] = 0x41 + i % 26;
+                }
+                offset += cost;
+            }
+            program.set([0x02, 0x02, 0x00, 0x52], offset);
+            return program;
+        }
+
+        /**
+         * A program file that has the given program, with a size that cuts it short, and is filled with 0xAA after.
+         */
+        function makeProgramFile(program: Uint8Array, size: number): TestFile {
+            return {
+                name: "PROG/CMD",
+                extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}],
+                size,
+                contents: program,
+                data: 0xAA,
+            };
+        }
+
+        it("sets the size to reach the transfer record, and changes only the size bytes of its entry", () => {
+            const program = makeProgram(116);
+            const {disk, overlay, trsdos, writer} = makeFixture([makeProgramFile(program, 100), WORLD]);
+            expect(hasPastEof(trsdos)).to.eql(true);
+            const oldEntry = entryBytes(overlay, trsdos, "PROG/CMD").slice();
+            const world = trsdos.readFile(getFile(trsdos, "WORLD/TXT"));
+            const slot = trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "PROG/CMD");
+            if (slot === undefined) {
+                throw new Error("No slot");
+            }
+            const {sectorPosition} = trsdos.getDirEntryLocation(slot.hitIndex);
+            const oldSector = readBytes(disk, sectorPosition).slice();
+            const oldGat = readBytes(disk, trsdos.getGatPosition()).slice();
+            const oldHit = readBytes(disk, trsdos.getHitPosition()).slice();
+
+            const result = writer.repair({fixProgramSizes: true});
+            expect(result.changes).to.eql(["Set PROG/CMD's size to 116 bytes, the end of the program, from 100."]);
+            expect(result.remaining).to.eql([]);
+            const newTrsdos = writer.flush();
+
+            expect(problemKinds(newTrsdos)).to.eql([]);
+            expect(hasPastEof(newTrsdos)).to.eql(false);
+            expect(newTrsdos.readFile(getFile(newTrsdos, "PROG/CMD"))).to.eql(program);
+            expect(newTrsdos.readFile(getFile(newTrsdos, "WORLD/TXT"))).to.eql(world);
+
+            // Only the EOF byte (3) and sector count (20) of that entry changed.
+            const newEntry = entryBytes(overlay, newTrsdos, "PROG/CMD");
+            const expectedEntry = oldEntry.slice();
+            expectedEntry[3] = 116;
+            expectedEntry[20] = 1;
+            expectedEntry[21] = 0;
+            expect(newEntry).to.eql(expectedEntry);
+            const expectedSector = oldSector.slice();
+            const {offset} = newTrsdos.getDirEntryLocation(slot.hitIndex);
+            expectedSector.set(expectedEntry, offset);
+            expect(readBytes(overlay, sectorPosition)).to.eql(expectedSector);
+            expect(readBytes(overlay, newTrsdos.getGatPosition())).to.eql(oldGat);
+            expect(readBytes(overlay, newTrsdos.getHitPosition())).to.eql(oldHit);
+        });
+
+        it("changes nothing without the option, and says which programs it would fix", () => {
+            const {trsdos, writer} = makeFixture([makeProgramFile(makeProgram(116), 100), WORLD]);
+
+            const result = writer.repair();
+            expect(result.changes).to.eql([]);
+            expect(result.remaining).to.eql([]);
+            expect(result.fixablePrograms.map(file => file.getFilename("/"))).to.eql(["PROG/CMD"]);
+            expect(writer.hasChanges()).to.eql(false);
+            const newTrsdos = writer.flush();
+            expect(hasPastEof(newTrsdos)).to.eql(true);
+            expect(newTrsdos.readFile(getFile(newTrsdos, "PROG/CMD"))).to.eql(trsdos.readFile(getFile(trsdos, "PROG/CMD")));
+        });
+
+        it("makes the EOF byte 0 for a program that ends exactly at the end of its sector", () => {
+            const program = makeProgram(256);
+            const {overlay, trsdos, writer} = makeFixture([makeProgramFile(program, 200)]);
+            expect(hasPastEof(trsdos)).to.eql(true);
+
+            const result = writer.repair({fixProgramSizes: true});
+            expect(result.changes).to.eql(["Set PROG/CMD's size to 256 bytes, the end of the program, from 200."]);
+            const newTrsdos = writer.flush();
+
+            expect(problemKinds(newTrsdos)).to.eql([]);
+            expect(hasPastEof(newTrsdos)).to.eql(false);
+            const entry = entryBytes(overlay, newTrsdos, "PROG/CMD");
+            expect(entry[3]).to.eql(0);
+            // The 2.3 family counts every sector in the entry's count.
+            expect(entry[20]).to.eql(1);
+            expect(newTrsdos.readFile(getFile(newTrsdos, "PROG/CMD"))).to.eql(program);
+        });
+
+        it("does the same on a TRSDOS 1.3 disk, with that layout's sector count", () => {
+            // Add a 600-byte program, then cut its EOF byte back.
+            const program = makeProgram(600);
+            const added = make13Fixture();
+            added.writer.addFile(name("PROG/CMD"), program);
+            const addedTrsdos = added.writer.flush();
+            const slot = addedTrsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "PROG/CMD");
+            if (slot === undefined) {
+                throw new Error("No slot");
+            }
+            const {sectorPosition, offset} = addedTrsdos.getDirEntryLocation(slot.hitIndex);
+            const sector = readBytes(added.overlay, sectorPosition).slice();
+            // 600 bytes is 2 full sectors and an EOF byte of 88. Make the EOF byte 40.
+            expect(sector[offset + 3]).to.eql(88);
+            expect(sector[offset + 20]).to.eql(2);
+            sector[offset + 3] = 40;
+            added.overlay.writeSector(sectorPosition, sector);
+            added.overlay.commit();
+
+            const trsdos = decodeTrsdos(added.overlay);
+            if (trsdos === undefined) {
+                throw new Error("Didn't decode");
+            }
+            expect(hasPastEof(trsdos)).to.eql(true);
+            const writer = writerFor(trsdos);
+            const result = writer.repair({fixProgramSizes: true});
+            expect(result.changes).to.eql(["Set PROG/CMD's size to 600 bytes, the end of the program, from 552."]);
+            const newTrsdos = writer.flush();
+
+            expect(problemKinds(newTrsdos)).to.eql([]);
+            expect(hasPastEof(newTrsdos)).to.eql(false);
+            const entry = entry13(newTrsdos, "PROG/CMD");
+            expect(entry[3]).to.eql(88);
+            expect(entry[20]).to.eql(2);
+            expect(newTrsdos.readFile(getFile(newTrsdos, "PROG/CMD"))).to.eql(program);
+        });
     });
 
     describe("on TRSDOS 1.3 disks", () => {

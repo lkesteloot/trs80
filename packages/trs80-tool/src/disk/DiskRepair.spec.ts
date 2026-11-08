@@ -72,6 +72,31 @@ describe("disk repair", () => {
         expect(await runDisk("check")).to.eql(["No problems found.", "Safe to write."]);
     });
 
+    it("finds a program that runs past its EOF byte, repairs it, and then finds nothing", async () => {
+        // A load block of three bytes at 0x5200, then a transfer record, 11 bytes, with a size that ends inside the
+        // transfer record.
+        const program = new Uint8Array([0x01, 0x05, 0x00, 0x52, 0xAA, 0xBB, 0xCC, 0x02, 0x02, 0x00, 0x52]);
+        makeImage([{name: "PROG/CMD", extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}], size: 9, contents: program, data: 0xAA}]);
+
+        const checkLines = await runDisk("check");
+        expect(checkLines.join("\n")).to.contain("PROG/CMD's directory gives 9 bytes, but the program runs on 2 bytes");
+        expect(checkLines.join("\n")).to.contain("Notes:");
+        expect(checkLines[checkLines.length - 1]).to.eql("Safe to write.");
+
+        // Plain repair changes nothing and mentions the option.
+        const plain = await runDisk("repair");
+        expect(plain.join("\n")).to.contain("1 program runs past its directory size: PROG/CMD. Use --fix-program-sizes to set its size.");
+        expect(plain.join("\n")).not.to.contain("Set PROG/CMD's size");
+        expect((await runDisk("check")).join("\n")).to.contain("PROG/CMD's directory gives 9 bytes");
+
+        const repairLines = await runDisk("repair", "--fix-program-sizes");
+        expect(repairLines[0]).to.eql("Set PROG/CMD's size to 11 bytes, the end of the program, from 9.");
+
+        const after = await runDisk("check");
+        expect(after.join("\n")).not.to.contain("PROG/CMD's directory gives");
+        expect(after).to.eql(["No problems found.", "Safe to write."]);
+    });
+
     it("says what is left when some damage can't be repaired, and the disk stays read-only", async () => {
         const one: TestFile = {name: "ONE/DAT", extents: [{lump: 6, granuleOffset: 0, granuleCount: 2}]};
         const two: TestFile = {name: "TWO/DAT", extents: [{lump: 6, granuleOffset: 1, granuleCount: 2}], hitByte: 0x77};

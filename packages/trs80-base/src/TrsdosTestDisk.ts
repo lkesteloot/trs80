@@ -73,6 +73,12 @@ export interface TestFile {
     data?: number | undefined;
 
     /**
+     * Bytes written at the start of the file's data sectors, in order, over the fill byte. They may run past
+     * {@link size}, which is how a test puts bytes after the EOF.
+     */
+    contents?: Uint8Array | undefined;
+
+    /**
      * The HIT byte for the file's primary entry, in place of the hash of its name, to make a
      * mismatch.
      */
@@ -402,6 +408,23 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
                         break;
                     }
                     binary.fill(placedFile.fillByte, offset, offset + BYTES_PER_SECTOR);
+                }
+            }
+        }
+
+        // The file's own bytes, over the fill, across the sectors of its extents.
+        if (file.contents !== undefined) {
+            let written = 0;
+            for (const {lump, granuleOffset, granuleCount} of file.extents) {
+                const firstSector = (lump*GRANULES_PER_LUMP + granuleOffset)*SECTORS_PER_GRANULE;
+                for (let i = 0; i < granuleCount*SECTORS_PER_GRANULE && written < file.contents.length; i++) {
+                    const offset = (firstSector + i)*BYTES_PER_SECTOR;
+                    const chunk = file.contents.subarray(written, written + BYTES_PER_SECTOR);
+                    if (offset + chunk.length > binary.length) {
+                        break;
+                    }
+                    binary.set(chunk, offset);
+                    written += chunk.length;
                 }
             }
         }

@@ -434,8 +434,9 @@
             <p>Check a TRSDOS-family file system for problems, changing nothing:
             files that share granules, files in granules the GAT says are free,
             extents past the end of the disk, HIT bytes that don’t match names,
-            and damaged files. It also says whether the disk would be safe to write,
-            and if not, why not.</p>
+            and damaged files. It notes programs whose directory size ends before the
+            end of the program, which the DOS loads fine but which copy broken. It also says whether
+            the disk would be safe to write, and if not, why not.</p>
 
             <h3 id="repair"><code>repair</code></h3>
             <p>Fix the damage that <code>check</code> finds, where it can be fixed without guessing, in
@@ -449,7 +450,9 @@
             reason, such as an uncertain layout, even with <code>--force</code>. Under TRSDOS 2.x’s
             rules the HIT bytes of extended directory entries are left alone, since we don’t know what
             the DOS puts there. Granules that the GAT marks used but no file claims are left alone, since some programs
-            keep data there. Like any other change, a repair can be taken back
+            keep data there. So are programs whose directory size ends before their transfer record, further
+            into their last sector, since the DOS loads them fine and many DOSes shipped files that way. Like
+            any other change, a repair can be taken back
             with <code>undo</code>.</p>
 
             <table class="flags">
@@ -457,6 +460,11 @@
                     <td><code>--free-unclaimed</code></td>
                     <td>Also free the granules that the GAT marks used but no file claims. Granules on the boot cylinder
                         and locked-out ones are never freed.</td>
+                </tr>
+                <tr>
+                    <td><code>--fix-program-sizes</code></td>
+                    <td>Also set the size of each program whose directory size ends before its transfer record,
+                        so that it reaches it, and the program copies whole.</td>
                 </tr>
             </table>
 

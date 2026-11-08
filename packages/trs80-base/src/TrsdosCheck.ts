@@ -1,4 +1,6 @@
 import {assertNever, toHexByte} from "z80-base";
+import {CMD_TRANSFER_ADDRESS, CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
+import type {FloppyFileContents} from "./FileDamage.js";
 import {
     hashForFilename,
     isOldDirSysHashInAnySlot,
@@ -81,6 +83,13 @@ export enum TrsdosFindingKind {
      * on LDOS 5.3.1" in FLOPPY_FORMATS.md.
      */
     BOOT_SYS_OVERLAP,
+    /**
+     * A program whose directory size ends before its transfer record, which is further into its last sector.
+     * The DOS loads it whole, since it reads whole sectors, and many DOSes shipped files this way, so it's a
+     * note, not damage. Anything that copies the file by its size gets a broken program. See "Programs that run
+     * past their EOF byte" in FLOPPY_FORMATS.md.
+     */
+    PROGRAM_PAST_EOF,
 }
 
 /**
@@ -106,6 +115,8 @@ export function trsdosFindingKindToString(kind: TrsdosFindingKind): string {
             return "orphan-extended-entry";
         case TrsdosFindingKind.DAMAGED_FILE:
             return "damaged-file";
+        case TrsdosFindingKind.PROGRAM_PAST_EOF:
+            return "program-past-eof";
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
             return "used-but-unclaimed";
         case TrsdosFindingKind.BOOT_SYS_OVERLAP:
@@ -133,6 +144,7 @@ export function trsdosFindingKindSeverity(kind: TrsdosFindingKind): TrsdosFindin
             return TrsdosFindingSeverity.DAMAGE;
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
         case TrsdosFindingKind.BOOT_SYS_OVERLAP:
+        case TrsdosFindingKind.PROGRAM_PAST_EOF:
             return TrsdosFindingSeverity.NOTE;
         default:
             assertNever(kind);
@@ -177,6 +189,9 @@ export interface TrsdosCheckResult {
      */
     granuleMap: TrsdosGranuleMap | undefined;
 }
+
+// The size of a sector, in bytes, in the TRSDOS family.
+const SECTOR_SIZE = 256;
 
 // The raw name of the boot file, as the directory stores it (8 + 3 characters).
 const BOOT_SYS_RAW_FILENAME = "BOOT    SYS";
@@ -386,9 +401,13 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
         }
     }
 
+    // Programs that run past their EOF byte, which are notes, found while reading the files.
+    const programNotes: TrsdosFinding[] = [];
+
     // Damage found by reading the files.
     for (const file of files) {
-        const damage = trsdos.readFileWithDamage(file).damage;
+        const contents = trsdos.readFileWithDamage(file);
+        const damage = contents.damage;
         if (damage.isDamaged()) {
             damageFindings.push({
                 kind: TrsdosFindingKind.DAMAGED_FILE,
@@ -396,6 +415,20 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
                 dirEntries: [file],
                 granules: [],
             });
+        } else {
+            const wholeProgram = analyzeProgramPastEof(trsdos, file, contents);
+            if (wholeProgram !== undefined) {
+                const size = file.getSize();
+                const extra = wholeProgram.binary.length - size;
+                programNotes.push({
+                    kind: TrsdosFindingKind.PROGRAM_PAST_EOF,
+                    message: `${nameOf(file)}'s directory gives ${size.toLocaleString()} bytes, but the program runs ` +
+                        `on ${extra.toLocaleString()} ${plural(extra, "byte")} further into its last sector, to its ` +
+                        `transfer record. The DOS loads it whole, but copying it by its size gives a broken program.`,
+                    dirEntries: [file],
+                    granules: [],
+                });
+            }
         }
     }
 
@@ -413,6 +446,8 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
             });
         }
     }
+
+    noteFindings.push(... programNotes);
 
     findings.push(... layoutFindings, ... damageFindings, ... noteFindings);
     return {
@@ -497,4 +532,99 @@ export function checkHitByte(trsdos: Trsdos, slot: TrsdosDirSlot,
         dirEntries: [primary],
         granules: [],
     };
+}
+
+/**
+ * A program whose last sector holds more of it than the directory's size says.
+ */
+export interface ProgramPastEof {
+    /**
+     * The whole program: the file's bytes followed by the rest of the program in its last sector, ending
+     * with the transfer record. Its length is the program's real size.
+     */
+    binary: Uint8Array;
+}
+
+/**
+ * Find the program that a file really is when its directory size ends before its transfer record, which
+ * is further into the file's last sector, and return its bytes. See {@link findProgramPastEof} for the
+ * conditions. Never reads past the file's last sector.
+ *
+ * @param trsdos the file system.
+ * @param dirEntry the file's primary entry.
+ * @param contents the file as {@link Trsdos.readFileWithDamage} gives it, if the caller has already read it.
+ * @return the whole program, or undefined if the file isn't such a program.
+ */
+export function analyzeProgramPastEof(trsdos: Trsdos, dirEntry: TrsdosDirEntry,
+                                      contents?: FloppyFileContents): ProgramPastEof | undefined {
+
+    // A full last sector has nothing after the EOF to look at.
+    const size = dirEntry.getSize();
+    if (size <= 0 || size % SECTOR_SIZE === 0) {
+        return undefined;
+    }
+
+    // Damaged files are reported as such.
+    const fileContents = contents ?? trsdos.readFileWithDamage(dirEntry);
+    if (fileContents.damage.isDamaged() || fileContents.binary.length !== size) {
+        return undefined;
+    }
+
+    // The sector that holds the end of the file must be in the file, and read cleanly.
+    const lastIndex = Math.floor(size/SECTOR_SIZE);
+    const position = trsdos.getFileSectorPositions(dirEntry)[lastIndex];
+    if (position === undefined) {
+        return undefined;
+    }
+    const sector = trsdos.disk.readSector(position);
+    if (sector === undefined || sector.crcError || sector.data.length < SECTOR_SIZE) {
+        return undefined;
+    }
+
+    // The file followed by the rest of that sector.
+    const whole = new Uint8Array((lastIndex + 1)*SECTOR_SIZE);
+    whole.set(fileContents.binary, 0);
+    whole.set(sector.data.subarray(size % SECTOR_SIZE, SECTOR_SIZE), size);
+
+    // It must parse cleanly and end with a transfer record that's past the size.
+    const program = decodeCmdProgram(whole);
+    if (program === undefined || program.error !== undefined) {
+        return undefined;
+    }
+    const lastChunk = program.chunks[program.chunks.length - 1];
+    if (lastChunk === undefined || lastChunk.type !== CMD_TRANSFER_ADDRESS || program.binary.length <= size) {
+        return undefined;
+    }
+
+    // The entry point must be in a load block, or the bytes may be stale ones that look like a transfer record.
+    const entry = program.entryPointAddress;
+    if (entry === undefined) {
+        return undefined;
+    }
+    const entryLoaded = program.chunks.some(chunk =>
+        chunk instanceof CmdLoadBlockChunk && chunk.address <= entry && entry < chunk.address + chunk.loadData.length);
+    if (!entryLoaded) {
+        return undefined;
+    }
+
+    return {binary: whole.slice(0, program.binary.length)};
+}
+
+/**
+ * If a file is a program cut short by its EOF byte, return the program's real size. Such a program (CMD
+ * format: a chain of records ending in a transfer record) has an EOF byte that's too small, so the directory's
+ * size ends partway through it, while the rest of it is in the rest of the file's last sector. The DOS loads
+ * it whole, but anything that honors the size gets a broken program.
+ *
+ * All of these must hold: the size is positive and not a multiple of the sector size; the file reads without
+ * damage; its last sector is in the file and reads cleanly; the file followed by the rest of that sector parses
+ * as a CMD program without error whose last record is a transfer record and whose length is greater than the
+ * size; and the entry point is inside one of its load blocks.
+ *
+ * @param trsdos the file system.
+ * @param dirEntry the file's primary entry.
+ * @return the program's size in bytes, or undefined if the file isn't such a program.
+ */
+export function findProgramPastEof(trsdos: Trsdos, dirEntry: TrsdosDirEntry): number | undefined {
+    return analyzeProgramPastEof(trsdos, dirEntry)?.binary.length;
 }

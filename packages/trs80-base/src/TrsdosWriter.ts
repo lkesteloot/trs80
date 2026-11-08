@@ -10,7 +10,7 @@ import {
 } from "./Trsdos.js";
 import {allocateGranules, type AllocatedExtent, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
 import {
-    checkHitByte, checkTrsdos, findPrimariesOfExtendedEntries, makeOrphanFinding, type TrsdosFinding, TrsdosFindingKind,
+    analyzeProgramPastEof, checkHitByte, checkTrsdos, findPrimariesOfExtendedEntries, makeOrphanFinding, type TrsdosFinding, TrsdosFindingKind,
     TrsdosFindingSeverity, trsdosFindingKindSeverity,
 } from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
@@ -298,6 +298,13 @@ export interface TrsdosRepairOptions {
      * and locked out are never freed.
      */
     freeUnclaimed?: boolean | undefined;
+
+    /**
+     * Whether to set the size of each program whose transfer record is past its directory size, further into its
+     * last sector, so that the size reaches the record. Off by default, since it changes files that the DOS loads
+     * fine, often on factory DOS disks. See "Programs that run past their EOF byte" in FLOPPY_FORMATS.md.
+     */
+    fixProgramSizes?: boolean | undefined;
 }
 
 /**
@@ -341,6 +348,12 @@ export interface TrsdosRepairResult {
      * would free. Empty if it was on, since they were freed.
      */
     freeableUnclaimed: TrsdosGranule[];
+
+    /**
+     * The programs (primary entries) that run past their directory size and that
+     * {@link TrsdosRepairOptions.fixProgramSizes} would fix. Empty if it was on, since they were fixed.
+     */
+    fixablePrograms: TrsdosDirEntry[];
 }
 
 /**
@@ -366,6 +379,17 @@ interface RepairExpectation {
      * Whether the repair freed unclaimed granules, so that the number kept can be checked.
      */
     freedUnclaimed: boolean;
+
+    /**
+     * The files that the repair gave a larger size, by primary entry, each with the contents it must read as
+     * after the repair: the original binary followed by the rest of the program from its last sector.
+     */
+    programsPastEof: Map<TrsdosDirEntry, Uint8Array>;
+
+    /**
+     * Whether the repair was asked to fix the sizes of programs, so that none may remain.
+     */
+    fixedProgramSizes: boolean;
 }
 
 /**
@@ -1947,6 +1971,10 @@ export class TrsdosWriter {
      * - With {@link TrsdosRepairOptions.freeUnclaimed}, a granule that the GAT marks used and no file claims is
      *   freed, unless it is on the boot cylinder or locked out. (Directory granules aren't unclaimed.)
      *
+     * - With {@link TrsdosRepairOptions.fixProgramSizes}, a program whose directory size ends before its transfer
+     *   record, which is further into its last sector, gets the size that reaches it (see "Programs that run past
+     *   their EOF byte" in FLOPPY_FORMATS.md). Otherwise such programs are returned as fixable.
+     *
      * Shared granules, extents off the disk and damaged files can't be fixed automatically and are returned as
      * remaining. A repair must be the only change made in this writer, and can be made once. The 2.3 family's
      * layouts and TRSDOS 1.3's are supported.
@@ -1993,6 +2021,8 @@ export class TrsdosWriter {
         const unfixedOrphans = this.repairOrphanExtendedEntries(changes, remaining);
         const {kept: keptUnclaimed, freeable: freeableUnclaimed} =
             this.repairUnclaimed(options.freeUnclaimed === true, changes);
+        const {fixed: programsPastEof, fixable: fixablePrograms} =
+            this.repairProgramsPastEof(options.fixProgramSizes === true, changes);
 
         // The damage that can't be fixed. The HIT mismatches that were left alone were added above, so sort
         // by kind (a stable sort) to put everything in the check's order.
@@ -2009,8 +2039,10 @@ export class TrsdosWriter {
             unfixedOrphans,
             keptUnclaimedGranules: keptUnclaimed.length,
             freedUnclaimed: options.freeUnclaimed === true,
+            programsPastEof,
+            fixedProgramSizes: options.fixProgramSizes === true,
         };
-        return {changes, remaining, keptUnclaimed, freeableUnclaimed};
+        return {changes, remaining, keptUnclaimed, freeableUnclaimed, fixablePrograms};
     }
 
     /**
@@ -2028,6 +2060,8 @@ export class TrsdosWriter {
                 return "A file that runs off the disk can't be repaired automatically.";
             case TrsdosFindingKind.DAMAGED_FILE:
                 return "A damaged file can't be repaired automatically: extract what can be read.";
+            case TrsdosFindingKind.PROGRAM_PAST_EOF:
+                return null;
             case TrsdosFindingKind.GAT_UNREADABLE:
             case TrsdosFindingKind.GAT_NOT_STRICT:
             case TrsdosFindingKind.HIT_IGNORED:
@@ -2166,6 +2200,71 @@ export class TrsdosWriter {
     }
 
     /**
+     * Set, in memory, the size of every program that runs past its EOF byte (see {@link findProgramPastEof}) to
+     * the size that reaches its transfer record, by the layout's size rule (see {@link encodePrimaryEntry}).
+     * Files that cover the directory are left alone.
+     *
+     * @param fix whether to fix them; if not, they are only found.
+     * @param changes the user-facing lines, to which the lines for this fix are added.
+     * @return the contents that each fixed file must read as afterwards, by primary entry, and the programs
+     * that could be fixed but weren't because {@code fix} is false.
+     */
+    private repairProgramsPastEof(fix: boolean, changes: string[]):
+        { fixed: Map<TrsdosDirEntry, Uint8Array>, fixable: TrsdosDirEntry[] } {
+
+        const expected = new Map<TrsdosDirEntry, Uint8Array>();
+        const fixable: TrsdosDirEntry[] = [];
+        for (const file of this.directory.files) {
+            if (this.coversDirectory(file)) {
+                continue;
+            }
+            const program = analyzeProgramPastEof(this.trsdos, file);
+            if (program === undefined) {
+                continue;
+            }
+            const slot = this.slotsByEntry.get(file);
+            if (slot === undefined) {
+                continue;
+            }
+            if (!fix) {
+                fixable.push(file);
+                continue;
+            }
+
+            const newSize = program.binary.length;
+            const oldSize = file.getSize();
+            let sectorCount: number;
+            switch (this.trsdos.version) {
+                case TrsdosVersion.V2_3:
+                    sectorCount = Math.ceil(newSize/SECTOR_SIZE);
+                    break;
+
+                case TrsdosVersion.V1_3:
+                    sectorCount = Math.floor(newSize/SECTOR_SIZE);
+                    break;
+
+                case TrsdosVersion.V2_7:
+                    throw new TrsdosWriteError("Repairing isn't supported yet on TRSDOS 2.7 disks");
+
+                default:
+                    assertNever(this.trsdos.version);
+            }
+
+            const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slot.hitIndex);
+            const copy = this.getDirSectorCopy(sectorPosition);
+            copy.bytes[offset + 3] = newSize % SECTOR_SIZE;
+            copy.bytes[offset + 20] = sectorCount & 0xFF;
+            copy.bytes[offset + 21] = (sectorCount >> 8) & 0xFF;
+            copy.dirty = true;
+
+            expected.set(file, program.binary);
+            changes.push(`Set ${file.getFilename("/")}'s size to ${newSize.toLocaleString()} bytes, ` +
+                `the end of the program, from ${oldSize.toLocaleString()}.`);
+        }
+        return {fixed: expected, fixable};
+    }
+
+    /**
      * Free, in the GAT in memory, the granules that are marked used and that no file claims, if asked to, except
      * those that are never freed: the boot cylinder's, and locked-out ones. (A TRSDOS 1.3 GAT has no lockout
      * bits, but it has a table of cylinders that don't exist or are flawed, and a granule on such a cylinder
@@ -2218,6 +2317,11 @@ export class TrsdosWriter {
         if (claimedButFree !== undefined) {
             throw new TrsdosWriteError("After the repair, the disk still has a problem it should have fixed: " +
                 claimedButFree.message);
+        }
+        const pastEof = findings.find(finding => finding.kind === TrsdosFindingKind.PROGRAM_PAST_EOF);
+        if (expectation.fixedProgramSizes && pastEof !== undefined) {
+            throw new TrsdosWriteError("After the repair, the disk still has a problem it should have fixed: " +
+                pastEof.message);
         }
         const orphans = findings.filter(finding => finding.kind === TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY);
         if (orphans.length !== expectation.unfixedOrphans) {
@@ -2579,7 +2683,8 @@ export class TrsdosWriter {
             if (this.coversDirectory(expectedEntry)) {
                 continue;
             }
-            const originalBinary = this.originalContents.get(expectedEntry);
+            const originalBinary = this.repairExpectation?.programsPastEof.get(expectedEntry) ??
+                this.originalContents.get(expectedEntry);
             const expectedBinary = originalBinary === undefined ? undefined :
                 this.withSystemInformation(expectedEntry, originalBinary);
             if (newEntry === undefined || expectedBinary === undefined ||
