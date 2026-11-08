@@ -287,7 +287,9 @@ ends with them, grouped by message.
 - [ ] **Percom disks with no directory** (OS-80 III, MicroDOS 2.10 for the Model
       III, and the hacked MicroDOS 1.12; see "Unresolved disks" below) fail their `os`
       facts because nothing decodes them. Naming them would need a file system
-      with no files, or a way to report a DOS without one.
+      with no files, or a way to report a DOS without one. Telling which DOS is easy
+      once that exists: MicroDOS's and OS-80 III's boot sectors match Ira's prefixes on
+      all 17 and 5 of ours (see "Boot sector code by DOS" in `FLOPPY_FORMATS.md`).
 
 ## Unresolved disks
 
