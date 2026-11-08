@@ -796,6 +796,22 @@ C CRC error (ID or data).
                         <li>Recognizes more DOSes and their versions, and LNW Research’s CP/M.</li>
                     </ul>
                 </li>
+                <li><code>trs80-tool</code> v5.0.1:
+                    <ul>
+                        <li>Better handling of floppies with many tracks (160+).</li>
+                        <li>The <a href="disk.html#check"><code>disk check</code></a>
+                            command finds command files whose directory entries
+                            have the wrong size, and
+                            <a href="disk.html#repair"><code>disk repair --fix-program-sizes</code></a>
+                            fixes them.</li>
+                        <li>Better handling of copy-protected disks that try to
+                            hide the directory track.</li>
+                        <li>Better identification of disks created by Super Utility+.</li>
+                        <li>Better identification of various operating systems, thanks
+                            to Ira Goldklang's
+                            <a href="https://www.trs-80.com/sub-reference-dos-identification.htm">identification page</a>.</li>
+                    </ul>
+                </li>
             </ul>
 
 
