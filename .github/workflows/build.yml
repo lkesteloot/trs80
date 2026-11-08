@@ -72,7 +72,7 @@ jobs:
             binary: trs80-tool.exe
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ matrix.artifact }}
       - shell: bash
@@ -92,7 +92,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           pattern: trs80-tool-*
           path: artifacts
