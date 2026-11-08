@@ -255,7 +255,7 @@ describe("convertFloppy", () => {
             expect(readConvertTracks(disk)[5].sectors.map(sector => sector.sectorNumber))
                 .to.eql(readConvertTracks(dmk)[5].sectors.map(sector => sector.sectorNumber));
         }
-    }, 30000);
+    });
 
     it("refuses to put a double-density disk in a JV1", () => {
         const result = convertFloppy(makeDoubleDensityDisk(), FloppyImageFormat.JV1);

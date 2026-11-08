@@ -248,7 +248,7 @@ describe("formatTrsdosDataDisk", () => {
             }
             expect(granuleMap.getFreeGranuleCount()).to.eql(
                 options.cylinders*granulesPerCylinder - 1 - granulesPerCylinder);
-        }, 30_000);
+        });
     }
 
     it("writes the GAT's fields", () => {

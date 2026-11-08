@@ -89,7 +89,7 @@ describe("disk protect", () => {
             expect(new Uint8Array(fs.readFileSync(imagePathname))).to.eql(original);
             await runDisk(imagePathname, "add", hello);
         }
-    }, 30_000);
+    });
 
     it("turns the flag on and off in an HDV hard disk, keeping the partition", async () => {
         const imagePathname = path.join(dir, "test.hdv");

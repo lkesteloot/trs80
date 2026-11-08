@@ -364,7 +364,7 @@ describe("disk create and format", () => {
             expect(session.getReadOnlyReason()).to.eql(undefined);
             expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
         }
-    }, 30000);
+    });
 
     for (const bootCase of BOOT_SECTOR_CASES) {
         it(`gives a ${bootCase.words.join(" ")} disk the DOS's own boot sectors`, async () => {
@@ -427,7 +427,7 @@ describe("disk create and format", () => {
                 const names = session.fileSystem!.getDirEntries(true).map(dirEntry => dirEntry.getFilename("/"));
                 const templateNames = templateFileSystem!.getDirEntries(true).map(dirEntry => dirEntry.getFilename("/"));
                 expect(names).to.eql(templateNames);
-            }, 30000);
+            });
 
             it(`makes a minimal ${description} with only system files, which then takes a file`, async () => {
                 const hostPathname = makeHostFile("small.bin", 300);
@@ -449,7 +449,7 @@ describe("disk create and format", () => {
                 const removedCount = templateCount - dirEntries.length;
                 expect(lines.some(line => line.includes(removedCount === 0 ? "No files to remove" :
                     "Removed " + removedCount + (removedCount === 1 ? " file" : " files")))).to.eql(true);
-            }, 30000);
+            });
         }
 
         it("changes the name and date of the copy", async () => {
