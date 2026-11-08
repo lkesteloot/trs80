@@ -1,9 +1,15 @@
+import fs from "fs";
+import os from "os";
+import path from "path";
 import readline from "readline";
+import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
 import {colorError} from "../lscolors.js";
 import {ToolError, wrapMessage} from "../utils.js";
 import {DISK_COMMANDS, runDiskCommands} from "./DiskCommands.js";
-import {DiskOptionValues, parseDiskCommandLine, splitCommandLine} from "./DiskCommandParser.js";
+import {
+    type DiskCommandSpec, DiskOptionValues, HostPathKind, parseDiskCommandLine, splitCommandLine,
+} from "./DiskCommandParser.js";
 import {DiskSession, type DiskShellTerminal} from "./DiskSession.js";
 
 /**
@@ -17,29 +23,135 @@ export function makeDiskPrompt(partitionName: string | undefined): string {
 }
 
 /**
+ * One entry of a directory on the host computer, for completing host paths.
+ */
+export interface HostDirectoryEntry {
+    /** The entry's name, without its directory. */
+    name: string;
+    /** Whether it's a directory (or a link to one). */
+    isDirectory: boolean;
+}
+
+/**
+ * List a directory on the host computer, or return nothing if it can't be read.
+ */
+export function listHostDirectory(dir: string): HostDirectoryEntry[] {
+    let entries: fs.Dirent[];
+    try {
+        entries = fs.readdirSync(dir, {withFileTypes: true});
+    } catch (e) {
+        return [];
+    }
+    return entries.map(entry => {
+        let isDirectory = entry.isDirectory();
+        if (entry.isSymbolicLink()) {
+            try {
+                isDirectory = fs.statSync(path.join(dir, entry.name)).isDirectory();
+            } catch (e) {
+                // A dangling link: offer it as a file.
+            }
+        }
+        return {name: entry.name, isDirectory};
+    });
+}
+
+/**
+ * Complete a path on the host computer, as a Unix shell does: the part up to the last "/" is the directory
+ * to look in (the current directory if there is none, with a leading "~" meaning the home directory), and
+ * the rest is the start of a name in it. Directories end with "/", so that completing can go on into them.
+ * Names starting with "." are offered only when the word's name part does.
+ *
+ * @param word the word to complete.
+ * @param kind whether files or only directories are wanted.
+ * @param listDirectory lists a host directory.
+ * @returns the possible completions, each the whole word.
+ */
+function completeHostPath(word: string, kind: HostPathKind,
+                          listDirectory: (dir: string) => HostDirectoryEntry[]): string[] {
+
+    const slash = word.lastIndexOf("/");
+    const dirPart = word.substring(0, slash + 1);
+    const namePart = word.substring(slash + 1);
+    let dir = dirPart === "" ? "." : dirPart;
+    if (dir === "~/" || dir.startsWith("~/")) {
+        dir = path.join(os.homedir(), dir.substring(2));
+    }
+
+    return listDirectory(dir)
+        .filter(entry => entry.name.startsWith(namePart))
+        .filter(entry => namePart.startsWith(".") || !entry.name.startsWith("."))
+        .filter(entry => {
+            switch (kind) {
+                case HostPathKind.FILE:
+                    return true;
+                case HostPathKind.DIRECTORY:
+                    return entry.isDirectory;
+                default:
+                    assertNever(kind);
+            }
+        })
+        .map(entry => dirPart + entry.name + (entry.isDirectory ? "/" : ""))
+        .sort();
+}
+
+/**
  * Complete the word at the end of a line typed into the shell. The first word of each command
- * (the start of the line, or after a lone ":") completes to command names; any other word
- * completes to file names on the disk. Matching ignores case, and the completions use the
- * spelling of the name list. Quoting is not understood: the word is whatever follows the last space.
+ * (the start of the line, or after a lone ":") completes to command names. After that, a word that starts
+ * with "-" completes to the command's options, the arguments of a command that takes host files (such as
+ * "add") and the values of options that name host paths (such as "extract --out-dir") complete to paths
+ * on the host computer, and any other word completes to file names on the disk. Matching of command and
+ * disk file names ignores case, and those completions use the spelling of the name list. Quoting is not
+ * understood: the word is whatever follows the last space.
  *
  * @param line the text before the cursor.
  * @param commandNames the names of the commands to offer.
  * @param fileNames the names of the files on the disk to offer.
+ * @param commandSpecs the commands' specs, which say which arguments and options name host paths.
+ * @param listDirectory lists a host directory (a parameter for testing).
  * @returns the format readline's completer wants: the possible completions of the last word
  * (each a whole word), and the last word that they would replace.
  */
-export function completeDiskLine(line: string, commandNames: string[], fileNames: string[]): [string[], string] {
+export function completeDiskLine(line: string, commandNames: string[], fileNames: string[],
+                                 commandSpecs: DiskCommandSpec[] = [],
+                                 listDirectory: (dir: string) => HostDirectoryEntry[] = listHostDirectory):
+    [string[], string] {
+
     const wordStart = Math.max(line.lastIndexOf(" "), line.lastIndexOf("\t")) + 1;
     const word = line.substring(wordStart);
     const before = line.substring(0, wordStart).trim();
 
     // A command name goes at the start of the line and after a ":" separator.
     const wantsCommand = before === "" || before.endsWith(" :") || before === ":";
-    const candidates = wantsCommand ? commandNames : fileNames;
     const lowerWord = word.toLowerCase();
-    const hits = candidates.filter(name => name.toLowerCase().startsWith(lowerWord));
+    const matching = (candidates: string[]): string[] =>
+        candidates.filter(name => name.toLowerCase().startsWith(lowerWord));
+    if (wantsCommand) {
+        return [matching(commandNames), word];
+    }
 
-    return [hits, word];
+    // The words of the command being typed, after the last ":".
+    const words = before.split(/\s+/);
+    const commandStart = words.lastIndexOf(":") + 1;
+    const commandWord = (words[commandStart] ?? "").toLowerCase();
+    const spec = commandSpecs.find(spec =>
+        spec.name === commandWord || spec.aliases.some(alias => alias === commandWord));
+    if (spec !== undefined) {
+        const previousWord = words.length - 1 > commandStart ? words[words.length - 1] : undefined;
+        const previousOption = previousWord === undefined ? undefined : spec.options.find(option =>
+            option.name === previousWord || option.shortName === previousWord);
+        if (previousOption?.valueName !== undefined) {
+            const hostPath = previousOption.hostPath;
+            return [hostPath === undefined ? [] : completeHostPath(word, hostPath, listDirectory), word];
+        }
+        if (word.startsWith("-")) {
+            return [matching(spec.options.map(option => option.name)), word];
+        }
+        if (spec.hostPathArgs !== undefined) {
+            return [completeHostPath(word, spec.hostPathArgs, listDirectory), word];
+        }
+    }
+
+    return [matching(fileNames), word];
 }
 
 /**
@@ -154,7 +266,7 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
         } catch (e) {
             // No file system, so no file names to offer.
         }
-        return completeDiskLine(line, commandNames, fileNames);
+        return completeDiskLine(line, commandNames, fileNames, DISK_COMMANDS.map(c => c.spec));
     };
 
     return new Promise<void>((resolve, reject) => {

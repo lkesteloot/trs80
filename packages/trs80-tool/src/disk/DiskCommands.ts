@@ -14,7 +14,7 @@ import {extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
 import {expandInputPatterns, pluralizeWithCount, selectByPatterns, systemWildcardHint, ToolError} from "../utils.js";
-import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
+import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {BOOT_COMMAND} from "./DiskBoot.js";
 import {TRIM_COMMAND} from "./DiskTrim.js";
@@ -153,6 +153,7 @@ const EXTRACT_COMMAND: DiskCommand = {
                 name: "--out-dir",
                 valueName: "DIR",
                 description: "directory to write the files to, created if needed (default: the current directory)",
+                hostPath: HostPathKind.DIRECTORY,
             },
             {
                 name: "--as",
@@ -550,6 +551,7 @@ const ADD_COMMAND: DiskCommand = {
         name: "add",
         aliases: ["import", "put"],
         args: "<HOSTFILE...>",
+        hostPathArgs: HostPathKind.FILE,
         summary: "copy files from the host onto the disk, converting BASIC, system programs, and text",
         options: [
             {

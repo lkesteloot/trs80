@@ -14,6 +14,18 @@ export interface DiskOptionSpec {
     valueName: string | undefined;
     /** One-line description for help. */
     description: string;
+    /** What the value names on the host computer, if anything, so that the shell completes it to host paths. */
+    hostPath?: HostPathKind | undefined;
+}
+
+/**
+ * What kind of host path a command's argument or an option's value is, for completing it in the shell.
+ */
+export enum HostPathKind {
+    /** A file (or a directory to descend into on the way to one). */
+    FILE,
+    /** A directory. */
+    DIRECTORY,
 }
 
 /**
@@ -63,6 +75,8 @@ export interface DiskCommandSpec {
     summary: string;
     /** The options this command accepts. */
     options: DiskOptionSpec[];
+    /** What the positional arguments name on the host computer, if they do, so that the shell completes them to host paths. */
+    hostPathArgs?: HostPathKind | undefined;
     /** More help for "help COMMAND", after the options and aliases, such as a list of choices. */
     extraHelp?: DiskHelpSection[] | undefined;
 }
