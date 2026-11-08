@@ -733,11 +733,12 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                     <td>Check a TRSDOS-family file system for problems, changing nothing:
                         files that share granules, files in granules the GAT says are free,
                         extents past the end of the disk, HIT bytes that don’t match names,
-                        and damaged files. It also says whether the disk would be safe to write,
-                        and if not, why not.</td>
+                        and damaged files. It notes programs whose directory size ends before the
+                        end of the program, which the DOS loads fine but which copy broken. It also says whether
+                        the disk would be safe to write, and if not, why not.</td>
                 </tr>
                 <tr>
-                    <td><code>repair [--free-unclaimed]</code></td>
+                    <td><code>repair [--free-unclaimed] [--fix-program-sizes]</code></td>
                     <td><p>Fix the damage that <code>check</code> finds, where it can be fixed without guessing, in
                         the GAT, the HIT and the directory only: granules that a file uses and the GAT says are free
                         are marked used, HIT bytes that aren’t the hash of the file’s name are set to it, and
@@ -751,7 +752,10 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         the DOS puts there.</p>
                         <p>Granules that the GAT marks used but no file claims are left alone, since some programs
                         keep data there; <code>--free-unclaimed</code> frees them. Granules on the boot cylinder
-                        and locked-out ones are never freed. Like any other change, a repair can be taken back
+                        and locked-out ones are never freed. Programs whose directory size ends before their
+                        transfer record, further into their last sector, are also left alone, since the DOS
+                        loads them fine and many DOSes shipped files that way; <code>--fix-program-sizes</code>
+                        sets their sizes so that they copy whole. Like any other change, a repair can be taken back
                         with <code>undo</code>.</p></td>
                 </tr>
                 <tr>

@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 import {decodeTrsdos, type Trsdos} from "./Trsdos.js";
 import {
     checkTrsdos,
+    findProgramPastEof,
     type TrsdosCheckResult,
     type TrsdosFinding,
     TrsdosFindingKind,
@@ -244,6 +245,7 @@ describe("TrsdosFindingKind", () => {
             [TrsdosFindingKind.HIT_MISMATCH, TrsdosFindingSeverity.DAMAGE],
             [TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY, TrsdosFindingSeverity.DAMAGE],
             [TrsdosFindingKind.DAMAGED_FILE, TrsdosFindingSeverity.DAMAGE],
+            [TrsdosFindingKind.PROGRAM_PAST_EOF, TrsdosFindingSeverity.NOTE],
             [TrsdosFindingKind.USED_BUT_UNCLAIMED, TrsdosFindingSeverity.NOTE],
             [TrsdosFindingKind.BOOT_SYS_OVERLAP, TrsdosFindingSeverity.NOTE],
         ]);
@@ -262,5 +264,80 @@ describe("TrsdosFindingKind", () => {
         expect(trsdosFindingSeverityToString(TrsdosFindingSeverity.LAYOUT)).to.equal("layout");
         expect(trsdosFindingSeverityToString(TrsdosFindingSeverity.DAMAGE)).to.equal("damage");
         expect(trsdosFindingSeverityToString(TrsdosFindingSeverity.NOTE)).to.equal("note");
+    });
+});
+
+/**
+ * A small CMD program: a load block of three bytes at 0x5200 (7 bytes in all), then a transfer record to
+ * the given address (4 bytes), 11 bytes in all.
+ */
+function makeSmallProgram(entry = 0x5200): Uint8Array {
+    return new Uint8Array([0x01, 0x05, 0x00, 0x52, 0xAA, 0xBB, 0xCC, 0x02, 0x02, entry & 0xFF, entry >> 8]);
+}
+
+/**
+ * A file with the program as its contents and a size that may cut it short, with 0xAA after it.
+ */
+function makeProgramFile(contents: Uint8Array, size: number): TestFile {
+    return {
+        name: "PROG/CMD",
+        extents: [{lump: 3, granuleOffset: 0, granuleCount: 1}],
+        size,
+        contents,
+        data: 0xAA,
+    };
+}
+
+describe("findProgramPastEof", () => {
+    it("reports a program whose size ends before its transfer record in the last sector", () => {
+        const result = check([makeProgramFile(makeSmallProgram(), 9)]);
+        const findings = ofKind(result, TrsdosFindingKind.PROGRAM_PAST_EOF);
+        expect(findings.length).to.equal(1);
+        expect(findings[0].message).to.equal("PROG/CMD's directory gives 9 bytes, but the program runs on 2 bytes " +
+            "further into its last sector, to its transfer record. The DOS loads it whole, but copying it by its size " +
+            "gives a broken program.");
+        expect(findings[0].dirEntries.map(dirEntry => dirEntry.getFilename("/"))).to.eql(["PROG/CMD"]);
+        expect(trsdosFindingKindToString(findings[0].kind)).to.equal("program-past-eof");
+        expect(kinds(result)).to.eql([TrsdosFindingKind.PROGRAM_PAST_EOF]);
+    });
+
+    it("returns the program's real size", () => {
+        const trsdos = decodeTrsdos(makeTrsdos23TestDisk([makeProgramFile(makeSmallProgram(), 9)]));
+        const file = trsdos?.findFile("PROG/CMD");
+        if (trsdos === undefined || file === undefined) {
+            throw new Error("Test disk didn't decode");
+        }
+        expect(findProgramPastEof(trsdos, file)).to.equal(11);
+    });
+
+    it("doesn't report a program whose size already covers its transfer record", () => {
+        expect(ofKind(check([makeProgramFile(makeSmallProgram(), 11)]), TrsdosFindingKind.PROGRAM_PAST_EOF)).to.eql([]);
+    });
+
+    it("doesn't report a program whose transfer record is in the next sector", () => {
+        // A 258-byte load block, then the transfer record. The size cuts the block, and the rest isn't
+        // in the same sector.
+        const contents = new Uint8Array(262);
+        contents.set([0x01, 0x00, 0x00, 0x52], 0);
+        contents.set([0x02, 0x02, 0x00, 0x52], 258);
+        expect(ofKind(check([makeProgramFile(contents, 100)]), TrsdosFindingKind.PROGRAM_PAST_EOF)).to.eql([]);
+    });
+
+    it("doesn't report a program whose bytes after the EOF don't end in a transfer record", () => {
+        const contents = makeSmallProgram().slice(0, 7);
+        expect(ofKind(check([makeProgramFile(contents, 5)]), TrsdosFindingKind.PROGRAM_PAST_EOF)).to.eql([]);
+    });
+
+    it("doesn't report a program whose entry point isn't in a load block", () => {
+        expect(ofKind(check([makeProgramFile(makeSmallProgram(0x6000), 9)]), TrsdosFindingKind.PROGRAM_PAST_EOF)).to.eql([]);
+    });
+
+    it("doesn't report a file whose size is a multiple of the sector size", () => {
+        expect(ofKind(check([makeProgramFile(makeSmallProgram(), 256)]), TrsdosFindingKind.PROGRAM_PAST_EOF)).to.eql([]);
+    });
+
+    it("doesn't report a file that isn't a program", () => {
+        const text = new TextEncoder().encode("HELLO WORLD\r");
+        expect(ofKind(check([makeProgramFile(text, 5)]), TrsdosFindingKind.PROGRAM_PAST_EOF)).to.eql([]);
     });
 });

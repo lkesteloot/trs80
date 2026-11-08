@@ -68,6 +68,23 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
 ## Gaps independent of the switch
 
+- [ ] **Programs that run past their EOF byte: what `check` misses.** `check`
+      notes them and `repair --fix-program-sizes` fixes them (see "Programs
+      that run past their EOF byte" in FLOPPY_FORMATS.md); `extract` still
+      clips them to the directory's size, on purpose. Left over:
+      - The entry-point test (inside a load block) skips programs that
+        transfer to a DOS or ROM address, such as `PASLIB/V22` on
+        `ira/lk-410-crazy-errors/Small C v2.1 ... [Disk 2 of 4].dmk`, which
+        transfers to 0x402D (the DOS's return) and is 14 bytes past its size.
+        Allowing known DOS entry points would catch it.
+      - About 25 programs in the suite read as truncated and don't come out
+        clean even with the rest of their last sector (`DRAGON/CMD` and others
+        on `peter/F05 - Monas Main Disk 2.dmk`, the Post Man files on
+        `ira/lk-341-set-1`, `FASTER/CMD`), so they're something else.
+      - `repair` can't run on NEWDOS 2.1 disks or disks whose DOS is unknown,
+        so it can't fix their programs (the NEWDOS 2.1 FORMAT/CMD and
+        SYS0-SYS2/SYS, and LISP Set 3).
+
 - [ ] **TRSDOS 2.x's extended entries (FXDEs) have an unknown HIT byte.** On
       LDOS, TRSDOS 6 and DOSPLUS disks an FXDE's HIT byte is its primary's name
       hash, but not on the TRSDOS 2.x disks that have FXDEs (see "An FXDE" in

@@ -1436,6 +1436,45 @@ directories differ from 1.3's at least in the size rule. `trsdos-1.2.dmk` is
 we report as 1.3, but its three files all end on a sector boundary, so it can't
 tell the two rules apart.
 
+**Programs that run past their EOF byte.** Many programs' EOF byte is short:
+the directory's size ends before the transfer record, which sits further into
+the same last sector. The DOS loader reads whole sectors and stops at the
+transfer record, so the program loads and runs. NEWDOS 2.1's COPY copied
+LISP/CMD whole, short EOF byte and all (other DOSes' COPY is unchecked). But anything that honors the size (our `extract`, a host
+tool) gets a program with no transfer record, which fails to load if it's
+copied back. `checkTrsdos()` reports such a file as a note
+(`PROGRAM_PAST_EOF`), and `repair --fix-program-sizes` sets its size to reach
+the transfer record.
+
+It's common, and not damage: many factory DOS disks ship that way. Measured in
+November 2026 on the 1,501 TRSDOS-family floppies in the suite, 153 files (82 of
+them system files) pass the check (`analyzeProgramPastEof()`: no damage, a clean
+CMD chain through the rest of the last sector ending in a transfer record past
+the size, and an entry point inside a load block). By how far past:
+
+    file           where                                       past
+    MODELA/III     every LS-DOS 6.3.0 system disk, NEWDOS/86    11
+    BACKUP/CMD     LDOS 5.1.1                                   24
+    FORMAT/CMD     NEWDOS 2.1 and NEWDOS+++                      7
+    SYS0-SYS2/SYS  NEWDOS 2.1 and NEWDOS+ 2.1                   varies
+    SYS5/SYS       DOSPLUS 3.2.1, 3.3 and 3.3.1                 varies
+    LISP/CMD       ira/aitlisp2 (all three sets)               108
+    HEXBIN/CMD     lanhawk/Archive2a/ARCH057.DSK                83
+    BRUN/CMD       lanhawk/Archive2a/ARCH128.DSK                38
+    XFER/CMD, PLOAD/CMD, EDAS34/CMD, CATALOG/CMD, others          1
+
+The many that are 1 byte past all end the same way: the size stops between the
+transfer address's two bytes (`02 02 00` | `52`), as if whatever wrote them
+took the EOF byte as the offset of the last byte rather than the count.
+
+AITech LISP's `LISP/CMD` (61 sectors, EOF byte 8, so 15,368 bytes) is really
+15,476 bytes. Its last load record is a 16-byte relocator at 0xAB00, which moves
+0x7000-0xAAFF down to 0x5200 and jumps there, and its transfer record is at
+byte 116 of the last sector. Booted from the NEWDOS 2.1 copy (Set 3) in our
+emulator, it runs. Where its short EOF byte came from is unknown. The bytes
+after the transfer record are stale, and hold an older copy of the relocator
+record's first 18 bytes at offset 0xEE.
+
 ## NEWDOS/80 lumps
 
 - A lump is 2-8 granules (the PDRIVE `GPL` parameter); a granule is 5 sectors by

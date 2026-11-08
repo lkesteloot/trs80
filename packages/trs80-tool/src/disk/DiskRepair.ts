@@ -4,6 +4,9 @@ import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {DiskWritePurpose} from "./DiskSession.js";
 
+// The most program names to list before saying "and N more".
+const MAX_PROGRAMS_SHOWN = 4;
+
 /**
  * The "repair" command: fix the file system damage that "check" finds, where it can be fixed.
  */
@@ -20,6 +23,12 @@ export const REPAIR_COMMAND: DiskCommand = {
                 description: "also free granules that the GAT marks used but no file claims (some programs keep " +
                     "data there; the boot cylinder and locked-out cylinders are never freed)",
             },
+            {
+                name: "--fix-program-sizes",
+                valueName: undefined,
+                description: "also set the size of programs whose transfer record is past their directory size, " +
+                    "further into their last sector (the DOS loads them fine; this makes them copy whole)",
+            },
         ],
     },
 
@@ -32,6 +41,7 @@ export const REPAIR_COMMAND: DiskCommand = {
      */
     run(session, command) {
         const freeUnclaimed = command.options.has("--free-unclaimed");
+        const fixProgramSizes = command.options.has("--fix-program-sizes");
 
         // A disk that is unreadable for any reason but damage can't be repaired, --force or not.
         const gate = session.getWriteGate();
@@ -53,7 +63,7 @@ export const REPAIR_COMMAND: DiskCommand = {
 
         let result = undefined as TrsdosRepairResult | undefined;
         session.changeTrsdos(DiskWritePurpose.REPAIR, writer => {
-            result = writer.repair({freeUnclaimed});
+            result = writer.repair({freeUnclaimed, fixProgramSizes});
         });
         if (result === undefined) {
             throw new Error("The repair didn't run");
@@ -78,6 +88,17 @@ export const REPAIR_COMMAND: DiskCommand = {
                 (repaired.freeableUnclaimed.length === 1 ? "it" : "them") + ". Use --free-unclaimed to free " +
                 (repaired.freeableUnclaimed.length === 1 ? "it" : "them") +
                 ", unless a program keeps data there.");
+        }
+        if (repaired.fixablePrograms.length > 0) {
+            const names = repaired.fixablePrograms.map(file => file.getFilename("/"));
+            const shown = names.slice(0, MAX_PROGRAMS_SHOWN);
+            const hidden = names.length - shown.length;
+            const list = hidden > 0 ? shown.join(", ") + ", and " + hidden.toLocaleString() + " more" :
+                shown.length <= 1 ? shown.join("") : shown.slice(0, -1).join(", ") + " and " + shown[shown.length - 1];
+            const one = names.length === 1;
+            console.log(pluralizeWithCount(names.length, "program") + (one ? " runs" : " run") +
+                " past " + (one ? "its" : "their") + " directory size: " + list + ". Use --fix-program-sizes to set " +
+                (one ? "its size" : "their sizes") + ".");
         }
 
         // The gate is evaluated again, since the repair may have settled what blocked writing.
