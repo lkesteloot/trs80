@@ -19,8 +19,9 @@ HTML comment above the first entry gives the format; follow it.
 - `git diff <commit>..HEAD --stat` shows which packages changed. Check the web apps
   (`packages/my-trs-80`, `packages/trs80-ide`, `packages/trs80-cassette-webapp`)
   too, since their commits are often named after a library.
-- Also read `git diff <commit>..HEAD -- packages/trs80-tool/site/index.html`: the
-  documentation added there usually names each new command, flag, and format.
+- Also read `git diff <commit>..HEAD -- packages/trs80-tool/site/`: the
+  documentation added there (`index.html`, and `disk.html` for the `disk` command)
+  usually names each new command, flag, and format.
 
 ## 2. Decide what's worth saying
 

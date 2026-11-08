@@ -1,4 +1,4 @@
-/* When updating this file, bump the v= value in index.html's <link> to force a reload */
+/* When updating this file, bump the v= value in the <link> of index.html and disk.html to force a reload */
 
 :root {
     /* Solarized colors */
@@ -132,6 +132,13 @@ table.flags td:first-child {
     white-space: nowrap;
 }
 
+/* An example in a description scrolls, rather than widening the table past the page. */
+table.flags pre {
+    box-sizing: border-box;
+    width: 0;
+    min-width: 100%;
+}
+
 table.flags tr + tr td {
     border-top: 1px solid var(--background-highlights);
 }
@@ -156,6 +163,11 @@ code {
     background-color: var(--background-highlights);
     border-radius: .3em;
     white-space: nowrap;
+}
+
+/* Inline code long enough to need breaking at its spaces, such as a message the tool prints. */
+:not(pre) > code.wrap {
+    white-space: normal;
 }
 
 a {
