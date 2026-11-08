@@ -113,7 +113,7 @@ export function hexdump(filename: string, collapse: boolean): void {
     }
 
     // Decode the file.
-    const file = decodeTrs80File(buffer, { filename, disassemble: true });
+    const file = decodeTrs80File(buffer, { filename });
     if (file.error !== undefined) {
         console.log(filename + ": " + file.error);
         // Continue anyway, might have interesting information.
