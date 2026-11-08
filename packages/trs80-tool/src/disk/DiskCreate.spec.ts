@@ -29,7 +29,7 @@ interface DosCase {
 
 const DOS_CASES: DosCase[] = [
     {dos: "trsdos-2.3", nameAndVersion: "TRSDOS 2.x"},
-    {dos: "trsdos-1.3", nameAndVersion: "TRSDOS 1.x"},
+    {dos: "trsdos-1.3", nameAndVersion: "TRSDOS 1.3"},
     {dos: "ldos-5.3", nameAndVersion: "LDOS 5.3"},
     {dos: "trsdos-6.2", nameAndVersion: "TRSDOS 6.2"},
     {dos: "lsdos-6.3", nameAndVersion: "LS-DOS 6.3"},
