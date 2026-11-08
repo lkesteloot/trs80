@@ -275,6 +275,35 @@ directory sector 10, three of them named like live files), on TRSDOS 2.3B (the
 second SYS5/SYS), and on `Maxi Manager` (a garbage `81 NFMT/CBF` whose extents
 reach lump 87, which made a two-sided reading win until it was ignored).
 
+**A HIT can be rebuilt over leftover bytes.** On `Defense Command (1982)(Big Five
+Software)[M1][Set 1]` the directory on cylinder 17 holds four real files in sector 2,
+all hashes matching, but directory sectors 6, 7 and 9 are 0xE5 fill in their first
+half and old data in their second (Z80 code, "Formatting track 34.", "MULTIDOS"
+repeated). Every slot there whose in-use bit is set and FXDE bit clear has the hash of
+its own 11 name bytes in the HIT, nine slots in all, so some tool rebuilt the HIT from
+whatever the sectors held. (The disk name in the GAT is `BFLOADER`, dated 01/25/82.)
+Five of those slots have unprintable names, and four read `OSMULTIDOSM` with extents
+on cylinders 68-85 of a 35-cylinder disk. `evaluate()` used to count the five as
+misses and charge the four one point per bad extent, 20 in all, so the real directory
+scored −22. Now a garbage name that hashes to its HIT byte is neither hit nor miss (a
+wrong candidate matches by chance only 1 in 256), and an entry with bad extents costs
+one point however many it has, cancelling its hit. A file already charged for bad
+extents isn't charged again as short. The directory then scores 3, and the four
+`OSMULTID/OSM` entries are listed, since the DOS would see them too, with no data on
+the disk. The tool Ira compared against (TRSREAD or VDISK) lists one of them, as an
+empty file.
+
+Counting per entry rather than per extent also fixed
+`SmartNet ... [84-11-xx Drive 1]`, an 80-cylinder NEWDOS/80 file system imaged at 42
+cylinders. Its full directory has 26 hits and 17 entries reaching past the image, with
+19 bad extents between them, so a directory short enough to miss most of them (13 hits,
+4 bad extents) used to win. Now the two tie at 9, and the full 6-granule directory
+wins the tie because it's the size DIR/SYS gives, with 25 files instead of 12 (the new
+ones' data isn't on the image). Leaving such entries out instead, as "past the end of the disk",
+was tried and is wrong: RAPIDOS 2.0 numbers side 1 as cylinders 40-79 of a 40-cylinder
+disk, so 27 real files on `RapidDOS v2.0 and Games [Set 2]` start past the last lump.
+DOSPLUS IV's `BASIC/OV1` starts on cylinder 36 of an image that has only 35.
+
 **A HIT can be wrong while the directory is fine.** On six TRSDOS 6 disks in
 `peter/` (`Bobby Lee (100)`, `EBAY1024`, `EBAY1035`, the SuperScripsit master and
 both `TRSDOS Hard Disk Initialization` sets) the HIT sector is a byte-for-byte
@@ -643,7 +672,14 @@ On a double-sided disk:
   [IRA334]`, whose DIR/SYS points elsewhere, and the short NEWDOS/80-style
   directory that dodged the bad sector on `03 -Assignments [T40S01]`. TRSDOS
   1.3 and 2.3B directories have no DIR/SYS, so they get no help from it; boot
-  byte 2 would cover them. The rule applies to the 2.3 family only: the two
+  byte 2 would cover them. The one exception is a disk whose boot byte 2 names
+  the candidate's lump, since that, not DIR/SYS, is how the DOS finds its
+  directory. `Super Utility + Copy Utility (19xx)(Kim Watt)[M1][Set 3]` has
+  18 cylinders, its directory on cylinder 3 (boot sector `00 FE 03`, a GAT named
+  `NEWDOS30`, BOOT/SYS, DIR/SYS and SYS0/SYS with all three hashes matching),
+  and a DIR/SYS whose extent still says cylinder 17, where every sector is 0xFF
+  with a data CRC error: copy protection that moved the directory and left a
+  decoy where it used to be. The rule applies to the 2.3 family only: the two
   `Graphics-90` disks are in the 1.3 layout, made by some other tool, with a
   DIR/SYS whose extent says cylinder 0 though the directory (Tandy filler, 16
   and 20 hashes matching) is on 17.
@@ -1707,7 +1743,8 @@ For guessing a layout and directory location, strongest first:
 3. **The boot sector's byte 2** (masked with 0x7F) names the directory cylinder
    on all 76 decoded Model I and 4 disks, and for NEWDOS/80 it's the starting lump.
    It's how the DOS itself finds the directory, and TRSDOS 2.3B kept it even
-   after dropping DIR/SYS.
+   after dropping DIR/SYS. `evaluate()` uses it only to override DIR/SYS (see
+   "Cylinders, sides, and allocation"), reading it when byte 1 is 0xFE.
 4. **Other GAT self-consistency:** it marks its own cylinder fully allocated (0xFF in
    the 2.3 family, 0x3F in 1.3) and the boot granule on cylinder 0; the name and
    date are printable; the master password is usually the default, "PASSWORD"
@@ -1761,7 +1798,9 @@ candidate, such as reading file data on side 1 of `dospls34`'s directory
 cylinder, still loses because it reads mostly garbage. (This note predates the
 code: `evaluate()` rejected the candidate until October 2026, when following it
 decoded RAPIDOS 2.0, NEWDOS-86, TRSDOS 6.2 and LOAD-80 disks in
-`ira/lk-341-set-1`.)
+`ira/lk-341-set-1`.) A garbage slot whose HIT byte is the hash of its raw name
+bytes isn't a miss either: it means the HIT was rebuilt over leftovers (see "A
+HIT can be rebuilt over leftover bytes").
 
 **The GAT's AUTO command doesn't always end in 0x0D.** DOSPLUS 3.x ends it with
 0x03 (`Micro-80 Bulletin Board System`, `VersaReceivables`, the `Electric

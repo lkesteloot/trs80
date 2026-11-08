@@ -2019,10 +2019,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
         let hashHits = 0;
         let hashMisses = 0;
-        // Extents that start past the end of their lump or of the disk, which no DOS writes.
-        // Reading a double-sided disk single-sided makes every file that starts on side 1
-        // look like this.
-        let badExtents = 0;
+        // Entries with an extent that starts past the end of its lump or of the disk, which no DOS
+        // writes. Reading a double-sided disk single-sided makes every file that starts on side 1
+        // look like this. Count entries, not extents, so that such an entry costs what its hash
+        // hit gained: leftover bytes whose name happens to match the HIT are no evidence either way,
+        // however many garbage extents they hold.
+        let badExtentEntries = 0;
         // Reachable entries by DEC, and the extended entries (FXDEs) with their HIT bytes. An
         // FXDE has no name, and its HIT byte is the hash of the file it continues, so it can
         // only be checked once we've seen that file's primary entry.
@@ -2047,8 +2049,13 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         // A slot marked in use whose name or extents are garbage isn't a file. Count
                         // it as a miss rather than rejecting the candidate, since real directories
                         // have these too; a wrong candidate still loses by reading mostly garbage.
-                        // As elsewhere, a slot the HIT doesn't list is no evidence either way.
-                        if (hitHash !== 0) {
+                        // As elsewhere, a slot the HIT doesn't list is no evidence either way. Nor is
+                        // one whose HIT byte is the hash of its garbage name: some tool that rebuilt
+                        // the HIT read these same bytes as an entry, so the slot agrees with this
+                        // layout, but it's still not a file.
+                        const rawHashMatches = hitHash !== undefined &&
+                            hashForFilename(bytesToText(dirEntryBinary.subarray(5, 16))) === hitHash;
+                        if (hitHash !== 0 && !rawHashMatches) {
                             hashMisses += 1;
                         }
                         continue;
@@ -2089,24 +2096,29 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                                 hashMisses += 1;
                             }
                         }
-                        for (const extent of dirEntry.extents) {
-                            if (extent.granuleOffset >= this.granulesPerLump || extent.cylinderNumber >= this.lumpCount) {
-                                badExtents += 1;
-                            }
+                        const hasBadExtent = dirEntry.extents.some(extent => this.isBadExtent(extent));
+                        if (hasBadExtent) {
+                            badExtentEntries += 1;
                         }
                         // DIR/SYS is the file that holds the directory, so if there is one, it must
                         // start at our directory lump. Otherwise we're reading some other layout
                         // that happens to reach the same sectors, or a leftover directory. Only in
                         // the 2.3 family: Tandy's 1.3 and 2.7 write no DIR/SYS, and a disk in the
-                        // 1.3 layout made by another tool can have one that points anywhere.
-                        if (this.version === TrsdosVersion.V2_3 &&
-                            dirEntry.getFilename("/") === "DIR/SYS" && dirEntry.extents.length > 0 &&
-                            dirEntry.extents[0].cylinderNumber !== this.dirLumpNumber) {
-
-                            return { score: -1, reason: `DIR/SYS is on lump ${dirEntry.extents[0].cylinderNumber}, not the directory's lump` };
-                        }
+                        // 1.3 layout made by another tool can have one that points anywhere. The
+                        // DOS itself finds the directory through the boot sector, not DIR/SYS, so
+                        // a disk whose directory was moved can keep the old DIR/SYS entry; accept
+                        // it when the boot sector names our lump.
                         if (dirEntry.getFilename("/") === "DIR/SYS" && dirEntry.extents.length > 0) {
-                            dirSysConfirmsDir = true;
+                            const dirSysLump = dirEntry.extents[0].cylinderNumber;
+                            const dirSysPointsElsewhere = dirSysLump !== this.dirLumpNumber;
+                            if (this.version === TrsdosVersion.V2_3 && dirSysPointsElsewhere) {
+                                const bootSectorNamesDir = this.getBootSectorDirLump() === this.dirLumpNumber;
+                                if (!bootSectorNamesDir) {
+                                    return { score: -1, reason: `DIR/SYS is on lump ${dirSysLump}, not the directory's lump` };
+                                }
+                            } else {
+                                dirSysConfirmsDir = true;
+                            }
                         }
                     }
                 }
@@ -2161,17 +2173,21 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
         // Files whose extents hold fewer sectors than their size needs. Reading a disk with granules
         // that are too small (5 sectors where the DOS used 6) shortens every file that ends in the
-        // last sector of its last granule, while the directory and hashes stay just as valid.
+        // last sector of its last granule, while the directory and hashes stay just as valid. A file
+        // whose entries have a bad extent was already counted above, so don't count it again.
         let shortFiles = 0;
         for (const dirEntry of this.getDirEntries(true)) {
             const sectorsInFile = Math.ceil(dirEntry.getSize() / BYTES_PER_SECTOR);
-            if (this.getExtentSectorCount(dirEntry) < sectorsInFile) {
+            const isShort = this.getExtentSectorCount(dirEntry) < sectorsInFile;
+            const hasBadExtent = [...this.getFileExtents(dirEntry)].some(extent => this.isBadExtent(extent));
+            if (isShort && !hasBadExtent) {
                 shortFiles += 1;
             }
         }
 
-        const score = hashHits - hashMisses - badExtents - shortFiles;
-        const reason = `${hashHits} hash hits, ${hashMisses} hash misses, ${badExtents} bad extents, ${shortFiles} short files`;
+        const score = hashHits - hashMisses - badExtentEntries - shortFiles;
+        const reason = `${hashHits} hash hits, ${hashMisses} hash misses, ${badExtentEntries} entries with bad extents, ` +
+            `${shortFiles} short files`;
 
         return { score, reason };
     }
@@ -2529,7 +2545,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                         // TODO what to do with this error? Abort this method?
                     } else if (dirEntry !== undefined) {
                         // Don't record deleted entries, or ones the HIT doesn't list.
-                        const unreachable =typeof hitInfo !== "string" && hitInfo.hit[hitIndex] === 0;
+                        const unreachable = typeof hitInfo !== "string" && hitInfo.hit[hitIndex] === 0;
                         if (!unreachable) {
                             // Entries with blank names (see evaluate()): restore a system file's name
                             // if its slot and HIT byte confirm it. Name any other one BLANK<n>, since a
@@ -2917,6 +2933,31 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
         const bootSector = this.disk.readSector(bootTrack.firstSectorPosition());
         return bootSector !== undefined && bytes.every((b, i) => bootSector.data[i] === b);
+    }
+
+    /**
+     * The directory's lump as the boot sector gives it, or undefined if the disk has no boot track
+     * or its boot sector isn't a 2.3-family one (byte 1 0xFE). Byte 2, masked with 0x7F, is how the
+     * DOS finds its directory: the cylinder, or NEWDOS/80's starting lump. See "Evidence that turned
+     * out to be reliable" in FLOPPY_FORMATS.md.
+     */
+    private getBootSectorDirLump(): number | undefined {
+        const bootTrack = this.geometry.bootTrack;
+        if (bootTrack === undefined) {
+            return undefined;
+        }
+        const bootSector = this.disk.readSector(bootTrack.firstSectorPosition());
+        if (bootSector === undefined || bootSector.data[1] !== 0xFE) {
+            return undefined;
+        }
+        return bootSector.data[2] & 0x7F;
+    }
+
+    /**
+     * Whether the extent starts past the end of its lump or of the disk, which no DOS writes.
+     */
+    private isBadExtent(extent: TrsdosExtent): boolean {
+        return extent.granuleOffset >= this.granulesPerLump || extent.cylinderNumber >= this.lumpCount;
     }
 
     /**
