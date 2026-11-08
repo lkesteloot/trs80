@@ -673,6 +673,14 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
                         name or date doesn’t change the DOS release banner that TRSDOS 6 keeps in that sector.</p></td>
                 </tr>
                 <tr>
+                    <td><code>protect [on|off]</code></td>
+                    <td><p>Show the image’s write-protect flag, or turn it on or off. The flag is in the image
+                        file, and emulators honor it the way a drive honors the tab on a real floppy; the
+                        commands that change files refuse a write-protected disk unless you give
+                        <code>--force</code>. DMK, JV3 and HFE floppies and HDV hard disks have the flag. JV1 and
+                        IMD images have nowhere to keep one, so <code>protect</code> explains that instead.</p></td>
+                </tr>
+                <tr>
                     <td><code>info</code></td>
                     <td>Describe the image and its file system, as <code>info --verbose</code> does,
                         with the free space and whether the disk can be written. For a hard disk it

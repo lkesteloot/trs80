@@ -26,6 +26,7 @@ import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
 import {parseBasicName, printDiskHelp} from "./DiskHelp.js";
 import {PARTITION_COMMAND} from "./DiskPartition.js";
+import {PROTECT_COMMAND} from "./DiskProtect.js";
 
 /**
  * One command of the "disk" command: its syntax (for the parser and for help) and what it does.
@@ -1153,6 +1154,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     RENAME_COMMAND,
     ATTRIB_COMMAND,
     LABEL_COMMAND,
+    PROTECT_COMMAND,
     INFO_COMMAND,
     PARTITION_COMMAND,
     FREE_COMMAND,

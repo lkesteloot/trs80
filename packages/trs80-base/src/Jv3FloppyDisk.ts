@@ -34,6 +34,12 @@ const DIR_ENTRY_SIZE = 3;
 // We can fit this many 3-byte records into it, with one byte to spare:
 const RECORD_COUNT = Math.floor(HEADER_SIZE/DIR_ENTRY_SIZE);
 
+/**
+ * The offset of the first block's write-protect byte, the spare byte after its records: 0x00 means
+ * write-protected, 0xFF writable.
+ */
+export const JV3_WRITE_PROTECT_OFFSET = RECORD_COUNT*DIR_ENTRY_SIZE;
+
 // Flags for Jv3SectorInfo.
 enum Flags {
     SIZE_CODE_MASK = 0x03, // See calculation in constructor of Jv3SectorInfo.

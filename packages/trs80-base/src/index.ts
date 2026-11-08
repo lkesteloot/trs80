@@ -12,6 +12,7 @@ export * from "./Jv1FloppyDisk.js";
 export * from "./DiskVolume.js";
 export * from "./HardDisk.js";
 export * from "./HdvHardDisk.js";
+export * from "./ImageWriteProtect.js";
 export * from "./HardDiskPartition.js";
 export * from "./LdosHardDisk.js";
 export * from "./LdosTestHardDisk.js";

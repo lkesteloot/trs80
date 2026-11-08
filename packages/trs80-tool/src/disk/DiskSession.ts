@@ -749,6 +749,64 @@ export class DiskSession {
     }
 
     /**
+     * Decode image bytes as the session's disk, as {@link open} does for a file, keeping the user's choice of
+     * partition on a hard disk when the partitions are where they were.
+     *
+     * @param binary the bytes, which the new image owns.
+     * @param extension the file name extension that sends them to the right decoder.
+     * @throws Error if the bytes don't decode as a floppy or a hard disk (a bug, since they came from one).
+     */
+    private loadImage(binary: Uint8Array, extension: string): void {
+        // The extension sends the bytes to the decoder that made this kind of floppy in the first place.
+        const trs80File = decodeTrs80File(binary, { filename: "state" + extension });
+        if (trs80File.error !== undefined) {
+            throw new Error("Can't decode the disk again: " + trs80File.error);
+        }
+        if (isHardDisk(trs80File)) {
+            this.currentImage = trs80File;
+            // The partitions are where they were, so keep the user's choice of one.
+            const selected = this.selectedPartitionIndex;
+            this.findPartitions(undefined);
+            if (selected !== undefined && selected < this.partitions.length) {
+                this.selectedPartitionIndex = selected;
+                this.currentFileSystem = this.partitions[selected].trsdos;
+            } else {
+                this.selectedPartitionIndex = this.partitions.length === 1 ? 0 : undefined;
+                this.currentFileSystem = this.selectedPartitionIndex === undefined ? undefined :
+                    this.partitions[this.selectedPartitionIndex].trsdos;
+            }
+        } else if (isFloppy(trs80File)) {
+            this.currentImage = trs80File;
+            this.partitions = [];
+            this.selectedPartitionIndex = undefined;
+            this.currentFileSystem = decodeFloppyFileSystem(trs80File);
+        } else {
+            throw new Error("Can't decode the disk again: it didn't decode as a floppy or a hard disk");
+        }
+        this.watchImage(trs80File);
+    }
+
+    /**
+     * Replace the disk with a copy of its image changed outside the file system (such as its write-protect
+     * flag), which must decode as the same kind of image. It counts as a change to be saved and undone, and
+     * the selected partition of a hard disk stays selected.
+     *
+     * @param binary the changed bytes, which the session owns from now on.
+     */
+    public replaceImageBinary(binary: Uint8Array): void {
+        const image = this.currentImage;
+        if (image === undefined) {
+            throw this.makeNoDiskError();
+        }
+        this.loadImage(binary, DiskSession.extensionForImage(image));
+        this.granuleMap = null;
+        this.writeGate = null;
+        this.forceWarningShown = false;
+        this.changed = true;
+        this.modificationCount++;
+    }
+
+    /**
      * Put the session back to a captured state: decode its image again (from a copy, since the floppy writes
      * into its own bytes), as {@link open} does for a file, and start the caches over. Whether the disk
      * counts as changed depends on whether it is the saved version.
@@ -760,33 +818,7 @@ export class DiskSession {
             this.partitions = [];
             this.selectedPartitionIndex = undefined;
         } else {
-            // The extension sends the bytes to the decoder that made this kind of floppy in the first place.
-            const trs80File = decodeTrs80File(new Uint8Array(state.binary), { filename: "state" + state.extension });
-            if (trs80File.error !== undefined) {
-                throw new Error("Can't restore the disk: " + trs80File.error);
-            }
-            if (isHardDisk(trs80File)) {
-                this.currentImage = trs80File;
-                // The partitions are where they were, so keep the user's choice of one.
-                const selected = this.selectedPartitionIndex;
-                this.findPartitions(undefined);
-                if (selected !== undefined && selected < this.partitions.length) {
-                    this.selectedPartitionIndex = selected;
-                    this.currentFileSystem = this.partitions[selected].trsdos;
-                } else {
-                    this.selectedPartitionIndex = this.partitions.length === 1 ? 0 : undefined;
-                    this.currentFileSystem = this.selectedPartitionIndex === undefined ? undefined :
-                        this.partitions[this.selectedPartitionIndex].trsdos;
-                }
-            } else if (isFloppy(trs80File)) {
-                this.currentImage = trs80File;
-                this.partitions = [];
-                this.selectedPartitionIndex = undefined;
-                this.currentFileSystem = decodeFloppyFileSystem(trs80File);
-            } else {
-                throw new Error("Can't restore the disk: it didn't decode as a floppy or a hard disk");
-            }
-            this.watchImage(trs80File);
+            this.loadImage(new Uint8Array(state.binary), state.extension);
         }
         this.granuleMap = null;
         this.writeGate = null;

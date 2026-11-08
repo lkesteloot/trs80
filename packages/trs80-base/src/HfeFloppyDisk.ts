@@ -48,7 +48,8 @@ export const BLOCK_SIZE = 512;
 export const SIDE_BLOCK_SIZE = BLOCK_SIZE/2;
 
 // The offset in the header of the byte that says whether writing is allowed: 0xFF means yes, 0x00 means no.
-const WRITE_ALLOWED_OFFSET = 20;
+export const HFE_WRITE_ALLOWED_OFFSET = 20;
+const WRITE_ALLOWED_OFFSET = HFE_WRITE_ALLOWED_OFFSET;
 const WRITE_PROTECTED_VALUE = 0x00;
 
 // The first eight bytes of a version 1 file.

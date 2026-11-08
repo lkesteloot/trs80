@@ -13,6 +13,12 @@ import {
 const HEADER_SIZE = 256;
 
 /**
+ * The header byte whose bit 7 ({@link HDV_WRITE_PROTECT_BIT}) says that the image is write-protected.
+ */
+export const HDV_WRITE_PROTECT_OFFSET = 7;
+export const HDV_WRITE_PROTECT_BIT = 0x80;
+
+/**
  * The bytes that start every HDV file.
  */
 const MAGIC_0 = 0x56;
@@ -231,7 +237,7 @@ export function decodeHdvHardDisk(binary: Uint8Array): HdvHardDisk | undefined {
     const cylinderSize = headCount*TRACK_SIZE;
     const cylinderCount = Math.ceil(dataLength / cylinderSize);
 
-    const writeProtected = (binary[7] & 0x80) !== 0;
+    const writeProtected = (binary[HDV_WRITE_PROTECT_OFFSET] & HDV_WRITE_PROTECT_BIT) !== 0;
     const autoBootDos = (flags & 0x01) !== 0 ? binary[11] : undefined;
 
     return new HdvHardDisk(binary, headerVersion, writeProtected, autoBootDos, {
