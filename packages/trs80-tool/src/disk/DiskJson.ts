@@ -1,7 +1,8 @@
 import {
-    TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
+    parseTrsdosGatDate, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
     trsdosFindingKindSeverity, TrsdosFindingSeverity,
-    type TrsdosDirEntry, type TrsdosDiskInfo, type TrsdosProtectionLevel, type TrsdosProtectionNames, trsdosProtectionLevelToString,
+    type TrsdosDirEntry, type TrsdosDiskInfo, type TrsdosProtectionLevel, type TrsdosProtectionNames,
+    trsdosProtectionLevelToString, type TrsdosRuleSet,
 } from "trs80-base";
 import {
     type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind,
@@ -9,14 +10,35 @@ import {
 } from "trs80-disk";
 import {assertNever} from "z80-base";
 import type {GeometryInfoJson, OsInfoJson} from "../info.js";
+import {trsdosDirEntryJsonDate} from "../InputFile.js";
 import {type FileJson, type SectorPositionJson, sectorPositionToJson} from "../json.js";
 
 // The types of the JSON that the "disk" command prints with --json, and the helpers that build it. The
 // comments on the interfaces are the documentation of the format, which follows the conventions of json.ts:
 // field names are explicit, raw values and their interpretations are in separate fields, nothing depends on
 // the terminal, and optional fields are left out of the JSON when they don't apply. Where a field is an
-// enum in the code, the JSON has a lowercase string, which is part of the format; the functions that map
-// them are here too, and they never use the names or numbers of the TypeScript enums, which can change.
+// enum in the code, the JSON has a camelCase string (as in json.ts), which is part of the format; the
+// functions that map them are here too, and they never use the names or numbers of the TypeScript enums,
+// which can change. TRSDOS file names are written with a "." before the extension ("HELLO.BAS"), as in
+// json.ts, though the text output shows "HELLO/BAS".
+//
+// Stability: the format will keep working for programs that read it. New fields may be added; existing
+// fields keep their names, types and meanings. New values may appear in the lists of string values (such as
+// finding kinds, map cell kinds and trim reasons), so a program should accept values it doesn't know. Fields
+// meant for people can change wording: "messages", "message", "advice", "description", "label",
+// "readOnlyReason", "reason" (of "protect"), "listing", "conversions", "changes" (of "repair"), "error" and
+// "warnings". There's no version number, since the above makes one unnecessary.
+
+/**
+ * A TRSDOS file name as the JSON writes it: "HELLO.BAS", with a "." before the extension, as in json.ts,
+ * from the "HELLO/BAS" form that the engine and the text output use. Where a directory entry is at hand,
+ * use its getFilename(".") instead. TRSDOS names hold neither "." nor "/" otherwise, so nothing else changes.
+ *
+ * @param name the name with "/" before the extension, if it has one.
+ */
+export function trsdosNameToJson(name: string): string {
+    return name.replace("/", ".");
+}
 
 /**
  * The whole of what "disk --json" prints: one object describing the run, whether the commands came from the
@@ -113,7 +135,7 @@ export interface DirResultJson {
  * A file that "extract" wrote.
  */
 export interface ExtractedFileJson {
-    /** The file's name on the disk, such as "HELLO/BAS". */
+    /** The file's name on the disk, such as "HELLO.BAS" (for a Xenix disk, the path of the file's directory too). */
     name: string;
     /** The host path that the file was written to. */
     path: string;
@@ -142,7 +164,7 @@ export type ListKindJson =
  * A file that "list" showed.
  */
 export interface ListedFileJson {
-    /** The file's name on the disk, such as "HELLO/BAS". */
+    /** The file's name on the disk, such as "HELLO.BAS". */
     name: string;
     /** How the file was shown. */
     kind: ListKindJson;
@@ -166,7 +188,7 @@ export interface ListResultJson {
 export interface AddedFileJson {
     /** The host path of the file that was read, as given. */
     host: string;
-    /** The name on the disk, such as "HELLO/BAS". */
+    /** The name on the disk, such as "HELLO.BAS". */
     name: string;
     /** The file's size on the disk in bytes, after conversion. */
     size: number;
@@ -188,7 +210,7 @@ export interface AddResultJson {
  * The result of "kill".
  */
 export interface KillResultJson {
-    /** The names of the files removed, such as "HELLO/BAS", in directory order. */
+    /** The names of the files removed, such as "HELLO.BAS", in directory order. */
     removed: string[];
 }
 
@@ -196,7 +218,7 @@ export interface KillResultJson {
  * The result of "rename".
  */
 export interface RenameResultJson {
-    /** The file's old name as it was on the disk, such as "HELLO/BAS". */
+    /** The file's old name as it was on the disk, such as "HELLO.BAS". */
     from: string;
     /** The new name. */
     to: string;
@@ -234,7 +256,7 @@ export interface AttribChangesJson {
  * The result of "attrib" with options that change attributes.
  */
 export interface AttribChangeResultJson {
-    /** The names of the files changed, such as "HELLO/BAS", in directory order. */
+    /** The names of the files changed, such as "HELLO.BAS", in directory order. */
     files: string[];
     /** What was changed, the same on every file. */
     changes: AttribChangesJson;
@@ -244,7 +266,7 @@ export interface AttribChangeResultJson {
  * The attributes of one file, shown by "attrib" with no options that change them.
  */
 export interface AttribFileJson {
-    /** The file's name, such as "HELLO/BAS". */
+    /** The file's name, such as "HELLO.BAS". */
     name: string;
     /** The file's protection level. */
     protection: ProtectionJson;
@@ -256,7 +278,11 @@ export interface AttribFileJson {
     updatePassword: boolean;
     /** Whether the file has an access (user) password. */
     accessPassword: boolean;
-    /** The file's date as "YYYY-MM-DD" (a missing day counts as the first), or null if it has none. */
+    /**
+     * The file's date, as "dir --json" gives it in the file's "date" field: "YYYY-MM-DD", with "THH:MM" on disks
+     * with time stamps that have one, or only "YYYY-MM" or "YYYY" if the entry has no day or no month. Null if it
+     * has no date.
+     */
     date: string | null;
 }
 
@@ -275,8 +301,14 @@ export interface AttribShowResultJson {
 export interface LabelResultJson {
     /** The disk's name. */
     name: string;
-    /** The disk's date as the disk stores it, such as "01/25/83", or null if it has none. */
+    /**
+     * The disk's date as "YYYY-MM-DD", or null if it has none or the stored text isn't a valid date. The disk
+     * stores only two digits of the year, which are read as one of the hundred years from the first that the
+     * disk's DOS takes: on LDOS, 80-99 are 1980-1999 and 00-79 are 2000-2079.
+     */
     date: string | null;
+    /** The disk's date as the disk stores it ("MM/DD/YY", such as "01/25/83"), or null if it has none. */
+    storedDate: string | null;
     /**
      * What we know of the master password: "PASSWORD" if it's the common default, "blank" if there is none,
      * and "other" if it's set to something else, which only the hash can tell apart.
@@ -336,8 +368,8 @@ export interface PartitionJson {
     diskName: string;
     /** Where the partition is. */
     location: PartitionLocationJson;
-    /** The name and version of the partition's DOS. */
-    fileSystem: string;
+    /** The name and version of the partition's DOS, such as "LS-DOS 6.3.1". */
+    os: string;
     /** The number of files, not counting system files. */
     fileCount: number;
     /** Whether the partition can be written to. */
@@ -450,17 +482,17 @@ export type MapCellKindJson =
     /** One file uses it, and the file is one the user asked about (or the user asked about none in particular). */
     "file" |
     /** One file uses it, but the user asked about other files. */
-    "other-file" |
+    "otherFile" |
     /** The directory. */
     "directory" |
     /** The boot sector's granule, or BOOT/SYS's. */
     "boot" |
     /** The lockout table says the granule can't be used. */
-    "locked-out" |
+    "lockedOut" |
     /** Two or more files claim the granule (damage). */
     "shared" |
     /** A file claims the granule, but the GAT says it's free (damage). */
-    "claimed-but-free" |
+    "claimedButFree" |
     /** The GAT says the granule is used, but no file claims it. */
     "unclaimed";
 
@@ -484,7 +516,7 @@ export interface MapCellJson {
  * A file that has granules in the map.
  */
 export interface MapFileJson {
-    /** The file's name as the map shows it. */
+    /** The file's name on the disk, such as "HELLO.BAS". */
     name: string;
     /** The number of granules the file occupies. */
     granuleCount: number;
@@ -549,29 +581,29 @@ export type FindingSeverityJson =
  */
 export type FindingKindJson =
     /** The GAT can't be read, so nothing about the granules can be checked. */
-    "gat-unreadable" |
+    "gatUnreadable" |
     /** The GAT's unused bits aren't what the DOS writes, so the granules per lump are a guess. */
-    "gat-not-strict" |
+    "gatNotStrict" |
     /** The directory was read without its HIT, because the HIT doesn't match it. */
-    "hit-ignored" |
+    "hitIgnored" |
     /** Two or more files claim the same granules. */
-    "shared-granules" |
+    "sharedGranules" |
     /** A file uses granules that the GAT says are free. */
-    "claimed-but-free" |
+    "claimedButFree" |
     /** A file's extent runs past the end of the disk. */
-    "extent-out-of-range" |
+    "extentOutOfRange" |
     /** A directory entry's HIT byte isn't the hash of its file's name. */
-    "hit-mismatch" |
+    "hitMismatch" |
     /** An extended directory entry that no file's chain reaches. */
-    "orphan-extended-entry" |
+    "orphanExtendedEntry" |
     /** A file with missing sectors, CRC errors, or a broken chain of directory entries. */
-    "damaged-file" |
+    "damagedFile" |
     /** The GAT marks granules used that no file claims. */
-    "used-but-unclaimed" |
+    "usedButUnclaimed" |
     /** BOOT/SYS shares granules of the boot cylinder with another file. */
-    "boot-sys-overlap" |
+    "bootSysOverlap" |
     /** A program whose directory size ends before its transfer record. */
-    "program-past-eof";
+    "programPastEof";
 
 /**
  * One thing that "check" found.
@@ -583,7 +615,7 @@ export interface FindingJson {
     severity: FindingSeverityJson;
     /** A complete sentence for a person. */
     message: string;
-    /** The names of the files involved, such as "HELLO/BAS", in the order the finding gives them. Possibly empty. */
+    /** The names of the files involved, such as "HELLO.BAS", in the order the finding gives them. Possibly empty. */
     files: string[];
     /** The granules involved, in order. Possibly empty. */
     granules: GranuleJson[];
@@ -629,7 +661,10 @@ export interface RepairResultJson {
     remaining: RepairRemainingJson[];
     /** The number of granules that --free-unclaimed would free (0 if it was given, since they were freed). */
     freeableUnclaimedGranules: number;
-    /** The names of the programs that --fix-program-sizes would fix (none if it was given, since they were fixed). */
+    /**
+     * The names of the programs that --fix-program-sizes would fix, such as "HELLO.BAS" (none if it was given,
+     * since they were fixed).
+     */
     fixablePrograms: string[];
     /** Whether the disk can be written to now. */
     writable: boolean;
@@ -649,7 +684,7 @@ export interface CreateResultJson {
     systemDisk?: {
         /** What the system disk is, such as "LS-DOS 6.3.1 system disk for the Model 4". */
         description: string;
-        /** The names of the files that --minimal removed from the copy. Empty if it wasn't given. */
+        /** The names of the files that --minimal removed from the copy, such as "HELLO.BAS". Empty if it wasn't given. */
         removed: string[];
     };
 }
@@ -659,7 +694,7 @@ export interface CreateResultJson {
  */
 export type TrimNothingReasonJson =
     /** Side 1 was to be dropped, but the image has only one side. */
-    "one-side" |
+    "oneSide" |
     /** A number of cylinders was asked for, but the image has no more than that. */
     "cylinders" |
     /** The image has no cylinders at the end that the disk doesn't use. */
@@ -682,7 +717,7 @@ export type TrimCylindersReasonJson =
     /** --cylinders asked for fewer. */
     "requested" |
     /** The file system doesn't use them. */
-    "file-system-end" |
+    "fileSystemEnd" |
     /** They're at the end of the image and have no readable sectors. */
     "unreadable";
 
@@ -763,29 +798,29 @@ export function findingSeverityToJson(severity: TrsdosFindingSeverity): FindingS
 export function findingKindToJson(kind: TrsdosFindingKind): FindingKindJson {
     switch (kind) {
         case TrsdosFindingKind.GAT_UNREADABLE:
-            return "gat-unreadable";
+            return "gatUnreadable";
         case TrsdosFindingKind.GAT_NOT_STRICT:
-            return "gat-not-strict";
+            return "gatNotStrict";
         case TrsdosFindingKind.HIT_IGNORED:
-            return "hit-ignored";
+            return "hitIgnored";
         case TrsdosFindingKind.SHARED_GRANULES:
-            return "shared-granules";
+            return "sharedGranules";
         case TrsdosFindingKind.CLAIMED_BUT_FREE:
-            return "claimed-but-free";
+            return "claimedButFree";
         case TrsdosFindingKind.EXTENT_OUT_OF_RANGE:
-            return "extent-out-of-range";
+            return "extentOutOfRange";
         case TrsdosFindingKind.HIT_MISMATCH:
-            return "hit-mismatch";
+            return "hitMismatch";
         case TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY:
-            return "orphan-extended-entry";
+            return "orphanExtendedEntry";
         case TrsdosFindingKind.DAMAGED_FILE:
-            return "damaged-file";
+            return "damagedFile";
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
-            return "used-but-unclaimed";
+            return "usedButUnclaimed";
         case TrsdosFindingKind.BOOT_SYS_OVERLAP:
-            return "boot-sys-overlap";
+            return "bootSysOverlap";
         case TrsdosFindingKind.PROGRAM_PAST_EOF:
-            return "program-past-eof";
+            return "programPastEof";
         default:
             assertNever(kind);
     }
@@ -801,17 +836,17 @@ export function mapCellKindToJson(kind: MapCellKind): MapCellKindJson {
         case MapCellKind.FILE:
             return "file";
         case MapCellKind.OTHER_FILE:
-            return "other-file";
+            return "otherFile";
         case MapCellKind.DIRECTORY:
             return "directory";
         case MapCellKind.BOOT:
             return "boot";
         case MapCellKind.LOCKED_OUT:
-            return "locked-out";
+            return "lockedOut";
         case MapCellKind.SHARED:
             return "shared";
         case MapCellKind.CLAIMED_BUT_FREE:
-            return "claimed-but-free";
+            return "claimedButFree";
         case MapCellKind.UNCLAIMED:
             return "unclaimed";
         default:
@@ -827,7 +862,7 @@ export function findingToJson(finding: TrsdosFinding): FindingJson {
         kind: findingKindToJson(finding.kind),
         severity: findingSeverityToJson(trsdosFindingKindSeverity(finding.kind)),
         message: finding.message,
-        files: finding.dirEntries.map(dirEntry => dirEntry.getFilename("/")),
+        files: finding.dirEntries.map(dirEntry => dirEntry.getFilename(".")),
         granules: finding.granules.map(granule => ({lump: granule.lump, granule: granule.granule})),
     };
 }
@@ -856,7 +891,7 @@ export function trimCylindersReasonToJson(reason: TrimCylindersReason): TrimCyli
         case TrimCylindersReason.REQUESTED:
             return "requested";
         case TrimCylindersReason.FILE_SYSTEM_END:
-            return "file-system-end";
+            return "fileSystemEnd";
         case TrimCylindersReason.UNREADABLE:
             return "unreadable";
         default:
@@ -870,7 +905,7 @@ export function trimCylindersReasonToJson(reason: TrimCylindersReason): TrimCyli
 export function trimNothingReasonToJson(reason: TrimNothingReason): TrimNothingReasonJson {
     switch (reason) {
         case TrimNothingReason.ONE_SIDE:
-            return "one-side";
+            return "oneSide";
         case TrimNothingReason.CYLINDERS:
             return "cylinders";
         case TrimNothingReason.UNUSED:
@@ -904,16 +939,14 @@ export function dateToJson(date: Date | null): string | null {
  * @param names which DOS's protection names the disk uses.
  */
 export function attribFileToJson(dirEntry: TrsdosDirEntry, names: TrsdosProtectionNames): AttribFileJson {
-    // A month of zero means the date was never set (or the DOS has no dates), whatever the year bits say.
-    const date = dirEntry.month === 0 ? undefined : dirEntry.getDate();
     return {
-        name: dirEntry.getFilename("/"),
+        name: dirEntry.getFilename("."),
         protection: protectionToJson(dirEntry.getProtectionLevel(), names),
         invisible: dirEntry.isHidden(),
         system: dirEntry.isSystemFile(),
         updatePassword: dirEntry.updatePassword !== undefined && dirEntry.updatePassword !== TRSDOS_BLANK_PASSWORD_HASH,
         accessPassword: dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH,
-        date: dateToJson(date ?? null),
+        date: trsdosDirEntryJsonDate(dirEntry) ?? null,
     };
 }
 
@@ -932,11 +965,17 @@ export function masterPasswordToJson(passwordHash: number): "PASSWORD" | "blank"
 
 /**
  * The disk's name, date, master password and AUTO command as JSON.
+ *
+ * @param info the disk's information.
+ * @param ruleSet the DOS's rules, or undefined if unknown, which says which century the stored date is in.
  */
-export function diskInfoToJson(info: TrsdosDiskInfo): LabelResultJson {
+export function diskInfoToJson(info: TrsdosDiskInfo, ruleSet: TrsdosRuleSet | undefined): LabelResultJson {
+    const parsed = parseTrsdosGatDate(info.date, ruleSet);
+    const date = parsed === undefined ? null : formatYmd(new Date(parsed.year, parsed.month - 1, parsed.day));
     return {
         name: info.name,
-        date: info.date === "" ? null : info.date,
+        date,
+        storedDate: info.date === "" ? null : info.date,
         masterPassword: masterPasswordToJson(info.passwordHash),
         masterPasswordHash: info.passwordHash,
         autoCommand: info.autoCommand ?? null,
@@ -979,7 +1018,7 @@ export function partitionsToJson(session: DiskSession): PartitionJson[] {
             number: index + 1,
             diskName: partition.diskName,
             location: partitionLocationToJson(partition),
-            fileSystem: partition.trsdos.nameAndVersion,
+            os: partition.trsdos.nameAndVersion,
             fileCount: partition.trsdos.getDirEntries(false).length,
             writable: readOnlyReason === undefined,
             selected: session.selectedPartitionNumber === index + 1,
@@ -1018,7 +1057,7 @@ export function mapToJson(model: DiskMapModel): MapResultJson {
             return json;
         }),
         files: model.files.map(file => {
-            const json: MapFileJson = {name: file.name, granuleCount: file.granuleCount};
+            const json: MapFileJson = {name: file.dirEntry.getFilename("."), granuleCount: file.granuleCount};
             if (file.colorIndex !== undefined) {
                 json.colorIndex = file.colorIndex;
             }

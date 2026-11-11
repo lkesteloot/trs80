@@ -789,7 +789,7 @@ Type "help" for a list of commands, and "quit" to leave.
         "files": [
           {
             "host": "hello.bas",
-            "name": "HELLO/BAS",
+            "name": "HELLO.BAS",
             "size": 14,
             "replaced": false,
             "conversions": [
@@ -832,10 +832,18 @@ Type "help" for a list of commands, and "quit" to leave.
             exception: it’s found before anything runs, and is printed as text, as without <code>--json</code>.</p>
             <p>The commands that have no use in a program are refused: <code>boot</code> needs a terminal, and
             <code>list --raw</code> writes bytes, where <code>list</code> already gives a file’s contents in base64.
-            Fields that don’t apply are left out of the JSON, and the names in it are stable.
+            Fields that don’t apply are left out of the JSON. As in the <code>--json</code> output of the other
+            commands, file names are written with a <code>.</code> before the extension (<code>HELLO.BAS</code>,
+            where the text shows <code>HELLO/BAS</code>), and values that are strings from a list, such as the
+            <code>kind</code> of a finding or of a map cell, are in camelCase (<code>claimedButFree</code>).
             The comments on the types in
             <a href="https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/src/disk/DiskJson.ts"><code>src/disk/DiskJson.ts</code></a>
             are the full reference for the format.</p>
+            <p>The format is stable. New fields may be added, but existing fields keep their names, types, and
+            meanings. New values may appear in the lists of string values (such as finding kinds), so a program should
+            accept values it doesn’t know. Fields meant for people can change their wording: <code>messages</code>,
+            <code>message</code>, <code>advice</code>, <code>description</code>, <code>readOnlyReason</code>,
+            <code>error</code>, <code>warnings</code>, and the like. There is no version number.</p>
 
             <h2 id="hard-disks">Hard disks</h2>
             <p><code>disk</code> opens HDV hard disk images (the format of xtrs, sdltrs, and FreHD) and works on

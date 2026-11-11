@@ -204,6 +204,32 @@ export interface BasicChoice {
 }
 
 /**
+ * A TRSDOS directory entry's date for JSON output: "YYYY-MM-DD", with "THH:MM" if the entry has a time
+ * stamp, or only "YYYY-MM" or "YYYY" where the entry has no day or no month, rather than making up the
+ * rest. Undefined if the entry has no date. Both "dir --json" (FileJson.date) and the "disk" command's
+ * attributes use it, so that they agree.
+ *
+ * @param dirEntry the file's primary directory entry.
+ */
+export function trsdosDirEntryJsonDate(dirEntry: TrsdosDirEntry): string | undefined {
+    const date = dirEntry.getDate();
+    if (date === undefined) {
+        return undefined;
+    }
+
+    const {month, day} = dirEntry;
+    if (month === 0) {
+        return date.getFullYear().toString().padStart(4, "0");
+    }
+    if (day === 0) {
+        return jsonDate(date, false, false).substring(0, 7);
+    }
+
+    const hasTime = dirEntry.hour !== undefined && dirEntry.minute !== undefined;
+    return jsonDate(date, false, hasTime);
+}
+
+/**
  * Input file that came from a TRSDOS floppy, or from a partition of a hard disk.
  */
 export class TrsdosInputFile extends InputFile {
@@ -263,24 +289,10 @@ export class TrsdosInputFile extends InputFile {
     /**
      * The date, with the time only if the entry has one (only some disks have time stamps).
      * Some entries have just a year, or a year and month, and then that's all we give, rather
-     * than make up the rest.
+     * than make up the rest. See trsdosDirEntryJsonDate().
      */
     public override getJsonDate(): string | undefined {
-        const date = this.getDate();
-        if (date === undefined) {
-            return undefined;
-        }
-
-        const {month, day} = this.dirEntry;
-        if (month === 0) {
-            return date.getFullYear().toString().padStart(4, "0");
-        }
-        if (day === 0) {
-            return jsonDate(date, false, false).substring(0, 7);
-        }
-
-        const hasTime = this.dirEntry.hour !== undefined && this.dirEntry.minute !== undefined;
-        return jsonDate(date, false, hasTime);
+        return trsdosDirEntryJsonDate(this.dirEntry);
     }
 
     /**

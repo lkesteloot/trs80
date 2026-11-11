@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import {
-    type TrsdosDiskInfoChanges, type TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetCliName,
-    trsdosRuleSetToString,
+    type TrsdosDiskInfo, type TrsdosDiskInfoChanges, type TrsdosFindingSeverity, trsdosFindingKindSeverity,
+    trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {dirListingLines} from "../dir.js";
@@ -30,7 +30,8 @@ import {PROTECT_COMMAND} from "./DiskProtect.js";
 import {saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 import {
     type AttribChangesJson, attribFileToJson, type CheckResultJson, dateToJson, diskInfoToJson, findingToJson,
-    freeSpaceToJson, type InfoResultJson, partitionsToJson, protectionToJson,
+    freeSpaceToJson, type InfoResultJson, type LabelResultJson, partitionsToJson, protectionToJson,
+    trsdosNameToJson,
 } from "./DiskJson.js";
 import {type DiskOutput, type DiskRunOutput, TEXT_RUN_OUTPUT} from "./DiskOutput.js";
 import {makeLineHelpOutput} from "./DiskCommander.js";
@@ -250,7 +251,7 @@ const KILL_COMMAND: DiskCommand = {
         for (const name of removedNames) {
             out.line("Removed " + name + ".");
         }
-        out.result({removed: removedNames});
+        out.result({removed: removedNames.map(trsdosNameToJson)});
     },
 };
 
@@ -278,7 +279,7 @@ const RENAME_COMMAND: DiskCommand = {
         const { oldName, newName } = renameFile(session, oldText, newText);
 
         out.line("Renamed " + oldName + " to " + newName + ".");
-        out.result({from: oldName, to: newName});
+        out.result({from: trsdosNameToJson(oldName), to: trsdosNameToJson(newName)});
     },
 };
 
@@ -423,7 +424,7 @@ const ATTRIB_COMMAND: DiskCommand = {
         if (changes.date !== undefined) {
             changesJson.date = dateToJson(changes.date);
         }
-        out.result({files, changes: changesJson});
+        out.result({files: files.map(trsdosNameToJson), changes: changesJson});
     },
 };
 
@@ -554,7 +555,7 @@ const ADD_COMMAND: DiskCommand = {
         out.result({
             files: result.files.map((file, index) => ({
                 host: plan[index].source.label,
-                name: file.name,
+                name: trsdosNameToJson(file.name),
                 size: file.size,
                 replaced: file.replaced,
                 conversions: file.conversionMessages,
@@ -562,6 +563,17 @@ const ADD_COMMAND: DiskCommand = {
         });
     },
 };
+
+/**
+ * The disk's name, date, master password and AUTO command as the "label" command's JSON result, with the
+ * date's century taken from the disk's DOS.
+ *
+ * @param session the open disk.
+ * @param info the disk's information.
+ */
+function labelResultToJson(session: DiskSession, info: TrsdosDiskInfo): LabelResultJson {
+    return diskInfoToJson(info, session.getWriteGate()?.ruleSet);
+}
 
 /**
  * The "label" command: show or change the disk's name, date, master password and AUTO command.
@@ -633,7 +645,7 @@ const LABEL_COMMAND: DiskCommand = {
             out.line("Date: " + (info.date === "" ? "none" : info.date));
             out.line("Master password: " + describeMasterPassword(info.passwordHash));
             out.line("AUTO command: " + describeAutoCommand(info.autoCommand));
-            out.result(diskInfoToJson(info));
+            out.result(labelResultToJson(session, info));
             return;
         }
 
@@ -656,7 +668,7 @@ const LABEL_COMMAND: DiskCommand = {
                 "AUTO command is now " + describeAutoCommand(info.autoCommand) + ".");
         }
         out.line(sentences.join(" "));
-        out.result(diskInfoToJson(info));
+        out.result(labelResultToJson(session, info));
     },
 };
 

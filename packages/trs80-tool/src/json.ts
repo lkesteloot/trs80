@@ -13,6 +13,12 @@ import {outputPathComponents, ToolError} from "./utils.js";
 // documentation of the format. The format is meant to be stable: field names are explicit, raw
 // values and their interpretations are in separate fields, and nothing depends on the terminal.
 // Optional fields are left out of the JSON when they don't apply.
+//
+// The promise to programs that read it: new fields may be added, but existing fields keep their names,
+// types and meanings. New values may appear in the lists of string values (such as content types), so a
+// program should accept values it doesn't know. Fields meant for people can change wording: "description",
+// "error", "warnings", "directoryErrors", and the "disk" command's, which DiskJson.ts lists. There's no
+// version number, since the above makes one unnecessary.
 
 /**
  * Print a value to standard output as pretty-printed JSON.
@@ -217,11 +223,15 @@ export function damageToJson(damage: FileDamage): DamageJson {
  * A run of granules that a TRSDOS-family file occupies.
  */
 export interface GranuleExtentJson {
-    /** Cylinder of the run's first granule. */
+    /**
+     * The lump of the run's first granule, as the directory entry stores it. A lump is a cylinder on most
+     * DOSes, which is why the field is called that, but not on NEWDOS/80 disks with other lump sizes (see
+     * "The lump model" in trs80-base's FLOPPY_FORMATS.md). In a Model II TRSDOS file, it is a true cylinder.
+     */
     cylinder: number;
-    /** The granule within that cylinder where the run starts. */
+    /** The granule within that lump (or Model II cylinder) where the run starts. */
     granule: number;
-    /** Number of granules in the run, which continue into the following cylinders. */
+    /** Number of granules in the run, which continue into the following lumps (or Model II cylinders). */
     granuleCount: number;
 }
 

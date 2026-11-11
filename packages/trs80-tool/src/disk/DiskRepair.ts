@@ -70,7 +70,7 @@ export const REPAIR_COMMAND: DiskCommand = {
             changes: repaired.changes,
             remaining: repaired.remaining.map(({finding, advice}) => ({...findingToJson(finding), advice})),
             freeableUnclaimedGranules: repaired.freeableUnclaimed.length,
-            fixablePrograms: fixableProgramNames,
+            fixablePrograms: repaired.fixablePrograms.map(file => file.getFilename(".")),
             writable: readOnlyReasonAfter === undefined,
         };
         if (readOnlyReasonAfter !== undefined) {

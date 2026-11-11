@@ -4,6 +4,7 @@ import path from "path";
 import {Readable} from "stream";
 import {
     makeLdosTestHardDiskBinary, makeTrsdos23TestDisk, type LdosTestPartition, type TestDiskOptions, type TestFile,
+    type TrsdosDiskInfo, TrsdosRuleSet,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {setColorLevel} from "../colors.js";
@@ -15,7 +16,7 @@ import type {
     KillResultJson, LabelResultJson, ListResultJson, MapResultJson, PartitionListResultJson,
     PartitionSelectResultJson, RenameResultJson, SaveResultJson, UndoResultJson,
 } from "./DiskJson.js";
-import {trimDoneToJson} from "./DiskJson.js";
+import {diskInfoToJson, trimDoneToJson, trsdosNameToJson} from "./DiskJson.js";
 import {TrimCylindersReason} from "trs80-disk";
 
 const HELLO_TEXT = "10 PRINT \"HELLO\"\n20 GOTO 10\n";
@@ -144,7 +145,7 @@ describe("disk --json", () => {
         const added = commandAt<AddResultJson>(run, 1, "add").result;
         expect(added.files.length).to.equal(1);
         expect(added.files[0].host).to.equal(hostPathname);
-        expect(added.files[0].name).to.equal("HELLO/BAS");
+        expect(added.files[0].name).to.equal("HELLO.BAS");
         expect(added.files[0].replaced).to.equal(false);
         expect(added.files[0].size).to.be.greaterThan(0);
         expect(added.files[0].conversions.length).to.be.greaterThan(0);
@@ -181,9 +182,12 @@ describe("disk --json", () => {
         expect(label.masterPassword).to.equal("PASSWORD");
         expect(label.masterPasswordHash).to.be.a("number");
         expect(label.autoCommand).to.equal("");
-        expect(label.date).to.be.a("string");
+        // The stored text is MM/DD/YY (today's, on a new disk), and the date is the same day in full.
+        expect(label.storedDate).to.match(/^\d\d\/\d\d\/\d\d$/);
+        const [month, day, shortYear] = label.storedDate!.split("/");
+        expect(label.date).to.equal("20" + shortYear + "-" + month + "-" + day);
 
-        expect(commandAt<KillResultJson>(run, 7, "kill").result).to.eql({removed: ["HELLO/BAS"]});
+        expect(commandAt<KillResultJson>(run, 7, "kill").result).to.eql({removed: ["HELLO.BAS"]});
         expect(commandAt<LabelResultJson>(run, 8, "label").result.name).to.equal("NEWNAME");
 
         // It was saved, and the text report of the save went to the top level and not to a command.
@@ -317,12 +321,12 @@ describe("disk --json", () => {
 
         expect(map.cells.length).to.equal(map.totals.granuleCount);
         const kinds = new Set(map.cells.map(cell => cell.kind));
-        expect([...kinds].sort()).to.eql(["boot", "directory", "file", "free", "other-file"]);
+        expect([...kinds].sort()).to.eql(["boot", "directory", "file", "free", "otherFile"]);
         expect(map.kindCounts["free"]).to.equal(map.totals.freeGranuleCount);
         expect(map.kindCounts["file"]).to.equal(3);
-        expect(map.files.map(f => f.name)).to.include("HELLO/BAS");
+        expect(map.files.map(f => f.name)).to.include("HELLO.BAS");
 
-        const helloIndex = map.files.findIndex(f => f.name === "HELLO/BAS");
+        const helloIndex = map.files.findIndex(f => f.name === "HELLO.BAS");
         expect(helloIndex).to.be.greaterThan(-1);
         expect(map.files[helloIndex].granuleCount).to.equal(3);
         const helloCells = map.cells.filter(cell => cell.kind === "file");
@@ -346,7 +350,7 @@ describe("disk --json", () => {
         expect(listed.partitions[0].location).to.eql({cylinderOffset: 0, headOffset: 0, cylinderCount: 60, headCount: 2});
         expect(listed.partitions[1].location.cylinderOffset).to.equal(60);
         expect(listed.partitions.every(p => p.fileCount === 1 && p.writable && !p.selected)).to.equal(true);
-        expect(listed.partitions[0].fileSystem).to.contain("DOS");
+        expect(listed.partitions[0].os).to.contain("DOS");
 
         expect(commandAt<PartitionSelectResultJson>(run, 1, "partition").result).to.eql({selected: 2});
         const dirResult = commandAt<DirResultJson>(run, 2, "dir").result;
@@ -381,14 +385,14 @@ describe("disk --json", () => {
 
         const first = commandAt<AttribShowResultJson>(run, 2, "attrib").result;
         expect(first.files.length).to.equal(1);
-        expect(first.files[0].name).to.equal("HELLO/BAS");
+        expect(first.files[0].name).to.equal("HELLO.BAS");
         expect(first.files[0].protection.level).to.equal(0);
         expect(first.files[0].invisible).to.equal(false);
         expect(first.files[0].updatePassword).to.equal(false);
         expect(first.files[0].system).to.equal(false);
 
         const changed = commandAt<AttribChangeResultJson>(run, 3, "attrib").result;
-        expect(changed.files).to.eql(["HELLO/BAS"]);
+        expect(changed.files).to.eql(["HELLO.BAS"]);
         expect(changed.changes).to.eql({
             invisible: true,
             protection: {level: 5, name: "READ"},
@@ -399,11 +403,16 @@ describe("disk --json", () => {
         expect(commandAt<AttribChangeResultJson>(run, 4, "attrib").result.changes).to.eql({date: null});
         expect(commandAt<AttribChangeResultJson>(run, 5, "attrib").result.changes).to.eql({updatePassword: "removed"});
 
+        // The date is the one "dir --json" gives.
+        const dated = commandAt<AttribShowResultJson>(run, 2, "attrib").result.files[0];
+        expect(dated.date).to.be.a("string");
+
         const last = commandAt<AttribShowResultJson>(run, 6, "attrib").result.files[0];
         expect(last.invisible).to.equal(true);
         expect(last.protection).to.eql({level: 5, name: "READ"});
         expect(last.updatePassword).to.equal(false);
-        expect(last.date).to.equal(null);
+        // With no date, the entry still has a year (the DOS's first), which "dir --json" gives too.
+        expect(last.date).to.equal("1980");
     });
 
     it("gives the files that extract wrote, and rename's names, and undo", async () => {
@@ -412,7 +421,7 @@ describe("disk --json", () => {
             "hello.bas", "hi.bas", ":", "extract", "*", "--out-dir", outDir, ":", "undo", ":", "redo", ":", "undo",
             ":", "undo", ":", "undo", ":", "undo", ":", "revert");
 
-        expect(commandAt<RenameResultJson>(run, 2, "rename").result).to.eql({from: "HELLO/BAS", to: "HI/BAS"});
+        expect(commandAt<RenameResultJson>(run, 2, "rename").result).to.eql({from: "HELLO.BAS", to: "HI.BAS"});
         expect(commandAt<ExtractResultJson>(run, 3, "extract").result.files).to.eql([
             {name: "HI.BAS", path: path.join(outDir, "HI.BAS")},
         ]);
@@ -468,7 +477,7 @@ describe("disk --json", () => {
             cylindersReason: TrimCylindersReason.FILE_SYSTEM_END, oldCylinderCount: 80, newCylinderCount: 40,
             oldSideCount: 2, newSideCount: 2, oldSize: 409600, newSize: 204800,
         })).to.eql({
-            trimmed: true, cylinders: {before: 80, after: 40}, cylindersReason: "file-system-end",
+            trimmed: true, cylinders: {before: 80, after: 40}, cylindersReason: "fileSystemEnd",
             sides: {before: 2, after: 2}, size: {before: 409600, after: 204800},
         });
         expect(trimDoneToJson({
@@ -486,12 +495,12 @@ describe("disk --json", () => {
         expect(check.writable).to.be.a("boolean");
         for (const finding of check.findings) {
             expect(["layout", "damage", "note"]).to.include(finding.severity);
-            expect(finding.kind).to.match(/^[a-z-]+$/);
+            expect(finding.kind).to.match(/^[a-z][A-Za-z]+$/);
             expect(finding.files).to.be.an("array");
             expect(finding.granules).to.be.an("array");
         }
         const aboutHello = check.findings.find(finding => finding.files.length > 0);
-        expect(aboutHello?.files[0]).to.match(/^HELLO\//);
+        expect(aboutHello?.files[0]).to.equal("HELLO.BAS");
         expect(aboutHello?.granules[0]).to.have.keys("lump", "granule");
         expect(run.commands[1].result).to.have.keys(
             "changes", "remaining", "freeableUnclaimedGranules", "fixablePrograms", "writable");
@@ -564,5 +573,32 @@ describe("disk --json", () => {
         expect(lines[4]).to.equal("Name is now TEXT.");
         expect(lines[5]).to.equal("Saved " + imagePathname + ".");
         expect(lines.length).to.equal(6);
+    });
+});
+
+describe("trsdosNameToJson", () => {
+    it("writes the extension after a dot", () => {
+        expect(trsdosNameToJson("HELLO/BAS")).to.equal("HELLO.BAS");
+        expect(trsdosNameToJson("HELLO")).to.equal("HELLO");
+    });
+});
+
+describe("diskInfoToJson", () => {
+    /** A disk's information with the given stored date. */
+    function infoWithDate(date: string): TrsdosDiskInfo {
+        return {name: "DATADISK", date, passwordHash: 0, autoCommand: undefined};
+    }
+
+    it("gives the stored date as it is and the date in full", () => {
+        const json = diskInfoToJson(infoWithDate("01/25/83"), TrsdosRuleSet.LDOS_5);
+        expect(json.storedDate).to.equal("01/25/83");
+        expect(json.date).to.equal("1983-01-25");
+        expect(diskInfoToJson(infoWithDate("01/25/05"), TrsdosRuleSet.LDOS_5).date).to.equal("2005-01-25");
+    });
+
+    it("has no date for no date, a bad date, or a day the month doesn't have", () => {
+        expect(diskInfoToJson(infoWithDate(""), undefined)).to.include({date: null, storedDate: null});
+        expect(diskInfoToJson(infoWithDate("junk"), undefined)).to.include({date: null, storedDate: "junk"});
+        expect(diskInfoToJson(infoWithDate("02/31/83"), undefined).date).to.equal(null);
     });
 });

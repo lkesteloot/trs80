@@ -213,6 +213,14 @@
                 </tr>
             </table>
 
+            <p>The <code>--json</code> flags of <code>dir</code>, <code>extract</code>, <code>sectors</code>,
+            <code>info</code>, and <code>disk</code> print JSON that a program can rely on. New fields may
+            be added, but existing fields keep their names, types, and meanings. New values may appear in lists of
+            string values (such as content types), so a program should accept values it doesn’t know. Fields meant
+            for people, such as <code>messages</code>, <code>message</code>, <code>advice</code>,
+            <code>description</code>, <code>readOnlyReason</code>, <code>error</code>, and <code>warnings</code>,
+            can change their wording. There is no version number.</p>
+
             <h3 id="dir"><code>dir</code></h3>
 
             <p>The <code>dir</code> command shows the contents of an archive file. Archives

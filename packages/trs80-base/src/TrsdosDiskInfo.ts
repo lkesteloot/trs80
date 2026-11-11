@@ -93,6 +93,40 @@ export function formatTrsdosGatDate(date: Date): string {
 }
 
 /**
+ * Parse a date as the GAT holds it, "MM/DD/YY", into a full date. The two-digit year doesn't give the
+ * century, so it's read as one of the hundred years from the first that the DOS can enter (see
+ * trsdosGatDateYearRange()): on LDOS, 80-99 are 1980-1999 and 00-79 are 2000-2079. That goes past the
+ * last year the DOS's DATE command takes, since a date written by another program (such as ours, which
+ * puts today's date on a new disk) can be later.
+ *
+ * @param text the date text as stored.
+ * @param ruleSet the DOS's rules, or undefined if unknown, in which case the years start at 1978, the first
+ * that any DOS takes.
+ * @return the date, or undefined if the text isn't a date that exists (such as "00/00/00", which the DOSes
+ * store when no date was set, or "02/31/83").
+ */
+export function parseTrsdosGatDate(text: string, ruleSet: TrsdosRuleSet | undefined):
+    {year: number, month: number, day: number} | undefined {
+
+    const match = /^(\d\d)\/(\d\d)\/(\d\d)$/.exec(text);
+    if (match === null) {
+        return undefined;
+    }
+    const month = parseInt(match[1], 10);
+    const day = parseInt(match[2], 10);
+    const shortYear = parseInt(match[3], 10);
+
+    const firstYear = ruleSet === undefined ? 1978 : trsdosGatDateYearRange(ruleSet, false).first;
+    const year = firstYear + (shortYear - firstYear % 100 + 100) % 100;
+    // Day 0 of the next month is the last day of this one.
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (month < 1 || month > 12 || day < 1 || day > daysInMonth) {
+        return undefined;
+    }
+    return {year, month, day};
+}
+
+/**
  * Whether a DOS keeps the AUTO command in the system information sector (cylinder 0, sector 2) instead
  * of the GAT. TRSDOS 6 and LS-DOS 6 moved it there; the earlier DOSes keep it in the GAT.
  */

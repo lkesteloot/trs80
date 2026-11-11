@@ -7,7 +7,7 @@ import {
 } from "trs80-disk";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
-import type {CreateResultJson} from "./DiskJson.js";
+import {type CreateResultJson, trsdosNameToJson} from "./DiskJson.js";
 import type {DiskOutput} from "./DiskOutput.js";
 import {
     DiskOptionSpec, parseAddDate, parseCountOption, parseModelOption, type ParsedDiskCommand,
@@ -288,7 +288,7 @@ export const CREATE_COMMAND: DiskCommand = {
 
         const createResult: CreateResultJson = {description: session.describe(), replaced: result.replaced};
         if (systemCopy !== undefined) {
-            createResult.systemDisk = {description: systemCopy.description, removed: systemCopy.removedNames};
+            createResult.systemDisk = {description: systemCopy.description, removed: systemCopy.removedNames.map(trsdosNameToJson)};
         }
         out.result(createResult);
     },
