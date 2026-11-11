@@ -384,12 +384,71 @@
             lists the partitions, or describes the selected one.</p>
 
             <h3 id="partition"><code>partition</code></h3>
-            <div><pre><code>partition [N|NAME]</code></pre>
+            <div><pre><code>partition [N|NAME]
+partition --add DOS [options]
+partition --delete [N|NAME] [--force]</code></pre>
             </div>
             <p>For a hard disk, list the partitions (number, where they are, disk name, DOS, number of
-            files, and whether they can be written), or with a number or a disk name choose the
-            partition that the following commands work on. Also called <code>part</code>. It
-            changes nothing on the disk. See <a href="#hard-disks">Hard disks</a>.</p>
+            files, and whether they can be written) and then the free space that no partition uses, or with a
+            number or a disk name choose the partition that the following commands work on. Also called
+            <code>part</code>. With <code>--add</code> or <code>--delete</code> it makes or erases a partition.
+            See <a href="#hard-disks">Hard disks</a>.</p>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--add</code></td>
+                    <td>Make a partition for the DOS given as the argument (<code>ldos-5.3</code> or
+                        <code>lsdos-6.3</code>) in free space, format it as an empty data partition, and choose it.
+                        Then print the settings that the hard disk driver needs.</td>
+                </tr>
+                <tr>
+                    <td><code>--delete</code></td>
+                    <td>Erase the partition named by the argument, or the chosen one, so that its space is free.
+                        The partitions after it are renumbered.</td>
+                </tr>
+                <tr>
+                    <td><code>--cylinders N</code></td>
+                    <td>With <code>--add</code>, the partition’s cylinders, 35 to 203. The default is the first free
+                        block, at most 203 cylinders.</td>
+                </tr>
+                <tr>
+                    <td><code>--heads N</code></td>
+                    <td>With <code>--add</code>, the partition’s heads. Fewer than the disk’s makes a partition by
+                        head. The default is all the disk’s heads.</td>
+                </tr>
+                <tr>
+                    <td><code>--start-cylinder N</code>, <code>--start-head N</code></td>
+                    <td>With <code>--add</code>, where the partition starts. <code>--start-head</code> makes a
+                        partition by head. The default is the first free block.</td>
+                </tr>
+                <tr>
+                    <td><code>--name NAME</code></td>
+                    <td>With <code>--add</code>, the disk’s name, up to 8 letters and digits starting with a letter.
+                        The default is <code>HARD</code> and the first letter, A to Z, that no partition on the
+                        disk uses.</td>
+                </tr>
+                <tr>
+                    <td><code>--date YYYY-MM-DD</code></td>
+                    <td>With <code>--add</code>, the date to put on the partition. The default is today.</td>
+                </tr>
+                <tr>
+                    <td><code>--model 1|3|4</code></td>
+                    <td>With <code>--add</code>, the TRS-80 the partition is for, which picks LDOS 5.3’s boot sector:
+                        the Model I’s for 1, else the Model III’s.</td>
+                </tr>
+                <tr>
+                    <td><code>--granules N</code></td>
+                    <td>With <code>--add</code>, the granules in each cylinder, 1 to 8. The default makes granules of the
+                        smallest power of two sectors that is at least 4 per head (at most 32), which is what every
+                        hard disk we measured has. Tandy’s own installer uses 2 per head up to 4 heads.</td>
+                </tr>
+                <tr>
+                    <td><code>--force</code></td>
+                    <td>With <code>--delete</code>, delete a partition that has files. With <code>--add</code>, format
+                        space that isn’t all zeros, which may hold another DOS’s partition. Either way, write to a
+                        write-protected image.</td>
+                </tr>
+            </table>
 
             <h3 id="free"><code>free</code></h3>
             <p>Show the space left for new files on a TRSDOS-family disk: granules that
@@ -469,14 +528,16 @@
             </table>
 
             <h3 id="create"><code>create</code></h3>
-            <div><pre><code>create DOS</code></pre>
+            <div><pre><code>create DOS
+create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for a name ending in .hdv)</code></pre>
             </div>
             <p>Make a new, blank, formatted data disk, with no files, the way the DOS’s own
             <code>FORMAT</code> leaves one (or, with <code>--system</code>, a bootable system disk). It works when the image doesn’t exist yet (the disk is
             saved under that name at the end), or with <code>--force</code> to replace in memory the
-            disk that the image has. The image is always a DMK one, so a name ending in
+            disk that the image has. The image is a DMK one, so a name ending in
             <code>.jv1</code>, <code>.jv3</code>, <code>.dsk</code>, <code>.hfe</code> or <code>.imd</code> is
-            refused. The disk can be used by later commands in the same run, and a
+            refused; a name ending in <code>.hdv</code> makes a hard disk image instead, as described
+            <a href="#hard-disk-create">below</a>. The disk can be used by later commands in the same run, and a
             <code>quit</code> or the end of the run saves it.</p>
             <p>The DOS to make the disk for is required, and comes first. It is one of
             <code>trsdos-2.3</code>, <code>trsdos-1.3</code>, <code>ldos-5.3</code>,
@@ -564,6 +625,11 @@
             LDOS-family disk keeps its density. The result is a DMK image, so
             for an image of another kind give <code>-o NEW.dmk</code> to save it under a new name.
             Like everything else it changes the disk in memory, and nothing is saved until the end.</p>
+            <p>On a hard disk it formats the chosen partition again, in the same place with the same cylinders,
+            heads and granules, keeping the partition’s name unless <code>--name</code> is given and taking today’s
+            date unless <code>--date</code> is. The DOS defaults to the partition’s own and must be
+            <code>ldos-5.3</code> or <code>lsdos-6.3</code>. <code>--cylinders</code>, <code>--sides</code> and
+            <code>--density</code> don’t apply.</p>
 
             <table class="flags">
                 <tr>
@@ -704,9 +770,70 @@ Type "help" for a list of commands, and "quit" to leave.
             one partition then it is used without being chosen. If it has several, every command that needs files fails
             with a list of the partitions until one is chosen, since writing to the wrong partition is easy to do and hard to notice.
             Choosing a partition is not a change to the disk, and <code>undo</code> never changes it.</p>
-            <p>What isn’t supported: creating, formatting, or partitioning a hard disk image (<code>create</code>,
-            <code>format</code>, <code>trim</code>, <code>boot</code>, and <code>map</code> work on floppy images and
-            say so); DOSPLUS 3 partitions, which are read but never written, because their GAT doesn’t record how many
+            <h3 id="hard-disk-create">Making a hard disk image</h3>
+            <p>A file name ending in <code>.hdv</code> makes <code>create</code> make an HDV image, not a floppy.
+            <code>--heads</code> (1 to 8, default 6) and <code>--cylinders</code> (1 to 1023, default 840) give its
+            shape; the defaults are what FreHD makes for a new image, and the disk is blank, with every sector zero.
+            <code>--sides</code>, <code>--density</code> and <code>--system</code> are errors. Then
+            <code>partition --add</code> makes partitions in it, or give <code>create</code> a DOS
+            (<code>ldos-5.3</code> or <code>lsdos-6.3</code>, the two with hard disk support) and it makes
+            <code>--partitions N</code> equal partitions as well, from cylinder 0, each of 35 to 203 cylinders, named
+            HARDA, HARDB, and so on. Without <code>--partitions</code> it makes the fewest that keep each at 203
+            cylinders or fewer. Leftover cylinders stay free. <code>--model</code> and <code>--date</code> apply to
+            all the partitions, <code>--name</code> only when there is one, and <code>--force</code> replaces an
+            existing disk in memory.</p>
+            <div><pre><code>% trs80-tool disk new.hdv
+>create --heads 6 --cylinders 840
+Created new.hdv: a blank HDV hard disk, 840 cylinders, 6 heads, 39 MB, no partitions; "partition --add DOS" makes one.
+>partition --add lsdos-6.3 --cylinders 140
+Added partition 1, HARDA: cylinders 0-139, heads 0-5, LS-DOS 6.3, directory on cylinder 70.
+Configure the hard disk driver with these settings (the image has no partition table, so the driver has to be told):
+  Disk: 6 heads, 840 cylinders.
+  Partition 1 (HARDA): starting cylinder 0, 140 cylinders, starting head 0, 6 heads;
+    6 granules per cylinder of 32 sectors, directory on cylinder 70 of the partition.
+>partition --add ldos-5.3 --cylinders 140 --model 3
+Added partition 2, HARDB: cylinders 140-279, heads 0-5, LDOS 5.3, directory on cylinder 70.
+...
+>partition
+  1    cylinders 0-139, heads 0-5  HARDA  LS-DOS 6.3  0 files  writable
+* 2    cylinders 140-279, heads 0-5  HARDB  LDOS 5.3  0 files  writable
+     cylinders 280-839, heads 0-5  free (560 cylinders)
+>partition 1
+Working on partition 1 (HARDA).
+HARDA>format --force
+HARDA>partition --delete --force
+Deleted partition 1 (HARDA). Its space (cylinders 0-139, heads 0-5) is free. The partitions after it are renumbered.
+>quit</code></pre>
+            </div>
+            <p>The same, in one line, makes the six 140-cylinder partitions of a common LS-DOS layout:</p>
+            <div><pre><code>% trs80-tool disk new.hdv create lsdos-6.3 --heads 6 --cylinders 840 --partitions 6</code></pre>
+            </div>
+            <p>A disk is split one of two ways, and the partitions that are on it decide which. <em>By cylinder</em>:
+            every partition uses all the disk’s heads over a run of cylinders (the default). <em>By head</em>: every
+            partition has the same cylinders from cylinder 0 (all the disk’s, or the first 203 of a bigger disk), over
+            a run of heads; <code>partition --add</code> does this when <code>--heads</code> is less than the disk’s or
+            <code>--start-head</code> is given. A disk can’t mix the two, partitions can’t overlap, and a disk whose
+            partitions follow neither pattern has free space that <code>--add</code> can’t work out, which it says. The
+            listing shows the free space, by cylinder or by head to match.</p>
+            <p><strong>An HDV file has no partition table.</strong> Each partition describes itself (its boot sector and
+            GAT), but a DOS sees only the partitions that its hard disk driver was configured for. So an image that
+            we make works only if the driver’s settings match it, and <code>create</code> and
+            <code>partition --add</code> print what they are: the disk’s heads and cylinders, and for each new partition
+            its starting cylinder and head, cylinders and heads, granules per cylinder and sectors per granule, and
+            directory cylinder. Tandy’s own installer splits only by head, while the driver that FreHD and its
+            emulators use also splits by cylinder. Whether a given driver accepts a layout we make hasn’t been tested
+            in every case.</p>
+            <p>The partitions are empty data partitions, as the DOS’s own hard disk <code>FORMAT</code> leaves them: a boot
+            sector (the DOS’s own, copied from a real partition), the GAT with its media data block, the HIT, and the
+            <code>BOOT/SYS</code> and <code>DIR/SYS</code> entries, with the directory on the middle cylinder. They
+            aren’t bootable system partitions, and the image’s header doesn’t ask for auto-boot, so use them after
+            booting from a floppy. <code>partition --delete</code> and <code>format</code> zero every sector of the
+            partition, so no stale boot sector or GAT is left to be found.</p>
+
+            <p>What isn’t supported: TRSDOS 2.3, TRSDOS 1.3 and TRSDOS 6.2 hard disks (the first two have no hard disk
+            support, and we have no sample of a TRSDOS 6.2 hard disk partition to check against);
+            <code>trim</code>, <code>boot</code>, and <code>map</code>, which work on floppy images and
+            say so; DOSPLUS 3 partitions, which are read but never written, because their GAT doesn’t record how many
             granules each cylinder has; NEWDOS/80 and CP/M hard disks, which aren’t read at all yet; and the HDV
             version 2 format. A write-protected HDV (its header’s flag) can be written only with <code>--force</code>,
             and the saved image keeps its flag.</p>

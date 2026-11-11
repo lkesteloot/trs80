@@ -1,7 +1,8 @@
 import fs from "fs";
 import {
     BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosOnOverlay,
-    evaluateTrsdosWriteGate, findLdosPartitions, FloppyDisk, type HdvHardDisk, isFloppy, isHardDisk,
+    evaluateTrsdosWriteGate, findLdosPartitions, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
+    isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type LdosPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
     type TrsdosRuleSet, TrsdosWriteAccess, TrsdosWriteError, type TrsdosWriteGate, TrsdosWriter, type WritableDiskVolume,
 } from "trs80-base";
@@ -126,6 +127,16 @@ export const MAX_HARD_DISK_UNDO_BYTES = 256*1024*1024;
  * The file name extension that makes decodeTrs80File() decode a hard disk image.
  */
 const HARD_DISK_EXTENSION = ".hdv";
+
+/**
+ * Where a partition starts on its hard disk, which identifies it across changes to the disk.
+ */
+export interface PartitionLocation {
+    /** The first physical cylinder. */
+    cylinderOffset: number;
+    /** The first physical head. */
+    headOffset: number;
+}
 
 /**
  * The kinds of images that a session holds.
@@ -459,6 +470,39 @@ export class DiskSession {
     }
 
     /**
+     * Find the partition that the user means, for a command that works on one (such as "partition --delete").
+     *
+     * @param wanted a partition number from 1, or a disk name (ignoring case).
+     * @return the partition's number, from 1.
+     * @throws ToolError if the disk isn't a hard disk, or wanted doesn't name exactly one partition.
+     */
+    public findPartitionNumber(wanted: string): number {
+        if (!this.isHardDisk()) {
+            throw new ToolError("The disk is a floppy, which has no partitions");
+        }
+        return this.resolvePartition(wanted) + 1;
+    }
+
+    /**
+     * The partition that the commands work on.
+     *
+     * @throws ToolError if the disk isn't a hard disk, or no partition is selected (saying how to choose one).
+     */
+    public getSelectedPartition(): LdosPartition {
+        if (!this.isHardDisk()) {
+            throw new ToolError("The disk is a floppy, which has no partitions");
+        }
+        const index = this.selectedPartitionIndex;
+        if (index === undefined) {
+            if (this.partitions.length === 0) {
+                throw new ToolError("The disk has no partitions that we recognize; \"partition --add\" makes one");
+            }
+            throw this.makeNoPartitionError();
+        }
+        return this.partitions[index];
+    }
+
+    /**
      * Whether a partition can be written, as the write gate sees it, or the reason it can't. Uses the
      * rules the user named with --dos, if any.
      *
@@ -611,6 +655,69 @@ export class DiskSession {
         this.changed = true;
         this.modificationCount++;
         this.watchImage(floppy);
+    }
+
+    /**
+     * Put a new hard disk in the session, replacing the disk it has if any (the caller decides whether that's
+     * allowed). As with {@link setFloppy}, the new disk counts as a change that hasn't been saved. The
+     * disk's partitions are found, so a disk that the caller has formatted partitions on already has them,
+     * and the only one is selected.
+     *
+     * @param hardDisk the new disk, with the contents to be saved.
+     */
+    public setHardDisk(hardDisk: HdvHardDisk): void {
+        this.currentImage = hardDisk;
+        this.changed = true;
+        this.modificationCount++;
+        this.watchImage(hardDisk);
+        this.findPartitions(undefined);
+    }
+
+    /**
+     * Change the hard disk's partitions, as "partition --add" and "format" do: run the change on the disk,
+     * then find its partitions again, since the change can add, remove or rewrite them. The change counts as
+     * a change to be saved and undone. Unlike {@link changeTrsdos} this isn't all or nothing, but a change
+     * should check its arguments before it writes anything.
+     *
+     * A write-protected image is refused unless the user said to write anyway (--force, either the global
+     * one or the command's own, which the caller passes as commandForce), as for writes to files.
+     *
+     * @param change makes the changes to the disk. It can throw a ToolError.
+     * @param select where the partition to select afterward starts, or undefined to select none. As when the
+     * disk is opened, the only partition is selected anyway.
+     * @param commandForce whether the command itself was given --force.
+     * @throws ToolError if the disk is a floppy or is write-protected, or whatever change() throws.
+     */
+    public changeHardDisk(change: (hardDisk: HdvHardDisk) => void, select: PartitionLocation | undefined,
+                          commandForce: boolean): void {
+
+        const hardDisk = this.hardDisk;
+        if (hardDisk.isWriteProtected()) {
+            const message = hardDiskWriteProtectionMessage(hardDisk) ?? "The disk is write-protected.";
+            if (!this.force && !commandForce) {
+                throw new ToolError("Can't write to this disk: " + message + " Use --force to write anyway.");
+            }
+            if (!this.forceWarningShown) {
+                console.log(colors.warning("Writing anyway (--force): " + message));
+                this.forceWarningShown = true;
+            }
+            this.clearWriteProtection();
+        }
+
+        try {
+            change(hardDisk);
+        } finally {
+            // Even if the change failed partway, the disk may have changed.
+            this.findPartitions(undefined);
+            if (select !== undefined) {
+                const index = this.partitions.findIndex(p => p.partition.cylinderOffset === select.cylinderOffset &&
+                    p.partition.headOffset === select.headOffset);
+                if (index >= 0) {
+                    this.selectedPartitionIndex = index;
+                    this.currentFileSystem = this.partitions[index].trsdos;
+                }
+            }
+        }
     }
 
     /**

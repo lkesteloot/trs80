@@ -37,8 +37,22 @@ to `formatTrsdosDataDisk`, so that a disk we make has the same boot sectors as t
 
 Combinations not listed (such as single-density TRSDOS 6) get a boot sector of our own.
 
+The hard disk keys hold sectors 0 and 1 of cylinder 0 of a freshly formatted data partition, which
+`disk create` and `disk partition --add` and `format` on a hard disk pass to `formatLdosPartition`. The
+directory cylinder at byte 2 is patched in when a partition is written, so they work for any size:
+
+| Key | DOS | Taken from |
+|---|---|---|
+| `ldos-5.3-hard-model1` | LDOS 5.3 for the Model I (`--model 1`) | partition M1LDVOL2 (head 1) of `m1-ldos531-keil.hdv` |
+| `ldos-5.3-hard-model3` | LDOS 5.3 for the Model III (any other `--model`) | partition LDM3HDD (head 3) of `m3-ldos531.hdv` |
+| `lsdos-6.3-hard` | LS-DOS 6.3 | partition M4LSDOSC (head 2) of `m4-lsdos631.hdv` |
+
+The images are in the regression collection's `disks/hard/`. There are none for TRSDOS 6.2, which hard
+disks don't support here.
+
 ## Regenerating
 
-`npx tsx tools/ExtractTemplates.ts [SOURCE_DIR]`, from `packages/trs80-tool`, reads the source images,
+`npx tsx tools/ExtractTemplates.ts [SOURCE_DIR [HARD_DISK_DIR]]`, from `packages/trs80-tool`, reads the
+source images (the floppies from the first directory, and the hard disk partitions from the second),
 checks that each decodes as the DOS it should, and rewrites everything here. It is only needed when a
 template is added or replaced.

@@ -206,11 +206,25 @@ export class HardDiskPartition implements WritableDiskVolume {
      * A short description of where the partition is, such as "cylinders 0-139, heads 0-5".
      */
     public describeLocation(): string {
-        const lastCylinder = this.cylinderOffset + this.cylinderCount - 1;
-        const lastHead = this.headOffset + this.headCount - 1;
-        const cylinders = this.cylinderCount === 1 ? `cylinder ${this.cylinderOffset}` :
-            `cylinders ${this.cylinderOffset}-${lastCylinder}`;
-        const heads = this.headCount === 1 ? `head ${this.headOffset}` : `heads ${this.headOffset}-${lastHead}`;
-        return `${cylinders}, ${heads}`;
+        return describeHardDiskBlock(this.cylinderOffset, this.headOffset, this.cylinderCount, this.headCount);
     }
+}
+
+/**
+ * A short description of a block of a hard disk, such as "cylinders 0-139, heads 0-5": for a partition, or for
+ * free space where a partition could go.
+ *
+ * @param cylinderOffset the first cylinder.
+ * @param headOffset the first head.
+ * @param cylinderCount the number of cylinders.
+ * @param headCount the number of heads.
+ */
+export function describeHardDiskBlock(cylinderOffset: number, headOffset: number, cylinderCount: number,
+                                      headCount: number): string {
+
+    const lastCylinder = cylinderOffset + cylinderCount - 1;
+    const lastHead = headOffset + headCount - 1;
+    const cylinders = cylinderCount === 1 ? `cylinder ${cylinderOffset}` : `cylinders ${cylinderOffset}-${lastCylinder}`;
+    const heads = headCount === 1 ? `head ${headOffset}` : `heads ${headOffset}-${lastHead}`;
+    return `${cylinders}, ${heads}`;
 }

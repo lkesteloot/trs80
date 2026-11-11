@@ -88,9 +88,11 @@ function formatDosDescription(dos: TrsdosFormatDos): string {
 /**
  * The DOSes that "create" and "format" can make disks for, as rows of a list in help: the name to type,
  * then what it makes.
+ *
+ * @param doses the DOSes to list (default: all of them; {@link HARD_DISK_FORMAT_DOSES} for a hard disk).
  */
-export function formatDosItems(): DiskHelpItem[] {
-    return TRSDOS_FORMAT_DOSES.map(dos => ({
+export function formatDosItems(doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES): DiskHelpItem[] {
+    return doses.map(dos => ({
         term: trsdosFormatDosCliName(dos),
         description: formatDosDescription(dos),
     }));
@@ -99,9 +101,11 @@ export function formatDosItems(): DiskHelpItem[] {
 /**
  * The list of the DOSes that "create" and "format" can make disks for as lines of text, for an error
  * message: the name to type, then what it makes.
+ *
+ * @param doses the DOSes to list (default: all of them; {@link HARD_DISK_FORMAT_DOSES} for a hard disk).
  */
-export function formatDosHelpLines(): string[] {
-    const items = formatDosItems();
+export function formatDosHelpLines(doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES): string[] {
+    const items = formatDosItems(doses);
     const width = Math.max(... items.map(item => item.term.length));
     return items.map(item => "  " + item.term.padEnd(width + 2) + item.description);
 }
@@ -112,14 +116,17 @@ export function formatDosHelpLines(): string[] {
  * "ldos-5", "trsdos-6" (TRSDOS 6.2) and "lsdos" (LS-DOS 6.3).
  *
  * @param name what the user typed, in any case.
+ * @param doses the DOSes to list if the name isn't known (default: all of them). A known name of a DOS
+ * that's not in the list is still returned, so that the caller can say why it doesn't work.
  * @throws ToolError if it's not a name of a DOS we can format, listing the ones that are.
  */
-export function parseFormatDosName(name: string): TrsdosFormatDos {
+export function parseFormatDosName(name: string,
+                                   doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES): TrsdosFormatDos {
     const dos = parseTrsdosFormatDos(name) ?? FORMAT_DOS_ALIASES.get(name.trim().toLowerCase());
     if (dos === undefined) {
         throw new ToolError("Unknown DOS \"" + name + "\"" +
             (name.trim().toLowerCase() === "dosplus" ? " (DOSPLUS disks can't be made yet)" : "") +
-            ". The DOSes are:\n" + formatDosHelpLines().join("\n"));
+            ". The DOSes are:\n" + formatDosHelpLines(doses).join("\n"));
     }
     return dos;
 }

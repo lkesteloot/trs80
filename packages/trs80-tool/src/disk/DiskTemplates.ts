@@ -1,6 +1,7 @@
 /**
  * The templates that ship inside the tool: the DOSes' own data-disk boot sectors, which make "create" and
- * "format" disks that match what each DOS's FORMAT makes, and six bootable system disks for "create --system".
+ * "format" disks (and hard disk partitions) that match what each DOS's FORMAT makes, and six bootable system
+ * disks for "create --system".
  * The files are in templates/ (see its README.md), and tools/GenerateTemplates.ts embeds them in Templates.ts.
  */
 
@@ -137,10 +138,49 @@ function bootSectorKey(dos: TrsdosFormatDos, density: Density): string | undefin
  */
 export function getDataDiskBootSectors(dos: TrsdosFormatDos, density: Density): Uint8Array[] | undefined {
     const key = bootSectorKey(dos, density);
-    if (key === undefined) {
-        return undefined;
-    }
+    return key === undefined ? undefined : decodeBootSectors(key);
+}
 
+/**
+ * The key in the boot-sector table for a DOS's hard disk data partition, or undefined if we have none
+ * for it. LDOS 5.3 has one for the Model I and one for the Model III (which also serves the Model 4).
+ */
+function hardDiskBootSectorKey(dos: TrsdosFormatDos, model: 1 | 3 | 4 | undefined): string | undefined {
+    switch (dos) {
+        case TrsdosFormatDos.LDOS_5_3:
+            return model === 1 ? "ldos-5.3-hard-model1" : "ldos-5.3-hard-model3";
+        case TrsdosFormatDos.LSDOS_6_3:
+            return "lsdos-6.3-hard";
+        case TrsdosFormatDos.TRSDOS_2_3:
+        case TrsdosFormatDos.TRSDOS_1_3:
+        case TrsdosFormatDos.TRSDOS_6_2:
+            return undefined;
+        default:
+            assertNever(dos);
+    }
+}
+
+/**
+ * The boot sectors that a DOS's hard disk FORMAT writes at the start of a data partition, copied from
+ * partitions that it formatted.
+ *
+ * @param dos the DOS.
+ * @param model the TRS-80 model the user asked for, or undefined if they didn't say. Only LDOS 5.3 has
+ * sectors for more than one: the Model I's for model 1, and the Model III's for anything else.
+ * @return the two sectors in the order that {@link LdosPartitionOptions.bootSectors} takes them, or undefined
+ * if we have none for that DOS, in which case the caller should leave that option out.
+ */
+export function getHardDiskBootSectors(dos: TrsdosFormatDos, model: 1 | 3 | 4 | undefined): Uint8Array[] | undefined {
+    const key = hardDiskBootSectorKey(dos, model);
+    return key === undefined ? undefined : decodeBootSectors(key);
+}
+
+/**
+ * Decode the boot sectors stored under a key.
+ *
+ * @return the sectors, or undefined if the key isn't in this build of the tool.
+ */
+function decodeBootSectors(key: string): Uint8Array[] | undefined {
     const hexStrings = DATA_DISK_BOOT_SECTORS_HEX[key];
     if (hexStrings === undefined) {
         return undefined;

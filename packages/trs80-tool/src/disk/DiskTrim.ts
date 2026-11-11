@@ -4,7 +4,7 @@ import {
 } from "trs80-base";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
-import {parseCountOption} from "./DiskCreate.js";
+import {parseCountOption} from "./DiskCommandParser.js";
 import {DiskSession} from "./DiskSession.js";
 
 /**

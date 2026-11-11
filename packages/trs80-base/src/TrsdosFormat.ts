@@ -191,20 +191,20 @@ const DEFAULT_DISK_NAME = "DATADISK";
 /**
  * The master password when the user gives none (from LS-DOS 6.3's FORMAT).
  */
-const DEFAULT_MASTER_PASSWORD = "PASSWORD";
+export const DEFAULT_MASTER_PASSWORD = "PASSWORD";
 
 /**
  * Length of the disk name in the GAT.
  */
-const NAME_LENGTH = 8;
+export const NAME_LENGTH = 8;
 
 /**
  * Where the fields of the 2.3 family's GAT are.
  */
-const GAT_LOCKOUT_OFFSET = 0x60;
-const GAT_END_OF_ALLOCATION = 0xCB;
-const GAT_CYLINDER_EXCESS_OFFSET = 0xCC;
-const GAT_DISK_TYPE_OFFSET = 0xCD;
+export const GAT_LOCKOUT_OFFSET = 0x60;
+export const GAT_END_OF_ALLOCATION = 0xCB;
+export const GAT_CYLINDER_EXCESS_OFFSET = 0xCC;
+export const GAT_DISK_TYPE_OFFSET = 0xCD;
 const GAT_PASSWORD_OFFSET = 0xCE;
 const GAT_NAME_OFFSET = 0xD0;
 const GAT_DATE_OFFSET = 0xD8;
@@ -215,23 +215,23 @@ const GAT_MEDIA_BLOCK_OFFSET = 0xF5;
  * The most entry sectors that the HIT can address. With the GAT and the HIT sectors, a directory
  * is at most this plus two sectors, and DIR/SYS says no more than that.
  */
-const MAX_DIRECTORY_SECTORS = 34;
+export const MAX_DIRECTORY_SECTORS = 34;
 
 /**
  * How many sectors BOOT/SYS claims, on every DOS here.
  */
-const BOOT_SYS_SECTOR_COUNT = 5;
+export const BOOT_SYS_SECTOR_COUNT = 5;
 
 /**
  * What the DOS puts in front of a new directory's first four sectors in the HIT: BOOT/SYS's hash.
  */
-const BOOT_SYS_HIT_BYTE = 0xA2;
+export const BOOT_SYS_HIT_BYTE = 0xA2;
 
 /**
  * Other HIT bytes: DIR/SYS's hash on the LDOS line, and the wrong one that TRSDOS 2.x stores. See
  * "The HIT" in FLOPPY_FORMATS.md.
  */
-const DIR_SYS_HIT_BYTE = 0xC4;
+export const DIR_SYS_HIT_BYTE = 0xC4;
 const DIR_SYS_HIT_BYTE_TRSDOS_2 = 0x2C;
 
 /**
@@ -243,8 +243,8 @@ const FIXED_DIRECTORY_CYLINDER = 17;
  * Directory entries' attribute bytes: system, invisible, in use, and a protection level of 6
  * (execute) for BOOT/SYS and 5 (read) for DIR/SYS.
  */
-const BOOT_SYS_ATTRIBUTES = 0x5E;
-const DIR_SYS_ATTRIBUTES = 0x5D;
+export const BOOT_SYS_ATTRIBUTES = 0x5E;
+export const DIR_SYS_ATTRIBUTES = 0x5D;
 
 /**
  * The data address marks for a directory sector on a single-density Model I TRSDOS 2.x disk, for
@@ -269,7 +269,7 @@ const MODEL_4_VIDEO = 0xF800 + 11*80 + 24;
  * Where the ROM loads a boot sector: the Model I's at 4200H, the Model III's and 4's at 4300H.
  */
 const SINGLE_DENSITY_LOAD_ADDRESS = 0x4200;
-const DOUBLE_DENSITY_LOAD_ADDRESS = 0x4300;
+export const DOUBLE_DENSITY_LOAD_ADDRESS = 0x4300;
 
 /**
  * The message in a boot sector that we write ourselves.
@@ -279,12 +279,12 @@ const SYNTHETIC_BOOT_MESSAGE = "Data disk, can't boot";
 /**
  * Whether a name or password is acceptable: letters and digits, starting with a letter.
  */
-const NAME_PATTERN = /^[A-Z][A-Z0-9]*$/;
+export const NAME_PATTERN = /^[A-Z][A-Z0-9]*$/;
 
 /**
  * Format a date as FORMAT writes it into the GAT: "MM/DD/YY".
  */
-function formatGatDate(date: Date): string {
+export function formatGatDate(date: Date): string {
     const twoDigits = (n: number): string => String(n).padStart(2, "0");
     return `${twoDigits(date.getMonth() + 1)}/${twoDigits(date.getDate())}/${twoDigits(date.getFullYear() % 100)}`;
 }
@@ -292,7 +292,7 @@ function formatGatDate(date: Date): string {
 /**
  * Put ASCII text into a buffer.
  */
-function writeText(bytes: Uint8Array, offset: number, text: string): void {
+export function writeText(bytes: Uint8Array, offset: number, text: string): void {
     for (let i = 0; i < text.length; i++) {
         bytes[offset + i] = text.charCodeAt(i);
     }
@@ -574,7 +574,7 @@ class SectorWriter {
  * @param prefix the bytes that begin the sector, holding the directory cylinder.
  * @param loadAddress where the ROM loads the boot sector.
  */
-function makeSyntheticBootSector(prefix: number[], loadAddress: number): Uint8Array {
+export function makeSyntheticBootSector(prefix: number[], loadAddress: number): Uint8Array {
     const message = SYNTHETIC_BOOT_MESSAGE;
     // The code is 26 bytes: two copies of the message to video memory, then a halt.
     const codeLength = 26;
@@ -602,7 +602,7 @@ function makeSyntheticBootSector(prefix: number[], loadAddress: number): Uint8Ar
 /**
  * A copy of a boot sector with the directory cylinder patched in.
  */
-function patchDirectoryCylinder(bootSector: Uint8Array, offset: number, directoryCylinder: number): Uint8Array {
+export function patchDirectoryCylinder(bootSector: Uint8Array, offset: number, directoryCylinder: number): Uint8Array {
     const copy = new Uint8Array(bootSector);
     copy[offset] = directoryCylinder;
     return copy;
@@ -761,7 +761,7 @@ function family23Params(dos: TrsdosFormatDos): Family23Params {
  * @param fullTail whether the unused extents are filled with 0xFF, or only the first two bytes are
  * and the rest zero.
  */
-function makeSystemEntry(attributes: number, name: string, hashes: number[], sectorCount: number,
+export function makeSystemEntry(attributes: number, name: string, hashes: number[], sectorCount: number,
                          cylinder: number, granuleByte: number, fullTail: boolean): Uint8Array {
 
     const entry = new Uint8Array(32);

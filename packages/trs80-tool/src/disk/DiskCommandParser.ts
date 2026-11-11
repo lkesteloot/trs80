@@ -188,6 +188,43 @@ export function parseAddDate(text: string): Date {
 }
 
 /**
+ * Parse an option whose value is a whole number.
+ *
+ * @param options the command's options.
+ * @param name the long name of the option, such as "--cylinders".
+ * @return the number, or undefined if the option wasn't given.
+ * @throws ToolError if the value isn't a whole number.
+ */
+export function parseCountOption(options: DiskOptionValues, name: string): number | undefined {
+    const text = options.getString(name);
+    if (text === undefined) {
+        return undefined;
+    }
+    if (!/^\d{1,5}$/.test(text)) {
+        throw new ToolError("Invalid " + name + " \"" + text + "\": use a number");
+    }
+    return Number(text);
+}
+
+/**
+ * Parse the --model option.
+ *
+ * @param options the command's options.
+ * @return the model, or undefined if the option wasn't given.
+ * @throws ToolError if the value isn't 1, 3, or 4.
+ */
+export function parseModelOption(options: DiskOptionValues): 1 | 3 | 4 | undefined {
+    const modelText = options.getString("--model");
+    if (modelText === undefined) {
+        return undefined;
+    }
+    if (modelText !== "1" && modelText !== "3" && modelText !== "4") {
+        throw new ToolError("Invalid --model \"" + modelText + "\": use 1, 3, or 4");
+    }
+    return Number(modelText) as 1 | 3 | 4;
+}
+
+/**
  * Find a command by name or alias, ignoring case.
  *
  * @param name the name as typed.

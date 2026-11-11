@@ -3403,6 +3403,81 @@ What `TrsdosWriter` does on an LDOS 5 or LS-DOS 6 partition (through a
   (LDOS), after which `check` finds nothing wrong and the granules are free.
   TRSDOS 2.3 was run on the Model I with a file it wrote itself (see "An FXDE").
 
+### Formatting partitions
+
+What `formatLdosPartition()` (`HardDiskFormat.ts`) writes for an empty data partition, and the HDV header that
+`makeBlankHdvHardDisk()` writes. The partition's bytes were measured on freshly formatted data partitions of real
+LDOS 5.3 (Model I `m1-ldos531-keil.hdv` and Model III `m3-ldos531.hdv`) and LS-DOS 6.3 (`m4-lsdos631.hdv`) hard
+disks, all 1-head partitions of 203 cylinders, and the media data blocks of the 6-head, 140-cylinder partitions of
+`m4-lsdos631-st251.hdv`. Re-creating those three partitions in place and comparing sector by sector gives
+identical boot sectors, system information sector, HIT, and BOOT/SYS and DIR/SYS entries, and identical GATs
+except where noted under "Differences" below.
+
+Let *c* be the partition's cylinders, *h* its heads, *g* its granules per cylinder, *s* its sectors per granule
+(*g* × *s* = 32*h*), *d* = ⌊*c* / 2⌋ the directory cylinder, and *n* = min(32*h*, 34) the directory's sectors.
+Sector numbers are the partition's logical ones, counted across all its heads.
+
+- **Every sector of the partition is first set to zeros**, so that no stale boot sector or GAT is left inside it:
+  `findLdosPartitions()` scans every head of every cylinder, so a deleted partition must not leave one behind.
+- **Cylinder 0, sectors 0 and 1:** the boot sectors, with byte 2 (the directory cylinder) set to *d*.
+- **Cylinder 0, sector 2:** the system information sector. Byte 0 is the GAT version (0x53 or 0x63); LS-DOS 6.3 also
+  has the 8-character disk name at 0x10. The rest is zeros (no 0x0D at 0x20, unlike LS-DOS floppies).
+- **Cylinder 0, sector 3:** a copy of the GAT, byte for byte. It goes stale when the GAT changes.
+- **Cylinder *d*, sector 0, the GAT:**
+  - Bytes 0 to *c* − 1: `(0xFF << g) & 0xFF` (every granule free, the bits for granules that don't exist set);
+    byte 0 also has 0x01 (BOOT/SYS's granule); byte *d* is 0xFF; bytes *c* to 0xCA are 0xFF.
+  - 0xCB the version: 0x53 (LDOS 5.3) or 0x63 (LS-DOS 6.3).
+  - 0xCC *c* − 35. 0xCD `0x80 | 0x08 | (g − 1)`: a data partition, the new date style, the granules.
+  - 0xCE-0xCF the master password's hash, low byte first. The default "PASSWORD" is 0x42E0, so `E0 42`.
+  - 0xD0-0xD7 the name, space padded; 0xD8-0xDF the date, "MM/DD/YY"; 0xE0-0xF4 zeros.
+  - 0xF5 the media data block: `03 52 53 48` ("RSH"), then FLAG1 `0x0C | ((startCylinder >> 8) & 3)`,
+    FLAG2 `0x10 | startHead`, CURCYL `startCylinder & 0xFF`, MAXCYL *c* − 1, `((h − 1) << 5) | 31`,
+    `((g − 1) << 5) | (s − 1)`, and *d*. For example, a 1-head, 203-cylinder partition at head 2 has
+    `03 52 53 48 0C 12 00 CA 1F E3 65`, and a 6-head, 140-cylinder one at cylinder 560 has
+    `03 52 53 48 0E 10 30 8B BF BF 46`.
+- **Cylinder *d*, sector 1, the HIT:** `A2 C4`, the rest zeros.
+- **Cylinder *d*, sector 2:** BOOT/SYS's entry, in the first 32 bytes: attributes 0x5E, name `BOOT    SYS` at 5,
+  bytes 16-19 the hashes (LDOS 5.3 `AE 01 00 00`, LS-DOS 6.3 `F6 37 00 00`), 20-21 the size in sectors (5), 22
+  cylinder 0, 23 the granule byte 0, and 24-31 0xFF. The rest of the sector is zeros.
+- **Cylinder *d*, sector 3:** DIR/SYS's entry: attributes 0x5D, `DIR     SYS`, the same hashes, the size *n*
+  sectors, cylinder *d*, granule byte *g* − 1 (offset 0, the whole cylinder), 24-31 0xFF.
+- The other directory sectors, and the rest of the partition, are zeros. The real formatters leave filler there
+  (`6DB6`, `4E`, `E5`), so a re-created partition differs from the original in those sectors only.
+
+The BOOT/SYS and DIR/SYS hashes here differ from the floppy formatter's (`family23Params()` in `TrsdosFormat.ts`),
+including DIR/SYS having the same two zero bytes as BOOT/SYS where the floppy has `96 42`.
+
+**Granules.** The rule that fits every hard disk we measured: *s* is the smallest power of two that is at least
+4 × *h*, at most 32, and *g* = 32*h* / *s*. So 1 head has 8 granules of 4 sectors, 2 heads 8 of 8, 3 heads 6 of 16,
+4 heads 8 of 16, 5 heads 5 of 32, 6 heads 6 of 32, 7 heads 7 of 32, and 8 heads 8 of 32. Tandy's installer uses a
+different rule, 2 × *h* granules of 16 sectors for up to 4 heads, so `granulesPerCylinder` can be given to match it.
+A partition needs 35 to 203 cylinders (one allocation byte per cylinder, 0x00-0xCA, and 0xCC holds *c* − 35),
+1 to 8 heads, a starting cylinder of at most 1023 (10 bits of the media data block), and *g* from 1 to 8 with
+*s* at most 32.
+
+**Differences found when re-creating the three partitions**, which we kept out of the formatter:
+- The three 1-head, 203-cylinder partitions have **GAT byte 1 = 0xFF** (cylinder 1 fully allocated, though its
+  sectors hold nothing), in all four empty ones we have (`m1-ldos531-keil.hdv` heads 1-7, `m3-ldos531.hdv` head 3,
+  `m4-lsdos631.hdv` heads 2-3). The 6-head and 8-head partitions that were left empty (HARDE and HARDF of `m4-lsdos631-st251.hdv`, and HARDB-HARDF of `hxchard-ldos5-6part.hdv`) have
+  byte 1 free, so it isn't a rule of every partition. It's the formatter's build: the LS-DOS 6.3 hard disk
+  formatter's source (`hdfmt2.asm` in `trshard/`) has a conditional that, in Tandy's build, marks cylinder 1 used
+  "for diagnostics" (Radio Shack's drive diagnostics wrote there), and in LSI's own build marks cylinder 77, the
+  alternate cylinder, instead. So the 1-head partitions came from Tandy's build and the others from another.
+  An emulated disk has no diagnostics to protect, so our formatter leaves cylinder 1 free.
+- The date in the originals' GATs isn't a date: the Model I partition has the literal text `MM/DD/YY` and the LS-DOS
+  one `00/00/00`. The Model III one has a real date. We always write a real date.
+- The copy of the GAT in sector 3 of cylinder 0 has an older name and date in the LS-DOS partition (`DATA2`), as
+  "Trap" under "Partitions" says it can.
+
+**The HDV header** that `makeBlankHdvHardDisk()` writes (see "The HDV file"): bytes 0-1 `56 CB`; 2 `0x10`; 3 the
+checksum (the sum of bytes 0-31 except byte 3, low 8 bits, exclusive-ored with 0x4C, as the spec says, though no
+sample's matches, and we don't check it on reading); 4 `1`; 5 `4`; 6 `0`; 7 `0`; 8 `0` (no auto-boot); 10 `0` (no
+assigned creator code); 11 `0`; 12-14 month, day, year − 1900; 26 the heads; 27 bits 8-9 of the cylinders; 28 the low 8
+bits of the cylinders; 29 the sectors per cylinder (heads × 32, 0 for 256); 30 `8`; 31 `1` (what FreHD and xtrs write);
+the rest zero. FreHD's firmware reads the cylinder count from the header, though only to report it (in its drive
+information, which VHDUTL shows); its sector reads don't check against it. We write it right anyway. The count is
+10 bits, so **the most is 1023 cylinders**: 1024 would be stored as 0, which trs80gp's notes say means 256.
+
 ### Partitions found
 
 | Image | Cylinders × heads | Partitions |

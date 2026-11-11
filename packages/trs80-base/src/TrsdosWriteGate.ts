@@ -21,7 +21,7 @@ import {
     ruleSetForDosName,
     TrsdosRuleSet,
     trsdosRuleSetLayout,
-    trsdosRuleSetToString,
+    trsdosRuleSetCliName,
 } from "./TrsdosRuleSet.js";
 
 // The sector count of a granule in the NEWDOS/80 candidates, which try any granules per lump.
@@ -521,7 +521,7 @@ export function evaluateDosRules(nameAndVersion: string, layout: TrsdosVersion,
                 ruleSet: givenRuleSet,
                 blockers: [{
                     kind: TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH,
-                    message: `${trsdosRuleSetToString(givenRuleSet)}'s rules don't fit this disk's ` +
+                    message: `--dos ${trsdosRuleSetCliName(givenRuleSet)} doesn't fit this disk's ` +
                         `${layoutDescription(layout)} layout.`,
                     forceable: false,
                 }],
@@ -532,7 +532,7 @@ export function evaluateDosRules(nameAndVersion: string, layout: TrsdosVersion,
                 ruleSet: givenRuleSet,
                 blockers: [{
                     kind: TrsdosWriteBlockerKind.DOS_MISMATCH,
-                    message: `The disk says it's ${nameAndVersion}, not ${trsdosRuleSetToString(givenRuleSet)}.`,
+                    message: `The disk says it's ${nameAndVersion}, not --dos ${trsdosRuleSetCliName(givenRuleSet)}.`,
                     forceable: true,
                 }],
             };

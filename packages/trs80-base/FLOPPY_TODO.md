@@ -525,8 +525,15 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       written by `trs80-tool disk` (see "Writing to partitions" in
       `FLOPPY_FORMATS.md`). Still to do: DOSPLUS 3 partitions (the granules per
       cylinder need a second disk or the manual to confirm), partitions with
-      more than 203 cylinders, creating and formatting hard disks, and a
-      per-sector undo instead of a copy of the whole image per step.
+      more than 203 cylinders, and a per-sector undo instead of a copy of the
+      whole image per step. Creating HDV images and formatting, adding,
+      deleting and re-formatting LDOS 5.3 and LS-DOS 6.3 partitions is done
+      (`HardDiskFormat.ts`, and the `create`, `partition --add` and `format`
+      commands; see "Formatting partitions" in `FLOPPY_FORMATS.md`). Still to do
+      there: check that the result boots and lists under a real DOS and the
+      FreHD driver (the layout is compared with real partitions sector by
+      sector, but nothing has run under a DOS), and TRSDOS 6.2 and bootable
+      system partitions.
 - [ ] **Why LS-DOS's `DIR` hangs on an FXDE in another directory sector, on a
       partition.** The writer works around it by keeping a file's FXDEs in its
       primary entry's sector (see "Writing to partitions" in `FLOPPY_FORMATS.md`),

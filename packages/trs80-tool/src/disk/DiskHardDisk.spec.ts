@@ -283,7 +283,7 @@ describe("disk on hard disk images", () => {
 
     it("refuses the floppy-only commands on a hard disk", async () => {
         makeImage([{}]);
-        for (const command of ["map", "trim", "boot", "create", "format"]) {
+        for (const command of ["map", "trim", "boot"]) {
             await expect(runDisk(command), command).rejects.toThrow(command + " works on floppy images, not hard disks");
         }
         const session = DiskSession.open(imagePathname);
@@ -321,7 +321,8 @@ describe("disk on hard disk images", () => {
         const info = await runDisk("info");
         expect(info[0]).to.contain("no LDOS, LS-DOS or DOSPLUS partitions found");
         await expect(runDisk("dir")).rejects.toThrow("Can't find an LDOS, LS-DOS or DOSPLUS partition");
-        await expect(runDisk("partition")).rejects.toThrow("No LDOS, LS-DOS or DOSPLUS partitions");
+        // The listing has only the free space, which is all of the disk.
+        expect(await runDisk("partition")).to.eql(["     cylinders 0-39, heads 0-1  free (40 cylinders)"]);
     });
 
     it("describes the disk and the selected partition in info", async () => {

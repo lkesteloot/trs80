@@ -261,7 +261,7 @@ describe("the gate's DOS rules", () => {
         expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
         expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.DOS_MISMATCH]);
         expect(gate.blockers[0].forceable).to.equal(true);
-        expect(gate.blockers[0].message).to.equal("The disk says it's LDOS 5.1.4, not TRSDOS 2.x.");
+        expect(gate.blockers[0].message).to.equal("The disk says it's LDOS 5.1.4, not --dos trsdos-2.");
         expect(gate.ruleSet).to.equal(TrsdosRuleSet.TRSDOS_2);
     });
 
@@ -276,7 +276,7 @@ describe("the gate's DOS rules", () => {
         expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH]);
         expect(gate.blockers[0].forceable).to.equal(false);
         expect(gate.blockers[0].message).to.equal(
-            "TRSDOS 1.3's rules don't fit this disk's TRSDOS 2.3-style layout.");
+            "--dos trsdos-1.3 doesn't fit this disk's TRSDOS 2.3-style layout.");
     });
 
     it("skips the DOS rules for a layout we can't write", () => {

@@ -11,6 +11,7 @@ export * from "./TrackBytes.js";
 export * from "./Jv1FloppyDisk.js";
 export * from "./DiskVolume.js";
 export * from "./HardDisk.js";
+export * from "./HardDiskFormat.js";
 export * from "./HdvHardDisk.js";
 export * from "./ImageWriteProtect.js";
 export * from "./HardDiskPartition.js";
