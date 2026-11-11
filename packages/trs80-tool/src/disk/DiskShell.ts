@@ -10,7 +10,8 @@ import {DISK_COMMANDS, runDiskCommands} from "./DiskCommands.js";
 import {
     type DiskCommandSpec, DiskOptionValues, HostPathKind, parseDiskCommandLine, splitCommandLine,
 } from "./DiskCommandParser.js";
-import {DiskSession, type DiskShellTerminal} from "./DiskSession.js";
+import {DiskSession, type DiskShellTerminal} from "trs80-disk";
+import {saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 
 /**
  * The text of the prompt of the interactive shell, before it's colored: ">", with the name of the
@@ -230,7 +231,7 @@ async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskO
     await runDiskScript(lines, line => runDiskLine(session, line, globalOptions));
 
     // Only reached if every line worked. A "quit" has already saved, and an "abort" saves nothing.
-    session.saveAndReport(false);
+    saveAndReport(session, false);
 }
 
 /**
@@ -262,7 +263,7 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
     const completer = (line: string): [string[], string] => {
         let fileNames: string[] = [];
         try {
-            fileNames = session.getInputFiles(true).map(f => f.filename);
+            fileNames = sessionInputFiles(session, true).map(f => f.filename);
         } catch (e) {
             // No file system, so no file names to offer.
         }
@@ -369,7 +370,7 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
                 // is for Ctrl-D, which quits. Wait for the lines that are still running.
                 lineQueue = lineQueue.then(() => {
                     try {
-                        session.saveAndReport(false);
+                        saveAndReport(session, false);
                         resolve();
                     } catch (e) {
                         reject(e);

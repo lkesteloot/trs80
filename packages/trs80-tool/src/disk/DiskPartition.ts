@@ -7,11 +7,8 @@ import type {DiskCommand} from "./DiskCommands.js";
 import {parseAddDate, parseCountOption, parseModelOption, type ParsedDiskCommand} from "./DiskCommandParser.js";
 import {formatDosHelpLines, parseFormatDosName} from "./DiskHelp.js";
 import {
-    blocksOverlap, byHeadCylinderCount, chooseDefaultPartitionName, classifySplit, describeBlock, describeDriverSettings,
-    describeFreeSpaceLines, DiskSplit, findFreeBlocks, type HardDiskBlock, isBlockBlank,
-    partitionBlock,
-} from "./DiskHardLayout.js";
-import {DiskSession, type PartitionLocation} from "./DiskSession.js";
+    blocksOverlap, byHeadCylinderCount, chooseDefaultPartitionName, classifySplit, describeBlock, describeDriverSettings, describeFreeSpaceLines, DiskSession, DiskSplit, findFreeBlocks, type HardDiskBlock, isBlockBlank, partitionBlock, type PartitionLocation,
+} from "trs80-disk";
 import {getHardDiskBootSectors} from "./DiskTemplates.js";
 
 /**

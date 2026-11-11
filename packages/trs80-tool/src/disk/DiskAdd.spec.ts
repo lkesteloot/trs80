@@ -9,7 +9,7 @@ import {binaryAsCasFile} from "trs80-cassette";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
-import {DiskSession} from "./DiskSession.js";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
@@ -65,14 +65,14 @@ describe("disk add", () => {
      * The names of the files on a disk, without system files, in directory order.
      */
     function fileNames(pathname: string): string[] {
-        return DiskSession.open(pathname).getInputFiles(false).map(f => f.filename);
+        return sessionInputFiles(openDiskSession(pathname), false).map(f => f.filename);
     }
 
     /**
      * The contents of the named file on a disk.
      */
     function fileBytes(pathname: string, name: string): Uint8Array {
-        const inFile = DiskSession.open(pathname).getInputFiles(true).find(f => f.filename === name);
+        const inFile = sessionInputFiles(openDiskSession(pathname), true).find(f => f.filename === name);
         if (inFile === undefined) {
             throw new Error("No file " + name);
         }
@@ -83,7 +83,7 @@ describe("disk add", () => {
      * The free granules of a disk.
      */
     function freeGranules(pathname: string): number {
-        const granuleMap = DiskSession.open(pathname).getGranuleMap();
+        const granuleMap = openDiskSession(pathname).getGranuleMap();
         if (granuleMap === undefined || typeof granuleMap === "string") {
             throw new Error("No granule map");
         }
@@ -192,7 +192,7 @@ describe("disk add", () => {
      * The directory entry of the named file (such as "HELLO/BAS") on the saved image.
      */
     function getEntry(name: string) {
-        const trsdos = DiskSession.open(imagePathname).fileSystem;
+        const trsdos = openDiskSession(imagePathname).fileSystem;
         if (!(trsdos instanceof Trsdos)) {
             throw new Error("Not TRSDOS");
         }
@@ -307,10 +307,10 @@ describe("disk add", () => {
 
         await runDisk("add", hostPathname, "--system", "--invisible");
 
-        const session = DiskSession.open(imagePathname);
-        const names = session.getInputFiles(false).map(f => f.filename);
+        const session = openDiskSession(imagePathname);
+        const names = sessionInputFiles(session, false).map(f => f.filename);
         expect(names).to.not.include("KERNEL.SYS");
-        expect(session.getInputFiles(true).map(f => f.filename)).to.include("KERNEL.SYS");
+        expect(sessionInputFiles(session, true).map(f => f.filename)).to.include("KERNEL.SYS");
     });
 
     it("warns that a TRSDOS 2.x disk doesn't store dates", async () => {
@@ -531,7 +531,7 @@ describe("disk add on a TRSDOS 1.3 disk", () => {
 
         // Remove one and add another in the same run.
         await runDisk("rm", "F257/DAT", ":", "add", hostPathnames[0], "--as", "EMPTY/DAT");
-        expect(DiskSession.open(imagePathname).getInputFiles(false).map(f => f.filename))
+        expect(sessionInputFiles(openDiskSession(imagePathname), false).map(f => f.filename))
             .to.have.members(["F0.DAT", "F255.DAT", "F256.DAT", "F5000.DAT", "EMPTY.DAT"]);
     });
 });

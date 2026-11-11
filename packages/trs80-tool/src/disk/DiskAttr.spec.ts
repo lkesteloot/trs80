@@ -5,7 +5,7 @@ import {hashTrsdosPassword, makeTrsdos23TestDisk, type TestDiskOptions, type Tes
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
-import {DiskSession} from "./DiskSession.js";
+import {openDiskSession} from "./DiskFiles.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
@@ -65,7 +65,7 @@ describe("disk attrib", () => {
      * The directory entry of the named file (such as "HELLO/BAS") as it is on the saved image.
      */
     function getEntry(name: string): TrsdosDirEntry {
-        const trsdos = DiskSession.open(imagePathname).fileSystem;
+        const trsdos = openDiskSession(imagePathname).fileSystem;
         if (!(trsdos instanceof Trsdos)) {
             throw new Error("Not TRSDOS");
         }

@@ -5,7 +5,7 @@ import {
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {parseCountOption} from "./DiskCommandParser.js";
-import {DiskSession} from "./DiskSession.js";
+import {DiskSession} from "trs80-disk";
 
 /**
  * The most file names to list in a refusal.

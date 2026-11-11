@@ -7,7 +7,8 @@ import {
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
-import {decideWrite, DiskSession, DiskWritePurpose} from "./DiskSession.js";
+import {decideWrite, DiskSession, DiskWritePurpose} from "trs80-disk";
+import {openDiskSession, saveDiskSession, saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 
 const BYTES_PER_SECTOR = 256;
 const SECTORS_PER_CYLINDER = 10;
@@ -44,88 +45,88 @@ describe("DiskSession saving", () => {
     }
 
     it("tracks changes and saves them in place, once", () => {
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         expect(session.hasChanges()).to.equal(false);
-        expect(session.save()).to.equal(undefined);
+        expect(saveDiskSession(session)).to.equal(undefined);
 
         writeSector(session, 3, 4, 0x5A);
         expect(session.hasChanges()).to.equal(true);
         // Nothing is written until we save.
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
 
-        expect(session.save()).to.equal(imagePathname);
+        expect(saveDiskSession(session)).to.equal(imagePathname);
         expect(session.hasChanges()).to.equal(false);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0x5A);
         expect(fs.readdirSync(dir)).to.eql(["blank.jv1"]);
 
         // A second save has nothing to do.
-        expect(session.save()).to.equal(undefined);
+        expect(saveDiskSession(session)).to.equal(undefined);
     });
 
     it("saves later changes after an earlier save", () => {
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         writeSector(session, 3, 4, 0x11);
-        session.save();
+        saveDiskSession(session);
         writeSector(session, 5, 6, 0x22);
         expect(session.hasChanges()).to.equal(true);
-        session.save();
+        saveDiskSession(session);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0x11);
         expect(firstByteOfSector(imagePathname, 5, 6)).to.equal(0x22);
     });
 
     it("writes the --output file and leaves the image alone", () => {
         const outputPathname = path.join(dir, "out.jv1");
-        const session = DiskSession.open(imagePathname, { outputPathname });
+        const session = openDiskSession(imagePathname, { outputPathname });
         writeSector(session, 3, 4, 0x5A);
 
-        expect(session.save()).to.equal(outputPathname);
+        expect(saveDiskSession(session)).to.equal(outputPathname);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
         expect(firstByteOfSector(outputPathname, 3, 4)).to.equal(0x5A);
 
         // Later saves in the session go to the output file too.
         writeSector(session, 5, 6, 0x22);
-        expect(session.save()).to.equal(outputPathname);
+        expect(saveDiskSession(session)).to.equal(outputPathname);
         expect(firstByteOfSector(outputPathname, 5, 6)).to.equal(0x22);
         expect(firstByteOfSector(imagePathname, 5, 6)).to.equal(0);
     });
 
     it("writes nothing with --dry-run, even with --output", () => {
         const outputPathname = path.join(dir, "out.jv1");
-        const session = DiskSession.open(imagePathname, { outputPathname, dryRun: true });
+        const session = openDiskSession(imagePathname, { outputPathname, dryRun: true });
         writeSector(session, 3, 4, 0x5A);
 
         expect(session.hasChanges()).to.equal(true);
-        expect(session.save()).to.equal(undefined);
+        expect(saveDiskSession(session)).to.equal(undefined);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
         expect(fs.existsSync(outputPathname)).to.equal(false);
         expect(fs.readdirSync(dir)).to.eql(["blank.jv1"]);
     });
 
     it("saves nothing after abort()", () => {
-        const untouched = DiskSession.open(imagePathname);
+        const untouched = openDiskSession(imagePathname);
         expect(untouched.abort()).to.equal(undefined);
 
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         writeSector(session, 3, 4, 0x5A);
         expect(session.abort()).to.equal(imagePathname);
         expect(session.hasChanges()).to.equal(false);
-        expect(session.save()).to.equal(undefined);
+        expect(saveDiskSession(session)).to.equal(undefined);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
     });
 
     it("reports a failure to save as a ToolError and keeps the changes", () => {
         const outputPathname = path.join(dir, "missing", "out.jv1");
-        const session = DiskSession.open(imagePathname, { outputPathname });
+        const session = openDiskSession(imagePathname, { outputPathname });
         writeSector(session, 3, 4, 0x5A);
 
-        expect(() => session.save()).to.throw(ToolError, "Can't save \"" + outputPathname + "\"");
+        expect(() => saveDiskSession(session)).to.throw(ToolError, "Can't save \"" + outputPathname + "\"");
         expect(session.hasChanges()).to.equal(true);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
     });
 
     it("opens a missing image with no disk, and takes one from setFloppy()", () => {
         const missingPathname = path.join(dir, "missing.jv1");
-        const session = DiskSession.open(missingPathname);
+        const session = openDiskSession(missingPathname);
         expect(session.hasDisk()).to.equal(false);
         expect(session.hasChanges()).to.equal(false);
         expect(session.fileSystem).to.equal(undefined);
@@ -133,19 +134,19 @@ describe("DiskSession saving", () => {
         const noDiskMessage = missingPathname + " doesn't exist; use \"create\" to make it";
         expect(() => session.requireDisk()).to.throw(ToolError, noDiskMessage);
         expect(() => session.floppy).to.throw(ToolError, noDiskMessage);
-        expect(() => session.getInputFiles(true)).to.throw(ToolError, noDiskMessage);
-        expect(session.save()).to.equal(undefined);
+        expect(() => sessionInputFiles(session, true)).to.throw(ToolError, noDiskMessage);
+        expect(saveDiskSession(session)).to.equal(undefined);
 
-        session.setFloppy(DiskSession.open(imagePathname).floppy);
+        session.setFloppy(openDiskSession(imagePathname).floppy);
         expect(session.hasDisk()).to.equal(true);
         expect(session.hasChanges()).to.equal(true);
-        expect(session.save()).to.equal(missingPathname);
+        expect(saveDiskSession(session)).to.equal(missingPathname);
         expect(fs.existsSync(missingPathname)).to.equal(true);
     });
 
     it("still fails to open an existing file that can't be read", () => {
         // A directory exists but can't be read as a file.
-        expect(() => DiskSession.open(dir)).to.throw(ToolError, "Can't open");
+        expect(() => openDiskSession(dir)).to.throw(ToolError, "Can't open");
     });
 
     /**
@@ -162,28 +163,28 @@ describe("DiskSession saving", () => {
     }
 
     it("says what it did when asked to save and report", () => {
-        const session = DiskSession.open(imagePathname);
-        expect(printedLines(() => session.saveAndReport(false))).to.eql([]);
-        expect(printedLines(() => session.saveAndReport(true))).to.eql(["No changes to save."]);
+        const session = openDiskSession(imagePathname);
+        expect(printedLines(() => saveAndReport(session, false))).to.eql([]);
+        expect(printedLines(() => saveAndReport(session, true))).to.eql(["No changes to save."]);
         writeSector(session, 3, 4, 0x5A);
-        expect(printedLines(() => session.saveAndReport(true))).to.eql(["Saved " + imagePathname + "."]);
-        expect(printedLines(() => session.saveAndReport(false))).to.eql([]);
+        expect(printedLines(() => saveAndReport(session, true))).to.eql(["Saved " + imagePathname + "."]);
+        expect(printedLines(() => saveAndReport(session, false))).to.eql([]);
     });
 
     it("says what --dry-run would have done, once", () => {
-        const session = DiskSession.open(imagePathname, { dryRun: true });
+        const session = openDiskSession(imagePathname, { dryRun: true });
         writeSector(session, 3, 4, 0x5A);
-        expect(printedLines(() => session.saveAndReport(false))).to.eql([
+        expect(printedLines(() => saveAndReport(session, false))).to.eql([
             "Not saved (--dry-run): " + imagePathname + " would have changed."]);
-        expect(printedLines(() => session.saveAndReport(false))).to.eql([]);
+        expect(printedLines(() => saveAndReport(session, false))).to.eql([]);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
     });
 
     it("says nothing at the end after abort()", () => {
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         writeSector(session, 3, 4, 0x5A);
         session.abort();
-        expect(printedLines(() => session.saveAndReport(true))).to.eql([]);
+        expect(printedLines(() => saveAndReport(session, true))).to.eql([]);
         expect(firstByteOfSector(imagePathname, 3, 4)).to.equal(0);
     });
 });

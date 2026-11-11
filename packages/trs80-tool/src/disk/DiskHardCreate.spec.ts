@@ -9,8 +9,9 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
-import {DiskSession} from "./DiskSession.js";
+import {DiskSession} from "trs80-disk";
 import {runDiskLine} from "./DiskShell.js";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HEADER_SIZE = 256;
 
@@ -254,10 +255,10 @@ describe("disk create, partition --add and --delete, and format on hard disks", 
             expect(lines.some(line => line.startsWith("DATA.BIN") && line.includes("3,000"))).to.equal(true);
 
             // The file went to the second partition, and it's there after reopening.
-            const second = DiskSession.open(imagePathname, {partition: "HARDB"});
-            expect(second.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
-            const first = DiskSession.open(imagePathname, {partition: "HARDA"});
-            expect(first.getInputFiles(false)).to.eql([]);
+            const second = openDiskSession(imagePathname, {partition: "HARDB"});
+            expect(sessionInputFiles(second, false).map(f => f.filename)).to.eql(["DATA.BIN"]);
+            const first = openDiskSession(imagePathname, {partition: "HARDA"});
+            expect(sessionInputFiles(first, false)).to.eql([]);
             expect(partitionsOnDisk()).to.eql(["HARDA at 0/0 60x2", "HARDB at 60/0 60x2"]);
         });
 
@@ -419,7 +420,7 @@ describe("disk create, partition --add and --delete, and format on hard disks", 
         });
 
         it("can be undone", async () => {
-            const session = DiskSession.open(imagePathname);
+            const session = openDiskSession(imagePathname);
             await runLine(session, "create --heads 2 --cylinders 100");
             expect(session.getPartitions().length).to.equal(0);
             await runLine(session, "partition --add ldos-5.3 --cylinders 50");
@@ -500,7 +501,7 @@ describe("disk create, partition --add and --delete, and format on hard disks", 
         });
 
         it("deletes the selected partition when none is named, and deselects it", async () => {
-            const session = DiskSession.open(imagePathname);
+            const session = openDiskSession(imagePathname);
             await runLine(session, "create ldos-5.3 --heads 2 --cylinders 140 --partitions 2");
             expect(session.selectedPartitionNumber).to.equal(undefined);
             await runLine(session, "partition 2");
@@ -515,7 +516,7 @@ describe("disk create, partition --add and --delete, and format on hard disks", 
         });
 
         it("keeps another partition selected when the selected one isn't deleted", async () => {
-            const session = DiskSession.open(imagePathname);
+            const session = openDiskSession(imagePathname);
             await runLine(session, "create ldos-5.3 --heads 2 --cylinders 210 --partitions 3");
             await runLine(session, "partition 3");
             await runLine(session, "partition --delete 1");
@@ -548,7 +549,7 @@ describe("disk create, partition --add and --delete, and format on hard disks", 
             const hostPathname = makeHostFile("A.DAT", 4000);
             await runDisk("create", "lsdos-6.3", "--heads", "3", "--cylinders", "140", "--partitions", "2", ":",
                 "partition", "2", ":", "add", hostPathname, "--binary");
-            expect(DiskSession.open(imagePathname, {partition: "2"}).getInputFiles(false).length).to.equal(1);
+            expect(sessionInputFiles(openDiskSession(imagePathname, {partition: "2"}), false).length).to.equal(1);
 
             const error = await runDiskExpectingError("partition", "2", ":", "format");
             expect(error.message).to.contain("format would erase 1 file from partition 2 (HARDB)");
@@ -557,8 +558,8 @@ describe("disk create, partition --add and --delete, and format on hard disks", 
             const lines = await runDisk("partition", "2", ":", "format", "--force");
             expect(lines.some(line => line.startsWith("Formatted partition 2 (HARDB) as an empty LS-DOS 6.3 partition"))).to.equal(true);
             expect(partitionsOnDisk()).to.eql(["HARDA at 0/0 70x3", "HARDB at 70/0 70x3"]);
-            const second = DiskSession.open(imagePathname, {partition: "2"});
-            expect(second.getInputFiles(false)).to.eql([]);
+            const second = openDiskSession(imagePathname, {partition: "2"});
+            expect(sessionInputFiles(second, false)).to.eql([]);
             expect(second.getFreeSpaceText()).to.contain("granules");
         });
 
@@ -616,9 +617,9 @@ describe("disk create, partition --add and --delete, and format on hard disks", 
                 "partition", "1", ":", "add", hostPathname, "--binary");
 
             expect(partitionsOnDisk()).to.eql(["HARDA at 0/0 100x2", "HARDB at 100/0 100x2"]);
-            const reopened = DiskSession.open(imagePathname, {partition: "HARDA"});
-            expect(reopened.getInputFiles(false).map(f => f.filename)).to.eql(["HELLO.BIN"]);
-            expect(reopened.getInputFiles(false)[0].binary).to.eql(new Uint8Array(fs.readFileSync(hostPathname)));
+            const reopened = openDiskSession(imagePathname, {partition: "HARDA"});
+            expect(sessionInputFiles(reopened, false).map(f => f.filename)).to.eql(["HELLO.BIN"]);
+            expect(sessionInputFiles(reopened, false)[0].binary).to.eql(new Uint8Array(fs.readFileSync(hostPathname)));
             const dir = await runDisk("partition");
             expect(dir[0]).to.contain("1 file");
             expect(dir[1]).to.contain("0 files");

@@ -12,6 +12,7 @@ in TypeScript. The subprojects are:
 * [z80-logger](packages/z80-logger): Logging functions for the other Z80 and TRS-80 libraries and tools.
 * [trs80-asm](packages/trs80-asm): Small library to help z80-asm and trs80-base work together.
 * [trs80-base](packages/trs80-base): Classes for reading and writing a variety of TRS-80 file formats.
+* [trs80-disk](packages/trs80-disk): Opening, changing, undoing and saving disk images, as trs80-tool's `disk` command does, in Node or a browser.
 * [trs80-emulator](packages/trs80-emulator): TRS-80 hardware emulator. Can emulate a Model I and Model III, read-only cassette, and floppy disk.
 * [trs80-emulator-web](packages/trs80-emulator-web): Classes for embedding the emulator in a web page.
 * [trs80-cassette](packages/trs80-cassette): Library for reading and writing cassette WAV files. Does a good job with cassettes that have been partially damaged and can't be read by other converter tools.

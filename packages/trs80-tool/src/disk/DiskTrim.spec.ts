@@ -8,7 +8,7 @@ import {
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
-import {DiskSession} from "./DiskSession.js";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 /** The size of a DMK file's header. */
 const DMK_HEADER_SIZE = 16;
@@ -110,8 +110,8 @@ describe("disk trim", () => {
      * Read back an image and return its file system's file names and contents, joined as "NAME=bytes".
      */
     function describeFiles(pathname: string): string[] {
-        const session = DiskSession.open(pathname);
-        return session.getInputFiles(true).map(inputFile => inputFile.filename + "=" +
+        const session = openDiskSession(pathname);
+        return sessionInputFiles(session, true).map(inputFile => inputFile.filename + "=" +
             Buffer.from(inputFile.binary).toString("hex").substring(0, 40) + "/" + inputFile.binary.length);
     }
 
@@ -121,18 +121,18 @@ describe("disk trim", () => {
         await runDiskOn(pathname, "add", hostPathname, "--as", "DATA/BIN");
         const before = describeFiles(pathname);
         const sizeBefore = fs.statSync(pathname).size;
-        expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(80);
+        expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(80);
 
         const lines = await runDiskOn(pathname, "trim");
 
         expect(lines[0]).to.eql("Removed cylinders 40-79 (the file system uses 0-39).");
         expect(lines[lines.length - 1]).to.eql("Saved " + pathname + ".");
-        const session = DiskSession.open(pathname);
+        const session = openDiskSession(pathname);
         expect(session.floppy.getGeometry().cylinderCount).to.eql(40);
         expect(fs.statSync(pathname).size).to.eql(sizeBefore/2 + DMK_HEADER_SIZE/2);
         expect(describeFiles(pathname)).to.eql(before);
         expect(session.getReadOnlyReason()).to.eql(undefined);
-        expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
+        expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["DATA.BIN"]);
     });
 
     it("says so and changes nothing when there's nothing to drop", async () => {
@@ -154,12 +154,12 @@ describe("disk trim", () => {
         binary.set(formatted.binary);
         binary[1] = 45;
         fs.writeFileSync(pathname, binary);
-        expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(45);
+        expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(45);
 
         const lines = await runDiskOn(pathname, "trim");
 
         expect(lines[0]).to.eql("Removed cylinders 40-44 (they have no readable sectors).");
-        expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
+        expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
     });
 
     describe("--cylinders", () => {
@@ -169,7 +169,7 @@ describe("disk trim", () => {
             const lines = await runDiskOn(pathname, "trim", "--cylinders", "40");
 
             expect(lines[0]).to.eql("Removed cylinders 40-79.");
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
         });
 
         it("refuses to cut into the directory, naming it", async () => {
@@ -201,11 +201,11 @@ describe("disk trim", () => {
             const error = await runDiskExpectingError(pathname, "trim", "--cylinders", "39");
             expect(error.message).to.contain("the file system covers cylinders 0-39");
             expect(error.message).to.contain("Use --force");
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(80);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(80);
 
             const lines = await runDiskOn(pathname, "trim", "--cylinders", "39", "--force");
             expect(lines[0]).to.eql("Removed cylinders 39-79.");
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(39);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(39);
         });
 
         it("says so when the image has no more than that", async () => {
@@ -253,12 +253,12 @@ describe("disk trim", () => {
             const hostPathname = makeHostFile("data.bin", 3000);
             await runDiskOn(pathname, "add", hostPathname, "--as", "DATA/BIN");
             const before = describeFiles(pathname);
-            expect(DiskSession.open(pathname).floppy.getGeometry().sideCount).to.eql(2);
+            expect(openDiskSession(pathname).floppy.getGeometry().sideCount).to.eql(2);
 
             const lines = await runDiskOn(pathname, "trim", "--side", "0");
 
             expect(lines[0]).to.eql("Removed side 1.");
-            const session = DiskSession.open(pathname);
+            const session = openDiskSession(pathname);
             expect(session.floppy.getGeometry().sideCount).to.eql(1);
             expect(session.floppy.getGeometry().cylinderCount).to.eql(40);
             expect(describeFiles(pathname)).to.eql(before);
@@ -283,7 +283,7 @@ describe("disk trim", () => {
             const lines = await runDiskOn(pathname, "trim", "--side", "0");
 
             expect(lines[0]).to.eql("Removed side 1.");
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(45);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(45);
         });
 
         it("refuses when the file system uses both sides", async () => {
@@ -335,7 +335,7 @@ describe("disk trim", () => {
             const lines = await runDiskOn(pathname, "trim", "--cylinders", "35");
 
             expect(lines[0]).to.eql("Removed cylinders 35-39.");
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(35);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(35);
         });
 
         it("refuses to drop data unless forced", async () => {
@@ -348,10 +348,10 @@ describe("disk trim", () => {
             const error = await runDiskExpectingError(pathname, "trim", "--cylinders", "35");
             expect(error.message).to.eql("The tracks to drop hold data that isn't filler, on cylinder 37, " +
                 "and the disk has no file system that we recognize. Use --force to drop them anyway.");
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
 
             await runDiskOn(pathname, "trim", "--cylinders", "35", "--force");
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(35);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(35);
         });
 
         it("by default drops only unreadable cylinders", async () => {
@@ -385,7 +385,7 @@ describe("disk trim", () => {
             const lines = await runDiskOn(pathname, "trim");
 
             expect(lines[0]).to.eql("Removed cylinders 35-39 (the file system uses 0-34).");
-            const session = DiskSession.open(pathname);
+            const session = openDiskSession(pathname);
             expect(session.floppy.getDescription()).to.eql("Floppy disk (JV1)");
             expect(session.floppy.getGeometry().cylinderCount).to.eql(35);
             expect(fs.statSync(pathname).size).to.eql(35*10*256);
@@ -408,12 +408,12 @@ describe("disk trim", () => {
             const pathname = path.join(dir, "big.jv3");
             fs.writeFileSync(pathname, jv3);
             const before = describeFiles(pathname);
-            expect(DiskSession.open(pathname).floppy.getDescription()).to.eql("Floppy disk (JV3)");
+            expect(openDiskSession(pathname).floppy.getDescription()).to.eql("Floppy disk (JV3)");
 
             const lines = await runDiskOn(pathname, "trim");
 
             expect(lines[0]).to.eql("Removed cylinders 35-39 (the file system uses 0-34).");
-            const session = DiskSession.open(pathname);
+            const session = openDiskSession(pathname);
             expect(session.floppy.getDescription()).to.eql("Floppy disk (JV3)");
             expect(session.floppy.getGeometry().cylinderCount).to.eql(35);
             expect(fs.statSync(pathname).size).to.eql(34*256 + 35*10*256);
@@ -453,7 +453,7 @@ describe("disk trim", () => {
             await runDiskOn(pathname, "-o", outputPathname, "trim");
 
             expect(fs.readFileSync(pathname)).to.eql(before);
-            expect(DiskSession.open(outputPathname).floppy.getGeometry().cylinderCount).to.eql(40);
+            expect(openDiskSession(outputPathname).floppy.getGeometry().cylinderCount).to.eql(40);
         });
 
         it("refuses a write-protected image unless forced", async () => {
@@ -469,7 +469,7 @@ describe("disk trim", () => {
             await runDiskOn(pathname, "trim", "--force");
             const trimmed = fs.readFileSync(pathname);
             expect(trimmed[0]).to.eql(0xFF);
-            expect(DiskSession.open(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
+            expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
         });
 
         it("lets later commands in the same run use the trimmed disk", async () => {
@@ -479,9 +479,9 @@ describe("disk trim", () => {
             const lines = await runDiskOn(pathname, "trim", ":", "add", hostPathname, "--as", "DATA/BIN", ":", "free");
 
             expect(lines[0]).to.eql("Removed cylinders 40-79 (the file system uses 0-39).");
-            const session = DiskSession.open(pathname);
+            const session = openDiskSession(pathname);
             expect(session.floppy.getGeometry().cylinderCount).to.eql(40);
-            expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
+            expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["DATA.BIN"]);
         });
     });
 });

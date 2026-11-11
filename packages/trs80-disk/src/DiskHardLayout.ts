@@ -9,7 +9,7 @@ import {
     describeHardDiskBlock, HARD_DISK_SECTORS_PER_TRACK, type HardDisk, type HardDiskGeometry, type LdosPartition,
 } from "trs80-base";
 import {assertNever} from "z80-base";
-import {pluralizeWithCount} from "../utils.js";
+import {pluralizeWithCount} from "./Plural.js";
 
 /**
  * A block of whole cylinders and whole heads of a hard disk: where a partition is, or could go.

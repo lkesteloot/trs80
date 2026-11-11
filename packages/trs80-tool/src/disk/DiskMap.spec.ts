@@ -11,7 +11,7 @@ import {disk} from "./disk.js";
 import type {ParsedDiskCommand} from "./DiskCommandParser.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
 import {drawGranuleMap, MAP_COMMAND} from "./DiskMap.js";
-import type {DiskSession} from "./DiskSession.js";
+import type {DiskSession} from "trs80-disk";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 2, granuleOffset: 0, granuleCount: 3}], size: 3000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 1, granuleCount: 1}], size: 300};

@@ -2,7 +2,7 @@ import {type TrsdosRepairResult, TrsdosWriteAccess} from "trs80-base";
 import {assertNever} from "z80-base";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
-import {DiskWritePurpose} from "./DiskSession.js";
+import {DiskWritePurpose} from "trs80-disk";
 
 // The most program names to list before saying "and N more".
 const MAX_PROGRAMS_SHOWN = 4;

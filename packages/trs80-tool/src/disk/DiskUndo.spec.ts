@@ -8,8 +8,9 @@ import {
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {disk} from "./disk.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
-import {DiskSession, MAX_UNDO_STATES} from "./DiskSession.js";
+import {DiskSession, MAX_UNDO_STATES} from "trs80-disk";
 import {runDiskLine} from "./DiskShell.js";
+import {openDiskSession, saveDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
@@ -80,20 +81,20 @@ describe("disk undo, redo and revert", () => {
      * The names of the files on the session's disk, without system files, in directory order.
      */
     function fileNames(session: DiskSession): string[] {
-        return session.getInputFiles(false).map(f => f.filename);
+        return sessionInputFiles(session, false).map(f => f.filename);
     }
 
     /**
      * The names of the files on a disk image on the host, without system files, in directory order.
      */
     function fileNamesOnHost(pathname: string): string[] {
-        return fileNames(DiskSession.open(pathname));
+        return fileNames(openDiskSession(pathname));
     }
 
     it("undoes an add, leaving nothing to save", async () => {
         makeImage([HELLO]);
         const hostPathname = makeHostFile("PROG.BAS", 500);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "add " + hostPathname + " --binary");
         expect(fileNames(session)).to.eql(["HELLO.BAS", "PROG.BAS"]);
@@ -103,12 +104,12 @@ describe("disk undo, redo and revert", () => {
         expect(lines).to.eql(["Undid \"add " + hostPathname + " --binary\"."]);
         expect(fileNames(session)).to.eql(["HELLO.BAS"]);
         expect(session.hasChanges()).to.equal(false);
-        expect(session.save()).to.equal(undefined);
+        expect(saveDiskSession(session)).to.equal(undefined);
     });
 
     it("undoes several changes in turn, and keeps changes that were not undone", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         await run(session, "label --name SECOND");
@@ -123,7 +124,7 @@ describe("disk undo, redo and revert", () => {
 
     it("redoes what was undone", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         await run(session, "undo");
@@ -140,7 +141,7 @@ describe("disk undo, redo and revert", () => {
 
     it("clears the redo stack when there is a new change after an undo", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         await run(session, "undo");
@@ -151,7 +152,7 @@ describe("disk undo, redo and revert", () => {
 
     it("says there is nothing to undo, redo or revert, and isn't an error", async () => {
         makeImage([HELLO]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         expect(await run(session, "undo")).to.eql(["Nothing to undo."]);
         expect(await run(session, "redo")).to.eql(["Nothing to redo."]);
@@ -167,7 +168,7 @@ describe("disk undo, redo and revert", () => {
 
     it("doesn't record undo, redo and revert themselves", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         await run(session, "undo");
@@ -181,7 +182,7 @@ describe("disk undo, redo and revert", () => {
 
     it("quotes an argument with spaces in the command it names", async () => {
         makeImage([HELLO]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "label --auto \"BASIC RUN\\\"X\\\"\"");
         expect((await run(session, "undo"))[0]).to.match(/^Undid "label --auto "/);
@@ -189,7 +190,7 @@ describe("disk undo, redo and revert", () => {
 
     it("undoes a create back to having no disk, and redoes it", async () => {
         const missingPathname = path.join(dir, "new.dmk");
-        const session = DiskSession.open(missingPathname);
+        const session = openDiskSession(missingPathname);
 
         await run(session, "create ldos-5.3");
         expect(session.hasDisk()).to.equal(true);
@@ -199,20 +200,20 @@ describe("disk undo, redo and revert", () => {
         expect(session.hasDisk()).to.equal(false);
         expect(session.hasChanges()).to.equal(false);
         expect(session.fileSystem).to.equal(undefined);
-        expect(session.save()).to.equal(undefined);
+        expect(saveDiskSession(session)).to.equal(undefined);
 
         expect(await run(session, "redo")).to.eql(["Redid \"create ldos-5.3\"."]);
         expect(session.hasDisk()).to.equal(true);
         expect(session.fileSystem?.nameAndVersion).to.match(/^LDOS/);
         expect(session.hasChanges()).to.equal(true);
-        expect(session.save()).to.equal(missingPathname);
+        expect(saveDiskSession(session)).to.equal(missingPathname);
     });
 
     it("undoes a format back to the old image format", async () => {
         makeImage([HELLO, WORLD]);
         const original = fs.readFileSync(imagePathname);
         // A format makes a DMK image, which it won't save under the name of a JV1 one.
-        const session = DiskSession.open(imagePathname, { outputPathname: path.join(dir, "new.dmk") });
+        const session = openDiskSession(imagePathname, { outputPathname: path.join(dir, "new.dmk") });
         expect(session.floppy.className).to.equal("Jv1FloppyDisk");
 
         await run(session, "format --force");
@@ -246,7 +247,7 @@ describe("disk undo, redo and revert", () => {
         const pathname = path.join(dir, "big.dmk");
         fs.writeFileSync(pathname, binary);
 
-        const session = DiskSession.open(pathname);
+        const session = openDiskSession(pathname);
         expect(session.floppy.getGeometry().cylinderCount).to.equal(80);
 
         await run(session, "trim");
@@ -262,7 +263,7 @@ describe("disk undo, redo and revert", () => {
 
     it("reverts several changes at once, and the revert can be undone", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         await run(session, "label --name SECOND");
@@ -285,7 +286,7 @@ describe("disk undo, redo and revert", () => {
 
     it("reverts to the disk as last saved, not as opened", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         expect(await run(session, "save")).to.eql(["Saved " + imagePathname + "."]);
@@ -299,7 +300,7 @@ describe("disk undo, redo and revert", () => {
     });
 
     it("reverts a create of an image that never existed to having no disk", async () => {
-        const session = DiskSession.open(path.join(dir, "new.dmk"));
+        const session = openDiskSession(path.join(dir, "new.dmk"));
 
         await run(session, "create trsdos-2.3");
         await run(session, "label --name SECOND");
@@ -310,7 +311,7 @@ describe("disk undo, redo and revert", () => {
 
     it("counts the disk as changed again after undoing past a save", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         await run(session, "save");
@@ -327,7 +328,7 @@ describe("disk undo, redo and revert", () => {
 
     it("saves the undone state on quit after a save and an undo", async () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         await run(session, "rm HELLO.BAS");
         await run(session, "save");
@@ -359,7 +360,7 @@ describe("disk undo, redo and revert", () => {
 
     it("keeps only the most recent states, dropping the oldest", async () => {
         makeImage([HELLO]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         const changeCount = MAX_UNDO_STATES + 5;
         const nameOf = (i: number): string => "D" + String(i).padStart(3, "0");
 
@@ -389,7 +390,7 @@ describe("disk undo, redo and revert", () => {
 
     it("reverts to the saved disk even after the history that reaches it was dropped", async () => {
         makeImage([HELLO]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         for (let i = 1; i <= MAX_UNDO_STATES + 5; i++) {
             await run(session, "label --name D" + String(i).padStart(3, "0"));

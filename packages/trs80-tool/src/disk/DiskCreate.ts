@@ -12,9 +12,8 @@ import type {DiskCommand} from "./DiskCommands.js";
 import {
     DiskOptionSpec, parseAddDate, parseCountOption, parseModelOption, type ParsedDiskCommand,
 } from "./DiskCommandParser.js";
-import {describeDriverSettings} from "./DiskHardLayout.js";
+import {describeDriverSettings, DiskSession, DiskWritePurpose} from "trs80-disk";
 import {formatDosHelpLines, formatDosItems, parseFormatDosName} from "./DiskHelp.js";
-import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {
     describeSystemDiskTemplate, findSystemDiskTemplate, getDataDiskBootSectors, getHardDiskBootSectors,
     loadSystemDiskTemplate,
@@ -222,7 +221,7 @@ function choosesDensity(dos: TrsdosFormatDos): boolean {
  * @throws ToolError with the message if the name has the extension of another kind of image.
  */
 function requireDmkPathname(session: DiskSession, message: string): void {
-    const extension = path.extname(session.savedPathname).toLowerCase();
+    const extension = path.extname(session.saveName).toLowerCase();
     if (OTHER_IMAGE_EXTENSIONS.includes(extension)) {
         throw new ToolError(message);
     }
@@ -332,7 +331,7 @@ const HARD_DISK_EXTENSION = ".hdv";
  * disk and not a floppy.
  */
 function isHardDiskPathname(session: DiskSession): boolean {
-    return path.extname(session.savedPathname).toLowerCase() === HARD_DISK_EXTENSION;
+    return path.extname(session.saveName).toLowerCase() === HARD_DISK_EXTENSION;
 }
 
 /**
@@ -397,7 +396,7 @@ function createHardDisk(session: DiskSession, command: ParsedDiskCommand): void 
         }
     }
     if (session.hasDisk() && !options.has("--force")) {
-        throw new ToolError(session.pathname + " already has a disk; use --force to replace it with a new blank one");
+        throw new ToolError(session.name + " already has a disk; use --force to replace it with a new blank one");
     }
 
     let hardDisk;
@@ -456,7 +455,7 @@ function createHardDisk(session: DiskSession, command: ParsedDiskCommand): void 
         console.log("Replaced the disk in memory; nothing is saved until quit.");
     }
 
-    console.log("Created " + session.pathname + ": a blank HDV hard disk, " +
+    console.log("Created " + session.name + ": a blank HDV hard disk, " +
         pluralizeWithCount(cylinders, "cylinder") + ", " + pluralizeWithCount(heads, "head") + ", " +
         describeHardDiskSize(heads, cylinders) + ", " +
         (partitionCount === 0 ? "no partitions; \"partition --add DOS\" makes one." :
@@ -557,7 +556,7 @@ export const CREATE_COMMAND: DiskCommand = {
 
         requireDmkPathname(session, "create makes DMK images; name the file .dmk");
         if (session.hasDisk() && !options.has("--force")) {
-            throw new ToolError(session.pathname + " already has a disk; use --force to replace it with a new blank one");
+            throw new ToolError(session.name + " already has a disk; use --force to replace it with a new blank one");
         }
 
         if (system) {

@@ -1,11 +1,11 @@
-import path from "path";
 import {
     BASIC_HEADER_BYTE, BASIC_TAPE_HEADER_BYTE, BasicDialect, basicDialectToString, BasicProgram, decodeBasicProgram,
     decodeTrs80File, guessBasicDialect, parseBasicText, type Trs80File,
 } from "trs80-base";
 import {concatByteArrays} from "teamten-ts-utils";
 import {assertNever} from "z80-base";
-import {pluralizeWithCount, ToolError} from "../utils.js";
+import {DiskError} from "./DiskError.js";
+import {pluralizeWithCount} from "./Plural.js";
 
 /**
  * Host file extensions (lower case, with the period) whose files are text, so that the "disk add"
@@ -15,6 +15,24 @@ import {pluralizeWithCount, ToolError} from "../utils.js";
  */
 export const TEXT_FILE_EXTENSIONS: readonly string[] =
     [".txt", ".asm", ".jcl", ".doc", ".hlp", ".lst", ".fix", ".src"];
+
+/**
+ * The extension of a file name without directories, including the period, as path.posix.extname() gives
+ * it: from the last period to the end, or an empty string if there's no period or the only one is the
+ * name's first character.
+ */
+function extensionOf(name: string): string {
+    const index = name.lastIndexOf(".");
+    return index <= 0 ? "" : name.substring(index);
+}
+
+/**
+ * The name of a file without its extension, as path.posix.parse().name gives it for a name without
+ * directories.
+ */
+function stemOf(name: string): string {
+    return name.substring(0, name.length - extensionOf(name).length);
+}
 
 const CR = 0x0D;
 const LF = 0x0A;
@@ -56,24 +74,23 @@ export interface ImportResult {
  * is (see the "add" command in the site's documentation): BASIC text is tokenized, system programs
  * become CMD programs, text files get CR line endings, and everything else is unchanged.
  *
- * @param hostPathname the host file's path, whose base name is used in messages and whose extension
+ * @param hostName the host file's name without directories, which is used in messages and whose extension
  * says what kind of file it is.
  * @param bytes the host file's contents.
  * @param options the conversion options.
  * @returns the converted file.
- * @throws ToolError if the file can't be converted, or the options contradict each other.
+ * @throws DiskError if the file can't be converted, or the options contradict each other.
  */
-export function importHostFile(hostPathname: string, bytes: Uint8Array, options: ImportOptions): ImportResult {
+export function importHostFile(hostName: string, bytes: Uint8Array, options: ImportOptions): ImportResult {
     if (options.ascii && options.binary) {
-        throw new ToolError("Use either --ascii or --binary, not both");
+        throw new DiskError("Use either --ascii or --binary, not both");
     }
 
     if (options.binary) {
         return {contents: bytes, extension: undefined, messages: []};
     }
 
-    const hostName = path.basename(hostPathname);
-    const hostExtension = path.extname(hostName).toLowerCase();
+    const hostExtension = extensionOf(hostName).toLowerCase();
 
     if (hostExtension === ".bas") {
         return importBasicFile(hostName, bytes, options.ascii, options.basic);
@@ -172,14 +189,14 @@ function readAsNote(basic: BasicDialect): string {
  * @param bytes the host file's contents.
  * @param ascii whether the BASIC program should be stored as text.
  * @param basic the disk's BASIC.
- * @throws ToolError if the file is neither tokenized BASIC nor BASIC text.
+ * @throws DiskError if the file is neither tokenized BASIC nor BASIC text.
  */
 function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean, basic: BasicDialect): ImportResult {
     const sourceBasic = guessBasicDialect(bytes) ?? basic;
     const program = decodeBasicProgram(bytes, sourceBasic);
     if (program !== undefined) {
         if (program.error !== undefined) {
-            throw new ToolError("Can't add " + hostName + ": it looks like tokenized BASIC but is damaged (" +
+            throw new DiskError("Can't add " + hostName + ": it looks like tokenized BASIC but is damaged (" +
                 program.error + "). Use --binary to copy it as it is.");
         }
         return basicProgramResult(hostName, program, sourceBasic, ascii, basic, "");
@@ -196,7 +213,7 @@ function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean, ba
 
     const tokenized = parseBasicText(bytes, basic);
     if (typeof tokenized === "string") {
-        throw new ToolError(basicTextErrorMessage(hostName, bytes, tokenized, basic));
+        throw new DiskError(basicTextErrorMessage(hostName, bytes, tokenized, basic));
     }
     return {
         contents: tokenized,
@@ -227,7 +244,7 @@ function basicProgramResult(hostName: string, program: BasicProgram, sourceBasic
         // The text of the program is the same in any BASIC, so tokenize it again for the disk's.
         const tokenized = parseBasicText(program.asAscii(), basic);
         if (typeof tokenized === "string") {
-            throw new ToolError("Can't convert " + hostName + " from " + basicDialectToString(sourceBasic) +
+            throw new DiskError("Can't convert " + hostName + " from " + basicDialectToString(sourceBasic) +
                 " to " + basicDialectToString(basic) + " BASIC (" + tokenized + "). Use --ascii to keep it as " +
                 "text, or --binary to copy it as it is.");
         }
@@ -323,22 +340,22 @@ function basicTextErrorMessage(hostName: string, bytes: Uint8Array, parseError: 
  * @param bytes the host file's contents.
  * @param ascii whether a BASIC program should be stored as text.
  * @param basic the disk's BASIC.
- * @throws ToolError if the cassette is empty, has several programs, or has something else.
+ * @throws DiskError if the cassette is empty, has several programs, or has something else.
  */
 function importCassetteFile(hostName: string, bytes: Uint8Array, ascii: boolean, basic: BasicDialect): ImportResult {
     const trs80File = decodeTrs80File(bytes, {filename: hostName});
     if (trs80File.className !== "Cassette" || trs80File.error !== undefined) {
-        throw new ToolError("Can't add " + hostName + ": it isn't a CAS file that can be read" +
+        throw new DiskError("Can't add " + hostName + ": it isn't a CAS file that can be read" +
             (trs80File.error === undefined ? "" : " (" + trs80File.error + ")") +
             ". Use --binary to copy it as it is.");
     }
 
     if (trs80File.files.length === 0) {
-        throw new ToolError("Can't add " + hostName + ": the cassette has no programs. " +
+        throw new DiskError("Can't add " + hostName + ": the cassette has no programs. " +
             "Use --binary to copy it as it is.");
     }
     if (trs80File.files.length > 1) {
-        throw new ToolError("Can't add " + hostName + ": the cassette has " +
+        throw new DiskError("Can't add " + hostName + ": the cassette has " +
             pluralizeWithCount(trs80File.files.length, "program") + ". Use \"trs80-tool extract\" to get the " +
             "programs out of it first, or --binary to copy it as it is.");
     }
@@ -351,12 +368,12 @@ function importCassetteFile(hostName: string, bytes: Uint8Array, ascii: boolean,
  *
  * @param hostName the host file's name.
  * @param bytes the host file's contents.
- * @throws ToolError if the file isn't a system program.
+ * @throws DiskError if the file isn't a system program.
  */
 function importSystemProgramFile(hostName: string, bytes: Uint8Array): ImportResult {
     const trs80File = decodeTrs80File(bytes, {filename: hostName});
     if (trs80File.className !== "SystemProgram" || trs80File.error !== undefined) {
-        throw new ToolError("Can't add " + hostName + ": it isn't a system program that can be read" +
+        throw new DiskError("Can't add " + hostName + ": it isn't a system program that can be read" +
             (trs80File.error === undefined ? "" : " (" + trs80File.error + ")") +
             ". Use --binary to copy it as it is.");
     }
@@ -372,12 +389,12 @@ function importSystemProgramFile(hostName: string, bytes: Uint8Array): ImportRes
  * @param trs80File the decoded program.
  * @param ascii whether a BASIC program should be stored as text.
  * @param basic the disk's BASIC. A cassette's BASIC program is a Model III one.
- * @throws ToolError if it's some other kind of program.
+ * @throws DiskError if it's some other kind of program.
  */
 function importProgram(hostName: string, trs80File: Trs80File, ascii: boolean, basic: BasicDialect): ImportResult {
     switch (trs80File.className) {
         case "SystemProgram": {
-            const baseName = path.parse(hostName).name.toUpperCase();
+            const baseName = stemOf(hostName).toUpperCase();
             const cmdProgram = trs80File.toCmdProgram(baseName);
             return {
                 contents: cmdProgram.binary,
@@ -402,7 +419,7 @@ function importProgram(hostName: string, trs80File: Trs80File, ascii: boolean, b
         case "HfeFloppyDisk":
         case "ImdFloppyDisk":
         case "HdvHardDisk":
-            throw new ToolError("Can't add " + hostName + ": it holds a " + trs80File.getDescription().toLowerCase() +
+            throw new DiskError("Can't add " + hostName + ": it holds a " + trs80File.getDescription().toLowerCase() +
                 ", which can't be put on a disk. Use --binary to copy it as it is.");
 
         default:

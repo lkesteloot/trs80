@@ -1,8 +1,8 @@
 import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS, runDiskCommands} from "./DiskCommands.js";
 import {parseDiskCommandLine} from "./DiskCommandParser.js";
 import {parseDosName} from "./DiskHelp.js";
-import {DiskSession} from "./DiskSession.js";
 import {runDiskShell} from "./DiskShell.js";
+import {openDiskSession, saveAndReport} from "./DiskFiles.js";
 
 /**
  * Handle the "disk" command: open one floppy or hard disk image and run commands on it, in order.
@@ -26,7 +26,7 @@ export async function disk(words: string[]): Promise<void> {
     const dosName = globalOptions.getString("--dos");
     const ruleSet = dosName === undefined ? undefined : parseDosName(dosName);
 
-    const session = DiskSession.open(pathname, {
+    const session = openDiskSession(pathname, {
         outputPathname: globalOptions.getString("--output"),
         dryRun: globalOptions.has("--dry-run"),
         partition: globalOptions.getString("--partition"),
@@ -39,6 +39,6 @@ export async function disk(words: string[]): Promise<void> {
     } else {
         // If a command fails then this throws and nothing is saved.
         await runDiskCommands(session, commands, globalOptions);
-        session.saveAndReport(false);
+        saveAndReport(session, false);
     }
 }

@@ -3,7 +3,7 @@ import {
 } from "trs80-base";
 import {binaryAsCasFile} from "trs80-cassette";
 import {describe, expect, it} from "vitest";
-import {ToolError} from "../utils.js";
+import {DiskError} from "./DiskError.js";
 import {importHostFile, type ImportOptions} from "./DiskImport.js";
 
 const DEFAULT_OPTIONS: ImportOptions = {ascii: false, binary: false, basic: BasicDialect.MODEL_III};
@@ -46,7 +46,7 @@ describe("importHostFile", () => {
     it("tokenizes BASIC text with LF or CRLF line endings, as convert does", () => {
         const expected = convertTokenized(listing);
         for (const text of [listing, listing.replace(/\n/g, "\r\n"), listing.replace(/\n/g, "\r")]) {
-            const result = importHostFile("/some/dir/hello.bas", bytesOf(text), DEFAULT_OPTIONS);
+            const result = importHostFile("hello.bas", bytesOf(text), DEFAULT_OPTIONS);
             expect(result.contents).to.eql(expected);
             expect(result.extension).to.equal(undefined);
             expect(result.messages).to.eql(["Tokenized hello.bas."]);
@@ -89,8 +89,8 @@ describe("importHostFile", () => {
         } catch (e) {
             error = e;
         }
-        expect(error).to.be.instanceOf(ToolError);
-        const message = (error as ToolError).message;
+        expect(error).to.be.instanceOf(DiskError);
+        const message = (error as DiskError).message;
         expect(message).to.include("bad.bas");
         expect(message).to.include("line 3");
         expect(message).to.include("--ascii");
@@ -99,7 +99,7 @@ describe("importHostFile", () => {
 
     it("refuses a .bas file that is binary garbage", () => {
         expect(() => importHostFile("bad.bas", Uint8Array.from([0x80, 0x81, 0xC3, 0x28]), DEFAULT_OPTIONS))
-            .to.throw(ToolError, "bad.bas");
+            .to.throw(DiskError, "bad.bas");
     });
 
     it("converts a .3bn system program to a CMD program with the CMD extension", () => {
@@ -131,12 +131,12 @@ describe("importHostFile", () => {
         const both = new Uint8Array(system.length*2);
         both.set(system, 0);
         both.set(system, system.length);
-        expect(() => importHostFile("two.cas", both, DEFAULT_OPTIONS)).to.throw(ToolError, /2 programs.*extract/);
+        expect(() => importHostFile("two.cas", both, DEFAULT_OPTIONS)).to.throw(DiskError, /2 programs.*extract/);
     });
 
     it("refuses a .3bn file that isn't a system program", () => {
         expect(() => importHostFile("bad.3bn", Uint8Array.from([1, 2, 3, 4]), DEFAULT_OPTIONS))
-            .to.throw(ToolError, "bad.3bn");
+            .to.throw(DiskError, "bad.3bn");
     });
 
     it("converts the line endings of text files", () => {
@@ -176,6 +176,6 @@ describe("importHostFile", () => {
     });
 
     it("refuses --ascii together with --binary", () => {
-        expect(() => importHostFile("a.txt", bytesOf("x"), {ascii: true, binary: true, basic: BasicDialect.MODEL_III})).to.throw(ToolError, "not both");
+        expect(() => importHostFile("a.txt", bytesOf("x"), {ascii: true, binary: true, basic: BasicDialect.MODEL_III})).to.throw(DiskError, "not both");
     });
 });

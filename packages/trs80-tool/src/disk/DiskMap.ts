@@ -4,7 +4,7 @@ import {colors, filePalette, type Style} from "../colors.js";
 import {pluralize, pluralizeWithCount, selectByPatterns, systemWildcardHint, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {printLines} from "./DiskList.js";
-import type {DiskSession} from "./DiskSession.js";
+import type {DiskSession} from "trs80-disk";
 
 /**
  * The width to draw for when stdout isn't a terminal.
@@ -761,7 +761,7 @@ export const MAP_COMMAND: DiskCommand = {
     run(session: DiskSession, command) {
         const fileSystem = session.fileSystem;
         if (fileSystem === undefined) {
-            throw new ToolError("Can't find a DOS directory on \"" + session.pathname + "\"");
+            throw new ToolError("Can't find a DOS directory on \"" + session.name + "\"");
         }
         if (!(fileSystem instanceof Trsdos)) {
             throw new ToolError("map works on TRSDOS-family disks, not " + fileSystem.nameAndVersion + " disks");

@@ -4,7 +4,7 @@ import path from "path";
 import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {disk} from "./disk.js";
-import {DiskSession} from "./DiskSession.js";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
@@ -66,9 +66,9 @@ describe("disk repair", () => {
             "Saved " + imagePathname + ".",
         ]);
 
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         expect(session.getReadOnlyReason()).to.be.undefined;
-        expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["HELLO.BAS", "WORLD.BAS", "EXTRA.TXT"]);
+        expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["HELLO.BAS", "WORLD.BAS", "EXTRA.TXT"]);
         expect(await runDisk("check")).to.eql(["No problems found.", "Safe to write."]);
     });
 
@@ -141,7 +141,7 @@ describe("disk repair", () => {
             "Freed 2 granules that the GAT marked used and no file claims.",
             "Saved " + imagePathname + ".",
         ]);
-        const granuleMap = DiskSession.open(imagePathname).getGranuleMap();
+        const granuleMap = openDiskSession(imagePathname).getGranuleMap();
         if (granuleMap === undefined || typeof granuleMap === "string") {
             throw new Error("No granule map");
         }

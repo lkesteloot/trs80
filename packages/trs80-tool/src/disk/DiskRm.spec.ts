@@ -5,7 +5,8 @@ import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile, type TrsdosWr
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
-import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
+import {DiskWritePurpose} from "trs80-disk";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
@@ -65,14 +66,14 @@ describe("disk kill", () => {
      * The names of the files on a disk, with system files if asked, in directory order.
      */
     function fileNames(pathname: string, includeSystemFiles = false): string[] {
-        return DiskSession.open(pathname).getInputFiles(includeSystemFiles).map(f => f.filename);
+        return sessionInputFiles(openDiskSession(pathname), includeSystemFiles).map(f => f.filename);
     }
 
     /**
      * The contents of the named file on a disk.
      */
     function fileBytes(pathname: string, name: string): Uint8Array {
-        const inFile = DiskSession.open(pathname).getInputFiles(true).find(f => f.filename === name);
+        const inFile = sessionInputFiles(openDiskSession(pathname), true).find(f => f.filename === name);
         if (inFile === undefined) {
             throw new Error("No file " + name);
         }
@@ -83,7 +84,7 @@ describe("disk kill", () => {
      * The free granules of a disk.
      */
     function freeGranules(pathname: string): number {
-        const granuleMap = DiskSession.open(pathname).getGranuleMap();
+        const granuleMap = openDiskSession(pathname).getGranuleMap();
         if (granuleMap === undefined || typeof granuleMap === "string") {
             throw new Error("No granule map");
         }
@@ -141,13 +142,13 @@ describe("disk kill", () => {
 
     it("leaves the session unchanged when the change fails partway", () => {
         makeImage([HELLO, WORLD]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         expect(() => session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
             removeHello(writer);
             throw new ToolError("Something else went wrong");
         })).to.throw(ToolError, "Something else went wrong");
         expect(session.hasChanges()).to.equal(false);
-        expect(session.getInputFiles(false).length).to.equal(2);
+        expect(sessionInputFiles(session, false).length).to.equal(2);
     });
 
     it("removes a system file by name, but no wildcard reaches it", async () => {
@@ -235,13 +236,13 @@ describe("disk kill", () => {
     it("refuses a write-protected image, and --force writes it anyway", () => {
         makeImage([HELLO, WORLD]);
 
-        const refused = DiskSession.open(imagePathname);
+        const refused = openDiskSession(imagePathname);
         refused.floppy.setMountedWriteProtected(true);
         expect(() => refused.changeTrsdos(DiskWritePurpose.CHANGE, writer => removeHello(writer)))
             .to.throw(ToolError, /write-protected.*--force/);
         expect(refused.hasChanges()).to.equal(false);
 
-        const forced = DiskSession.open(imagePathname, { force: true });
+        const forced = openDiskSession(imagePathname, { force: true });
         forced.floppy.setMountedWriteProtected(true);
         const spy = vi.spyOn(console, "log").mockImplementation(() => {});
         try {
@@ -250,7 +251,7 @@ describe("disk kill", () => {
             spy.mockRestore();
         }
         expect(forced.hasChanges()).to.equal(true);
-        expect(forced.getInputFiles(false).map(f => f.filename)).to.eql(["WORLD.BAS"]);
+        expect(sessionInputFiles(forced, false).map(f => f.filename)).to.eql(["WORLD.BAS"]);
     });
 
     it("refuses a file system that isn't TRSDOS-family", async () => {

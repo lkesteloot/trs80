@@ -5,7 +5,7 @@ import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile} from "trs80-b
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
-import {DiskSession} from "./DiskSession.js";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
@@ -50,14 +50,14 @@ describe("disk rename", () => {
      * The names of the files on a disk, with system files if asked, in directory order.
      */
     function fileNames(pathname: string, includeSystemFiles = false): string[] {
-        return DiskSession.open(pathname).getInputFiles(includeSystemFiles).map(f => f.filename);
+        return sessionInputFiles(openDiskSession(pathname), includeSystemFiles).map(f => f.filename);
     }
 
     /**
      * The contents of the named file on a disk.
      */
     function fileBytes(pathname: string, name: string): Uint8Array {
-        const inFile = DiskSession.open(pathname).getInputFiles(true).find(f => f.filename === name);
+        const inFile = sessionInputFiles(openDiskSession(pathname), true).find(f => f.filename === name);
         if (inFile === undefined) {
             throw new Error("No file " + name);
         }

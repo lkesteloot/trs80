@@ -20,13 +20,13 @@ import {BOOT_COMMAND} from "./DiskBoot.js";
 import {TRIM_COMMAND} from "./DiskTrim.js";
 import {REPAIR_COMMAND} from "./DiskRepair.js";
 import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
-import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
-import {importHostFile} from "./DiskImport.js";
+import {DiskSession, DiskWritePurpose, importHostFile} from "trs80-disk";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
 import {parseBasicName, printDiskHelp} from "./DiskHelp.js";
 import {PARTITION_COMMAND} from "./DiskPartition.js";
 import {PROTECT_COMMAND} from "./DiskProtect.js";
+import {saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 
 /**
  * One command of the "disk" command: its syntax (for the parser and for help) and what it does.
@@ -128,7 +128,7 @@ const DIR_COMMAND: DiskCommand = {
      * with --system, or when a pattern names one without wildcards.
      */
     run(session, command) {
-        const allFiles = session.getInputFiles(true);
+        const allFiles = sessionInputFiles(session, true);
         const { selected, unmatchedPattern, unmatchedOnlySystem } =
             selectInputFiles(allFiles, command.args, command.options.has("--system"));
         if (unmatchedPattern !== undefined) {
@@ -187,11 +187,11 @@ const EXTRACT_COMMAND: DiskCommand = {
             throw new ToolError("Use either --as or --out-dir, not both");
         }
 
-        const allFiles = session.getInputFiles(true);
+        const allFiles = sessionInputFiles(session, true);
         if (asPathname !== undefined) {
-            extractOneInputFile(allFiles, session.pathname, asPathname, command.args, false, false);
+            extractOneInputFile(allFiles, session.name, asPathname, command.args, false, false);
         } else {
-            extractInputFiles(allFiles, session.pathname, outDir ?? ".", command.args, false,
+            extractInputFiles(allFiles, session.name, outDir ?? ".", command.args, false,
                 command.options.has("--mark-damaged"), command.options.has("--lowercase"), false);
         }
     },
@@ -497,7 +497,7 @@ const ATTRIB_COMMAND: DiskCommand = {
             const trsdos = session.fileSystem;
             if (!(trsdos instanceof Trsdos)) {
                 throw new ToolError("Can't show attributes: " + (trsdos === undefined ?
-                    "can't find a DOS directory on \"" + session.pathname + "\"" :
+                    "can't find a DOS directory on \"" + session.name + "\"" :
                     trsdos.nameAndVersion + " disks aren't TRSDOS-family"));
             }
             const selected = selectDirEntries(trsdos.getDirEntries(true), command.args);
@@ -644,7 +644,7 @@ const ADD_COMMAND: DiskCommand = {
             }
 
             // Convert before choosing the name, since the conversion can change the extension.
-            const imported = importHostFile(pathname, contents, importOptions);
+            const imported = importHostFile(path.basename(pathname), contents, importOptions);
 
             let filename: TrsdosFilename;
             if (asText !== undefined) {
@@ -758,7 +758,7 @@ function readSessionDiskInfo(session: DiskSession): TrsdosDiskInfo {
     const trsdos = session.fileSystem;
     if (!(trsdos instanceof Trsdos)) {
         throw new ToolError("Can't show the disk's information: " + (trsdos === undefined ?
-            "can't find a DOS directory on \"" + session.pathname + "\"" :
+            "can't find a DOS directory on \"" + session.name + "\"" :
             trsdos.nameAndVersion + " disks aren't TRSDOS-family"));
     }
     const info = readTrsdosDiskInfo(trsdos, session.getWriteGate()?.ruleSet);
@@ -1024,7 +1024,7 @@ const CHECK_COMMAND: DiskCommand = {
         const gate = session.getWriteGate();
         if (gate === undefined) {
             if (session.fileSystem === undefined) {
-                throw new ToolError("Can't find a DOS directory on \"" + session.pathname + "\"");
+                throw new ToolError("Can't find a DOS directory on \"" + session.name + "\"");
             }
             throw new ToolError("Checking " + session.fileSystem.nameAndVersion + " disks isn't supported yet");
         }
@@ -1069,7 +1069,7 @@ const QUIT_COMMAND: DiskCommand = {
      * reported as usual and the session doesn't end, so the shell is still there to try again or to abort.
      */
     run(session) {
-        session.saveAndReport(false);
+        saveAndReport(session, false);
     },
 };
 
@@ -1117,7 +1117,7 @@ const SAVE_COMMAND: DiskCommand = {
      * Save the changes, saying so if there weren't any.
      */
     run(session) {
-        session.saveAndReport(true);
+        saveAndReport(session, true);
     },
 };
 

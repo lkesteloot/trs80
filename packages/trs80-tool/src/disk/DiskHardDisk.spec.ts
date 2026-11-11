@@ -9,8 +9,9 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
-import {DiskSession} from "./DiskSession.js";
+import {DiskSession} from "trs80-disk";
 import {makeDiskPrompt, runDiskLine} from "./DiskShell.js";
+import {openDiskSession, saveDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HEADER_SIZE = 256;
 
@@ -91,14 +92,14 @@ describe("disk on hard disk images", () => {
      * The names of the files (without system files) of a partition of the image on the host.
      */
     function fileNames(pathname: string, partition: string): string[] {
-        return DiskSession.open(pathname, {partition}).getInputFiles(false).map(f => f.filename);
+        return sessionInputFiles(openDiskSession(pathname, {partition}), false).map(f => f.filename);
     }
 
     /**
      * The contents of the named file of a partition of the image on the host.
      */
     function fileBytes(pathname: string, partition: string, name: string): Uint8Array {
-        const inFile = DiskSession.open(pathname, {partition}).getInputFiles(true).find(f => f.filename === name);
+        const inFile = sessionInputFiles(openDiskSession(pathname, {partition}), true).find(f => f.filename === name);
         if (inFile === undefined) {
             throw new Error("No file " + name);
         }
@@ -209,20 +210,20 @@ describe("disk on hard disk images", () => {
 
     it("saves and reopens, and a second session sees the same files", async () => {
         makeImage([{}]);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         await runLine(session, "add " + JSON.stringify(makeHostFile("X.DAT", 700)) + " --binary");
         expect(session.hasChanges()).to.equal(true);
-        expect(session.save()).to.equal(imagePathname);
+        expect(saveDiskSession(session)).to.equal(imagePathname);
         expect(session.hasChanges()).to.equal(false);
 
-        const reopened = DiskSession.open(imagePathname);
-        expect(reopened.getInputFiles(false).map(f => f.filename)).to.eql(["HELLO.TXT", "X.DAT"]);
+        const reopened = openDiskSession(imagePathname);
+        expect(sessionInputFiles(reopened, false).map(f => f.filename)).to.eql(["HELLO.TXT", "X.DAT"]);
     });
 
     it("undoes and redoes a change, and reverts, without losing the chosen partition", async () => {
         makeImage(TWO_PARTITIONS);
         const original = new Uint8Array(fs.readFileSync(imagePathname));
-        const session = DiskSession.open(imagePathname, {partition: "2"});
+        const session = openDiskSession(imagePathname, {partition: "2"});
 
         await runLine(session, "add " + JSON.stringify(makeHostFile("X.DAT", 700)) + " --binary");
         const changed = new Uint8Array(session.image.binary);
@@ -232,11 +233,11 @@ describe("disk on hard disk images", () => {
         expect(new Uint8Array(session.image.binary)).to.eql(original);
         expect(session.hasChanges()).to.equal(false);
         expect(session.selectedPartitionNumber).to.equal(2);
-        expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["TWO.TXT"]);
+        expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["TWO.TXT"]);
 
         await runLine(session, "redo");
         expect(new Uint8Array(session.image.binary)).to.eql(changed);
-        expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["TWO.TXT", "X.DAT"]);
+        expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["TWO.TXT", "X.DAT"]);
 
         await runLine(session, "revert");
         expect(new Uint8Array(session.image.binary)).to.eql(original);
@@ -246,18 +247,18 @@ describe("disk on hard disk images", () => {
     it("undo across a switch of partition restores the right bytes", async () => {
         makeImage(TWO_PARTITIONS);
         const original = new Uint8Array(fs.readFileSync(imagePathname));
-        const session = DiskSession.open(imagePathname, {partition: "1"});
+        const session = openDiskSession(imagePathname, {partition: "1"});
         await runLine(session, "add " + JSON.stringify(makeHostFile("A.DAT", 700)) + " --binary");
         await runLine(session, "partition 2");
         await runLine(session, "add " + JSON.stringify(makeHostFile("B.DAT", 700)) + " --binary");
-        expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["TWO.TXT", "B.DAT"]);
+        expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["TWO.TXT", "B.DAT"]);
 
         // The undo takes back the second partition's file, and the selection stays on partition 2.
         await runLine(session, "undo");
         expect(session.selectedPartitionNumber).to.equal(2);
-        expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["TWO.TXT"]);
+        expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["TWO.TXT"]);
         await runLine(session, "partition 1");
-        expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["ONE.TXT", "A.DAT"]);
+        expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["ONE.TXT", "A.DAT"]);
         await runLine(session, "undo");
         expect(new Uint8Array(session.image.binary)).to.eql(original);
     });
@@ -286,7 +287,7 @@ describe("disk on hard disk images", () => {
         for (const command of ["map", "trim", "boot"]) {
             await expect(runDisk(command), command).rejects.toThrow(command + " works on floppy images, not hard disks");
         }
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         expect(() => session.floppy).toThrow("works on floppy images, not hard disks");
     });
 
@@ -345,7 +346,7 @@ describe("disk on hard disk images", () => {
         expect(makeDiskPrompt("HARDA")).to.equal("HARDA>");
 
         makeImage(TWO_PARTITIONS);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
         expect(session.selectedPartitionName).to.equal(undefined);
         await runLine(session, "partition 2");
         expect(makeDiskPrompt(session.selectedPartitionName)).to.equal("Beta>");

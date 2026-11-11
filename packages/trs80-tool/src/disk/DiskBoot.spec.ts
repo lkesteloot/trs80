@@ -13,8 +13,9 @@ import {ToolError} from "../utils.js";
 import {BOOT_COMMAND, type BootEnvironment, bootEnvironment, chooseBootModel} from "./DiskBoot.js";
 import {disk} from "./disk.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
-import {DiskSession, type DiskShellTerminal} from "./DiskSession.js";
+import {DiskSession, type DiskShellTerminal} from "trs80-disk";
 import {runDiskLine} from "./DiskShell.js";
+import {openDiskSession, saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 
 /** The width and height of the TRS-80 screen in characters. */
 const SCREEN_WIDTH = 64;
@@ -260,14 +261,14 @@ describe("boot", () => {
      */
     async function makeSession(...createWords: string[]): Promise<DiskSession> {
         await runDisk("create", ...createWords);
-        return DiskSession.open(imagePathname);
+        return openDiskSession(imagePathname);
     }
 
     /**
      * The names of the files on the session's disk, without system files, in directory order.
      */
     function fileNames(session: DiskSession): string[] {
-        return session.getInputFiles(false).map(f => f.filename);
+        return sessionInputFiles(session, false).map(f => f.filename);
     }
 
     /**
@@ -334,7 +335,7 @@ describe("boot", () => {
 
     it("mounts the session's disk, not the file, and a change to it isn't in the file", async () => {
         const session = await makeSession("trsdos-2.3");
-        session.saveAndReport(false);
+        saveAndReport(session, false);
         const fileBefore = fs.readFileSync(imagePathname);
         let mounted: FloppyDisk | undefined = undefined;
         fakeTerminal(async (_config, floppy) => {
@@ -349,7 +350,7 @@ describe("boot", () => {
 
     it("marks the session changed when the DOS writes, and undo takes the whole session back", async () => {
         const session = await makeSession("trsdos-2.3", "--system");
-        session.saveAndReport(false);
+        saveAndReport(session, false);
         expect(session.hasChanges()).to.equal(false);
         const before = new Uint8Array(session.floppy.binary);
 
@@ -390,7 +391,7 @@ describe("boot", () => {
 
     it("leaves the session unchanged when the DOS doesn't write", async () => {
         const session = await makeSession("trsdos-2.3", "--system");
-        session.saveAndReport(false);
+        saveAndReport(session, false);
         fakeTerminal(async () => {});
         const lines = await run(session, "boot");
         expect(lines.join("\n")).to.not.contain("was changed");
@@ -401,7 +402,7 @@ describe("boot", () => {
 
     it("mounts write-protected with --write-protected, so that the DOS can't write", async () => {
         const session = await makeSession("trsdos-2.3", "--system");
-        session.saveAndReport(false);
+        saveAndReport(session, false);
         let protectedWhenRun: boolean | undefined = undefined;
         fakeTerminal(async (_config, floppy) => {
             protectedWhenRun = floppy.isWriteProtected();
@@ -426,7 +427,7 @@ describe("boot", () => {
         const binary = fs.readFileSync(imagePathname);
         binary[0] = 0xFF;
         fs.writeFileSync(imagePathname, binary);
-        const session = DiskSession.open(imagePathname);
+        const session = openDiskSession(imagePathname);
 
         let protectedWhenRun: boolean | undefined = undefined;
         fakeTerminal(async (_config, floppy) => {
@@ -499,7 +500,7 @@ describe("boot", () => {
         expect(lines.join("\n")).to.not.match(/TEST1/);
         expect(lines.join("\n")).to.match(/TEST2/);
         // The chain saved the change.
-        expect(DiskSession.open(imagePathname).getInputFiles(false).map(f => f.filename)).to.not.contain("TEST1.CMD");
+        expect(sessionInputFiles(openDiskSession(imagePathname), false).map(f => f.filename)).to.not.contain("TEST1.CMD");
     }, 60_000);
 
     it("doesn't drop doubled letters typed at the terminal on a Model I", async () => {

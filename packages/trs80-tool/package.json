@@ -28,6 +28,7 @@
         "trs80-base": "*",
         "trs80-cassette": "*",
         "trs80-cassette-player": "*",
+        "trs80-disk": "*",
         "trs80-emulator": "*",
         "z80-logger": "*",
         "ws": "^8.2.3",

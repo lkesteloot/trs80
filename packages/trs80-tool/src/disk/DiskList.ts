@@ -9,7 +9,8 @@ import {pageTextSync} from "../pager.js";
 import {systemWildcardHint, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {parseBasicName} from "./DiskHelp.js";
-import type {DiskSession} from "./DiskSession.js";
+import type {DiskSession} from "trs80-disk";
+import {sessionInputFiles} from "./DiskFiles.js";
 
 /**
  * The first byte of a tokenized Basic program saved to a disk. (The cassette header, 0xD3, is also accepted.)
@@ -233,7 +234,7 @@ export function printLines(lines: string[]): void {
  */
 function selectListFiles(session: DiskSession, pattern: string, basic: BasicDialect | undefined): InputFile[] {
     const { selected, unmatchedPattern, unmatchedOnlySystem } =
-        selectInputFiles(session.getInputFiles(true, basic), [pattern], false);
+        selectInputFiles(sessionInputFiles(session, true, basic), [pattern], false);
     if (unmatchedPattern === undefined) {
         return selected;
     }

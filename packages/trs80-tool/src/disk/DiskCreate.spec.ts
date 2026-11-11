@@ -9,11 +9,11 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
 import {parseFormatDosName} from "./DiskHelp.js";
-import {DiskSession} from "./DiskSession.js";
 import {
     describeSystemDiskTemplate, getDataDiskBootSectors, loadSystemDiskTemplate, SYSTEM_DISK_TEMPLATES,
     type SystemDiskTemplate,
 } from "./DiskTemplates.js";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 
@@ -144,9 +144,9 @@ describe("disk create and format", () => {
             expect(lines[lines.length - 1]).to.eql("Saved " + imagePathname + ".");
 
             // Reopen it with no help from the global --dos.
-            const session = DiskSession.open(imagePathname);
+            const session = openDiskSession(imagePathname);
             expect(session.fileSystem?.nameAndVersion).to.eql(dosCase.nameAndVersion);
-            expect(session.getInputFiles(false)).to.eql([]);
+            expect(sessionInputFiles(session, false)).to.eql([]);
             expect(session.getReadOnlyReason()).to.eql(undefined);
         });
 
@@ -161,9 +161,9 @@ describe("disk create and format", () => {
             expect(lines.some(line => line.startsWith("Saved "))).to.eql(true);
 
             expect(lines).to.include("Added DATA/BIN (3,000 bytes).");
-            const session = DiskSession.open(imagePathname);
-            expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
-            const inputFile = session.getInputFiles(false)[0];
+            const session = openDiskSession(imagePathname);
+            expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["DATA.BIN"]);
+            const inputFile = sessionInputFiles(session, false)[0];
             expect(Array.from(inputFile.binary)).to.eql(Array.from(fs.readFileSync(hostPathname)));
         });
     }
@@ -172,24 +172,24 @@ describe("disk create and format", () => {
         await runDisk("create", "ldos-5.3", "--date", "1983-05-09", "--name", "games");
         const lines = await runDisk("label");
         expect(lines.slice(0, 2)).to.eql(["Name: GAMES", "Date: 05/09/83"]);
-        const floppy = DiskSession.open(imagePathname).floppy;
+        const floppy = openDiskSession(imagePathname).floppy;
         const geometry = floppy.getGeometry();
         expect([geometry.cylinderCount, geometry.sideCount]).to.eql([40, 1]);
         expect(geometry.modalDataDensity).to.eql(Density.DOUBLE);
 
         const trsdos23Pathname = path.join(dir, "old.dmk");
         await runDiskOn(trsdos23Pathname, "create", "trsdos-2.3");
-        expect(DiskSession.open(trsdos23Pathname).floppy.getGeometry().cylinderCount).to.eql(35);
+        expect(openDiskSession(trsdos23Pathname).floppy.getGeometry().cylinderCount).to.eql(35);
     });
 
     it("takes the cylinders, sides, density and model options", async () => {
         await runDisk("create", "ldos-5.3", "--cylinders", "35", "--density", "single");
-        let geometry = DiskSession.open(imagePathname).floppy.getGeometry();
+        let geometry = openDiskSession(imagePathname).floppy.getGeometry();
         expect([geometry.cylinderCount, geometry.sideCount, geometry.modalDataDensity]).to.eql([35, 1, Density.SINGLE]);
 
         // Model 1 means single density for LDOS.
         await runDisk("create", "ldos-5.3", "--model", "1", "--force");
-        geometry = DiskSession.open(imagePathname).floppy.getGeometry();
+        geometry = openDiskSession(imagePathname).floppy.getGeometry();
         expect(geometry.modalDataDensity).to.eql(Density.SINGLE);
     });
 
@@ -270,7 +270,7 @@ describe("disk create and format", () => {
         const lines = await runDisk("create", "ldos-5.3", "--force");
         expect(lines[0]).to.eql("Replaced the disk in memory; nothing is saved until quit.");
         expect(lines[1]).to.include("LDOS 5.3");
-        expect(DiskSession.open(imagePathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
+        expect(openDiskSession(imagePathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
     });
 
     it("refuses to create twice in one run without --force", async () => {
@@ -300,7 +300,7 @@ describe("disk create and format", () => {
         const outputPathname = path.join(dir, "out.dmk");
         await runDiskOn(inputPathname, "--output", outputPathname, "create", "ldos-5.3");
         expect(fs.existsSync(inputPathname)).to.eql(false);
-        expect(DiskSession.open(outputPathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
+        expect(openDiskSession(outputPathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
     });
 
     it("says that a missing image doesn't exist for every other command", async () => {
@@ -359,17 +359,17 @@ describe("disk create and format", () => {
             const lines = await runDiskOn(pathname, "create", dos, "--sides", "2", "--density", density,
                 "--cylinders", "35", ":", "add", hostPathname);
             expect(lines.some(line => line.includes("Read-only: "))).to.eql(false);
-            const session = DiskSession.open(pathname);
+            const session = openDiskSession(pathname);
             expect(session.floppy.getGeometry().sideCount).to.eql(2);
             expect(session.getReadOnlyReason()).to.eql(undefined);
-            expect(session.getInputFiles(false).map(f => f.filename)).to.eql(["DATA.BIN"]);
+            expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["DATA.BIN"]);
         }
     });
 
     for (const bootCase of BOOT_SECTOR_CASES) {
         it(`gives a ${bootCase.words.join(" ")} disk the DOS's own boot sectors`, async () => {
             await runDisk("create", ...bootCase.words);
-            const floppy = DiskSession.open(imagePathname).floppy;
+            const floppy = openDiskSession(imagePathname).floppy;
 
             const bundled = getDataDiskBootSectors(bootCase.dos, bootCase.density);
             expect(bundled).to.not.eql(undefined);
@@ -395,7 +395,7 @@ describe("disk create and format", () => {
 
     it("still makes a disk where we have no boot sectors of the DOS's own", async () => {
         await runDisk("create", "lsdos-6.3", "--density", "single");
-        expect(DiskSession.open(imagePathname).fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
+        expect(openDiskSession(imagePathname).fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
     });
 
     describe("--system", () => {
@@ -419,7 +419,7 @@ describe("disk create and format", () => {
                 const templateFileSystem = decodeFloppyFileSystem(templateFloppy);
                 expect(templateFileSystem?.nameAndVersion).to.eql(templateNameAndVersion(template));
 
-                const session = DiskSession.open(imagePathname);
+                const session = openDiskSession(imagePathname);
                 expect(session.fileSystem?.nameAndVersion).to.eql(templateNameAndVersion(template));
                 expect(session.getReadOnlyReason()).to.eql(undefined);
                 expect(session.floppy.isWriteProtected()).to.eql(false);
@@ -437,7 +437,7 @@ describe("disk create and format", () => {
                 expect(lines.some(line => line.startsWith("Copied from the " + description))).to.eql(true);
                 expect(lines.some(line => /--minimal/.test(line))).to.eql(true);
 
-                const session = DiskSession.open(imagePathname);
+                const session = openDiskSession(imagePathname);
                 expect(session.fileSystem?.nameAndVersion).to.eql(templateNameAndVersion(template));
                 expect(session.getReadOnlyReason()).to.eql(undefined);
                 const dirEntries = session.fileSystem!.getDirEntries(true)
@@ -461,9 +461,9 @@ describe("disk create and format", () => {
 
         it("chooses LDOS 5.3's Model I disk for --model 1 and the Model III disk otherwise", async () => {
             await runDisk("create", "ldos-5.3", "--model", "1", "--system");
-            expect(DiskSession.open(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.SINGLE);
+            expect(openDiskSession(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.SINGLE);
             await runDisk("create", "ldos-5.3", "--system", "--force");
-            expect(DiskSession.open(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.DOUBLE);
+            expect(openDiskSession(imagePathname).floppy.getGeometry().modalDataDensity).to.eql(Density.DOUBLE);
         });
 
         it("refuses a shape that differs from the system disk's, and makes no file", async () => {
@@ -550,7 +550,7 @@ describe("disk create and format", () => {
             const lines = await runDiskOn(pathname, "format", "--name", "second");
             expect(lines[0]).to.eql("Replaced the disk in memory with a blank TRSDOS 6.2 disk; nothing is saved until quit.");
 
-            const session = DiskSession.open(pathname);
+            const session = openDiskSession(pathname);
             const geometry = session.floppy.getGeometry();
             expect([geometry.cylinderCount, geometry.sideCount, geometry.modalDataDensity]).to.eql([50, 2, Density.SINGLE]);
             expect(session.fileSystem?.nameAndVersion).to.eql("TRSDOS 6.2");
@@ -562,9 +562,9 @@ describe("disk create and format", () => {
             await runDiskOn(pathname, "create", "ldos-5.3", ":", "add", makeHostFile("a.bin", 100));
 
             await runDiskOn(pathname, "format", "lsdos-6.3", "--force", "--cylinders", "80");
-            const session = DiskSession.open(pathname);
+            const session = openDiskSession(pathname);
             expect(session.fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
-            expect(session.getInputFiles(false)).to.eql([]);
+            expect(sessionInputFiles(session, false)).to.eql([]);
             expect(session.floppy.getGeometry().cylinderCount).to.eql(80);
         });
 
@@ -572,7 +572,7 @@ describe("disk create and format", () => {
             const pathname = path.join(dir, "old.dmk");
             await runDiskOn(pathname, "create", "ldos-5.3");
             await runDiskOn(pathname, "format", ":", "add", makeHostFile("a.bin", 100));
-            expect(DiskSession.open(pathname).getInputFiles(false).map(f => f.filename)).to.eql(["A.BIN"]);
+            expect(sessionInputFiles(openDiskSession(pathname), false).map(f => f.filename)).to.eql(["A.BIN"]);
         });
 
         it("refuses to turn a JV1 image into a DMK one in place, and does it with -o", async () => {
@@ -591,7 +591,7 @@ describe("disk create and format", () => {
             const outputPathname = path.join(dir, "formatted.dmk");
             await runDiskOn(pathname, "--output", outputPathname, "format");
             expect(fs.readFileSync(pathname)).to.eql(before);
-            const session = DiskSession.open(outputPathname);
+            const session = openDiskSession(outputPathname);
             expect(session.fileSystem?.nameAndVersion).to.eql("TRSDOS 2.x");
             expect(session.floppy.getGeometry().cylinderCount).to.eql(35);
         });
@@ -608,7 +608,7 @@ describe("disk create and format", () => {
             expect((error as ToolError).message).to.eql("format would erase 1 file from the disk; use --force to go ahead");
 
             await runDiskOn(pathname, "--output", outputPathname, "format", "--force");
-            expect(DiskSession.open(outputPathname).getInputFiles(false)).to.eql([]);
+            expect(sessionInputFiles(openDiskSession(outputPathname), false)).to.eql([]);
         });
 
         it("writes nothing with --dry-run", async () => {
@@ -655,7 +655,7 @@ describe("disk create and format", () => {
             expect((error as ToolError).message).to.match(/no file system that we recognize.*use --force/);
 
             await runDiskOn(pathname, "--output", outputPathname, "format", "trsdos-2.3", "--force");
-            expect(DiskSession.open(outputPathname).fileSystem?.nameAndVersion).to.eql("TRSDOS 2.x");
+            expect(openDiskSession(outputPathname).fileSystem?.nameAndVersion).to.eql("TRSDOS 2.x");
         });
     });
 });

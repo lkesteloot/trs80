@@ -1,0 +1,21 @@
+{
+  "name": "trs80-disk",
+  "description": "The open-disk engine behind trs80-tool's disk command: sessions, undo, and the write rules, for Node and browsers",
+  "exports": "./src/index.ts",
+  "type": "module",
+  "private": true,
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "keywords": [
+    "trs-80"
+  ],
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT",
+  "dependencies": {
+    "teamten-ts-utils": "^1.0.3",
+    "trs80-base": "*",
+    "z80-base": "*"
+  },
+  "devDependencies": {
+    "trs80-cassette": "*"
+  }
+}

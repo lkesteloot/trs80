@@ -5,7 +5,7 @@ import {BasicDialect, decodeBasicProgram, parseBasicText} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
-import {DiskSession} from "./DiskSession.js";
+import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
 
 // What Model III and Model 4 BASIC store for PRINT.
 const MODEL_III_PRINT = 0xB2;
@@ -50,7 +50,7 @@ describe("disk commands and the two BASICs", () => {
      * The bytes of the named file on the test image.
      */
     function fileBytes(name: string): Uint8Array {
-        const inFile = DiskSession.open(imagePathname).getInputFiles(true).find(f => f.filename === name);
+        const inFile = sessionInputFiles(openDiskSession(imagePathname), true).find(f => f.filename === name);
         if (inFile === undefined) {
             throw new Error("No file " + name);
         }
@@ -76,7 +76,7 @@ describe("disk commands and the two BASICs", () => {
         for (const [dos, dialect] of expected) {
             fs.rmSync(imagePathname, {force: true});
             await runDisk("create", dos);
-            expect(DiskSession.open(imagePathname).getBasicDialect(), dos).to.equal(dialect);
+            expect(openDiskSession(imagePathname).getBasicDialect(), dos).to.equal(dialect);
         }
     });
 
