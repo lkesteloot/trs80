@@ -1,11 +1,7 @@
 import fs from "fs";
 import path from "path";
 import {
-    parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo, TRSDOS_BLANK_PASSWORD_HASH,
-    TRSDOS_DEFAULT_PASSWORD_HASH, Trsdos, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
-    type TrsdosAddResult, type TrsdosDiskInfoChanges, type TrsdosFilename, TrsdosFindingSeverity, trsdosFilenameFromHost, trsdosFilenameToString,
-    trsdosFindingKindSeverity, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString, type TrsdosProtectionNames,
-    trsdosRuleSetToString,
+    type TrsdosDiskInfoChanges, TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
@@ -13,14 +9,18 @@ import {printDirListing} from "../dir.js";
 import {extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
-import {expandInputPatterns, pluralizeWithCount, selectByPatterns, systemWildcardHint, ToolError} from "../utils.js";
+import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {BOOT_COMMAND} from "./DiskBoot.js";
 import {TRIM_COMMAND} from "./DiskTrim.js";
 import {REPAIR_COMMAND} from "./DiskRepair.js";
 import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
-import {DiskSession, DiskWritePurpose, importHostFile} from "trs80-disk";
+import {
+    type AddFileSource, type AddOptions, addFiles, type AttributeRequest, changeAttributes, changeDiskInfo,
+    checkAddAsCount, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
+    killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
+} from "trs80-disk";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
 import {parseBasicName, printDiskHelp} from "./DiskHelp.js";
@@ -198,30 +198,6 @@ const EXTRACT_COMMAND: DiskCommand = {
 };
 
 /**
- * Choose the files that the patterns select, for the commands that take TRS-80 name patterns. A name
- * without wildcards selects the file of that name even if it's a system file, but a wildcard never
- * selects a system file (see selectByPatterns()).
- *
- * @param allEntries the primary entries of the files on the disk, in directory order, including system files.
- * @param patterns the name patterns the user gave. Each must match a file.
- * @return the files that any pattern matches, once each, in directory order.
- * @throws ToolError if a pattern matches no file.
- */
-function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[]): TrsdosDirEntry[] {
-    const { selected, unmatchedPattern, unmatchedOnlySystem } = selectByPatterns(allEntries, patterns, {
-        name: dirEntry => dirEntry.getFilename("."),
-        hasDirectories: () => false,
-        isSystem: dirEntry => dirEntry.isSystemFile(),
-    }, false);
-    if (unmatchedPattern !== undefined) {
-        throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"" +
-            systemWildcardHint(unmatchedOnlySystem));
-    }
-
-    return selected;
-}
-
-/**
  * The "kill" command (as TRSDOS calls it): remove files from the disk.
  */
 const KILL_COMMAND: DiskCommand = {
@@ -244,17 +220,7 @@ const KILL_COMMAND: DiskCommand = {
      * Then say which files were removed.
      */
     run(session, command) {
-        const removedNames: string[] = [];
-
-        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
-            // Check every pattern before removing anything. The files come in directory order, so the
-            // report is stable.
-            const toRemove = selectDirEntries(writer.getFiles(), command.args);
-            for (const dirEntry of toRemove) {
-                writer.deleteFile(dirEntry);
-                removedNames.push(dirEntry.getFilename("/"));
-            }
-        });
+        const removedNames = killFiles(session, command.args);
 
         for (const name of removedNames) {
             console.log("Removed " + name + ".");
@@ -283,39 +249,11 @@ const RENAME_COMMAND: DiskCommand = {
      */
     run(session, command) {
         const [oldText, newText] = command.args;
-        const oldFilename = parseTrsdosFilename(oldText);
-        if (typeof oldFilename === "string") {
-            throw new ToolError(oldFilename);
-        }
-        const newFilename = parseTrsdosFilename(newText);
-        if (typeof newFilename === "string") {
-            throw new ToolError(newFilename);
-        }
-        const oldName = trsdosFilenameToString(oldFilename);
-        const newName = trsdosFilenameToString(newFilename);
+        const { oldName, newName } = renameFile(session, oldText, newText);
 
-        let shownOldName = oldName;
-        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
-            const dirEntry = writer.findFile(oldName);
-            if (dirEntry === undefined) {
-                throw new ToolError("No file on the disk is called " + oldName);
-            }
-            // The name as it is on the disk.
-            shownOldName = dirEntry.getFilename("/");
-            writer.renameFile(dirEntry, newFilename);
-        });
-
-        console.log("Renamed " + shownOldName + " to " + newName + ".");
+        console.log("Renamed " + oldName + " to " + newName + ".");
     },
 };
-
-/**
- * Format a date as YYYY-MM-DD, which is how the user gives one.
- */
-function formatYmd(date: Date): string {
-    return date.getFullYear().toString().padStart(4, "0") + "-" +
-        (date.getMonth() + 1).toString().padStart(2, "0") + "-" + date.getDate().toString().padStart(2, "0");
-}
 
 /**
  * Check that at most one of two mutually exclusive options was given.
@@ -329,75 +267,6 @@ function requireNotBoth(options: DiskOptionValues, first: string, second: string
     if (options.has(first) && options.has(second)) {
         throw new ToolError("Use either " + first + " or " + second + ", not both");
     }
-}
-
-/**
- * Find the protection level that the user named for a disk, by the names its DOS uses.
- *
- * @param text the value of --protect.
- * @param names which DOS's names the disk uses.
- * @throws ToolError if the text isn't a level, listing the ones that are.
- */
-function parseProtectLevel(text: string, names: TrsdosProtectionNames): TrsdosProtectionLevel {
-    const level = parseTrsdosProtectionLevel(text, names);
-    if (level === undefined) {
-        const valid = trsdosProtectionLevels(names).map(l => trsdosProtectionLevelToString(l, names) + " (" + l + ")");
-        throw new ToolError("Invalid --protect \"" + text + "\": use one of " + valid.join(", ") + " (or a number 0 to 7)");
-    }
-    return level;
-}
-
-/**
- * Describe what an "attrib" command asked for, such as "invisible, protection READ, update password set".
- */
-function describeChanges(changes: TrsdosAttributeChanges, names: TrsdosProtectionNames): string {
-    const parts: string[] = [];
-    if (changes.invisible !== undefined) {
-        parts.push(changes.invisible ? "invisible" : "visible");
-    }
-    if (changes.system !== undefined) {
-        parts.push(changes.system ? "system" : "user file");
-    }
-    if (changes.protectionLevel !== undefined) {
-        parts.push("protection " + trsdosProtectionLevelToString(changes.protectionLevel, names));
-    }
-    if (changes.updatePassword !== undefined) {
-        parts.push(changes.updatePassword === "" ? "update password removed" : "update password set");
-    }
-    if (changes.accessPassword !== undefined) {
-        parts.push(changes.accessPassword === "" ? "access password removed" : "access password set");
-    }
-    if (changes.date === null) {
-        parts.push("no date");
-    } else if (changes.date !== undefined) {
-        parts.push("date " + formatYmd(changes.date));
-    }
-    return parts.join(", ");
-}
-
-/**
- * Describe a file's attributes for "attrib" without changing anything, such as
- * "HELLO/BAS: protection READ, invisible, update password, date 01/05/1983".
- */
-function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtectionNames): string {
-    const parts = ["protection " + trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), names)];
-    if (dirEntry.isHidden()) {
-        parts.push("invisible");
-    }
-    if (dirEntry.isSystemFile()) {
-        parts.push("system");
-    }
-    if (dirEntry.updatePassword !== undefined && dirEntry.updatePassword !== TRSDOS_BLANK_PASSWORD_HASH) {
-        parts.push("update password");
-    }
-    if (dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH) {
-        parts.push("access password");
-    }
-    // A month of zero means the date was never set (or the DOS has no dates), whatever the year bits say.
-    if (dirEntry.month !== 0) {
-        parts.push("date " + dirEntry.getFullDateString().trim());
-    }
-    return dirEntry.getFilename("/") + ": " + parts.join(", ");
 }
 
 /**
@@ -474,74 +343,40 @@ const ATTRIB_COMMAND: DiskCommand = {
         requireNotBoth(options, "--system", "--no-system");
         requireNotBoth(options, "--date", "--no-date");
 
-        const changes: TrsdosAttributeChanges = {};
+        const request: AttributeRequest = {};
         if (options.has("--invisible") || options.has("--visible")) {
-            changes.invisible = options.has("--invisible");
+            request.invisible = options.has("--invisible");
         }
         if (options.has("--system") || options.has("--no-system")) {
-            changes.system = options.has("--system");
+            request.system = options.has("--system");
         }
-        const protectText = options.getString("--protect");
-        changes.updatePassword = options.getString("--password");
-        changes.accessPassword = options.getString("--access-password");
+        request.protect = options.getString("--protect");
+        request.updatePassword = options.getString("--password");
+        request.accessPassword = options.getString("--access-password");
         const dateText = options.getString("--date");
         if (dateText !== undefined) {
-            changes.date = parseAddDate(dateText);
+            request.date = parseAddDate(dateText);
         } else if (options.has("--no-date")) {
-            changes.date = null;
+            request.date = null;
         }
 
-        const changing = protectText !== undefined || Object.values(changes).some(value => value !== undefined);
+        const changing = Object.values(request).some(value => value !== undefined);
         if (!changing) {
             // Just show the attributes.
-            const trsdos = session.fileSystem;
-            if (!(trsdos instanceof Trsdos)) {
-                throw new ToolError("Can't show attributes: " + (trsdos === undefined ?
-                    "can't find a DOS directory on \"" + session.name + "\"" :
-                    trsdos.nameAndVersion + " disks aren't TRSDOS-family"));
-            }
-            const selected = selectDirEntries(trsdos.getDirEntries(true), command.args);
-            for (const dirEntry of selected) {
-                console.log(describeAttributes(dirEntry, trsdos.protectionNames));
+            const { dirEntries, protectionNames } = listAttributes(session, command.args);
+            for (const dirEntry of dirEntries) {
+                console.log(describeAttributes(dirEntry, protectionNames));
             }
             return;
         }
 
-        const changedLines: string[] = [];
-        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
-            // The level's name depends on the disk, so it's parsed here. Everything is checked before
-            // the first file changes.
-            const names = writer.trsdos.protectionNames;
-            if (protectText !== undefined) {
-                changes.protectionLevel = parseProtectLevel(protectText, names);
-            }
-            const changeText = describeChanges(changes, names);
-            const selected = selectDirEntries(writer.getFiles(), command.args);
-            for (const dirEntry of selected) {
-                writer.setAttributes(dirEntry, changes);
-                changedLines.push("Changed " + dirEntry.getFilename("/") + ": " + changeText + ".");
-            }
-        });
-
-        for (const line of changedLines) {
-            console.log(line);
+        const { files, changes, protectionNames } = changeAttributes(session, command.args, request);
+        const changeText = describeChanges(changes, protectionNames);
+        for (const file of files) {
+            console.log("Changed " + file + ": " + changeText + ".");
         }
     },
 };
-
-/**
- * A host file that the "add" command will put on the disk.
- */
-interface AddSource {
-    /** The host pathname, as the user gave it (after wildcards). */
-    pathname: string;
-    /** The TRSDOS name it will have. */
-    filename: TrsdosFilename;
-    /** The bytes to store, after conversion. */
-    contents: Uint8Array;
-    /** What the conversion did, to report if the file is added. */
-    messages: string[];
-}
 
 /**
  * The "add" command: copy files from the host onto the disk.
@@ -614,159 +449,75 @@ const ADD_COMMAND: DiskCommand = {
         const date = dateText === undefined ? undefined : parseAddDate(dateText);
 
         const basicText = command.options.getString("--basic");
-        const importOptions = {
+        const addOptions: AddOptions = {
+            as: asText,
             ascii: command.options.has("--ascii"),
             binary: command.options.has("--binary"),
             basic: basicText === undefined ? session.getBasicDialect() : parseBasicName(basicText),
+            system: command.options.has("--system"),
+            invisible: command.options.has("--invisible"),
+            overwrite: command.options.has("--overwrite"),
+            date,
         };
 
         const hostPathnames = expandInputPatterns(command.args);
-        if (asText !== undefined && hostPathnames.length !== 1) {
-            throw new ToolError("--as names one file, but " + pluralizeWithCount(hostPathnames.length, "host file") +
-                " " + (hostPathnames.length === 1 ? "was" : "were") + " given");
-        }
+        checkAddAsCount(asText, hostPathnames.length);
 
-        // Read everything and choose the names before changing anything.
-        const sources: AddSource[] = [];
+        // Read the files before changing anything. A file that can't be read doesn't stop the ones before
+        // it from being planned, so that their messages come first.
+        const sources: AddFileSource[] = [];
+        let readError: ToolError | undefined;
         for (const pathname of hostPathnames) {
             const stat = fs.statSync(pathname, {throwIfNoEntry: false});
             if (stat === undefined) {
-                throw new ToolError("Can't read \"" + pathname + "\": no such file");
+                readError = new ToolError("Can't read \"" + pathname + "\": no such file");
+                break;
             }
             if (!stat.isFile()) {
-                throw new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
+                readError = new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
+                break;
             }
-            let contents: Uint8Array;
+            let bytes: Uint8Array;
             try {
-                contents = fs.readFileSync(pathname);
+                bytes = fs.readFileSync(pathname);
             } catch (e: any) {
-                throw new ToolError("Can't read \"" + pathname + "\": " + e.message);
+                readError = new ToolError("Can't read \"" + pathname + "\": " + e.message);
+                break;
             }
-
-            // Convert before choosing the name, since the conversion can change the extension.
-            const imported = importHostFile(path.basename(pathname), contents, importOptions);
-
-            let filename: TrsdosFilename;
-            if (asText !== undefined) {
-                const parsed = parseTrsdosFilename(asText);
-                if (typeof parsed === "string") {
-                    throw new ToolError(parsed);
-                }
-                filename = parsed;
-            } else {
-                const hostName = path.basename(pathname);
-                const nameToConvert = imported.extension === undefined ? hostName :
-                    path.parse(hostName).name + "." + imported.extension;
-                const converted = trsdosFilenameFromHost(nameToConvert);
-                if (typeof converted === "string") {
-                    throw new ToolError(converted);
-                }
-                filename = converted.filename;
-                if (converted.changed) {
-                    console.log(hostName + " will be " + trsdosFilenameToString(filename) + ".");
-                }
-            }
-
-            const duplicate = sources.find(source =>
-                trsdosFilenameToString(source.filename) === trsdosFilenameToString(filename));
-            if (duplicate !== undefined) {
-                throw new ToolError("\"" + duplicate.pathname + "\" and \"" + pathname + "\" would both be " +
-                    trsdosFilenameToString(filename) + " on the disk");
-            }
-            sources.push({pathname, filename, contents: imported.contents, messages: imported.messages});
+            sources.push({label: pathname, name: path.basename(pathname), bytes});
+        }
+        if (sources.length === 0 && readError !== undefined) {
+            throw readError;
         }
 
-        const warnings = new Set<string>();
-        const addedLines: string[] = [];
-        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
-            for (const source of sources) {
-                addedLines.push(...source.messages);
-                const existing = writer.findFile(trsdosFilenameToString(source.filename));
-                let result: TrsdosAddResult;
-                let verb: string;
-                if (existing === undefined) {
-                    result = writer.addFile(source.filename, source.contents, {
-                        system: command.options.has("--system"),
-                        invisible: command.options.has("--invisible"),
-                        date,
-                    });
-                    verb = "Added";
-                } else {
-                    // The name as it is on the disk.
-                    const existingName = existing.getFilename("/");
-                    if (!command.options.has("--overwrite")) {
-                        throw new ToolError(existingName + " is already on the disk (use --overwrite to replace it)");
-                    }
-                    // Only the flags that were given change; the new copy keeps the rest of the old file's.
-                    result = writer.replaceFile(existing, source.contents, {
-                        system: command.options.has("--system") ? true : undefined,
-                        invisible: command.options.has("--invisible") ? true : undefined,
-                        date,
-                    });
-                    verb = "Replaced";
-                }
-                addedLines.push(verb + " " + result.name + " (" + pluralizeWithCount(result.size, "byte") + ").");
-                if (result.warning !== undefined) {
-                    warnings.add(result.warning);
-                }
+        // Convert and choose the names before changing anything. A file's own problem stops the command
+        // after the earlier files' renames have been announced.
+        const plan = planAdd(session, sources, addOptions);
+        for (const item of plan) {
+            if (item.nameChanged) {
+                console.log(item.source.name + " will be " + item.name + ".");
             }
-        });
-
-        for (const line of addedLines) {
-            console.log(line);
+            if (item.problem !== undefined) {
+                throw new ToolError(item.problem);
+            }
         }
-        for (const warning of warnings) {
+        if (readError !== undefined) {
+            throw readError;
+        }
+
+        const result = addFiles(session, plan, addOptions);
+        for (const file of result.files) {
+            for (const message of file.conversionMessages) {
+                console.log(message);
+            }
+            console.log((file.replaced ? "Replaced " : "Added ") + file.name + " (" +
+                pluralizeWithCount(file.size, "byte") + ").");
+        }
+        for (const warning of result.warnings) {
             console.log(colors.warning(warning + "."));
         }
     },
 };
-
-/**
- * Describe a disk's master password for the user, without revealing more than the hash tells us: the
- * password is only known if it's one of the two common ones.
- */
-function describeMasterPassword(passwordHash: number): string {
-    if (passwordHash === TRSDOS_DEFAULT_PASSWORD_HASH) {
-        return "PASSWORD";
-    } else if (passwordHash === TRSDOS_BLANK_PASSWORD_HASH) {
-        return "blank";
-    } else {
-        return "set (hash 0x" + passwordHash.toString(16).toUpperCase().padStart(4, "0") + ")";
-    }
-}
-
-/**
- * Describe a disk's AUTO command for the user.
- *
- * @param autoCommand the command, empty for none, or undefined if the disk has no place to keep it.
- */
-function describeAutoCommand(autoCommand: string | undefined): string {
-    if (autoCommand === undefined) {
-        return "unknown (the disk has no system information sector)";
-    }
-    return autoCommand === "" ? "none" : autoCommand;
-}
-
-/**
- * Read the name, date, master password and AUTO command of the session's disk.
- *
- * @param session the open disk.
- * @return the information. The disk's DOS decides where the AUTO command is read from.
- * @throws ToolError if the disk isn't TRSDOS-family or its information can't be read.
- */
-function readSessionDiskInfo(session: DiskSession): TrsdosDiskInfo {
-    const trsdos = session.fileSystem;
-    if (!(trsdos instanceof Trsdos)) {
-        throw new ToolError("Can't show the disk's information: " + (trsdos === undefined ?
-            "can't find a DOS directory on \"" + session.name + "\"" :
-            trsdos.nameAndVersion + " disks aren't TRSDOS-family"));
-    }
-    const info = readTrsdosDiskInfo(trsdos, session.getWriteGate()?.ruleSet);
-    if (typeof info === "string") {
-        throw new ToolError("Can't read the disk's information: " + info);
-    }
-    return info;
-}
 
 /**
  * The "label" command: show or change the disk's name, date, master password and AUTO command.
@@ -833,7 +584,7 @@ const LABEL_COMMAND: DiskCommand = {
         const changing = Object.values(changes).some(value => value !== undefined);
         if (!changing) {
             // Just show the information.
-            const info = readSessionDiskInfo(session);
+            const info = readDiskInfo(session);
             console.log("Name: " + info.name);
             console.log("Date: " + (info.date === "" ? "none" : info.date));
             console.log("Master password: " + describeMasterPassword(info.passwordHash));
@@ -841,13 +592,9 @@ const LABEL_COMMAND: DiskCommand = {
             return;
         }
 
-        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
-            writer.setDiskInfo(changes);
-        });
-
         // Say what the disk holds now, in the fields that changed, which may differ from what the user
         // typed (an uppercased name, for instance).
-        const info = readSessionDiskInfo(session);
+        const info = changeDiskInfo(session, changes);
         const sentences: string[] = [];
         if (changes.name !== undefined) {
             sentences.push("Name is now " + info.name + ".");

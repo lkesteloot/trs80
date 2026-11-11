@@ -30,7 +30,7 @@ function extensionOf(name: string): string {
  * The name of a file without its extension, as path.posix.parse().name gives it for a name without
  * directories.
  */
-function stemOf(name: string): string {
+export function stemOf(name: string): string {
     return name.substring(0, name.length - extensionOf(name).length);
 }
 
