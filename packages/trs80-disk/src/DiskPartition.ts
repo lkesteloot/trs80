@@ -204,8 +204,8 @@ function selectedLocation(session: DiskSession): PartitionLocation | undefined {
 export interface AddPartitionRequest {
     /** The DOS to format the partition for, which must be one that hard disks can have. */
     dos: TrsdosFormatDos;
-    /** Where the partition goes, from {@link choosePartitionBlock}. */
-    block: HardDiskBlock;
+    /** Where the user wants the partition (see {@link choosePartitionBlock}). */
+    placement: PartitionPlacement;
     /** The granules in each cylinder (--granules), or undefined for the default. */
     granulesPerCylinder: number | undefined;
     /** The disk's name (--name), or undefined for HARD and the first free letter. */
@@ -229,20 +229,21 @@ export interface AddPartitionResult {
 }
 
 /**
- * Do "partition --add DOS": format a partition in the block that {@link choosePartitionBlock} chose, and select it.
+ * Do "partition --add DOS": find room for a partition where the user asked (see {@link choosePartitionBlock}),
+ * format it, and select it.
  *
  * @param session the session, whose disk is a hard disk.
  * @param request what to make.
- * @throws DiskError if the DOS is bad, all the default names are taken, the space isn't blank and there's no
- * force, or the disk can't be written.
+ * @throws DiskError if the DOS is bad, there's no such room, all the default names are taken, the space isn't
+ * blank and there's no force, or the disk can't be written.
  */
 export function addPartition(session: DiskSession, request: AddPartitionRequest): AddPartitionResult {
     const dos = request.dos;
-    const block = request.block;
     const dosProblem = hardDiskDosProblem(dos);
     if (dosProblem !== undefined) {
         throw new DiskError(dosProblem);
     }
+    const block = choosePartitionBlock(session, request.placement);
 
     let name = request.name;
     if (name === undefined) {
@@ -260,6 +261,7 @@ export function addPartition(session: DiskSession, request: AddPartitionRequest)
             "hold data of another kind of partition, which formatting would destroy; use --force to format over it.");
     }
 
+    const bootSectors = getHardDiskBootSectors(session.templates, dos, request.model);
     const location = {cylinderOffset: block.cylinderOffset, headOffset: block.headOffset};
     session.changeHardDisk(disk => {
         const message = formatLdosPartition(disk, {
@@ -271,7 +273,7 @@ export function addPartition(session: DiskSession, request: AddPartitionRequest)
             granulesPerCylinder: request.granulesPerCylinder,
             name,
             date: request.date,
-            bootSectors: getHardDiskBootSectors(session.templates, dos, request.model),
+            bootSectors,
         });
         if (message !== undefined) {
             throw new DiskError(message);

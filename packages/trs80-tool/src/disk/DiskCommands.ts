@@ -18,7 +18,7 @@ import {REPAIR_COMMAND} from "./DiskRepair.js";
 import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {
     type AddFileSource, type AddOptions, addFiles, type AttributeRequest, changeAttributes, changeDiskInfo,
-    checkAddAsCount, checkDisk, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
+    checkDisk, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
     findingSeverityHeading, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
 } from "trs80-disk";
 import {LIST_COMMAND} from "./DiskList.js";
@@ -460,38 +460,26 @@ const ADD_COMMAND: DiskCommand = {
             date,
         };
 
-        const hostPathnames = expandInputPatterns(command.args);
-        checkAddAsCount(asText, hostPathnames.length);
-
-        // Read the files before changing anything. A file that can't be read doesn't stop the ones before
-        // it from being planned, so that their messages come first.
+        // Read every file before changing anything.
         const sources: AddFileSource[] = [];
-        let readError: ToolError | undefined;
-        for (const pathname of hostPathnames) {
+        for (const pathname of expandInputPatterns(command.args)) {
             const stat = fs.statSync(pathname, {throwIfNoEntry: false});
             if (stat === undefined) {
-                readError = new ToolError("Can't read \"" + pathname + "\": no such file");
-                break;
+                throw new ToolError("Can't read \"" + pathname + "\": no such file");
             }
             if (!stat.isFile()) {
-                readError = new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
-                break;
+                throw new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
             }
             let bytes: Uint8Array;
             try {
                 bytes = fs.readFileSync(pathname);
             } catch (e: any) {
-                readError = new ToolError("Can't read \"" + pathname + "\": " + e.message);
-                break;
+                throw new ToolError("Can't read \"" + pathname + "\": " + e.message);
             }
             sources.push({label: pathname, name: path.basename(pathname), bytes});
         }
-        if (sources.length === 0 && readError !== undefined) {
-            throw readError;
-        }
 
-        // Convert and choose the names before changing anything. A file's own problem stops the command
-        // after the earlier files' renames have been announced.
+        // Convert and choose the names, then stop at the first file that can't be added.
         const plan = planAdd(session, sources, addOptions);
         for (const item of plan) {
             if (item.nameChanged) {
@@ -500,9 +488,6 @@ const ADD_COMMAND: DiskCommand = {
             if (item.problem !== undefined) {
                 throw new ToolError(item.problem);
             }
-        }
-        if (readError !== undefined) {
-            throw readError;
         }
 
         const result = addFiles(session, plan, addOptions);

@@ -218,9 +218,8 @@ export function isHardDiskPathname(session: DiskSession): boolean {
  * (with its boot sectors when we have them), or with system a copy of the DOS's system disk, optionally trimmed to
  * its system files, with the name and date changed. The disk goes in the session as if it had been opened, with
  * changes pending. This only works when the session has no disk, or with force, which replaces the session's disk
- * in memory. The image is a DMK one, so a file name for another kind is refused.
- *
- * If a change to a system disk fails (a bad name, say), the new disk has already replaced the old one in the session.
+ * in memory. The image is a DMK one, so a file name for another kind is refused. If anything fails (a bad
+ * name for a system disk, say), the session's disk is unchanged.
  *
  * @param session the session.
  * @param request what to make.
@@ -262,7 +261,8 @@ export function createFloppy(session: DiskSession, request: CreateFloppyRequest)
  * @param session the session, which has had its checks for replacing a disk.
  * @param choices what the user chose, including the DOS.
  * @param minimal whether to remove the files that aren't system files.
- * @throws DiskError if the options don't fit the system disk or the changes can't be made.
+ * @throws DiskError if the options don't fit the system disk or the changes can't be made, in which case the
+ * session's disk is unchanged.
  */
 function createSystemDisk(session: DiskSession, choices: FormatRequest & {dos: TrsdosFormatDos},
                           minimal: boolean): CreateFloppyResult {
@@ -272,12 +272,11 @@ function createSystemDisk(session: DiskSession, choices: FormatRequest & {dos: T
     const floppy = loadSystemDiskTemplate(session.templates, template);
     checkSystemDiskShape(choices, floppy, description);
 
-    const replaced = session.hasDisk();
-    session.setFloppy(floppy);
-
+    // Make the changes in a session of the copy's own, so that if one fails, the session's disk is left alone.
+    const copy = DiskSession.fromBinary(template.name + ".dmk", floppy.binary);
     const removedNames: string[] = [];
     if (choices.name !== undefined || choices.date !== undefined || minimal) {
-        session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
+        copy.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
             if (choices.name !== undefined || choices.date !== undefined) {
                 writer.setDiskInfo({name: choices.name, date: choices.date});
             }
@@ -291,6 +290,8 @@ function createSystemDisk(session: DiskSession, choices: FormatRequest & {dos: T
         });
     }
 
+    const replaced = session.hasDisk();
+    session.setFloppy(copy.floppy);
     return {replaced, systemCopy: {description, shape: describeShape(floppy), removedNames}};
 }
 

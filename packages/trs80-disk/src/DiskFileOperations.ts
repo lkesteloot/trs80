@@ -429,7 +429,7 @@ export interface AddPlanItem {
  * @param fileCount how many host files were given.
  * @throws DiskError if --as was given and the count isn't one.
  */
-export function checkAddAsCount(as: string | undefined, fileCount: number): void {
+function checkAddAsCount(as: string | undefined, fileCount: number): void {
     if (as !== undefined && fileCount !== 1) {
         throw new DiskError("--as names one file, but " + pluralizeWithCount(fileCount, "host file") +
             " " + (fileCount === 1 ? "was" : "were") + " given");

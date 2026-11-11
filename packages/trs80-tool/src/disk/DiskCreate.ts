@@ -263,23 +263,12 @@ export const CREATE_COMMAND: DiskCommand = {
         }
         const dos = choices.dos;
 
-        // If the disk was replaced but a later change to it failed, the replacement still happened, and
-        // we say so before the error, as we would have when it succeeded.
-        const oldImage = session.hasDisk() ? session.image : undefined;
-        let result;
-        try {
-            result = createFloppy(session, {
-                format: {...choices, dos},
-                system: options.has("--system"),
-                minimal: options.has("--minimal"),
-                force: options.has("--force"),
-            });
-        } catch (e) {
-            if (oldImage !== undefined && session.image !== oldImage) {
-                printReplaced(true);
-            }
-            throw e;
-        }
+        const result = createFloppy(session, {
+            format: {...choices, dos},
+            system: options.has("--system"),
+            minimal: options.has("--minimal"),
+            force: options.has("--force"),
+        });
 
         printReplaced(result.replaced);
         printNewDiskSummary("Created", session);
@@ -314,7 +303,7 @@ function formatHardDiskFromCommand(session: DiskSession, command: ParsedDiskComm
     }
     const choices = parseFormatChoices(command, HARD_DISK_FORMAT_DOSES);
 
-    // Say that no partition is chosen before saying that no DOS is known, as the engine would.
+    // The default DOS is the chosen partition's, so there must be one. This says how to make one if there are none.
     session.getSelectedPartition();
     const dos = choices.dos ?? getSessionFormatDos(session);
     if (dos === undefined) {

@@ -47,10 +47,6 @@ export const TRIM_COMMAND: DiskCommand = {
     run(session, command, globalOptions) {
         const options = command.options;
         const cylinders = parseCountOption(options, "--cylinders");
-        // trimDisk() checks this too, but this error comes before the one for --side.
-        if (cylinders === 0) {
-            throw new ToolError("Invalid --cylinders \"0\": a disk needs at least 1");
-        }
         const sideText = options.getString("--side");
         if (sideText !== undefined && sideText !== "0") {
             throw new ToolError("Invalid --side \"" + sideText + "\": only 0 is supported, which drops side 1");

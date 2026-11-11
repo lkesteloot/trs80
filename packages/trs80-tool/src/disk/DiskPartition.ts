@@ -1,6 +1,6 @@
-import {HARD_DISK_FORMAT_DOSES, hardDiskDosProblem} from "trs80-base";
+import {HARD_DISK_FORMAT_DOSES} from "trs80-base";
 import {
-    addPartition, choosePartitionBlock, deletePartition, describeDriverSettings, describeFreeSpaceLines, DiskSession,
+    addPartition, deletePartition, describeDriverSettings, describeFreeSpaceLines, DiskSession,
 } from "trs80-disk";
 import {ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
@@ -30,31 +30,19 @@ function addPartitionFromCommand(session: DiskSession, command: ParsedDiskComman
     if (command.args.length > 1) {
         throw new ToolError("partition --add takes one DOS and no partition");
     }
-    const dos = parseFormatDosName(command.args[0], HARD_DISK_FORMAT_DOSES);
-    // Report a DOS that can't have partitions before parsing the other options, as the engine would.
-    const dosProblem = hardDiskDosProblem(dos);
-    if (dosProblem !== undefined) {
-        throw new ToolError(dosProblem);
-    }
-
     const dateText = options.getString("--date");
-    const model = parseModelOption(options);
-    const granulesPerCylinder = parseCountOption(options, "--granules");
-    const block = choosePartitionBlock(session, {
-        cylinders: parseCountOption(options, "--cylinders"),
-        heads: parseCountOption(options, "--heads"),
-        startCylinder: parseCountOption(options, "--start-cylinder"),
-        startHead: parseCountOption(options, "--start-head"),
-    });
-    const date = dateText === undefined ? undefined : parseAddDate(dateText);
-
     const result = addPartition(session, {
-        dos,
-        block,
-        granulesPerCylinder,
+        dos: parseFormatDosName(command.args[0], HARD_DISK_FORMAT_DOSES),
+        placement: {
+            cylinders: parseCountOption(options, "--cylinders"),
+            heads: parseCountOption(options, "--heads"),
+            startCylinder: parseCountOption(options, "--start-cylinder"),
+            startHead: parseCountOption(options, "--start-head"),
+        },
+        granulesPerCylinder: parseCountOption(options, "--granules"),
         name: options.getString("--name"),
-        date,
-        model,
+        date: dateText === undefined ? undefined : parseAddDate(dateText),
+        model: parseModelOption(options),
         force: options.has("--force"),
     });
     const added = result.partition;

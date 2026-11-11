@@ -9,7 +9,7 @@ import {
     getSessionFormatDos, isHardDiskPathname,
 } from "./DiskCreate.js";
 import {DiskError} from "./DiskError.js";
-import {addPartition, choosePartitionBlock, deletePartition} from "./DiskPartition.js";
+import {addPartition, deletePartition} from "./DiskPartition.js";
 import {DiskSession} from "./DiskSession.js";
 import type {DiskTemplateSource} from "./DiskTemplates.js";
 
@@ -99,6 +99,17 @@ describe("createFloppy", () => {
         expect(result.replaced).to.equal(true);
     });
 
+    it("leaves the disk alone when a system disk's name is bad", () => {
+        const session = makeEmptySession("new.dmk");
+        createFloppy(session, floppyRequest(TrsdosFormatDos.TRSDOS_1_3));
+        const before = session.image;
+        const request = floppyRequest(TrsdosFormatDos.LDOS_5_3, {system: true, force: true});
+        request.format.name = "TOOLONGNAME";
+        expect(() => createFloppy(session, request)).to.throw(DiskError, "too long");
+        expect(session.image).to.equal(before);
+        expect(session.fileSystem!.nameAndVersion).to.equal("TRSDOS 1.3");
+    });
+
     it("needs templates", () => {
         const session = DiskSession.fromBinary("new.dmk", undefined);
         expect(() => createFloppy(session, floppyRequest(TrsdosFormatDos.LDOS_5_3)))
@@ -170,9 +181,8 @@ describe("hard disks", () => {
 
     it("adds and deletes a partition", () => {
         const session = createBlank();
-        const block = choosePartitionBlock(session, {cylinders: 40, heads: undefined, startCylinder: undefined,
-            startHead: undefined});
-        const added = addPartition(session, {dos: TrsdosFormatDos.LDOS_5_3, block, granulesPerCylinder: undefined,
+        const placement = {cylinders: 40, heads: undefined, startCylinder: undefined, startHead: undefined};
+        const added = addPartition(session, {dos: TrsdosFormatDos.LDOS_5_3, placement, granulesPerCylinder: undefined,
             name: undefined, date: undefined, model: undefined, force: false});
         expect(added.number).to.equal(1);
         expect(added.partition.diskName).to.equal("HARDA");
