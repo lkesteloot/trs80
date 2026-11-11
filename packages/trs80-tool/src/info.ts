@@ -136,7 +136,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
 /**
  * The geometry of one track, for "info --json --verbose".
  */
-interface TrackGeometryInfoJson {
+export interface TrackGeometryInfoJson {
     /** The lowest sector number on the track. */
     firstSector: number;
     /** The highest sector number on the track. */
@@ -150,7 +150,7 @@ interface TrackGeometryInfoJson {
 /**
  * The geometry of the floppy, for "info --json --verbose".
  */
-interface GeometryInfoJson {
+export interface GeometryInfoJson {
     /** Number of cylinders. */
     cylinderCount: number;
     /** Number of sides, 1 or 2. */
@@ -173,7 +173,7 @@ interface GeometryInfoJson {
 /**
  * Details of a TRSDOS (not Model II) file system, for "info --json --verbose".
  */
-interface TrsdosInfoJson {
+export interface TrsdosInfoJson {
     /** The disk name from the allocation table. Missing if the table couldn't be read. */
     diskName?: string;
     /** The disk date from the allocation table, as the DOS wrote it. Missing if the table couldn't be read. */
@@ -201,7 +201,7 @@ interface TrsdosInfoJson {
 /**
  * Details of a CP/M file system, for "info --json --verbose".
  */
-interface CpmInfoJson {
+export interface CpmInfoJson {
     /** Whose BIOS's layout it is, such as "Montezuma Micro". */
     format: string;
     /** Number of sides that the file system uses; less than the floppy's if it only uses side 0. */
@@ -225,7 +225,7 @@ interface CpmInfoJson {
 /**
  * Details of a Percom MicroDOS file system, for "info --json --verbose".
  */
-interface MicroDosInfoJson {
+export interface MicroDosInfoJson {
     /** The absolute number of the directory's first sector. */
     dirFirstSector: number;
     /** The absolute number of the directory's last sector. */
@@ -235,7 +235,7 @@ interface MicroDosInfoJson {
 /**
  * Details of a UCSD Pascal file system, for "info --json --verbose".
  */
-interface UcsdPascalInfoJson {
+export interface UcsdPascalInfoJson {
     /** The volume name. */
     volumeName: string;
     /** Whose port's layout it is, such as "FMG". */
@@ -253,7 +253,7 @@ interface UcsdPascalInfoJson {
 /**
  * Details of a Model II TRSDOS 1.x or 2.0 file system, for "info --json --verbose".
  */
-interface ModelIITrsdosInfoJson {
+export interface ModelIITrsdosInfoJson {
     /** The name from when the disk was formatted. Missing if there's none we could read. */
     diskName?: string;
     /** How the directory cylinder is arranged: "1.x" or "2.0". */
@@ -267,7 +267,7 @@ interface ModelIITrsdosInfoJson {
 /**
  * Details of a TRSDOS-II 4.x file system, for "info --json --verbose".
  */
-interface TrsdosIIInfoJson {
+export interface TrsdosIIInfoJson {
     /** The name from when the disk was formatted. */
     diskName: string;
     /** The version of the DOS, such as "4.0", or an empty string if we don't know. */
@@ -283,7 +283,7 @@ interface TrsdosIIInfoJson {
 /**
  * Details of a Xenix tar file system, for "info --json --verbose".
  */
-interface XenixTarInfoJson {
+export interface XenixTarInfoJson {
     /** Number of archive members that are listed as files. */
     memberCount: number;
     /** Number of archive members that aren't listed (directories, symbolic links, devices). */
@@ -293,7 +293,7 @@ interface XenixTarInfoJson {
 /**
  * The operating system of a floppy.
  */
-interface OsInfoJson {
+export interface OsInfoJson {
     /** Name and version, such as "LDOS 5.3". */
     name: string;
     /** Number of files, not counting the operating system's own. */
@@ -498,33 +498,50 @@ function floppyToInfoJson(floppy: Trs80Floppy, verbose: boolean): FloppyInfoJson
     const fileSystem = decodeFloppyFileSystem(floppy);
     const json: FloppyInfoJson = {
         format: floppyFormatOf(floppy),
-        os: fileSystem === undefined ? null : {
-            name: fileSystem.nameAndVersion,
-            // Users don't care about system files.
-            fileCount: fileSystem.getDirEntries(false).length,
-        },
+        os: fileSystem === undefined ? null : osToJson(fileSystem, verbose),
     };
-
     if (verbose) {
-        const geometry = floppy.getGeometry();
-        json.geometry = {
-            cylinderCount: geometry.cylinderCount,
-            sideCount: geometry.sideCount,
-            bootTrack: geometry.bootTrack === undefined ? null : trackGeometryToJson(geometry.bootTrack),
-            dataTrack: {
-                sectorSpan: geometry.modalDataSectorSpan,
-                density: densityToString(geometry.modalDataDensity),
-                sectorSize: geometry.modalDataSectorSize,
-            },
-            homogeneous: geometry.homogeneous,
-        };
-
-        if (fileSystem !== undefined && json.os !== null) {
-            Object.assign(json.os, fileSystemDetailsToJson(fileSystem));
-        }
+        json.geometry = floppyGeometryToJson(floppy);
     }
-
     return json;
+}
+
+/**
+ * Convert the layout of a floppy to JSON, as "info --json --verbose" gives it.
+ *
+ * @param floppy the decoded floppy image.
+ */
+export function floppyGeometryToJson(floppy: FloppyDisk): GeometryInfoJson {
+    const geometry = floppy.getGeometry();
+    return {
+        cylinderCount: geometry.cylinderCount,
+        sideCount: geometry.sideCount,
+        bootTrack: geometry.bootTrack === undefined ? null : trackGeometryToJson(geometry.bootTrack),
+        dataTrack: {
+            sectorSpan: geometry.modalDataSectorSpan,
+            density: densityToString(geometry.modalDataDensity),
+            sectorSize: geometry.modalDataSectorSize,
+        },
+        homogeneous: geometry.homogeneous,
+    };
+}
+
+/**
+ * Convert a file system to JSON, as "info --json" gives it.
+ *
+ * @param fileSystem the file system of a floppy or of a hard disk partition.
+ * @param withDetails whether to add the details of its layout, as "--verbose" does.
+ */
+export function osToJson(fileSystem: KnownFloppyFileSystem, withDetails: boolean): OsInfoJson {
+    const os: OsInfoJson = {
+        name: fileSystem.nameAndVersion,
+        // Users don't care about system files.
+        fileCount: fileSystem.getDirEntries(false).length,
+    };
+    if (withDetails) {
+        Object.assign(os, fileSystemDetailsToJson(fileSystem));
+    }
+    return os;
 }
 
 /**
@@ -538,24 +555,14 @@ function hardDiskToInfoJson(hardDisk: Trs80HardDisk, verbose: boolean): HardDisk
     return {
         cylinderCount: geometry.cylinderCount,
         headCount: geometry.headCount,
-        partitions: findLdosPartitions(hardDisk).map(({partition, trsdos}, index) => {
-            const os: OsInfoJson = {
-                name: trsdos.nameAndVersion,
-                // Users don't care about system files.
-                fileCount: trsdos.getDirEntries(false).length,
-            };
-            if (verbose) {
-                Object.assign(os, fileSystemDetailsToJson(trsdos));
-            }
-            return {
-                number: index + 1,
-                cylinderOffset: partition.cylinderOffset,
-                headOffset: partition.headOffset,
-                cylinderCount: partition.cylinderCount,
-                headCount: partition.headCount,
-                os,
-            };
-        }),
+        partitions: findLdosPartitions(hardDisk).map(({partition, trsdos}, index) => ({
+            number: index + 1,
+            cylinderOffset: partition.cylinderOffset,
+            headOffset: partition.headOffset,
+            cylinderCount: partition.cylinderCount,
+            headCount: partition.headCount,
+            os: osToJson(trsdos, verbose),
+        })),
     };
 }
 

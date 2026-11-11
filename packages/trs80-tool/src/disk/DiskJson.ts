@@ -7,6 +7,7 @@ import {
     TrimNothingReason,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
+import type {GeometryInfoJson, OsInfoJson} from "../info.js";
 import {type FileJson, type SectorPositionJson, sectorPositionToJson} from "../json.js";
 
 // The types of the JSON that the "disk" command prints with --json, and the helpers that build it. The
@@ -347,15 +348,40 @@ export interface PartitionJson {
 }
 
 /**
+ * The layout of a hard disk.
+ */
+export interface HardDiskGeometryJson {
+    /** The number of cylinders. */
+    cylinderCount: number;
+    /** The number of heads. */
+    headCount: number;
+    /** The number of sectors on each track. */
+    sectorsPerTrack: number;
+    /** The size of a sector in bytes. */
+    sectorSize: number;
+}
+
+/**
  * The result of "info".
  */
 export interface InfoResultJson {
     /** The one-line description of the disk, which "info" prints first. */
     description: string;
-    /** The lines of detail that follow it as text, without their indentation. For people, not parsing. */
-    details: string[];
-    /** The name and version of the disk's DOS (of the selected partition, for a hard disk), or null if none was found. */
-    fileSystem: string | null;
+    /**
+     * The file system that the commands work on (the selected partition's, for a hard disk): its name, its
+     * number of files, and the details of its layout, as "info --json --verbose" gives them. Null if no DOS
+     * was recognized, or a hard disk has no partition selected.
+     */
+    os: OsInfoJson | null;
+    /** Floppies only: the layout of the disk, as "info --json --verbose" gives it. */
+    geometry?: GeometryInfoJson;
+    /** Hard disks only: the layout of the disk. */
+    hardDiskGeometry?: HardDiskGeometryJson;
+    /**
+     * Which DOS's rules a change to the disk follows, by the name that --dos takes, such as "ldos-5", or null
+     * if they couldn't be told. Missing if the file system isn't one that can be written.
+     */
+    rules?: string | null;
     /** Whether the disk can be written to. */
     writable: boolean;
     /** Why it can't be. Only when it's not writable. */

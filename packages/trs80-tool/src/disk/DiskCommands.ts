@@ -1,12 +1,13 @@
 import fs from "fs";
 import path from "path";
 import {
-    type TrsdosDiskInfoChanges, type TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString,
+    type TrsdosDiskInfoChanges, type TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetCliName,
+    trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {dirListingLines} from "../dir.js";
 import {type ExtractedFile, extractInputFiles, extractOneInputFile} from "../extract.js";
-import {floppyDetailLines} from "../info.js";
+import {floppyDetailLines, floppyGeometryToJson, osToJson} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
 import {fileToJson} from "../json.js";
 import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError} from "../utils.js";
@@ -779,13 +780,32 @@ const INFO_COMMAND: DiskCommand = {
         const writeProtected = getWriteProtect(session);
         // A hard disk has no file system until a partition is chosen (and asking for it is an error).
         const hasFileSystemChoice = !session.isHardDisk() || session.selectedPartitionNumber !== undefined;
+        const fileSystem = hasFileSystemChoice ? session.fileSystem : undefined;
+        let layout: Pick<InfoResultJson, "geometry" | "hardDiskGeometry">;
+        if (session.isHardDisk()) {
+            const geometry = session.hardDisk.getGeometry();
+            layout = {
+                hardDiskGeometry: {
+                    cylinderCount: geometry.cylinderCount,
+                    headCount: geometry.headCount,
+                    sectorsPerTrack: geometry.sectorsPerTrack,
+                    sectorSize: geometry.sectorSize,
+                },
+            };
+        } else {
+            layout = {geometry: floppyGeometryToJson(session.floppy)};
+        }
         const result: InfoResultJson = {
             description,
-            details,
-            fileSystem: hasFileSystemChoice ? session.fileSystem?.nameAndVersion ?? null : null,
+            os: fileSystem === undefined ? null : osToJson(fileSystem, true),
+            ...layout,
             writable: readOnlyReason === undefined,
             writeProtected: typeof writeProtected === "string" ? null : writeProtected,
         };
+        const gate = fileSystem === undefined ? undefined : session.getWriteGate();
+        if (gate !== undefined) {
+            result.rules = gate.ruleSet === undefined ? null : trsdosRuleSetCliName(gate.ruleSet);
+        }
         if (readOnlyReason !== undefined) {
             result.readOnlyReason = readOnlyReason;
         }

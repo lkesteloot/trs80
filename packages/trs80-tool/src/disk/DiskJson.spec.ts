@@ -158,12 +158,16 @@ describe("disk --json", () => {
 
         const info = commandAt<InfoResultJson>(run, 4, "info").result;
         expect(info.description).to.contain("1 file");
-        expect(info.fileSystem).to.equal("LDOS 5.3");
+        expect(info.os?.name).to.equal("LDOS 5.3");
+        expect(info.os?.fileCount).to.equal(1);
+        expect(info.os?.trsdos?.dirLump).to.equal(20);
+        expect(info.geometry?.cylinderCount).to.equal(40);
+        expect(info.hardDiskGeometry).to.equal(undefined);
+        expect(info.rules).to.equal("ldos-5");
         expect(info.writable).to.equal(true);
         expect(info.readOnlyReason).to.equal(undefined);
         expect(info.writeProtected).to.equal(false);
         expect(info.free).to.eql(free);
-        expect(info.details.some(line => line.startsWith("Writable: yes"))).to.equal(true);
         expect(info.partitions).to.equal(undefined);
 
         const check = commandAt<CheckResultJson>(run, 5, "check").result;
@@ -349,7 +353,10 @@ describe("disk --json", () => {
 
         const info = commandAt<InfoResultJson>(run, 3, "info").result;
         expect(info.partitions?.map(p => p.selected)).to.eql([false, true]);
-        expect(info.fileSystem).to.be.a("string");
+        expect(info.os?.name).to.contain("DOS");
+        expect(info.os?.trsdos?.diskName).to.equal("Beta");
+        expect(info.hardDiskGeometry?.cylinderCount).to.be.greaterThan(0);
+        expect(info.geometry).to.equal(undefined);
         expect(info.free?.freeGranules).to.be.greaterThan(0);
     });
 
@@ -358,7 +365,8 @@ describe("disk --json", () => {
         fs.writeFileSync(hdv, makeLdosTestHardDiskBinary(TWO_PARTITIONS));
         const run = await runJsonOn(hdv, "info");
         const info = commandAt<InfoResultJson>(run, 0, "info").result;
-        expect(info.fileSystem).to.equal(null);
+        expect(info.os).to.equal(null);
+        expect(info.rules).to.equal(undefined);
         expect(info.free).to.equal(undefined);
         expect(info.partitions?.length).to.equal(2);
     });
