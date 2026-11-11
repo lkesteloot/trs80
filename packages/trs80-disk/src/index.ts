@@ -5,6 +5,7 @@ export * from "./DiskFileOperations.js";
 export * from "./DiskHardLayout.js";
 export * from "./DiskImageOperations.js";
 export * from "./DiskImport.js";
+export * from "./DiskMap.js";
 export * from "./DiskPartition.js";
 export * from "./DiskSession.js";
 export * from "./DiskTemplates.js";

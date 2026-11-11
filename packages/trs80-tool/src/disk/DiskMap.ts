@@ -1,10 +1,13 @@
-import {SectorPosition, Trsdos, TrsdosGranuleMap, type TrsdosDirEntry, type TrsdosGranule} from "trs80-base";
+import {SectorPosition} from "trs80-base";
+import {
+    buildDiskMap, MapCellKind, mapCellKindIsProblem, mapCellKindToString, totalsText, type DiskMapModel, type DiskSession,
+    type MapCell, type MapFile,
+} from "trs80-disk";
 import {assertNever} from "z80-base";
 import {colors, filePalette, type Style} from "../colors.js";
-import {pluralize, pluralizeWithCount, selectByPatterns, systemWildcardHint, ToolError} from "../utils.js";
+import {pluralize, pluralizeWithCount} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {printLines} from "./DiskList.js";
-import type {DiskSession} from "trs80-disk";
 
 /**
  * The width to draw for when stdout isn't a terminal.
@@ -30,66 +33,6 @@ const WIDE_CELL_WIDTH = 3;
  * The least characters a cell has, used when the wide cells don't fit the terminal.
  */
 const NARROW_CELL_WIDTH = 2;
-
-/**
- * The raw (8 + 3 characters) names of the system files that the map shows as the boot and directory
- * granules rather than as files.
- */
-const BOOT_RAW_FILENAME = "BOOT    SYS";
-const DIR_RAW_FILENAME = "DIR     SYS";
-
-/**
- * What a granule shows in the map, which draws every sector of the granule the same way.
- */
-export enum MapCellKind {
-    /** Nothing uses the granule. */
-    FREE,
-    /** One file uses it, and the file is among those the user is looking at. */
-    FILE,
-    /** One file uses it, but the user asked about other files. */
-    OTHER_FILE,
-    /** The directory. */
-    DIRECTORY,
-    /** The boot sector's granule, or BOOT/SYS's. */
-    BOOT,
-    /** The lockout table says the granule can't be used. */
-    LOCKED_OUT,
-    /** Two or more files claim the granule. */
-    SHARED,
-    /** A file claims the granule, but the GAT says it's free, so the DOS would hand it out again. */
-    CLAIMED_BUT_FREE,
-    /** The GAT says the granule is used, but no file claims it. */
-    UNCLAIMED,
-}
-
-/**
- * What a cell kind means, for the map's legend. A file's cells carry the file's name in the grid, so this
- * is only a generic phrase for it.
- */
-export function mapCellKindToString(kind: MapCellKind): string {
-    switch (kind) {
-        case MapCellKind.FREE:
-            return "free";
-        case MapCellKind.FILE:
-            return "file";
-        case MapCellKind.OTHER_FILE:
-            return "other file";
-        case MapCellKind.DIRECTORY:
-            return "directory";
-        case MapCellKind.BOOT:
-            return "boot";
-        case MapCellKind.LOCKED_OUT:
-            return "locked out";
-        case MapCellKind.SHARED:
-            return "shared by two or more files";
-        case MapCellKind.CLAIMED_BUT_FREE:
-            return "claimed by a file but free in the GAT";
-        case MapCellKind.UNCLAIMED:
-            return "used in the GAT but claimed by no file";
-        default:
-            assertNever(kind);
-    }
-}
 
 /**
  * The symbol that a kind of cell is drawn with. It's the only character of a free sector's cell, and the
@@ -143,200 +86,18 @@ function mapCellKindStyle(kind: MapCellKind): Style {
 }
 
 /**
- * Whether the kind of cell is a sign of a damaged file system.
+ * The style that a file's cells and name are drawn in: its color in the palette, or plain for a file
+ * that has no color.
  */
-function isProblem(kind: MapCellKind): boolean {
-    switch (kind) {
-        case MapCellKind.SHARED:
-        case MapCellKind.CLAIMED_BUT_FREE:
-        case MapCellKind.UNCLAIMED:
-            return true;
-        case MapCellKind.FREE:
-        case MapCellKind.FILE:
-        case MapCellKind.OTHER_FILE:
-        case MapCellKind.DIRECTORY:
-        case MapCellKind.BOOT:
-        case MapCellKind.LOCKED_OUT:
-            return false;
-        default:
-            assertNever(kind);
-    }
+function fileStyle(file: MapFile): Style {
+    return file.colorIndex === undefined ? colors.plain : filePalette[file.colorIndex % filePalette.length];
 }
 
 /**
- * A file that the map draws in a color of its own, with its name.
+ * The style of a cell's characters: its file's color, or its kind's style.
  */
-interface MapFile {
-    /** The directory entry. */
-    dirEntry: TrsdosDirEntry;
-    /** The position of the file in the list of files, which tells files apart. */
-    index: number;
-    /** The name drawn in the map. */
-    name: string;
-    /** The style of the name and of the file's runs. */
-    style: Style;
-    /** The number of granules the file occupies. */
-    granuleCount: number;
-}
-
-/**
- * How one granule is drawn.
- */
-interface MapCell {
-    /** The kind of cell. */
-    kind: MapCellKind;
-    /** The file, for a FILE cell. */
-    file: MapFile | undefined;
-    /** The name written at the start of a run of these cells, or undefined for kinds that have none. */
-    label: string | undefined;
-    /** The style of the cell's characters. */
-    style: Style;
-    /** Tells apart cells that look the same, which are drawn as one run when they're next to each other. */
-    identity: string;
-}
-
-/**
- * Whether the entry is BOOT/SYS or DIR/SYS, which the map draws as B and D rather than as files.
- */
-function isBootOrDirFile(dirEntry: TrsdosDirEntry): boolean {
-    return dirEntry.rawFilename === BOOT_RAW_FILENAME || dirEntry.rawFilename === DIR_RAW_FILENAME;
-}
-
-/**
- * Decide what a granule shows. The checks run in order of importance: a problem shows over anything
- * else, then a file, then the disk's own structures.
- *
- * @param granule the granule.
- * @param mapFiles the files that have colors, by directory entry.
- */
-function classifyGranule(granule: TrsdosGranule, mapFiles: Map<TrsdosDirEntry, MapFile | undefined>):
-    { kind: MapCellKind, file: MapFile | undefined } {
-
-    const realOwners = granule.owners.filter(owner => !isBootOrDirFile(owner));
-    const hasBootOwner = granule.owners.some(owner => owner.rawFilename === BOOT_RAW_FILENAME);
-
-    if (realOwners.length > 1) {
-        return { kind: MapCellKind.SHARED, file: undefined };
-    }
-    if (granule.owners.length > 0 && !granule.gatUsed) {
-        return { kind: MapCellKind.CLAIMED_BUT_FREE, file: undefined };
-    }
-    if (realOwners.length === 1) {
-        const file = mapFiles.get(realOwners[0]);
-        return file === undefined ? { kind: MapCellKind.OTHER_FILE, file: undefined } : { kind: MapCellKind.FILE, file };
-    }
-    if (granule.inDirectory) {
-        return { kind: MapCellKind.DIRECTORY, file: undefined };
-    }
-    if (hasBootOwner) {
-        return { kind: MapCellKind.BOOT, file: undefined };
-    }
-    if (granule.owners.length > 0) {
-        // DIR/SYS outside the directory's range, which is unusual but not a problem for the file system.
-        return { kind: MapCellKind.DIRECTORY, file: undefined };
-    }
-    if (granule.lockedOut) {
-        return { kind: MapCellKind.LOCKED_OUT, file: undefined };
-    }
-    if (granule.gatUsed) {
-        // The boot cylinder has granules that no file claims, on DOSes whose boot sector isn't a file.
-        return { kind: granule.lump === 0 ? MapCellKind.BOOT : MapCellKind.UNCLAIMED, file: undefined };
-    }
-    return { kind: MapCellKind.FREE, file: undefined };
-}
-
-/**
- * The name to write at the start of a run of a kind of cell, or undefined if the kind has none. The directory
- * and boot granules take the name of the system file that owns them, if there is one.
- *
- * @param granule the granule.
- * @param cellKind what the granule shows.
- * @param file the file, for a FILE cell.
- */
-function cellLabel(granule: TrsdosGranule, cellKind: MapCellKind, file: MapFile | undefined): string | undefined {
-    switch (cellKind) {
-        case MapCellKind.FILE:
-            return file?.name;
-        case MapCellKind.DIRECTORY: {
-            const owner = granule.owners.find(owner => owner.rawFilename === DIR_RAW_FILENAME);
-            return owner?.getFilename("/") ?? "directory";
-        }
-        case MapCellKind.BOOT: {
-            const owner = granule.owners.find(owner => owner.rawFilename === BOOT_RAW_FILENAME);
-            return owner?.getFilename("/") ?? "boot";
-        }
-        case MapCellKind.FREE:
-        case MapCellKind.OTHER_FILE:
-        case MapCellKind.LOCKED_OUT:
-        case MapCellKind.SHARED:
-        case MapCellKind.CLAIMED_BUT_FREE:
-        case MapCellKind.UNCLAIMED:
-            return undefined;
-        default:
-            assertNever(cellKind);
-    }
-}
-
-/**
- * Work out how a granule is drawn.
- *
- * @param granule the granule.
- * @param mapFiles the files that have colors, by directory entry.
- */
-function makeMapCell(granule: TrsdosGranule, mapFiles: Map<TrsdosDirEntry, MapFile | undefined>): MapCell {
-    const {kind, file} = classifyGranule(granule, mapFiles);
-    const label = cellLabel(granule, kind, file);
-    const style = file !== undefined ? file.style : mapCellKindStyle(kind);
-    // Files are told apart by their position, everything else by its kind and name.
-    const identity = kind + ":" + (file !== undefined ? file.index : label ?? "");
-    return { kind, file, label, style, identity };
-}
-
-/**
- * Give the files their colors. User files come first, in directory order, then system files; BOOT/SYS and
- * DIR/SYS have none, since the map shows them as the boot and directory granules.
- *
- * @param files the primary directory entries to give colors to (the selected ones), in directory order.
- * @param granuleCounts the number of granules each file occupies.
- * @return the files in legend order.
- */
-function makeMapFiles(files: TrsdosDirEntry[], granuleCounts: Map<TrsdosDirEntry, number>): MapFile[] {
-    const candidates = files.filter(file => !isBootOrDirFile(file));
-    const ordered = [...candidates.filter(file => !file.isSystemFile()), ...candidates.filter(file => file.isSystemFile())];
-
-    const mapFiles: MapFile[] = [];
-    let nextColor = 0;
-    for (const dirEntry of ordered) {
-        const granuleCount = granuleCounts.get(dirEntry) ?? 0;
-        const index = mapFiles.length;
-        const name = dirEntry.getFilename("/");
-        if (granuleCount === 0) {
-            // It has no cells to draw. (It's still listed if the user named it.)
-            mapFiles.push({ dirEntry, index, name, style: colors.plain, granuleCount });
-            continue;
-        }
-        const style = filePalette[nextColor % filePalette.length];
-        nextColor++;
-        mapFiles.push({ dirEntry, index, name, style, granuleCount });
-    }
-
-    return mapFiles;
-}
-
-/**
- * The text of the map's totals line, such as "62 of 240 granules used, 178 free (222.5 KB)".
- */
-function totalsText(granuleMap: TrsdosGranuleMap): string {
-    const trsdos = granuleMap.trsdos;
-    const total = granuleMap.granules.length;
-    const free = granuleMap.getFreeGranuleCount();
-    const lockedOut = granuleMap.granules.filter(granule => granule.lockedOut).length;
-    const freeKb = granuleMap.getFreeByteCount()/1024;
-    const granuleBytes = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
-    return (total - free).toLocaleString() + " of " + pluralizeWithCount(total, "granule") + " used, " +
-        free.toLocaleString() + " free (" + freeKb.toLocaleString(undefined, { maximumFractionDigits: 1 }) +
-        " KB)" + (lockedOut > 0 ? ", " + lockedOut.toLocaleString() + " locked out" : "") +
-        ". A granule is " + pluralizeWithCount(granuleBytes, "byte") + ".";
+function cellStyle(cell: MapCell): Style {
+    return cell.file !== undefined ? fileStyle(cell.file) : mapCellKindStyle(cell.kind);
 }
 
 /**
@@ -384,7 +145,7 @@ function matchedFileItems(mapFiles: MapFile[]): { text: string, width: number }[
         const byteText = file.dirEntry.getSize().toLocaleString().padStart(byteWidth) + " bytes";
         const systemText = file.dirEntry.isSystemFile() ? "  system" : "";
         const plainWidth = nameWidth + 2 + granuleText.length + 2 + byteText.length + systemText.length;
-        const text = file.style(file.name.padEnd(nameWidth)) + "  " + granuleText + "  " + byteText +
+        const text = fileStyle(file)(file.name.padEnd(nameWidth)) + "  " + granuleText + "  " + byteText +
             colors.muted(systemText);
         return { text, width: plainWidth };
     });
@@ -411,9 +172,9 @@ function symbolLegendLines(counts: Map<MapCellKind, number>, width: number): str
             continue;
         }
         const plain = mapCellKindSymbol(kind) + " " + mapCellKindToString(kind) +
-            (isProblem(kind) ? " (" + count.toLocaleString() + ")" : "");
+            (mapCellKindIsProblem(kind) ? " (" + count.toLocaleString() + ")" : "");
         const text = mapCellKindStyle(kind)(mapCellKindSymbol(kind)) + " " + mapCellKindToString(kind) +
-            (isProblem(kind) ? " (" + count.toLocaleString() + ")" : "");
+            (mapCellKindIsProblem(kind) ? " (" + count.toLocaleString() + ")" : "");
         if (lineWidth > 0 && lineWidth + 3 + plain.length > width) {
             lines.push(line);
             line = "";
@@ -533,7 +294,7 @@ function drawSectorRuns(slots: (SectorSlot | undefined)[], cells: MapCell[], cel
                 for (let positionInCell = 0; positionInCell < cellWidth; positionInCell++) {
                     chars[i*cellWidth + positionInCell] = {
                         text: runCharacter(cell.kind, positionInCell, cellWidth, endsGranule),
-                        style: cell.style,
+                        style: cellStyle(cell),
                     };
                 }
             }
@@ -548,11 +309,11 @@ function drawSectorRuns(slots: (SectorSlot | undefined)[], cells: MapCell[], cel
                 const endsWithGranuleEnd = chars[end*cellWidth - 1].text === GRANULE_END;
                 const nameLength = Math.min(cell.label.length, endsWithGranuleEnd ? runLength - 1 : runLength);
                 for (let i = 0; i < nameLength; i++) {
-                    chars[start*cellWidth + i] = { text: cell.label[i], style: cell.style };
+                    chars[start*cellWidth + i] = { text: cell.label[i], style: cellStyle(cell) };
                 }
                 // A blank between the name and the fill, but not over a granule end, which stays.
                 if (nameLength < runLength && chars[start*cellWidth + nameLength].text !== GRANULE_END) {
-                    chars[start*cellWidth + nameLength] = { text: " ", style: cell.style };
+                    chars[start*cellWidth + nameLength] = { text: " ", style: cellStyle(cell) };
                 }
             }
         }
@@ -591,54 +352,20 @@ function styledCharsToString(chars: StyledChar[]): string {
  * its sectors, in the cell's granule's color, with the files' names written in, then a legend of the symbols
  * and the totals.
  *
- * @param granuleMap the analysis of the disk. Its owners' entries are the files, in directory order.
- * @param files the directory entries to draw, in directory order, as made for the granule map.
- * @param selected the files to give colors to, or undefined for all of them.
+ * @param model the map's data.
  * @param width the width of the terminal.
  * @return the lines.
  */
-export function drawGranuleMap(granuleMap: TrsdosGranuleMap, files: TrsdosDirEntry[],
-                               selected: TrsdosDirEntry[] | undefined, width: number): string[] {
+export function drawGranuleMap(model: DiskMapModel, width: number): string[] {
+    const cells = model.cells;
+    const {sectorsPerTrack, firstSectorNumber, allocationSides, imageSideCount, lastCylinder} = model.layout;
 
-    const trsdos = granuleMap.trsdos;
-
-    // How much of the disk each file occupies.
-    const granuleCounts = new Map<TrsdosDirEntry, number>();
-    for (const granule of granuleMap.granules) {
-        for (const owner of granule.owners) {
-            granuleCounts.set(owner, (granuleCounts.get(owner) ?? 0) + 1);
-        }
-    }
-
-    // Files that have no cells don't get a color unless the user asked for them by pattern.
-    const wanted = (selected ?? files).filter(file => selected !== undefined || (granuleCounts.get(file) ?? 0) > 0);
-    const mapFiles = makeMapFiles(wanted, granuleCounts);
-    const mapFilesByEntry = new Map<TrsdosDirEntry, MapFile | undefined>();
-    for (const mapFile of mapFiles) {
-        if (mapFile.granuleCount > 0) {
-            mapFilesByEntry.set(mapFile.dirEntry, mapFile);
-        }
-    }
-
-    // What every granule shows.
-    const cells = granuleMap.granules.map(granule => makeMapCell(granule, mapFilesByEntry));
-    const kindCounts = new Map<MapCellKind, number>();
-    for (const cell of cells) {
-        kindCounts.set(cell.kind, (kindCounts.get(cell.kind) ?? 0) + 1);
-    }
-
-    // Find each granule's sectors, using the DOS's own mapping.
-    const sectorsPerTrack = trsdos.geometry.modalDataSectorSpan;
-    const allocationSides = trsdos.allocationSides;
-    const firstSectorNumber = trsdos.firstSectorNumber;
+    // Find each granule's sectors.
     const slots = new Map<string, SectorSlot>();
-    let lastCylinder = trsdos.geometry.cylinderCount - 1;
-    for (let granuleIndex = 0; granuleIndex < granuleMap.granules.length; granuleIndex++) {
-        const granule = granuleMap.granules[granuleIndex];
-        const positions = trsdos.getGranuleSectorPositions(granule.lump, granule.granule);
+    for (let granuleIndex = 0; granuleIndex < cells.length; granuleIndex++) {
+        const positions = cells[granuleIndex].sectors;
         for (let i = 0; i < positions.length; i++) {
             slots.set(positions[i].key(), { granuleIndex, endsGranule: i === positions.length - 1 });
-            lastCylinder = Math.max(lastCylinder, positions[i].cylinderNumber);
         }
     }
 
@@ -705,7 +432,6 @@ export function drawGranuleMap(granuleMap: TrsdosGranuleMap, files: TrsdosDirEnt
         }
     }
 
-    const imageSideCount = trsdos.geometry.sideCount;
     if (imageSideCount > allocationSides) {
         lines.push(colors.muted("The image has " + pluralizeWithCount(imageSideCount, "side") +
             ", but the file system uses only " + allocationSides + "."));
@@ -713,12 +439,12 @@ export function drawGranuleMap(granuleMap: TrsdosGranuleMap, files: TrsdosDirEnt
 
     // Below the grid.
     lines.push("");
-    if (selected !== undefined && mapFiles.length > 0) {
-        lines.push(...columnize(matchedFileItems(mapFiles), width, ""));
+    if (model.hasSelection && model.files.length > 0) {
+        lines.push(...columnize(matchedFileItems(model.files), width, ""));
         lines.push("");
     }
-    lines.push(...symbolLegendLines(kindCounts, width));
-    lines.push(totalsText(granuleMap));
+    lines.push(...symbolLegendLines(model.kindCounts, width));
+    lines.push(totalsText(model.totals));
 
     return lines;
 }
@@ -759,36 +485,9 @@ export const MAP_COMMAND: DiskCommand = {
      * disk whose file system is TRSDOS-family, including a read-only one.
      */
     run(session: DiskSession, command) {
-        const fileSystem = session.fileSystem;
-        if (fileSystem === undefined) {
-            throw new ToolError("Can't find a DOS directory on \"" + session.name + "\"");
-        }
-        if (!(fileSystem instanceof Trsdos)) {
-            throw new ToolError("map works on TRSDOS-family disks, not " + fileSystem.nameAndVersion + " disks");
-        }
-
-        // Make our own map, from our own copy of the directory, so that the files are in directory order.
-        const files = fileSystem.getDirEntries(true);
-        const granuleMap = TrsdosGranuleMap.make(fileSystem, files);
-        if (typeof granuleMap === "string") {
-            throw new ToolError("Can't draw the map: " + granuleMap);
-        }
-
-        let selected: TrsdosDirEntry[] | undefined = undefined;
-        if (command.args.length > 0) {
-            const selection = selectByPatterns(files, command.args, {
-                name: file => file.getFilename("."),
-                hasDirectories: () => false,
-                isSystem: file => file.isSystemFile(),
-            }, false);
-            if (selection.unmatchedPattern !== undefined) {
-                throw new ToolError("No file on the disk matches \"" + selection.unmatchedPattern + "\"" +
-                    systemWildcardHint(selection.unmatchedOnlySystem));
-            }
-            selected = selection.selected;
-        }
+        const model = buildDiskMap(session, command.args);
 
         const width = process.stdout.columns ?? DEFAULT_WIDTH;
-        printLines(drawGranuleMap(granuleMap, files, selected, width));
+        printLines(drawGranuleMap(model, width));
     },
 };

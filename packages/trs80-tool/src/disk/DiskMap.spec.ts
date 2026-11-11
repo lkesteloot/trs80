@@ -11,7 +11,7 @@ import {disk} from "./disk.js";
 import type {ParsedDiskCommand} from "./DiskCommandParser.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
 import {drawGranuleMap, MAP_COMMAND} from "./DiskMap.js";
-import type {DiskSession} from "trs80-disk";
+import {makeDiskMapModel, type DiskSession} from "trs80-disk";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 2, granuleOffset: 0, granuleCount: 3}], size: 3000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 1, granuleCount: 1}], size: 300};
@@ -305,7 +305,7 @@ describe("disk map", () => {
             throw new Error(granuleMap);
         }
 
-        const lines = drawGranuleMap(granuleMap, oneSide.getDirEntries(true), undefined, 80);
+        const lines = drawGranuleMap(makeDiskMapModel(granuleMap, oneSide.getDirEntries(true), undefined), 80);
         expect(lines.slice(0, 3)).to.eql([
             "cyl   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17",
             "  0  BOOT/SYS ────────│·  ·  ·  ·  ·  · │·  ·  ·  ·  ·  · │",
@@ -326,7 +326,7 @@ describe("disk map", () => {
             throw new Error(granuleMap);
         }
 
-        const lines = drawGranuleMap(granuleMap, shifted.getDirEntries(true), undefined, 80);
+        const lines = drawGranuleMap(makeDiskMapModel(granuleMap, shifted.getDirEntries(true), undefined), 80);
         expect(lines.slice(0, 3)).to.eql([
             "cyl   0  1  2  3  4  5  6  7  8  9",
             "  0  not in the file system",
