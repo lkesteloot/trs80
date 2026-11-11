@@ -205,8 +205,8 @@ export interface BasicChoice {
 
 /**
  * A TRSDOS directory entry's date for JSON output: "YYYY-MM-DD", with "THH:MM" if the entry has a time
- * stamp, or only "YYYY-MM" or "YYYY" where the entry has no day or no month, rather than making up the
- * rest. Undefined if the entry has no date. Both "dir --json" (FileJson.date) and the "disk" command's
+ * stamp, or only "YYYY-MM" where the DOS records no day (such as TRSDOS 1.3), rather than making up the day. Undefined
+ * if the entry has no date (see TrsdosDirEntry.hasDate()). Both "dir --json" (FileJson.date) and the "disk" command's
  * attributes use it, so that they agree.
  *
  * @param dirEntry the file's primary directory entry.
@@ -217,11 +217,7 @@ export function trsdosDirEntryJsonDate(dirEntry: TrsdosDirEntry): string | undef
         return undefined;
     }
 
-    const {month, day} = dirEntry;
-    if (month === 0) {
-        return date.getFullYear().toString().padStart(4, "0");
-    }
-    if (day === 0) {
+    if (dirEntry.day === 0) {
         return jsonDate(date, false, false).substring(0, 7);
     }
 
@@ -287,9 +283,8 @@ export class TrsdosInputFile extends InputFile {
     }
 
     /**
-     * The date, with the time only if the entry has one (only some disks have time stamps).
-     * Some entries have just a year, or a year and month, and then that's all we give, rather
-     * than make up the rest. See trsdosDirEntryJsonDate().
+     * The date, with the time only if the entry has one (only some disks have time stamps), and without
+     * the day where the DOS records none. See trsdosDirEntryJsonDate().
      */
     public override getJsonDate(): string | undefined {
         return trsdosDirEntryJsonDate(this.dirEntry);

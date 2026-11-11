@@ -27,8 +27,10 @@ describe("TrsdosDirEntry.getDate", () => {
         expect(makeDirEntry(15, 6, 1983, 13, 45).getDate()).to.eql(new Date(1983, 5, 15, 13, 45));
     });
 
-    it("treats a year-only date as January 1", () => {
-        expect(makeDirEntry(0, 0, 1980).getDate()).to.eql(new Date(1980, 0, 1));
+    it("has no date when the month is zero, whatever the year", () => {
+        expect(makeDirEntry(0, 0, 1980).hasDate()).to.equal(false);
+        expect(makeDirEntry(0, 0, 1980).getDate()).to.be.undefined;
+        expect(makeDirEntry(0, 0, 1985).getFullDateString()).to.equal("");
     });
 
     it("treats a missing day as the first of the month", () => {
@@ -37,6 +39,12 @@ describe("TrsdosDirEntry.getDate", () => {
 
     it("returns undefined when there's no year", () => {
         expect(makeDirEntry(0, 0, undefined).getDate()).to.be.undefined;
+        expect(makeDirEntry(15, 6, undefined).hasDate()).to.equal(false);
+    });
+
+    it("formats a date with and without a day", () => {
+        expect(makeDirEntry(15, 6, 1983).getFullDateString()).to.equal("15/06/1983");
+        expect(makeDirEntry(0, 6, 1983).getFullDateString()).to.equal("   06/1983");
     });
 });
 

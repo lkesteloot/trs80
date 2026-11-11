@@ -1395,32 +1395,40 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     }
 
     /**
-     * Return the date in DD/MM/YYYY format, where the day might be blank if missing, followed by
-     * the time in HH:MM format if the entry has one. Empty if the file has no date.
+     * Whether the entry has a date. A month of zero means that no date was set (or the DOS has no dates),
+     * whatever the year bits say: a blank entry's year bits read as the DOS's first year. See the
+     * directory entry layout in FLOPPY_FORMATS.md.
+     */
+    public hasDate(): boolean {
+        return this.year !== undefined && this.month !== 0;
+    }
+
+    /**
+     * Return the date in DD/MM/YYYY format, where the day is blank if the DOS records none (as TRSDOS 1.3 doesn't), followed
+     * by the time in HH:MM format if the entry has one. Empty if the file has no date.
      */
     public getFullDateString(): string {
-        if (this.year === undefined) {
+        if (!this.hasDate() || this.year === undefined) {
             return "";
         }
         return (this.day === 0 ? "   " : this.day.toString().padStart(2, "0") + "/") +
-            (this.month === 0 ? "   " : this.month.toString().padStart(2, "0") + "/") +
+            this.month.toString().padStart(2, "0") + "/" +
             this.year.toString() +
             (this.hour === undefined || this.minute === undefined ? "" :
                 " " + this.hour.toString().padStart(2, "0") + ":" + this.minute.toString().padStart(2, "0"));
     }
 
     /**
-     * Return the date (and time, if known) as an object, or undefined if the file has no date.
-     * A missing month or day (zero) becomes the first, so that a year-only date is January 1 of
-     * that year rather than rolling back into the previous one.
+     * Return the date (and time, if known) as an object, or undefined if the file has no date (see
+     * {@link hasDate}). A missing day (zero, as on TRSDOS 1.3) becomes the first, rather than rolling
+     * back into the previous month.
      */
     public getDate(): Date | undefined {
-        if (this.year === undefined) {
+        if (!this.hasDate() || this.year === undefined) {
             return undefined;
         }
-        const month = this.month === 0 ? 1 : this.month;
         const day = this.day === 0 ? 1 : this.day;
-        return new Date(this.year, month - 1, day, this.hour ?? 0, this.minute ?? 0);
+        return new Date(this.year, this.month - 1, day, this.hour ?? 0, this.minute ?? 0);
     }
 }
 

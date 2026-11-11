@@ -454,8 +454,8 @@ export interface FileJson extends ContainerJson {
     /**
      * The date recorded in the directory, as "YYYY-MM-DD" or, if the time is recorded too,
      * "YYYY-MM-DDTHH:MM". These have no time zone, except those that end in "Z", which are UTC.
-     * Some TRSDOS entries record only the year or only the year and month, and then it's just "YYYY"
-     * or "YYYY-MM". Missing if the file has no date.
+     * Some TRSDOS entries (such as TRSDOS 1.3's) record only the year and month, and then it's just
+     * "YYYY-MM". Missing if the file has no date.
      */
     date?: string;
     /** Missing if the file isn't damaged (or if it didn't come from a floppy). */

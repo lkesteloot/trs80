@@ -1381,6 +1381,11 @@ Where they differ:
   and TRSDOS 2.3: reserved, 0. So only the LDOS line has file dates, and a
   month in byte 1 of a NEWDOS/80 entry is really flag bits. LDOS 5.3 and LS-DOS
   6.3 extend the year in bytes 18-19 (see "Time stamps (LDOS 5.3 and LS-DOS 6.3)").
+- **A month of 0 is no date**, whatever byte 2 holds. A blank entry's year bits
+  read as 1980 (1900 on TRSDOS 1.3), which is how over 8,000 files in the
+  collection were once listed as dated 1980. About 50 entries have a month of 0
+  with other bits in byte 2, such as day 31 (Infocom's DISKDUP/CMD) or years
+  like 1904 and 1986 (SuperDOS and MultiDOS disks); none is a real date.
 - **Byte 0 bit 5**: a partitioned data set in TRSDOS 6, reserved elsewhere.
 - **Protection levels.** LDOS 5.1 and NEWDOS/80: 0 full, 1 kill, 2 rename, 3
   unused, 4 write, 5 read, 6 execute, 7 none. TRSDOS 6 renumbers the middle: 1

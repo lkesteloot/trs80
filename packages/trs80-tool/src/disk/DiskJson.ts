@@ -280,7 +280,7 @@ export interface AttribFileJson {
     accessPassword: boolean;
     /**
      * The file's date, as "dir --json" gives it in the file's "date" field: "YYYY-MM-DD", with "THH:MM" on disks
-     * with time stamps that have one, or only "YYYY-MM" or "YYYY" if the entry has no day or no month. Null if it
+     * with time stamps that have one, or only "YYYY-MM" where the DOS records no day. Null if it
      * has no date.
      */
     date: string | null;

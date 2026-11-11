@@ -280,6 +280,11 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
     marked for removal; `getDirEntries()` silently drops entries that don't
     decode (see "Garbage directory slots" above); `findFile()` decodes the
     whole directory for each lookup.
+- [ ] **The "date not set" bit.** `TrsdosDirEntry.hasDate()` goes by the month alone (0 is no
+      date). The LDOS line also has bit 4 of byte 1 for "date not set" (see "Directory entries
+      (2.3 family)" in `FLOPPY_FORMATS.md`), which the writer sets with a month of 0 but the
+      decoder doesn't read. Check whether any disk has the bit set with a month from 1 to 12
+      before deciding whether it should count.
 
 ## Naming the DOS
 

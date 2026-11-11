@@ -403,16 +403,15 @@ describe("disk --json", () => {
         expect(commandAt<AttribChangeResultJson>(run, 4, "attrib").result.changes).to.eql({date: null});
         expect(commandAt<AttribChangeResultJson>(run, 5, "attrib").result.changes).to.eql({updatePassword: "removed"});
 
-        // The date is the one "dir --json" gives.
-        const dated = commandAt<AttribShowResultJson>(run, 2, "attrib").result.files[0];
-        expect(dated.date).to.be.a("string");
+        // "add" gave the file no date.
+        expect(first.files[0].date).to.equal(null);
 
         const last = commandAt<AttribShowResultJson>(run, 6, "attrib").result.files[0];
         expect(last.invisible).to.equal(true);
         expect(last.protection).to.eql({level: 5, name: "READ"});
         expect(last.updatePassword).to.equal(false);
-        // With no date, the entry still has a year (the DOS's first), which "dir --json" gives too.
-        expect(last.date).to.equal("1980");
+        // With no date, the entry's year bits still read as the DOS's first year, which isn't a date.
+        expect(last.date).to.equal(null);
     });
 
     it("gives the files that extract wrote, and rename's names, and undo", async () => {

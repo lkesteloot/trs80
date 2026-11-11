@@ -187,8 +187,7 @@ export function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtec
     if (dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH) {
         parts.push("access password");
     }
-    // A month of zero means the date was never set (or the DOS has no dates), whatever the year bits say.
-    if (dirEntry.month !== 0) {
+    if (dirEntry.hasDate()) {
         parts.push("date " + dirEntry.getFullDateString().trim());
     }
     return dirEntry.getFilename("/") + ": " + parts.join(", ");
