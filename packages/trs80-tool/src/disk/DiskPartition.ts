@@ -4,6 +4,8 @@ import {
 } from "trs80-disk";
 import {ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
+import {partitionLocationToJson, partitionsToJson} from "./DiskJson.js";
+import type {DiskOutput} from "./DiskOutput.js";
 import {parseAddDate, parseCountOption, parseModelOption, type ParsedDiskCommand} from "./DiskCommandParser.js";
 import {formatDosHelpLines, parseFormatDosName} from "./DiskHelp.js";
 
@@ -19,9 +21,10 @@ const ADD_ONLY_OPTIONS = [
  *
  * @param session the session.
  * @param command the parsed command, whose one argument is the DOS.
+ * @param out where the command's output goes.
  * @throws ToolError if the DOS or an option is bad, there's no room, or the disk can't be written.
  */
-function addPartitionFromCommand(session: DiskSession, command: ParsedDiskCommand): void {
+function addPartitionFromCommand(session: DiskSession, command: ParsedDiskCommand, out: DiskOutput): void {
     const options = command.options;
     if (command.args.length === 0) {
         throw new ToolError("partition --add needs a DOS to format the partition for. The DOSes are:\n" +
@@ -46,11 +49,14 @@ function addPartitionFromCommand(session: DiskSession, command: ParsedDiskComman
         force: options.has("--force"),
     });
     const added = result.partition;
-    console.log("Added partition " + result.number + ", " + added.diskName + ": " + added.partition.describeLocation() +
+    out.line("Added partition " + result.number + ", " + added.diskName + ": " + added.partition.describeLocation() +
         ", " + added.trsdos.nameAndVersion + ", directory on cylinder " + added.trsdos.dirLumpNumber + ".");
     for (const line of describeDriverSettings(session.hardDisk.getGeometry(), [{number: result.number, partition: added}])) {
-        console.log(line);
+        out.line(line);
     }
+    out.result({
+        added: {number: result.number, diskName: added.diskName, location: partitionLocationToJson(added)},
+    });
 }
 
 /**
@@ -58,17 +64,19 @@ function addPartitionFromCommand(session: DiskSession, command: ParsedDiskComman
  *
  * @param session the session.
  * @param command the parsed command, whose argument, if any, names the partition.
+ * @param out where the command's output goes.
  * @throws ToolError if no partition is named or selected, it has files and there's no --force, or the disk
  * can't be written.
  */
-function deletePartitionFromCommand(session: DiskSession, command: ParsedDiskCommand): void {
+function deletePartitionFromCommand(session: DiskSession, command: ParsedDiskCommand, out: DiskOutput): void {
     if (command.args.length > 1) {
         throw new ToolError("partition --delete takes at most one partition");
     }
 
     const result = deletePartition(session, command.args[0], command.options.has("--force"));
     const renumbered = result.renumbered ? " The partitions after it are renumbered." : "";
-    console.log("Deleted " + result.label + ". Its space (" + result.location + ") is free." + renumbered);
+    out.line("Deleted " + result.label + ". Its space (" + result.location + ") is free." + renumbered);
+    out.result({deleted: {number: result.number, label: result.label}, renumbered: result.renumbered});
 }
 
 /**
@@ -175,7 +183,7 @@ export const PARTITION_COMMAND: DiskCommand = {
      * @throws ToolError if the disk is a floppy, the options don't make sense together, or the argument doesn't
      * name exactly one partition.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         if (!session.isHardDisk()) {
             throw new ToolError("The disk is a floppy, which has no partitions");
         }
@@ -197,11 +205,11 @@ export const PARTITION_COMMAND: DiskCommand = {
         }
 
         if (adding) {
-            addPartitionFromCommand(session, command);
+            addPartitionFromCommand(session, command, out);
             return;
         }
         if (deleting) {
-            deletePartitionFromCommand(session, command);
+            deletePartitionFromCommand(session, command, out);
             return;
         }
         if (command.args.length > 1) {
@@ -213,13 +221,15 @@ export const PARTITION_COMMAND: DiskCommand = {
             const lines = session.describePartitionLines();
             const freeLines = describeFreeSpaceLines(session.hardDisk.getGeometry(), session.getPartitions());
             for (const line of [...lines, ...freeLines]) {
-                console.log(line);
+                out.line(line);
             }
+            out.result({partitions: partitionsToJson(session)});
             return;
         }
 
         session.selectPartition(wanted);
-        console.log("Working on partition " + session.selectedPartitionNumber + " (" +
+        out.line("Working on partition " + session.selectedPartitionNumber + " (" +
             session.selectedPartitionName + ").");
+        out.result({selected: session.selectedPartitionNumber!});
     },
 };

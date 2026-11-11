@@ -20,15 +20,24 @@ export interface DiskHelpOutput {
 }
 
 /**
+ * Help output that gives each line of the help text to a function, without the newline that ends the text.
+ *
+ * @param emit shows one line.
+ */
+export function makeLineHelpOutput(emit: (line: string) => void): DiskHelpOutput {
+    return {
+        write: text => {
+            for (const line of (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n")) {
+                emit(line);
+            }
+        },
+    };
+}
+
+/**
  * The usual destination of help: the console, a line at a time.
  */
-export const CONSOLE_HELP_OUTPUT: DiskHelpOutput = {
-    write: text => {
-        for (const line of (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n")) {
-            console.log(line);
-        }
-    },
-};
+export const CONSOLE_HELP_OUTPUT: DiskHelpOutput = makeLineHelpOutput(line => console.log(line));
 
 /**
  * Set up a Command to be used inside our shell, whose commands must not exit the process or print

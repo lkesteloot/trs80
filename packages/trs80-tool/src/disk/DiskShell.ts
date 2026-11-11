@@ -12,6 +12,13 @@ import {
 } from "./DiskCommandParser.js";
 import {DiskSession, type DiskShellTerminal} from "trs80-disk";
 import {saveAndReport, sessionInputFiles} from "./DiskFiles.js";
+import {type DiskRunOutput, TEXT_RUN_OUTPUT} from "./DiskOutput.js";
+
+/**
+ * What to say when --json is given with no commands and standard input is a terminal, where there's no
+ * script to describe.
+ */
+export const JSON_NEEDS_COMMANDS_MESSAGE = "--json needs commands, on the command line or in a script on standard input";
 
 /**
  * The text of the prompt of the interactive shell, before it's colored: ">", with the name of the
@@ -161,10 +168,12 @@ export function completeDiskLine(line: string, commandNames: string[], fileNames
  * @param session the open disk.
  * @param line the line of text, which can have several commands separated by ":".
  * @param globalOptions the options from the real command line, which apply to the whole session.
+ * @param runOutput where the commands' output goes (the console by default).
  * @returns a promise for whether a command ended the session.
  * @throws ToolError (as a rejection) for syntax errors or failing commands.
  */
-export async function runDiskLine(session: DiskSession, line: string, globalOptions: DiskOptionValues): Promise<boolean> {
+export async function runDiskLine(session: DiskSession, line: string, globalOptions: DiskOptionValues,
+                                  runOutput: DiskRunOutput = TEXT_RUN_OUTPUT): Promise<boolean> {
     const words = splitCommandLine(line);
     if (words.length === 0) {
         return false;
@@ -172,7 +181,7 @@ export async function runDiskLine(session: DiskSession, line: string, globalOpti
 
     // Global options come from the real command line, so there are none inside the shell.
     const parsed = parseDiskCommandLine(words, [], DISK_COMMANDS.map(c => c.spec));
-    return await runDiskCommands(session, parsed.commands, globalOptions);
+    return await runDiskCommands(session, parsed.commands, globalOptions, runOutput);
 }
 
 /**
@@ -224,14 +233,17 @@ async function readStdinLines(): Promise<string[]> {
  *
  * @param session the open disk.
  * @param globalOptions the options from the real command line.
+ * @param runOutput where the commands' output goes.
  * @throws ToolError at the first failing line.
  */
-async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskOptionValues): Promise<void> {
+async function runDiskScriptFromStdin(session: DiskSession, globalOptions: DiskOptionValues,
+                                      runOutput: DiskRunOutput): Promise<void> {
     const lines = await readStdinLines();
-    await runDiskScript(lines, line => runDiskLine(session, line, globalOptions));
+    await runDiskScript(lines, line => runDiskLine(session, line, globalOptions, runOutput));
 
     // Only reached if every line worked. A "quit" has already saved, and an "abort" saves nothing.
-    saveAndReport(session, false);
+    runOutput.endCommands();
+    saveAndReport(session, false, runOutput.outside);
 }
 
 /**
@@ -407,12 +419,18 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
  *
  * @param session the open disk.
  * @param globalOptions the options from the real command line, which apply to the whole session.
- * @throws ToolError if a line of a script fails (an interactive shell shows errors and carries on).
+ * @param runOutput where the commands' output goes (the console by default). A JSON run can't be interactive.
+ * @throws ToolError if a line of a script fails (an interactive shell shows errors and carries on), or if
+ * the run is JSON and standard input is a terminal.
  */
-export async function runDiskShell(session: DiskSession, globalOptions: DiskOptionValues): Promise<void> {
+export async function runDiskShell(session: DiskSession, globalOptions: DiskOptionValues,
+                                   runOutput: DiskRunOutput = TEXT_RUN_OUTPUT): Promise<void> {
     if (process.stdin.isTTY) {
+        if (runOutput.json) {
+            throw new ToolError(JSON_NEEDS_COMMANDS_MESSAGE);
+        }
         await runInteractiveDiskShell(session, globalOptions);
     } else {
-        await runDiskScriptFromStdin(session, globalOptions);
+        await runDiskScriptFromStdin(session, globalOptions, runOutput);
     }
 }

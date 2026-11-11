@@ -30,14 +30,16 @@ export const PROTECT_COMMAND: DiskCommand = {
      *
      * @throws ToolError if the argument isn't "on" or "off", or the image's format has no flag.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const wanted = command.args[0]?.toLowerCase();
         if (wanted === undefined) {
             const current = getWriteProtect(session);
             if (typeof current === "string") {
-                console.log(current);
+                out.line(current);
+                out.result({writeProtected: null, reason: current});
             } else {
-                console.log(current ? "The image is write-protected." : "The image isn't write-protected.");
+                out.line(current ? "The image is write-protected." : "The image isn't write-protected.");
+                out.result({writeProtected: current});
             }
             return;
         }
@@ -48,10 +50,11 @@ export const PROTECT_COMMAND: DiskCommand = {
 
         const writeProtected = wanted === "on";
         const changed = setWriteProtect(session, writeProtected);
+        out.result({writeProtected, changed});
         if (!changed) {
-            console.log(writeProtected ? "The image is already write-protected." : "The image is already writable.");
+            out.line(writeProtected ? "The image is already write-protected." : "The image is already writable.");
             return;
         }
-        console.log(writeProtected ? "The image is now write-protected." : "The image is now writable.");
+        out.line(writeProtected ? "The image is now write-protected." : "The image is now writable.");
     },
 };

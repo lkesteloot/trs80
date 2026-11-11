@@ -12,6 +12,7 @@ import type {ParsedDiskCommand} from "./DiskCommandParser.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
 import {drawGranuleMap, MAP_COMMAND} from "./DiskMap.js";
 import {makeDiskMapModel, type DiskSession} from "trs80-disk";
+import {TEXT_OUTPUT} from "./DiskOutput.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 2, granuleOffset: 0, granuleCount: 3}], size: 3000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 1, granuleCount: 1}], size: 300};
@@ -339,7 +340,7 @@ describe("disk map", () => {
             fileSystem: {nameAndVersion: "CP/M 2.2"}, pathname: "cpm.dmk",
         } as unknown as DiskSession;
         const command = {name: "map", spec: MAP_COMMAND.spec, args: [], options: new DiskOptionValues()} as unknown as ParsedDiskCommand;
-        expect(() => MAP_COMMAND.run(session, command, new DiskOptionValues())).toThrow(
+        expect(() => MAP_COMMAND.run(session, command, new DiskOptionValues(), TEXT_OUTPUT)).toThrow(
             "map works on TRSDOS-family disks, not CP/M 2.2 disks");
     });
 });

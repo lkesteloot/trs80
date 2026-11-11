@@ -5,6 +5,7 @@ import {colors} from "../colors.js";
 import {floppyInputFiles, type InputFile} from "../InputFile.js";
 import {ToolError, writeFileAtomically} from "../utils.js";
 import {NODE_TEMPLATES} from "./NodeTemplates.js";
+import {type DiskOutput, type SaveOutcome, TEXT_OUTPUT} from "./DiskOutput.js";
 
 /**
  * Open a disk image file as a session, the way the "disk" command does: read the file from the host, and
@@ -51,24 +52,38 @@ export function saveDiskSession(session: DiskSession): string | undefined {
  *
  * @param session the session to save.
  * @param announceNoChanges whether to say so when there's nothing to save, as the "save" command does.
+ * @param out where to say it, and to record what happened for --json (the console by default).
+ * @returns what happened: the pathname written (null if nothing was written, because there were no
+ * changes, or --dry-run, or abort), and whether --dry-run kept changes from being written.
  * @throws ToolError if the file can't be written.
  */
-export function saveAndReport(session: DiskSession, announceNoChanges: boolean): void {
+export function saveAndReport(session: DiskSession, announceNoChanges: boolean,
+                              out: DiskOutput = TEXT_OUTPUT): SaveOutcome {
+
     if (session.isAborted()) {
-        return;
+        return {saved: null, wouldHaveChanged: false};
     }
 
     if (!session.hasChanges()) {
         if (announceNoChanges) {
-            console.log("No changes to save.");
+            out.line("No changes to save.");
         }
-    } else if (session.dryRun) {
-        console.log("Not saved (--dry-run): " + session.saveName + " would have changed.");
+        return {saved: null, wouldHaveChanged: false};
+    }
+
+    let outcome: SaveOutcome;
+    if (session.dryRun) {
+        out.line("Not saved (--dry-run): " + session.saveName + " would have changed.");
         session.markSaved();
+        outcome = {saved: null, wouldHaveChanged: true};
     } else {
         const savedPathname = saveDiskSession(session);
-        console.log("Saved " + savedPathname + ".");
+        out.line("Saved " + savedPathname + ".");
+        outcome = {saved: savedPathname ?? null, wouldHaveChanged: false};
     }
+    out.saved(outcome);
+
+    return outcome;
 }
 
 /**

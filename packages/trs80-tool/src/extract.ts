@@ -26,6 +26,24 @@ function makeUniquePath(components: string[], usedPaths: Set<string>): void {
 }
 
 /**
+ * A file that {@link extractInputFiles} or {@link extractOneInputFile} wrote.
+ */
+export interface ExtractedFile {
+    /** The file's name on the disk or tape. */
+    name: string;
+    /** The host path that it was written to. */
+    pathname: string;
+}
+
+/**
+ * Show a line of the report of an extraction on the console, which is where it goes unless the caller says
+ * otherwise.
+ */
+function printReportLine(text: string): void {
+    console.log(text);
+}
+
+/**
  * Whether the error is the file system's complaint that a file is in the way of a directory or a
  * directory in the way of a file, as when a disk has both a file "a" and a file "a/b".
  */
@@ -63,10 +81,11 @@ function isRegularFile(pathname: string): boolean {
  * @param outDirname existing directory that the files are written to.
  * @param markDamaged whether to add " [DAMAGED]" to the name of a file that had damage.
  * @param usedPaths paths written so far, joined with "/" and in lower case, which this adds to.
+ * @param line shows a line of the report.
  * @returns whether the part was appended.
  */
 function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: string, outDirname: string,
-                      markDamaged: boolean, usedPaths: Set<string>): boolean {
+                      markDamaged: boolean, usedPaths: Set<string>, line: (text: string) => void): boolean {
 
     const components = safeOutputPath(filename, infile.hasDirectories());
     let outpath = path.join(outDirname, ... components);
@@ -77,7 +96,7 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
             outpath = damagedPath;
             components[components.length - 1] += DAMAGED_SUFFIX;
         } else {
-            console.log("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
+            line("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
                 " of a " + extent.fileSize.toLocaleString() + "-byte file, and the earlier parts aren't in " +
                 outDirname + ". Extract the disk with part 1 into this directory first.");
             return false;
@@ -86,7 +105,7 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
 
     const existingSize = fs.statSync(outpath).size;
     if (existingSize === extent.fileSize) {
-        console.log("Skipped " + outpath + ": already complete (" +
+        line("Skipped " + outpath + ": already complete (" +
             pluralizeWithCount(extent.fileSize, "byte") + ")");
         return false;
     }
@@ -97,7 +116,7 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
     // belongs, only that it leaves room for the parts after it.
     const fits = extent.number === extent.count ? newSize === extent.fileSize : newSize < extent.fileSize;
     if (!fits) {
-        console.log("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
+        line("Skipped " + outpath + ": part " + extent.number + " of " + extent.count +
             " doesn't follow the existing " + pluralizeWithCount(existingSize, "byte") +
             " file (the whole file is " + pluralizeWithCount(extent.fileSize, "byte") +
             "). Extract the parts in order, starting with part 1.");
@@ -111,7 +130,7 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
     if (infile.damage !== undefined && markDamaged && !outpath.endsWith(DAMAGED_SUFFIX)) {
         const damagedPath = outpath + DAMAGED_SUFFIX;
         if (fs.existsSync(damagedPath)) {
-            console.log("Not renaming " + outpath + ": " + damagedPath + " already exists");
+            line("Not renaming " + outpath + ": " + damagedPath + " already exists");
         } else {
             fs.renameSync(outpath, damagedPath);
             outpath = damagedPath;
@@ -125,7 +144,7 @@ function appendExtent(infile: InputFile, extent: XenixTarExtent, filename: strin
     if (date !== undefined) {
         fs.utimesSync(outpath, date, date);
     }
-    console.log("Appended part " + extent.number + " of " + extent.count + " to " + outpath + " (" +
+    line("Appended part " + extent.number + " of " + extent.count + " to " + outpath + " (" +
         pluralizeWithCount(binary.length, "byte") + ", now " + newSize.toLocaleString() + " of " +
         extent.fileSize.toLocaleString() + (newSize === extent.fileSize ? ", complete" : "") +
         damageNotes(infile) + (renamed ? ", renamed to mark the damage" : "") + ")");
@@ -198,12 +217,15 @@ export function extract(inFilename: string, outDirname: string, patterns: string
  * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
  * @param lowercase whether to write the files with lowercase names, as in "foo.cmd" for "FOO.CMD".
  * @param wildcardsMatchSystemFiles whether system files in allFiles can match wildcards (see selectInputFiles()).
+ * @param line shows a line of the report (default: print it on the console).
+ * @returns the files written (not the parts appended to files).
  * @throws ToolError if the output path exists but isn't a directory, or if a pattern matches no file.
  * Nothing is written in either case.
  */
 export function extractInputFiles(allFiles: InputFile[], containerName: string, outDirname: string,
                                   patterns: string[], ucsdPascalRawText: boolean, markDamaged: boolean,
-                                  lowercase: boolean, wildcardsMatchSystemFiles = true): void {
+                                  lowercase: boolean, wildcardsMatchSystemFiles = true,
+                                  line: (text: string) => void = printReportLine): ExtractedFile[] {
 
     checkOutputDirectory(outDirname);
 
@@ -219,6 +241,7 @@ export function extractInputFiles(allFiles: InputFile[], containerName: string, 
 
     fs.mkdirSync(outDirname, { recursive: true });
 
+    const written: ExtractedFile[] = [];
     let writtenCount = 0;
     let appendedCount = 0;
     const usedPaths = new Set<string>();
@@ -227,7 +250,7 @@ export function extractInputFiles(allFiles: InputFile[], containerName: string, 
         const filename = lowercase ? infile.filename.toLowerCase() : infile.filename;
         const extent = infile instanceof XenixTarInputFile ? infile.file.extent : undefined;
         if (extent !== undefined && extent.number > 1) {
-            const appended = appendExtent(infile, extent, filename, outDirname, markDamaged, usedPaths);
+            const appended = appendExtent(infile, extent, filename, outDirname, markDamaged, usedPaths, line);
             if (appended) {
                 appendedCount++;
             }
@@ -247,26 +270,30 @@ export function extractInputFiles(allFiles: InputFile[], containerName: string, 
                 throw error;
             }
             // Skip the file rather than stop, so that one odd name doesn't lose the rest.
-            console.log("Skipped " + outpath + ": a file and a directory have the same name");
+            line("Skipped " + outpath + ": a file and a directory have the same name");
             continue;
         }
         writtenCount++;
+        written.push({name: infile.filename, pathname: outpath});
         const date = infile.getDate();
         if (date !== undefined) {
             fs.utimesSync(outpath, date, date);
         }
-        console.log("Wrote " + outpath + " (" +
+        line("Wrote " + outpath + " (" +
             pluralizeWithCount(binary.length, "byte") + damageNotes(infile) + ")");
         if (extent !== undefined) {
-            console.log("  Only part " + extent.number + " of " + extent.count + " of a " +
+            line("  Only part " + extent.number + " of " + extent.count + " of a " +
                 extent.fileSize.toLocaleString() + "-byte file. Extract the disks with the other parts " +
                 "into this directory, in order, to complete it.");
         }
     }
 
-    console.log("Extracted " + pluralizeWithCount(writtenCount, "file") +
+    line("Extracted " + pluralizeWithCount(writtenCount, "file") +
         (appendedCount > 0 ? ", appended " + pluralizeWithCount(appendedCount, "part") : ""));
+
+    return written;
 }
+
 
 /**
  * Write the one file of an already-loaded container that matches the patterns to an exact host
@@ -281,12 +308,15 @@ export function extractInputFiles(allFiles: InputFile[], containerName: string, 
  * @param ucsdPascalRawText whether a UCSD Pascal text file is written as it is on the disk,
  * instead of converted to host text.
  * @param wildcardsMatchSystemFiles whether system files in allFiles can match wildcards (see selectInputFiles()).
+ * @param line shows a line of the report (default: print it on the console).
+ * @returns the file written.
  * @throws ToolError if a pattern matches no file, if the patterns don't choose exactly one file, or if
  * the output path is a directory. Nothing is written in these cases.
  */
 export function extractOneInputFile(allFiles: InputFile[], containerName: string, outPathname: string,
                                     patterns: string[], ucsdPascalRawText: boolean,
-                                    wildcardsMatchSystemFiles = true): void {
+                                    wildcardsMatchSystemFiles = true,
+                                    line: (text: string) => void = printReportLine): ExtractedFile {
 
     const { selected: inFiles, unmatchedPattern, unmatchedOnlySystem } =
         selectInputFiles(allFiles, patterns, wildcardsMatchSystemFiles);
@@ -311,7 +341,8 @@ export function extractOneInputFile(allFiles: InputFile[], containerName: string
     if (date !== undefined) {
         fs.utimesSync(outPathname, date, date);
     }
-    console.log("Wrote " + outPathname + " (" + pluralizeWithCount(binary.length, "byte") + damageNotes(infile) + ")");
+    line("Wrote " + outPathname + " (" + pluralizeWithCount(binary.length, "byte") + damageNotes(infile) + ")");
+    return {name: infile.filename, pathname: outPathname};
 }
 
 /**

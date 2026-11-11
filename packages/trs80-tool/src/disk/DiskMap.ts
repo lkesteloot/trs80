@@ -7,7 +7,8 @@ import {assertNever} from "z80-base";
 import {colors, filePalette, type Style} from "../colors.js";
 import {pluralize, pluralizeWithCount} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
-import {printLines} from "./DiskList.js";
+import {mapToJson} from "./DiskJson.js";
+import {outputPagedLines} from "./DiskList.js";
 
 /**
  * The width to draw for when stdout isn't a terminal.
@@ -484,10 +485,11 @@ export const MAP_COMMAND: DiskCommand = {
      * Draw the map, through the pager if it's taller than the screen. It only reads, so it works on any
      * disk whose file system is TRSDOS-family, including a read-only one.
      */
-    run(session: DiskSession, command) {
+    run(session: DiskSession, command, globalOptions, out) {
         const model = buildDiskMap(session, command.args);
 
         const width = process.stdout.columns ?? DEFAULT_WIDTH;
-        printLines(drawGranuleMap(model, width));
+        outputPagedLines(out, drawGranuleMap(model, width));
+        out.result(mapToJson(model));
     },
 };

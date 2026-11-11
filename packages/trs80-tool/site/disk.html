@@ -67,6 +67,7 @@
                     </ul>
                 </li>
                 <li><a href="#prompt">The prompt and scripts</a></li>
+                <li><a href="#json">JSON output</a></li>
                 <li><a href="#hard-disks">Hard disks</a></li>
             </ul>
 
@@ -103,6 +104,11 @@
                         system), after printing a warning. It can’t override a problem with no safe way
                         around, such as a disk whose DOS can’t be identified, which <code>--dos</code> settles.
                         Put it before the first command.</td>
+                </tr>
+                <tr>
+                    <td><code>--json</code></td>
+                    <td>Print one JSON object describing the whole run, instead of text. See
+                        <a href="#json">JSON output</a>. Put it before the first command.</td>
                 </tr>
             </table>
 
@@ -748,6 +754,88 @@ Type "help" for a list of commands, and "quit" to leave.
             </div>
             <p>Flags such as <code>--color</code> go before <code>disk</code>; after the image,
             everything belongs to the disk commands.</p>
+
+            <h2 id="json">JSON output</h2>
+            <p>With <code>--json</code>, <code>disk</code> prints one JSON object that describes the whole run, for a
+            program to read, instead of the text that it prints for a person. Nothing else goes to standard output, and
+            the exit code is 1 if anything failed, as without it. It works with commands on the command line and
+            with a script on standard input, but not with the interactive prompt, so it needs one or the other. Like the
+            other options for the whole run, it goes before the first command.</p>
+            <div><pre><code>% trs80-tool disk games.dmk --json create ldos-5.3 : add hello.bas : free
+{
+  "image": "games.dmk",
+  "commands": [
+    {
+      "command": "create ldos-5.3",
+      "name": "create",
+      "messages": [
+        "Created games.dmk: Floppy disk (DMK), LDOS 5.3, 0 files, 174 KB free"
+      ],
+      "warnings": [],
+      "result": {
+        "description": "games.dmk: Floppy disk (DMK), LDOS 5.3, 0 files, 174 KB free",
+        "replaced": false
+      }
+    },
+    {
+      "command": "add hello.bas",
+      "name": "add",
+      "messages": [
+        "Tokenized hello.bas.",
+        "Added HELLO/BAS (14 bytes)."
+      ],
+      "warnings": [],
+      "result": {
+        "files": [
+          {
+            "host": "hello.bas",
+            "name": "HELLO/BAS",
+            "size": 14,
+            "replaced": false,
+            "conversions": [
+              "Tokenized hello.bas."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": "free",
+      "name": "free",
+      "messages": [
+        "172 KB free (115 granules of 1,536 bytes each)"
+      ],
+      "warnings": [],
+      "result": {
+        "freeGranules": 115,
+        "granuleBytes": 1536,
+        "freeBytes": 176640
+      }
+    }
+  ],
+  "saved": "games.dmk",
+  "warnings": []
+}</code></pre>
+            </div>
+            <p>The top level has the image’s path, a <code>commands</code> array with one entry for each command that ran,
+            in order, the path that the changes were <code>saved</code> to (or <code>null</code>), the
+            <code>warnings</code> that the decoders logged, and, only with <code>--dry-run</code>,
+            <code>wouldHaveChanged</code>. If something stops the run before or between commands, such as an image that
+            can’t be opened or a script line with a syntax error, its message is in a top-level <code>error</code>.</p>
+            <p>Each entry in <code>commands</code> has the command as typed, its <code>name</code> (without aliases, so
+            <code>add</code> for <code>put</code>), the <code>messages</code> that the text mode would have printed, line
+            by line and without colors, and any <code>warnings</code>. The messages are for showing to people; their
+            wording may change, so a program should use the <code>result</code> instead, which has the same
+            information in separate, named fields and is different for each command (<code>name</code> says which).
+            A command that fails has an <code>error</code> and no <code>result</code>, and it is the last entry,
+            since the rest of the commands don’t run and nothing is saved. A syntax error on the command line is the
+            exception: it’s found before anything runs, and is printed as text, as without <code>--json</code>.</p>
+            <p>The commands that have no use in a program are refused: <code>boot</code> needs a terminal, and
+            <code>list --raw</code> writes bytes, where <code>list</code> already gives a file’s contents in base64.
+            Fields that don’t apply are left out of the JSON, and the names in it are stable.
+            The comments on the types in
+            <a href="https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/src/disk/DiskJson.ts"><code>src/disk/DiskJson.ts</code></a>
+            are the full reference for the format.</p>
 
             <h2 id="hard-disks">Hard disks</h2>
             <p><code>disk</code> opens HDV hard disk images (the format of xtrs, sdltrs, and FreHD) and works on

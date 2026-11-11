@@ -4,11 +4,11 @@ import {
     type TrsdosDiskInfoChanges, type TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
-import {colors} from "../colors.js";
-import {printDirListing} from "../dir.js";
-import {extractInputFiles, extractOneInputFile} from "../extract.js";
+import {dirListingLines} from "../dir.js";
+import {type ExtractedFile, extractInputFiles, extractOneInputFile} from "../extract.js";
 import {floppyDetailLines} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
+import {fileToJson} from "../json.js";
 import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
@@ -19,7 +19,7 @@ import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {
     type AddFileSource, type AddOptions, addFiles, type AttributeRequest, changeAttributes, changeDiskInfo,
     checkDisk, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
-    findingSeverityHeading, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
+    findingSeverityHeading, getWriteProtect, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
 } from "trs80-disk";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
@@ -27,6 +27,12 @@ import {parseBasicName, printDiskHelp} from "./DiskHelp.js";
 import {PARTITION_COMMAND} from "./DiskPartition.js";
 import {PROTECT_COMMAND} from "./DiskProtect.js";
 import {saveAndReport, sessionInputFiles} from "./DiskFiles.js";
+import {
+    type AttribChangesJson, attribFileToJson, type CheckResultJson, dateToJson, diskInfoToJson, findingKindToJson,
+    findingSeverityToJson, freeSpaceToJson, type InfoResultJson, partitionsToJson, protectionToJson,
+} from "./DiskJson.js";
+import {type DiskOutput, type DiskRunOutput, TEXT_RUN_OUTPUT} from "./DiskOutput.js";
+import {makeLineHelpOutput} from "./DiskCommander.js";
 
 /**
  * One command of the "disk" command: its syntax (for the parser and for help) and what it does.
@@ -64,11 +70,14 @@ export interface DiskCommand {
      * @param session the open disk.
      * @param command the parsed command, with its arguments and options.
      * @param globalOptions the options that apply to the whole run.
+     * @param out where the command's output goes: every line it prints goes through this, not to the console
+     * (so that it can go in JSON), and a command that has a result for --json gives it here.
      * @returns nothing, or a promise for a command that has to wait for something (such as the emulator
      * running until the user stops it), which the commands after it wait for too.
      * @throws ToolError if the command fails, which stops the chain of commands.
      */
-    run(session: DiskSession, command: ParsedDiskCommand, globalOptions: DiskOptionValues): void | Promise<void>;
+    run(session: DiskSession, command: ParsedDiskCommand, globalOptions: DiskOptionValues,
+        out: DiskOutput): void | Promise<void>;
 }
 
 /**
@@ -101,6 +110,11 @@ export const DISK_GLOBAL_OPTIONS: DiskOptionSpec[] = [
         valueName: undefined,
         description: "write even where the disk looks doubtful, if the doubt can be overridden",
     },
+    {
+        name: "--json",
+        valueName: undefined,
+        description: "print one JSON object describing the whole run, instead of text",
+    },
 ];
 
 /**
@@ -127,7 +141,7 @@ const DIR_COMMAND: DiskCommand = {
      * Print the listing, which is the same as the top-level "dir" command's. System files are listed only
      * with --system, or when a pattern names one without wildcards.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const allFiles = sessionInputFiles(session, true);
         const { selected, unmatchedPattern, unmatchedOnlySystem } =
             selectInputFiles(allFiles, command.args, command.options.has("--system"));
@@ -135,7 +149,13 @@ const DIR_COMMAND: DiskCommand = {
             throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"" +
                 systemWildcardHint(unmatchedOnlySystem));
         }
-        printDirListing(selected);
+        for (const line of dirListingLines(selected)) {
+            out.line(line);
+        }
+        out.result({
+            os: session.fileSystem?.nameAndVersion ?? "",
+            files: selected.map(inFile => fileToJson(inFile, undefined)),
+        });
     },
 };
 
@@ -180,7 +200,7 @@ const EXTRACT_COMMAND: DiskCommand = {
      * one selected file to the given path. Nothing is written if a name matches no file. A system file is
      * extracted only by naming it, never by a wildcard.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const outDir = command.options.getString("--out-dir");
         const asPathname = command.options.getString("--as");
         if (asPathname !== undefined && outDir !== undefined) {
@@ -188,12 +208,16 @@ const EXTRACT_COMMAND: DiskCommand = {
         }
 
         const allFiles = sessionInputFiles(session, true);
+        let written: ExtractedFile[];
         if (asPathname !== undefined) {
-            extractOneInputFile(allFiles, session.name, asPathname, command.args, false, false);
+            written = [extractOneInputFile(allFiles, session.name, asPathname, command.args, false, false,
+                text => out.line(text))];
         } else {
-            extractInputFiles(allFiles, session.name, outDir ?? ".", command.args, false,
-                command.options.has("--mark-damaged"), command.options.has("--lowercase"), false);
+            written = extractInputFiles(allFiles, session.name, outDir ?? ".", command.args, false,
+                command.options.has("--mark-damaged"), command.options.has("--lowercase"), false,
+                text => out.line(text));
         }
+        out.result({files: written.map(file => ({name: file.name, path: file.pathname}))});
     },
 };
 
@@ -219,12 +243,13 @@ const KILL_COMMAND: DiskCommand = {
      * match a file or nothing is removed, and a file that several patterns match is removed once.
      * Then say which files were removed.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const removedNames = killFiles(session, command.args);
 
         for (const name of removedNames) {
-            console.log("Removed " + name + ".");
+            out.line("Removed " + name + ".");
         }
+        out.result({removed: removedNames});
     },
 };
 
@@ -247,11 +272,12 @@ const RENAME_COMMAND: DiskCommand = {
      * file or if the new name belongs to another file. The file can be a system file, since it's named.
      * Then say what was renamed.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const [oldText, newText] = command.args;
         const { oldName, newName } = renameFile(session, oldText, newText);
 
-        console.log("Renamed " + oldName + " to " + newName + ".");
+        out.line("Renamed " + oldName + " to " + newName + ".");
+        out.result({from: oldName, to: newName});
     },
 };
 
@@ -337,7 +363,7 @@ const ATTRIB_COMMAND: DiskCommand = {
      * that either every file changes or none does, and say what changed. Every pattern must match a file.
      * With no attribute options, show the selected files' attributes and change nothing.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const options = command.options;
         requireNotBoth(options, "--invisible", "--visible");
         requireNotBoth(options, "--system", "--no-system");
@@ -365,16 +391,38 @@ const ATTRIB_COMMAND: DiskCommand = {
             // Just show the attributes.
             const { dirEntries, protectionNames } = listAttributes(session, command.args);
             for (const dirEntry of dirEntries) {
-                console.log(describeAttributes(dirEntry, protectionNames));
+                out.line(describeAttributes(dirEntry, protectionNames));
             }
+            out.result({files: dirEntries.map(dirEntry => attribFileToJson(dirEntry, protectionNames))});
             return;
         }
 
         const { files, changes, protectionNames } = changeAttributes(session, command.args, request);
         const changeText = describeChanges(changes, protectionNames);
         for (const file of files) {
-            console.log("Changed " + file + ": " + changeText + ".");
+            out.line("Changed " + file + ": " + changeText + ".");
         }
+
+        const changesJson: AttribChangesJson = {};
+        if (changes.invisible !== undefined) {
+            changesJson.invisible = changes.invisible;
+        }
+        if (changes.system !== undefined) {
+            changesJson.system = changes.system;
+        }
+        if (changes.protectionLevel !== undefined) {
+            changesJson.protection = protectionToJson(changes.protectionLevel, protectionNames);
+        }
+        if (changes.updatePassword !== undefined) {
+            changesJson.updatePassword = changes.updatePassword === "" ? "removed" : "set";
+        }
+        if (changes.accessPassword !== undefined) {
+            changesJson.accessPassword = changes.accessPassword === "" ? "removed" : "set";
+        }
+        if (changes.date !== undefined) {
+            changesJson.date = dateToJson(changes.date);
+        }
+        out.result({files, changes: changesJson});
     },
 };
 
@@ -443,7 +491,7 @@ const ADD_COMMAND: DiskCommand = {
      * Then say what was converted and which files were added or replaced, and warn once if the DOS couldn't
      * store the date or a new copy had to be written over its old copy's space.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const asText = command.options.getString("--as");
         const dateText = command.options.getString("--date");
         const date = dateText === undefined ? undefined : parseAddDate(dateText);
@@ -483,7 +531,7 @@ const ADD_COMMAND: DiskCommand = {
         const plan = planAdd(session, sources, addOptions);
         for (const item of plan) {
             if (item.nameChanged) {
-                console.log(item.source.name + " will be " + item.name + ".");
+                out.line(item.source.name + " will be " + item.name + ".");
             }
             if (item.problem !== undefined) {
                 throw new ToolError(item.problem);
@@ -493,14 +541,24 @@ const ADD_COMMAND: DiskCommand = {
         const result = addFiles(session, plan, addOptions);
         for (const file of result.files) {
             for (const message of file.conversionMessages) {
-                console.log(message);
+                out.line(message);
             }
-            console.log((file.replaced ? "Replaced " : "Added ") + file.name + " (" +
+            out.line((file.replaced ? "Replaced " : "Added ") + file.name + " (" +
                 pluralizeWithCount(file.size, "byte") + ").");
         }
         for (const warning of result.warnings) {
-            console.log(colors.warning(warning + "."));
+            out.warning(warning + ".");
         }
+        // The files come back in the order of the plan.
+        out.result({
+            files: result.files.map((file, index) => ({
+                host: plan[index].source.label,
+                name: file.name,
+                size: file.size,
+                replaced: file.replaced,
+                conversions: file.conversionMessages,
+            })),
+        });
     },
 };
 
@@ -549,7 +607,7 @@ const LABEL_COMMAND: DiskCommand = {
      * AUTO command, and change nothing. Otherwise make the changes in one write and say what the disk now
      * has in the fields that changed.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const options = command.options;
         requireNotBoth(options, "--auto", "--no-auto");
 
@@ -570,10 +628,11 @@ const LABEL_COMMAND: DiskCommand = {
         if (!changing) {
             // Just show the information.
             const info = readDiskInfo(session);
-            console.log("Name: " + info.name);
-            console.log("Date: " + (info.date === "" ? "none" : info.date));
-            console.log("Master password: " + describeMasterPassword(info.passwordHash));
-            console.log("AUTO command: " + describeAutoCommand(info.autoCommand));
+            out.line("Name: " + info.name);
+            out.line("Date: " + (info.date === "" ? "none" : info.date));
+            out.line("Master password: " + describeMasterPassword(info.passwordHash));
+            out.line("AUTO command: " + describeAutoCommand(info.autoCommand));
+            out.result(diskInfoToJson(info));
             return;
         }
 
@@ -595,64 +654,90 @@ const LABEL_COMMAND: DiskCommand = {
             sentences.push(changes.autoCommand === "" ? "AUTO command is removed." :
                 "AUTO command is now " + describeAutoCommand(info.autoCommand) + ".");
         }
-        console.log(sentences.join(" "));
+        out.line(sentences.join(" "));
+        out.result(diskInfoToJson(info));
     },
 };
 
 /**
- * Print the details of a hard disk for "info", after its one-line description: the partitions, if none
- * is selected, or the selected partition's layout and file system.
+ * The detail lines of "info" for a hard disk, after its one-line description: the geometry, the partitions,
+ * and, if one is selected, its layout and file system.
  *
  * @param session the open hard disk.
+ * @returns the lines, without indentation.
  */
-function printHardDiskInfo(session: DiskSession): void {
+function hardDiskInfoLines(session: DiskSession): string[] {
+    const lines: string[] = [];
     const geometry = session.hardDisk.getGeometry();
-    console.log("    Geometry: " + pluralizeWithCount(geometry.cylinderCount, "cylinder") + ", " +
+    lines.push("Geometry: " + pluralizeWithCount(geometry.cylinderCount, "cylinder") + ", " +
         pluralizeWithCount(geometry.headCount, "head") + ", " + geometry.sectorsPerTrack + " sectors per track, " +
         geometry.sectorSize + " bytes per sector");
     for (const line of session.describePartitionLines()) {
-        console.log("    Partition " + line.trimStart());
+        lines.push("Partition " + line.trimStart());
     }
 
     const partitionNumber = session.selectedPartitionNumber;
     const partition = partitionNumber === undefined ? undefined : session.getPartitions()[partitionNumber - 1];
     if (partition === undefined) {
         if (session.getPartitions().length > 1) {
-            console.log("    No partition is selected; use \"partition N|NAME\" to choose one.");
+            lines.push("No partition is selected; use \"partition N|NAME\" to choose one.");
         }
-        return;
+        return lines;
     }
 
     const trsdos = partition.trsdos;
-    console.log("    Selected partition: " + partitionNumber + " (" + session.selectedPartitionName + "), " +
+    lines.push("Selected partition: " + partitionNumber + " (" + session.selectedPartitionName + "), " +
         partition.partition.describeLocation());
     const gatInfo = trsdos.getGatInfo();
     if (typeof gatInfo === "string") {
-        console.log("    Error: " + gatInfo);
+        lines.push("Error: " + gatInfo);
     } else {
-        console.log("    Disk name: " + gatInfo.name);
+        lines.push("Disk name: " + gatInfo.name);
         if (gatInfo.date !== "") {
-            console.log("    Disk date: " + gatInfo.date);
+            lines.push("Disk date: " + gatInfo.date);
         }
         if (gatInfo.autoCommand !== "") {
-            console.log("    Auto command: " + gatInfo.autoCommand);
+            lines.push("Auto command: " + gatInfo.autoCommand);
         }
     }
-    console.log("    Directory cylinder: " + trsdos.dirLumpNumber);
-    console.log("    Granules per cylinder: " + trsdos.granulesPerLump);
-    console.log("    Sectors per granule: " + trsdos.sectorsPerGranule);
+    lines.push("Directory cylinder: " + trsdos.dirLumpNumber);
+    lines.push("Granules per cylinder: " + trsdos.granulesPerLump);
+    lines.push("Sectors per granule: " + trsdos.sectorsPerGranule);
+    lines.push(...freeSpaceLines(session));
+    lines.push(...rulesAndWritableLines(session));
+    return lines;
+}
+
+/**
+ * The line of "info" about the free space, if it's known (or why it isn't).
+ *
+ * @param session the open disk.
+ * @returns no lines, or one.
+ */
+function freeSpaceLines(session: DiskSession): string[] {
     const granuleMap = session.getGranuleMap();
     if (typeof granuleMap === "string") {
-        console.log("    Free space: unknown (" + granuleMap + ")");
+        return ["Free space: unknown (" + granuleMap + ")"];
     } else if (granuleMap !== undefined) {
-        console.log("    Free space: " + session.getFreeSpaceText());
+        return ["Free space: " + session.getFreeSpaceText()];
     }
+    return [];
+}
+
+/**
+ * The lines of "info" about which DOS's rules apply and whether the disk can be written.
+ *
+ * @param session the open disk.
+ */
+function rulesAndWritableLines(session: DiskSession): string[] {
+    const lines: string[] = [];
     const gate = session.getWriteGate();
     if (gate !== undefined) {
-        console.log("    Rules: " + (gate.ruleSet === undefined ? "unknown" : trsdosRuleSetToString(gate.ruleSet)));
+        lines.push("Rules: " + (gate.ruleSet === undefined ? "unknown" : trsdosRuleSetToString(gate.ruleSet)));
     }
     const readOnlyReason = session.getReadOnlyReason();
-    console.log("    Writable: " + (readOnlyReason === undefined ? "yes" : "no. " + readOnlyReason));
+    lines.push("Writable: " + (readOnlyReason === undefined ? "yes" : "no. " + readOnlyReason));
+    return lines;
 }
 
 /**
@@ -673,27 +758,45 @@ const INFO_COMMAND: DiskCommand = {
      * Print the one-line description, then the same details as the top-level "info --verbose", then the
      * free space if it's known.
      */
-    run(session) {
-        console.log(session.describe());
+    run(session, command, globalOptions, out) {
+        const description = session.describe();
+        let details: string[];
         if (session.isHardDisk()) {
-            printHardDiskInfo(session);
-            return;
+            details = hardDiskInfoLines(session);
+        } else {
+            details = [
+                ...floppyDetailLines(session.floppy, session.fileSystem),
+                ...freeSpaceLines(session),
+                ...rulesAndWritableLines(session),
+            ];
         }
-        for (const line of floppyDetailLines(session.floppy, session.fileSystem)) {
-            console.log("    " + line);
+        out.line(description);
+        for (const line of details) {
+            out.line("    " + line);
         }
-        const granuleMap = session.getGranuleMap();
-        if (typeof granuleMap === "string") {
-            console.log("    Free space: unknown (" + granuleMap + ")");
-        } else if (granuleMap !== undefined) {
-            console.log("    Free space: " + session.getFreeSpaceText());
-        }
-        const gate = session.getWriteGate();
-        if (gate !== undefined) {
-            console.log("    Rules: " + (gate.ruleSet === undefined ? "unknown" : trsdosRuleSetToString(gate.ruleSet)));
-        }
+
         const readOnlyReason = session.getReadOnlyReason();
-        console.log("    Writable: " + (readOnlyReason === undefined ? "yes" : "no. " + readOnlyReason));
+        const writeProtected = getWriteProtect(session);
+        // A hard disk has no file system until a partition is chosen (and asking for it is an error).
+        const hasFileSystemChoice = !session.isHardDisk() || session.selectedPartitionNumber !== undefined;
+        const result: InfoResultJson = {
+            description,
+            details,
+            fileSystem: hasFileSystemChoice ? session.fileSystem?.nameAndVersion ?? null : null,
+            writable: readOnlyReason === undefined,
+            writeProtected: typeof writeProtected === "string" ? null : writeProtected,
+        };
+        if (readOnlyReason !== undefined) {
+            result.readOnlyReason = readOnlyReason;
+        }
+        const granuleMap = hasFileSystemChoice ? session.getGranuleMap() : undefined;
+        if (granuleMap !== undefined && typeof granuleMap !== "string") {
+            result.free = freeSpaceToJson(session.getFreeSpace());
+        }
+        if (session.isHardDisk()) {
+            result.partitions = partitionsToJson(session);
+        }
+        out.result(result);
     },
 };
 
@@ -714,8 +817,9 @@ const FREE_COMMAND: DiskCommand = {
     /**
      * Print the free space, from the granule map.
      */
-    run(session) {
-        console.log(session.getFreeSpaceText());
+    run(session, command, globalOptions, out) {
+        out.line(session.getFreeSpaceText());
+        out.result(freeSpaceToJson(session.getFreeSpace()));
     },
 };
 
@@ -736,23 +840,36 @@ const CHECK_COMMAND: DiskCommand = {
     /**
      * Print the findings, grouped by severity, then whether the disk can be written and why not.
      */
-    run(session) {
+    run(session, command, globalOptions, out) {
         const {findings, readOnlyReason} = checkDisk(session);
         if (findings.length === 0) {
-            console.log("No problems found.");
+            out.line("No problems found.");
         }
         let previousSeverity: TrsdosFindingSeverity | undefined = undefined;
         for (const finding of findings) {
             // The findings are in order of severity.
             const severity = trsdosFindingKindSeverity(finding.kind);
             if (severity !== previousSeverity) {
-                console.log(findingSeverityHeading(severity));
+                out.line(findingSeverityHeading(severity));
                 previousSeverity = severity;
             }
-            console.log("  " + finding.message);
+            out.line("  " + finding.message);
         }
 
-        console.log(readOnlyReason === undefined ? "Safe to write." : "Read-only: " + readOnlyReason);
+        out.line(readOnlyReason === undefined ? "Safe to write." : "Read-only: " + readOnlyReason);
+
+        const result: CheckResultJson = {
+            findings: findings.map(finding => ({
+                kind: findingKindToJson(finding.kind),
+                severity: findingSeverityToJson(trsdosFindingKindSeverity(finding.kind)),
+                message: finding.message,
+            })),
+            writable: readOnlyReason === undefined,
+        };
+        if (readOnlyReason !== undefined) {
+            result.readOnlyReason = readOnlyReason;
+        }
+        out.result(result);
     },
 };
 
@@ -775,8 +892,8 @@ const QUIT_COMMAND: DiskCommand = {
      * Save the changes, if any (there are none if no disk was made). If that fails then the error is
      * reported as usual and the session doesn't end, so the shell is still there to try again or to abort.
      */
-    run(session) {
-        saveAndReport(session, false);
+    run(session, command, globalOptions, out) {
+        saveAndReport(session, false, out);
     },
 };
 
@@ -798,10 +915,10 @@ const ABORT_COMMAND: DiskCommand = {
     /**
      * Discard the changes, if any, so that nothing is saved at the end.
      */
-    run(session) {
+    run(session, command, globalOptions, out) {
         const discardedPathname = session.abort();
         if (discardedPathname !== undefined) {
-            console.log("Discarded the changes to " + discardedPathname + ".");
+            out.line("Discarded the changes to " + discardedPathname + ".");
         }
     },
 };
@@ -823,8 +940,9 @@ const SAVE_COMMAND: DiskCommand = {
     /**
      * Save the changes, saying so if there weren't any.
      */
-    run(session) {
-        saveAndReport(session, true);
+    run(session, command, globalOptions, out) {
+        const outcome = saveAndReport(session, true, out);
+        out.result({saved: outcome.saved});
     },
 };
 
@@ -846,8 +964,9 @@ const HELP_COMMAND: DiskCommand = {
     /**
      * Print the list of commands, or the help for the named one, wrapped to the terminal's width.
      */
-    run(session, command) {
-        printDiskHelp(command.args[0], DISK_COMMANDS.map(c => c.spec), DISK_GLOBAL_OPTIONS);
+    run(session, command, globalOptions, out) {
+        printDiskHelp(command.args[0], DISK_COMMANDS.map(c => c.spec), DISK_GLOBAL_OPTIONS,
+            makeLineHelpOutput(line => out.line(line)));
     },
 };
 
@@ -885,7 +1004,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
 
 /**
  * The text of a command as the user typed it, such as "add hello.bas --binary", for saying which
- * command "undo" undid. Arguments with spaces in them are put in double quotes.
+ * command "undo" undid, and for --json. Arguments with spaces in them are put in double quotes.
  */
 function commandLineText(command: ParsedDiskCommand): string {
     const words = [command.name, ...command.args, ...command.options.toWords()];
@@ -900,31 +1019,44 @@ function commandLineText(command: ParsedDiskCommand): string {
  * @param commands the commands to run.
  * @param globalOptions the options that apply to the whole run.
  * Each command that changes the disk can be taken back with the "undo" command.
+ * @param runOutput where the commands' output goes, which is the console unless the run is described as JSON.
+ * If the run is JSON then a command that fails is recorded (see {@link DiskRunOutput.failCommand}) before its
+ * error is thrown.
  *
  * @returns a promise for whether a command ended the session (such as "quit"), in which case the commands
  * after it did not run and the caller should stop reading more.
  * @throws ToolError (as a rejection) if a command fails.
  */
 export async function runDiskCommands(session: DiskSession, commands: ParsedDiskCommand[],
-                                      globalOptions: DiskOptionValues): Promise<boolean> {
+                                      globalOptions: DiskOptionValues,
+                                      runOutput: DiskRunOutput = TEXT_RUN_OUTPUT): Promise<boolean> {
 
     for (const command of commands) {
         const diskCommand = DISK_COMMANDS.find(c => c.spec === command.spec);
         if (diskCommand === undefined) {
             throw new Error("Parsed command has no implementation: " + command.spec.name);
         }
-        if (diskCommand.worksWithoutDisk !== true) {
-            session.requireDisk();
-        }
-        if (diskCommand.floppyOnly === true && session.isHardDisk()) {
-            throw new ToolError(diskCommand.spec.name + " works on floppy images, not hard disks");
-        }
-        if (diskCommand.managesHistory === true) {
-            await diskCommand.run(session, command, globalOptions);
-        } else {
-            // Any change the command makes to the disk can be undone. This is done here, around every command,
-            // so that a new command can't forget to make its change undoable.
-            await session.runUndoable(commandLineText(command), () => diskCommand.run(session, command, globalOptions));
+        const commandText = commandLineText(command);
+        const out = runOutput.beginCommand(commandText, diskCommand.spec.name);
+        try {
+            if (diskCommand.worksWithoutDisk !== true) {
+                session.requireDisk();
+            }
+            if (diskCommand.floppyOnly === true && session.isHardDisk()) {
+                throw new ToolError(diskCommand.spec.name + " works on floppy images, not hard disks");
+            }
+            if (diskCommand.managesHistory === true) {
+                await diskCommand.run(session, command, globalOptions, out);
+            } else {
+                // Any change the command makes to the disk can be undone. This is done here, around every command,
+                // so that a new command can't forget to make its change undoable.
+                await session.runUndoable(commandText, () => diskCommand.run(session, command, globalOptions, out));
+            }
+        } catch (e) {
+            if (runOutput.json && e instanceof ToolError) {
+                runOutput.failCommand(e.message);
+            }
+            throw e;
         }
         if (diskCommand.endsSession) {
             return true;

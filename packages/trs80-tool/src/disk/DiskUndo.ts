@@ -20,9 +20,10 @@ export const UNDO_COMMAND: DiskCommand = {
      * Restore the disk to how it was before the last change, saying which command that was. Having nothing to
      * undo isn't an error.
      */
-    run(session) {
+    run(session, command, globalOptions, out) {
         const label = session.undo();
-        console.log(label === undefined ? "Nothing to undo." : "Undid \"" + label + "\".");
+        out.line(label === undefined ? "Nothing to undo." : "Undid \"" + label + "\".");
+        out.result({command: label ?? null});
     },
 };
 
@@ -46,9 +47,10 @@ export const REDO_COMMAND: DiskCommand = {
      * Restore the disk to how it was after the change that was last undone, saying which command that was.
      * Having nothing to redo isn't an error.
      */
-    run(session) {
+    run(session, command, globalOptions, out) {
         const label = session.redo();
-        console.log(label === undefined ? "Nothing to redo." : "Redid \"" + label + "\".");
+        out.line(label === undefined ? "Nothing to redo." : "Redid \"" + label + "\".");
+        out.result({command: label ?? null});
     },
 };
 
@@ -72,8 +74,9 @@ export const REVERT_COMMAND: DiskCommand = {
      * Restore the disk to how it was when it was last saved, as one change that "undo" can take back.
      * Having nothing to revert isn't an error.
      */
-    run(session) {
+    run(session, command, globalOptions, out) {
         const reverted = session.revert();
-        console.log(reverted ? "Reverted to the disk as last saved." : "Nothing to revert: the disk is as last saved.");
+        out.line(reverted ? "Reverted to the disk as last saved." : "Nothing to revert: the disk is as last saved.");
+        out.result({reverted});
     },
 };

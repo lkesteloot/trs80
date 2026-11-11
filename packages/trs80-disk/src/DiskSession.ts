@@ -537,7 +537,7 @@ export class DiskSession {
      * @param partition the partition.
      * @return undefined if it can be written, or the blockers' messages.
      */
-    private partitionReadOnlyReason(partition: LdosPartition): string | undefined {
+    public partitionReadOnlyReason(partition: LdosPartition): string | undefined {
         const gate = evaluateTrsdosWriteGate(partition.trsdos, this.ruleSet);
         switch (gate.access) {
             case TrsdosWriteAccess.WRITABLE:

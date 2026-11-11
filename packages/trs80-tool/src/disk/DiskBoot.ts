@@ -180,13 +180,16 @@ export const BOOT_COMMAND: DiskCommand = {
      *
      * @throws ToolError if there's no terminal, an option is bad, or the machine can't be made.
      */
-    async run(session, command) {
+    async run(session, command, globalOptions, out) {
         const modelText = command.options.getString("--model");
         if (modelText !== undefined && modelText !== "1" && modelText !== "3" && modelText !== "4") {
             throw new ToolError("Invalid --model \"" + modelText + "\": use 1, 3, or 4");
         }
         const writeProtected = command.options.has("--write-protected");
 
+        if (out.json) {
+            throw new ToolError("boot needs a terminal, so it can't be used with --json");
+        }
         if (!bootEnvironment.isTerminal()) {
             throw new ToolError("boot needs a terminal");
         }
@@ -210,13 +213,13 @@ export const BOOT_COMMAND: DiskCommand = {
 
         const shellTerminal = session.shellTerminal;
         // Short lines, since the reason can be long.
-        console.log("Booting on a Model " + choice.model + " (" + choice.reason + ").");
-        console.log("The disk is " + densityToString(floppy.getGeometry().modalDataDensity) + " density and " +
+        out.line("Booting on a Model " + choice.model + " (" + choice.reason + ").");
+        out.line("The disk is " + densityToString(floppy.getGeometry().modalDataDensity) + " density and " +
             (mountedWriteProtected ? "write-protected" : "writable") + ".");
         if (mountedWriteProtected && !writeProtected) {
-            console.log("The image is marked write-protected, or its format can't be written.");
+            out.line("The image is marked write-protected, or its format can't be written.");
         }
-        console.log(shellTerminal === undefined ? "Ctrl-C stops it." : "Ctrl-C returns to the disk shell.");
+        out.line(shellTerminal === undefined ? "Ctrl-C stops it." : "Ctrl-C returns to the disk shell.");
 
         let writeCount = 0;
         const unsubscribe = floppy.onWrite.subscribe(() => writeCount++);
@@ -231,9 +234,9 @@ export const BOOT_COMMAND: DiskCommand = {
             session.refreshFileSystem();
         }
 
-        console.log(shellTerminal === undefined ? "The emulator stopped." : "Back in the shell.");
+        out.line(shellTerminal === undefined ? "The emulator stopped." : "Back in the shell.");
         if (writeCount > 0) {
-            console.log("The disk was changed (" + pluralizeWithCount(writeCount, "write") +
+            out.line("The disk was changed (" + pluralizeWithCount(writeCount, "write") +
                 "); \"undo\" takes it back.");
         }
     },

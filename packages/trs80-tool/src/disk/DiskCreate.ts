@@ -5,9 +5,10 @@ import {
     createFloppy, createHardDisk, describeDriverSettings, DiskSession, type FormatRequest, formatFloppy,
     formatHardDiskPartition, getSessionFormatDos, isHardDiskPathname,
 } from "trs80-disk";
-import {colors} from "../colors.js";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
+import type {CreateResultJson} from "./DiskJson.js";
+import type {DiskOutput} from "./DiskOutput.js";
 import {
     DiskOptionSpec, parseAddDate, parseCountOption, parseModelOption, type ParsedDiskCommand,
 } from "./DiskCommandParser.js";
@@ -111,20 +112,20 @@ function parseFormatChoices(command: ParsedDiskCommand,
  * Describe a new disk's state for the user after "create" or "format", saying so if the disk
  * can't be written to, which would stop later commands.
  */
-function printNewDiskSummary(verb: string, session: DiskSession): void {
-    console.log(verb + " " + session.describe());
+function printNewDiskSummary(verb: string, session: DiskSession, out: DiskOutput): void {
+    out.line(verb + " " + session.describe());
     const readOnlyReason = session.getReadOnlyReason();
     if (readOnlyReason !== undefined) {
-        console.log(colors.warning("Read-only: " + readOnlyReason));
+        out.warning("Read-only: " + readOnlyReason);
     }
 }
 
 /**
  * Print what "create" did to the disk it made, if it replaced one in memory.
  */
-function printReplaced(replaced: boolean): void {
+function printReplaced(replaced: boolean, out: DiskOutput): void {
     if (replaced) {
-        console.log("Replaced the disk in memory; nothing is saved until quit.");
+        out.line("Replaced the disk in memory; nothing is saved until quit.");
     }
 }
 
@@ -134,9 +135,10 @@ function printReplaced(replaced: boolean): void {
  *
  * @param session the session, which has had no checks yet.
  * @param command the parsed command.
+ * @param out where the command's output goes.
  * @throws ToolError if the options don't make a disk, or there's a disk already and no --force.
  */
-function createHardDiskFromCommand(session: DiskSession, command: ParsedDiskCommand): void {
+function createHardDiskFromCommand(session: DiskSession, command: ParsedDiskCommand, out: DiskOutput): void {
     const options = command.options;
     for (const name of ["--sides", "--density", "--system", "--minimal"]) {
         if (options.has(name)) {
@@ -167,9 +169,9 @@ function createHardDiskFromCommand(session: DiskSession, command: ParsedDiskComm
         date: choices.date,
         force: options.has("--force"),
     });
-    printReplaced(result.replaced);
+    printReplaced(result.replaced, out);
 
-    console.log("Created " + session.name + ": a blank HDV hard disk, " +
+    out.line("Created " + session.name + ": a blank HDV hard disk, " +
         pluralizeWithCount(result.cylinders, "cylinder") + ", " + pluralizeWithCount(result.heads, "head") + ", " +
         result.size + ", " +
         (result.partitionCount === 0 ? "no partitions; \"partition --add DOS\" makes one." :
@@ -177,9 +179,10 @@ function createHardDiskFromCommand(session: DiskSession, command: ParsedDiskComm
     if (result.partitionCount > 0) {
         const partitions = session.getPartitions().map((partition, index) => ({number: index + 1, partition}));
         for (const line of describeDriverSettings(session.hardDisk.getGeometry(), partitions)) {
-            console.log(line);
+            out.line(line);
         }
     }
+    out.result({description: session.describe(), replaced: result.replaced});
 }
 
 /**
@@ -245,10 +248,10 @@ export const CREATE_COMMAND: DiskCommand = {
      * --force, which replaces the session's disk in memory. The image is a DMK one, so a file name for another
      * kind is refused.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const options = command.options;
         if (isHardDiskPathname(session)) {
-            createHardDiskFromCommand(session, command);
+            createHardDiskFromCommand(session, command, out);
             return;
         }
         for (const name of ["--heads", "--partitions"]) {
@@ -270,18 +273,24 @@ export const CREATE_COMMAND: DiskCommand = {
             force: options.has("--force"),
         });
 
-        printReplaced(result.replaced);
-        printNewDiskSummary("Created", session);
+        printReplaced(result.replaced, out);
+        printNewDiskSummary("Created", session, out);
         const systemCopy = result.systemCopy;
         if (systemCopy !== undefined) {
-            console.log("Copied from the " + systemCopy.description + " (" + systemCopy.shape + ").");
+            out.line("Copied from the " + systemCopy.description + " (" + systemCopy.shape + ").");
             if (options.has("--minimal")) {
                 const removedNames = systemCopy.removedNames;
-                console.log(removedNames.length === 0 ? "No files to remove for --minimal." :
+                out.line(removedNames.length === 0 ? "No files to remove for --minimal." :
                     "Removed " + pluralizeWithCount(removedNames.length, "file") + " for --minimal: " +
                     removedNames.join(", ") + ".");
             }
         }
+
+        const createResult: CreateResultJson = {description: session.describe(), replaced: result.replaced};
+        if (systemCopy !== undefined) {
+            createResult.systemDisk = {description: systemCopy.description, removed: systemCopy.removedNames};
+        }
+        out.result(createResult);
     },
 };
 
@@ -291,10 +300,11 @@ export const CREATE_COMMAND: DiskCommand = {
  *
  * @param session the session, whose disk is a hard disk.
  * @param command the parsed command.
+ * @param out where the command's output goes.
  * @throws ToolError if the options don't apply to a hard disk, no partition is chosen, the DOS isn't one that
  * hard disks can have, the partition has files and there's no --force, or the disk can't be written.
  */
-function formatHardDiskFromCommand(session: DiskSession, command: ParsedDiskCommand): void {
+function formatHardDiskFromCommand(session: DiskSession, command: ParsedDiskCommand, out: DiskOutput): void {
     const options = command.options;
     for (const name of ["--cylinders", "--sides", "--density"]) {
         if (options.has(name)) {
@@ -318,8 +328,9 @@ function formatHardDiskFromCommand(session: DiskSession, command: ParsedDiskComm
         date: choices.date,
         force: options.has("--force"),
     });
-    console.log("Formatted " + result.label + " as an empty " + trsdosFormatDosToString(dos) + " partition (" +
+    out.line("Formatted " + result.label + " as an empty " + trsdosFormatDosToString(dos) + " partition (" +
         result.location + "); nothing is saved until quit.");
+    out.result({description: session.describe(), replaced: true});
 }
 
 /**
@@ -354,9 +365,9 @@ export const FORMAT_COMMAND: DiskCommand = {
      * The result is a DMK image, so a file name for another kind is refused. If the disk has files then
      * --force is required, and the files lost are counted in the message.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         if (session.isHardDisk()) {
-            formatHardDiskFromCommand(session, command);
+            formatHardDiskFromCommand(session, command, out);
             return;
         }
 
@@ -370,8 +381,9 @@ export const FORMAT_COMMAND: DiskCommand = {
         }
 
         formatFloppy(session, {format: {...choices, dos}, force: options.has("--force")});
-        console.log("Replaced the disk in memory with a blank " + trsdosFormatDosToString(dos) +
+        out.line("Replaced the disk in memory with a blank " + trsdosFormatDosToString(dos) +
             " disk; nothing is saved until quit.");
-        printNewDiskSummary("Formatted", session);
+        printNewDiskSummary("Formatted", session, out);
+        out.result({description: session.describe(), replaced: true});
     },
 };

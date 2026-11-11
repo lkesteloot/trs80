@@ -8,6 +8,9 @@ import {selectInputFiles} from "../InputFile.js";
 import {pageTextSync} from "../pager.js";
 import {systemWildcardHint, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
+import type {ListedFileJson, ListKindJson} from "./DiskJson.js";
+import type {DiskOutput} from "./DiskOutput.js";
+import {toBase64} from "../json.js";
 import {parseBasicName} from "./DiskHelp.js";
 import type {DiskSession} from "trs80-disk";
 import {sessionInputFiles} from "./DiskFiles.js";
@@ -160,9 +163,10 @@ function hexLines(inFile: InputFile): string[] {
  *
  * @param inFile the file.
  * @param forceHex whether to dump the file in hex whatever it is.
- * @return the lines, which end with a note if the file is damaged or couldn't be fully decoded.
+ * @return how the file is shown and the lines, which end with a note if the file is damaged or couldn't be
+ * fully decoded.
  */
-function listLines(inFile: InputFile, forceHex: boolean): string[] {
+function listLines(inFile: InputFile, forceHex: boolean): { kind: ListKind, lines: string[] } {
     const { kind, textBytes } = chooseListKind(inFile, forceHex);
 
     let lines: string[];
@@ -195,7 +199,23 @@ function listLines(inFile: InputFile, forceHex: boolean): string[] {
         lines.push(colors.warning("Damaged: " + inFile.damage.toString()));
     }
 
-    return lines;
+    return { kind, lines };
+}
+
+/**
+ * The name for a way of showing a file in JSON.
+ */
+function listKindToJson(kind: ListKind): ListKindJson {
+    switch (kind) {
+        case ListKind.BASIC:
+            return "basic";
+        case ListKind.TEXT:
+            return "text";
+        case ListKind.HEX:
+            return "hex";
+        default:
+            assertNever(kind);
+    }
 }
 
 /**
@@ -221,6 +241,23 @@ export function printLines(lines: string[]): void {
         for (const line of lines) {
             console.log(line);
         }
+    }
+}
+
+/**
+ * Show many lines of a command's output: through the pager in text mode, if there is one, and otherwise
+ * a line at a time.
+ *
+ * @param out where the output goes.
+ * @param lines the lines.
+ */
+export function outputPagedLines(out: DiskOutput, lines: string[]): void {
+    if (out.json) {
+        for (const line of lines) {
+            out.line(line);
+        }
+    } else {
+        printLines(lines);
     }
 }
 
@@ -284,11 +321,14 @@ export const LIST_COMMAND: DiskCommand = {
      * a Basic listing, text with host line endings, or a hex dump. With --raw, write the unchanged bytes to
      * standard output instead.
      */
-    run(session, command) {
+    run(session, command, globalOptions, out) {
         const forceHex = command.options.has("--hex");
         const raw = command.options.has("--raw");
         if (forceHex && raw) {
             throw new ToolError("Use either --hex or --raw, not both");
+        }
+        if (raw && out.json) {
+            throw new ToolError("--raw writes bytes; --json already has them in base64");
         }
 
         const basicText = command.options.getString("--basic");
@@ -302,6 +342,7 @@ export const LIST_COMMAND: DiskCommand = {
         }
 
         const lines: string[] = [];
+        const files: ListedFileJson[] = [];
         for (const inFile of inFiles) {
             if (inFiles.length > 1) {
                 if (lines.length > 0) {
@@ -309,8 +350,11 @@ export const LIST_COMMAND: DiskCommand = {
                 }
                 lines.push(colors.emphasis("==> " + inFile.filename + " <=="));
             }
-            lines.push(...listLines(inFile, forceHex));
+            const listed = listLines(inFile, forceHex);
+            lines.push(...listed.lines);
+            files.push({name: inFile.filename, kind: listKindToJson(listed.kind), contents: toBase64(inFile.binary)});
         }
-        printLines(lines);
+        outputPagedLines(out, lines);
+        out.result({files, listing: lines});
     },
 };

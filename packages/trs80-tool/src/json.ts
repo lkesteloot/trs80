@@ -8,7 +8,8 @@ import {type InputFile, loadInputFile, notContainerError, selectInputFiles} from
 import {outputPathComponents, ToolError} from "./utils.js";
 
 // This file defines the types of the JSON that the --json flags of the "dir", "extract", "sectors",
-// and "info" commands print, and the helpers that build them. The comments on the interfaces are the
+// and "info" commands print, and the helpers that build them. (The "disk" command's --json has its own
+// types, in disk/DiskJson.ts, which reuse some of these.) The comments on the interfaces are the
 // documentation of the format. The format is meant to be stable: field names are explicit, raw
 // values and their interpretations are in separate fields, and nothing depends on the terminal.
 // Optional fields are left out of the JSON when they don't apply.
@@ -44,6 +45,38 @@ export function toBase64(binary: Uint8Array): string {
  * @return what the function returned, and the warnings it logged.
  */
 export function captureLogs<T>(f: () => T): { result: T, warnings: string[] } {
+    const { warnings, restore } = startCapturingLogs();
+    try {
+        const result = f();
+        return { result, warnings };
+    } finally {
+        restore();
+    }
+}
+
+/**
+ * Like {@link captureLogs}, for a function that returns a promise: the warnings are collected until the
+ * promise settles.
+ *
+ * @param f the function to run.
+ * @return what the promise resolved to, and the warnings that were logged until then.
+ */
+export async function captureLogsAsync<T>(f: () => Promise<T>): Promise<{ result: T, warnings: string[] }> {
+    const { warnings, restore } = startCapturingLogs();
+    try {
+        const result = await f();
+        return { result, warnings };
+    } finally {
+        restore();
+    }
+}
+
+/**
+ * Replace the log sinks with one that collects warnings (and sends other levels to standard error).
+ *
+ * @return the array that the warnings are added to, and a function that puts the normal sinks back.
+ */
+function startCapturingLogs(): { warnings: string[], restore: () => void } {
     const warnings: string[] = [];
     const savedSinks = MAIN_SINK.delegatedSinks.splice(0);
     MAIN_SINK.delegatedSinks.push((level, message) => {
@@ -54,12 +87,12 @@ export function captureLogs<T>(f: () => T): { result: T, warnings: string[] } {
         }
     });
 
-    try {
-        const result = f();
-        return { result, warnings };
-    } finally {
-        MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
-    }
+    return {
+        warnings,
+        restore: () => {
+            MAIN_SINK.delegatedSinks.splice(0, Infinity, ...savedSinks);
+        },
+    };
 }
 
 /**

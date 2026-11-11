@@ -2,6 +2,7 @@ import {assertNever} from "z80-base";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {parseCountOption} from "./DiskCommandParser.js";
+import {trimNothingReasonToJson} from "./DiskJson.js";
 import {TrimNothingReason, trimDisk} from "trs80-disk";
 
 /**
@@ -44,7 +45,7 @@ export const TRIM_COMMAND: DiskCommand = {
      * if the tracks hold data that isn't filler (unless --force). The result must decode as the same file system with
      * the same files, or nothing changes. Works on DMK, JV1 and JV3 images.
      */
-    run(session, command, globalOptions) {
+    run(session, command, globalOptions, out) {
         const options = command.options;
         const cylinders = parseCountOption(options, "--cylinders");
         const sideText = options.getString("--side");
@@ -58,24 +59,26 @@ export const TRIM_COMMAND: DiskCommand = {
         if (!result.trimmed) {
             switch (result.reason) {
                 case TrimNothingReason.ONE_SIDE:
-                    console.log("Nothing to trim: the image has only one side.");
+                    out.line("Nothing to trim: the image has only one side.");
                     break;
                 case TrimNothingReason.CYLINDERS:
-                    console.log("Nothing to trim: the image has only " + pluralizeWithCount(result.cylinderCount, "cylinder") + ".");
+                    out.line("Nothing to trim: the image has only " + pluralizeWithCount(result.cylinderCount, "cylinder") + ".");
                     break;
                 case TrimNothingReason.UNUSED:
-                    console.log("Nothing to trim: the image has no cylinders at the end that the disk doesn't use.");
+                    out.line("Nothing to trim: the image has no cylinders at the end that the disk doesn't use.");
                     break;
                 default:
                     assertNever(result.reason);
             }
+            out.result({trimmed: false, reason: trimNothingReasonToJson(result.reason)});
             return;
         }
 
         for (const message of result.removed) {
-            console.log(message);
+            out.line(message);
         }
-        console.log("The image is now " + pluralizeWithCount(result.newSize, "byte") + ", from " +
+        out.line("The image is now " + pluralizeWithCount(result.newSize, "byte") + ", from " +
             result.oldSize.toLocaleString() + "; nothing is saved until quit.");
+        out.result({trimmed: true, removed: result.removed, oldSize: result.oldSize, newSize: result.newSize});
     },
 };

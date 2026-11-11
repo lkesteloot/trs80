@@ -55,15 +55,24 @@ function dirFile(inFilename: string, showSystemFiles: boolean, cpmWholeRecords: 
  * or "No files" if there are none.
  */
 export function printDirListing(inFiles: InputFile[]): void {
+    for (const line of dirListingLines(inFiles)) {
+        console.log(line);
+    }
+}
+
+/**
+ * The lines of the directory listing of a set of files: a line for each with its name, size, and details,
+ * or "No files" if there are none. The lines have color codes unless colors are off.
+ */
+export function dirListingLines(inFiles: InputFile[]): string[] {
     if (inFiles.length === 0) {
-        console.log("No files");
-        return;
+        return ["No files"];
     }
 
     // Find max filename length.
     const maxFilenameLength = Math.max(... inFiles.map(inFile => inFile.filename.length));
 
-    for (const inFile of inFiles) {
+    return inFiles.map(inFile => {
         const filename = inFile.filename;
         const size = inFile.binary.length;
         const parts = [
@@ -79,6 +88,6 @@ export function printDirListing(inFiles: InputFile[]): void {
             parts.push(colorError(inFile.trs80File.error));
         }
 
-        console.log(parts.join(" "));
-    }
+        return parts.join(" ");
+    });
 }
