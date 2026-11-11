@@ -21,7 +21,7 @@ export const TEXT_FILE_EXTENSIONS: readonly string[] =
  * it: from the last period to the end, or an empty string if there's no period or the only one is the
  * name's first character.
  */
-function extensionOf(name: string): string {
+export function extensionOf(name: string): string {
     const index = name.lastIndexOf(".");
     return index <= 0 ? "" : name.substring(index);
 }

@@ -10,10 +10,21 @@ import {ToolError} from "../utils.js";
 import {disk} from "./disk.js";
 import {parseFormatDosName} from "./DiskHelp.js";
 import {
-    describeSystemDiskTemplate, getDataDiskBootSectors, loadSystemDiskTemplate, SYSTEM_DISK_TEMPLATES,
-    type SystemDiskTemplate,
-} from "./DiskTemplates.js";
+    describeSystemDiskTemplate, getDataDiskBootSectors as getBootSectorsFrom, loadSystemDiskTemplate as loadTemplateFrom,
+    SYSTEM_DISK_TEMPLATES, type SystemDiskTemplate,
+} from "trs80-disk";
+import {NODE_TEMPLATES} from "./NodeTemplates.js";
 import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
+
+/** The disk engine's getDataDiskBootSectors() with the tool's embedded templates. */
+function getDataDiskBootSectors(dos: TrsdosFormatDos, density: Density) {
+    return getBootSectorsFrom(NODE_TEMPLATES, dos, density);
+}
+
+/** The disk engine's loadSystemDiskTemplate() with the tool's embedded templates. */
+function loadSystemDiskTemplate(template: SystemDiskTemplate) {
+    return loadTemplateFrom(NODE_TEMPLATES, template);
+}
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 

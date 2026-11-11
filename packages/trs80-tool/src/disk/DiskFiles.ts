@@ -4,6 +4,7 @@ import {DiskSession, type DiskSessionOptions} from "trs80-disk";
 import {colors} from "../colors.js";
 import {floppyInputFiles, type InputFile} from "../InputFile.js";
 import {ToolError, writeFileAtomically} from "../utils.js";
+import {NODE_TEMPLATES} from "./NodeTemplates.js";
 
 /**
  * Open a disk image file as a session, the way the "disk" command does: read the file from the host, and
@@ -12,7 +13,7 @@ import {ToolError, writeFileAtomically} from "../utils.js";
  *
  * @param pathname the host pathname of the image.
  * @param options where and whether to save changes. If it has no warn function then warnings are
- * printed to the console.
+ * printed to the console. If it has no templates then the ones embedded in the tool are used.
  * @throws ToolError if the file exists but can't be read, or for any reason that
  * {@link DiskSession.fromBinary} throws.
  */
@@ -28,7 +29,7 @@ export function openDiskSession(pathname: string, options: DiskSessionOptions = 
     }
 
     const warn = options.warn ?? ((message: string) => console.log(colors.warning(message)));
-    return DiskSession.fromBinary(pathname, binary, {...options, warn});
+    return DiskSession.fromBinary(pathname, binary, {templates: NODE_TEMPLATES, ...options, warn});
 }
 
 /**

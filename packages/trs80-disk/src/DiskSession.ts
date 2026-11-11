@@ -7,6 +7,7 @@ import {
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError} from "./DiskError.js";
+import type {DiskTemplateSource} from "./DiskTemplates.js";
 import {pluralizeWithCount} from "./Plural.js";
 
 /**
@@ -119,6 +120,11 @@ export interface DiskSessionOptions {
      * aren't shown.
      */
     warn?: ((message: string) => void) | undefined;
+    /**
+     * Where the system disks and boot sectors come from, for the operations that make disks (see
+     * {@link DiskSession.templates}). Without it those operations fail.
+     */
+    templates?: DiskTemplateSource | undefined;
 }
 
 /**
@@ -268,6 +274,8 @@ export class DiskSession {
     private readonly ruleSet: TrsdosRuleSet | undefined;
     /** Whether the user allows overriding blockers (--force). */
     private readonly force: boolean;
+    /** Where the templates for making disks come from, or undefined if this session has none. */
+    private readonly templateSource: DiskTemplateSource | undefined;
     /** Whether requireWritable() has already shown the warning about forcing. */
     private forceWarningShown = false;
     /** Whether we've said that old undo states were dropped to save memory. */
@@ -306,6 +314,7 @@ export class DiskSession {
         this.warn = options.warn ?? (() => {});
         this.ruleSet = options.ruleSet;
         this.force = options.force ?? false;
+        this.templateSource = options.templates;
         if (image !== undefined) {
             this.watchImage(image);
         }
@@ -646,6 +655,18 @@ export class DiskSession {
             throw this.makeNoDiskError();
         }
         return this.currentImage;
+    }
+
+    /**
+     * Where the system disks and boot sectors for making disks come from.
+     *
+     * @throws DiskError if the session was opened without templates.
+     */
+    public get templates(): DiskTemplateSource {
+        if (this.templateSource === undefined) {
+            throw new DiskError("This build has no disk templates");
+        }
+        return this.templateSource;
     }
 
     /**

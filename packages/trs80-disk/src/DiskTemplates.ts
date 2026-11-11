@@ -2,16 +2,26 @@
  * The templates that ship inside the tool: the DOSes' own data-disk boot sectors, which make "create" and
  * "format" disks (and hard disk partitions) that match what each DOS's FORMAT makes, and six bootable system
  * disks for "create --system".
- * The files are in templates/ (see its README.md), and tools/GenerateTemplates.ts embeds them in Templates.ts.
+ * The files are in trs80-tool's templates/ (see its README.md), and its tools/GenerateTemplates.ts embeds them in
+ * Templates.ts. Here the templates come through a {@link DiskTemplateSource}, so that a browser can fetch them as
+ * files instead.
  */
 
-import zlib from "zlib";
 import {
     BYTES_PER_SECTOR, decodeTrs80File, Density, DmkFloppyDisk, TrsdosFormatDos, trsdosFormatDosToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
-import {ToolError} from "../utils.js";
-import {DATA_DISK_BOOT_SECTORS_HEX, SYSTEM_DISK_TEMPLATES_BASE64} from "./Templates.js";
+import {DiskError} from "./DiskError.js";
+
+/**
+ * Where the system disks and boot sectors that create, format and partition need come from.
+ */
+export interface DiskTemplateSource {
+    /** The named system disk's DMK image, unzipped, or undefined if this build doesn't have it. */
+    systemDisk(name: string): Uint8Array | undefined;
+    /** The named boot sectors, as hex strings, or undefined if there are none by that name. */
+    bootSectorsHex(key: string): readonly string[] | undefined;
+}
 
 /**
  * A bootable system disk that "create --system" copies.
@@ -89,20 +99,23 @@ export function findSystemDiskTemplate(dos: TrsdosFormatDos, model: 1 | 3 | 4 | 
  * Make a new copy of a system disk, writable and not write-protected, ready to change. (The templates
  * are write-protected or not as the original disks were; the copy never is.)
  *
- * @throws ToolError if the embedded template is missing or isn't a DMK image, which means a bad build.
+ * @param source where the templates come from.
+ * @param template the system disk to copy.
+ * @throws DiskError if the template is missing or isn't a DMK image, which means a bad build.
  */
-export function loadSystemDiskTemplate(template: SystemDiskTemplate): DmkFloppyDisk {
-    const base64 = SYSTEM_DISK_TEMPLATES_BASE64[template.name];
-    if (base64 === undefined) {
-        throw new ToolError("The system disk " + template.name + " isn't in this build of the tool");
+export function loadSystemDiskTemplate(source: DiskTemplateSource, template: SystemDiskTemplate): DmkFloppyDisk {
+    const original = source.systemDisk(template.name);
+    if (original === undefined) {
+        throw new DiskError("The system disk " + template.name + " isn't in this build of the tool");
     }
 
-    const binary = new Uint8Array(zlib.gunzipSync(Buffer.from(base64, "base64")));
+    // Change a copy, so that the source's own bytes stay as they were.
+    const binary = new Uint8Array(original);
     // The first byte of a DMK image is its write-protect flag.
     binary[0] = 0;
     const floppy = decodeTrs80File(binary, {filename: template.name + ".dmk"});
     if (!(floppy instanceof DmkFloppyDisk)) {
-        throw new ToolError("The system disk " + template.name + " doesn't decode as a DMK image");
+        throw new DiskError("The system disk " + template.name + " doesn't decode as a DMK image");
     }
     return floppy;
 }
@@ -131,14 +144,17 @@ function bootSectorKey(dos: TrsdosFormatDos, density: Density): string | undefin
 /**
  * The boot sectors that a DOS's FORMAT writes on a data disk, copied from disks that it formatted.
  *
+ * @param source where the templates come from.
  * @param dos the DOS.
  * @param density the disk's density.
  * @return the sectors in the order that {@link TrsdosFormatOptions.bootSectors} takes them, or undefined
  * if we have none for that DOS and density, in which case the caller should leave that option out.
  */
-export function getDataDiskBootSectors(dos: TrsdosFormatDos, density: Density): Uint8Array[] | undefined {
+export function getDataDiskBootSectors(source: DiskTemplateSource, dos: TrsdosFormatDos,
+                                       density: Density): Uint8Array[] | undefined {
+
     const key = bootSectorKey(dos, density);
-    return key === undefined ? undefined : decodeBootSectors(key);
+    return key === undefined ? undefined : decodeBootSectors(source, key);
 }
 
 /**
@@ -164,30 +180,51 @@ function hardDiskBootSectorKey(dos: TrsdosFormatDos, model: 1 | 3 | 4 | undefine
  * The boot sectors that a DOS's hard disk FORMAT writes at the start of a data partition, copied from
  * partitions that it formatted.
  *
+ * @param source where the templates come from.
  * @param dos the DOS.
  * @param model the TRS-80 model the user asked for, or undefined if they didn't say. Only LDOS 5.3 has
  * sectors for more than one: the Model I's for model 1, and the Model III's for anything else.
  * @return the two sectors in the order that {@link LdosPartitionOptions.bootSectors} takes them, or undefined
  * if we have none for that DOS, in which case the caller should leave that option out.
  */
-export function getHardDiskBootSectors(dos: TrsdosFormatDos, model: 1 | 3 | 4 | undefined): Uint8Array[] | undefined {
+export function getHardDiskBootSectors(source: DiskTemplateSource, dos: TrsdosFormatDos,
+                                       model: 1 | 3 | 4 | undefined): Uint8Array[] | undefined {
+
     const key = hardDiskBootSectorKey(dos, model);
-    return key === undefined ? undefined : decodeBootSectors(key);
+    return key === undefined ? undefined : decodeBootSectors(source, key);
+}
+
+/**
+ * Decode a string of hex digit pairs, such as "00ff10", into bytes.
+ *
+ * @throws Error if the string has an odd length or a character that isn't a hex digit.
+ */
+function decodeHex(hex: string): Uint8Array {
+    if (hex.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(hex)) {
+        throw new Error("Invalid hex string in a boot sector template");
+    }
+    const bytes = new Uint8Array(hex.length/2);
+    for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(hex.substring(i*2, i*2 + 2), 16);
+    }
+    return bytes;
 }
 
 /**
  * Decode the boot sectors stored under a key.
  *
- * @return the sectors, or undefined if the key isn't in this build of the tool.
+ * @param source where the templates come from.
+ * @param key the name of the boot sectors.
+ * @return the sectors, or undefined if the key isn't in this build.
  */
-function decodeBootSectors(key: string): Uint8Array[] | undefined {
-    const hexStrings = DATA_DISK_BOOT_SECTORS_HEX[key];
+function decodeBootSectors(source: DiskTemplateSource, key: string): Uint8Array[] | undefined {
+    const hexStrings = source.bootSectorsHex(key);
     if (hexStrings === undefined) {
         return undefined;
     }
 
     return hexStrings.map(hex => {
-        const bootSector = new Uint8Array(Buffer.from(hex, "hex"));
+        const bootSector = decodeHex(hex);
         if (bootSector.length !== BYTES_PER_SECTOR) {
             throw new Error("Boot sector " + key + " is " + bootSector.length + " bytes");
         }

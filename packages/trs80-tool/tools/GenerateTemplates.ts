@@ -1,7 +1,7 @@
 // Embeds the files in templates/ (the gzipped system disks and the data-disk boot sectors) in
 // src/disk/Templates.ts as strings, so that the esbuild bundle and the single-file binaries carry them.
 // The generated file is gitignored and regenerated before type checks, tests, and builds.
-// src/disk/DiskTemplates.ts is the API to it.
+// src/disk/NodeTemplates.ts hands it to trs80-disk, whose DiskTemplates.ts is the API to it.
 //
 // Run with "npm run generateTemplates -w packages/trs80-tool".
 
