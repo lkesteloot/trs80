@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import {Readable} from "stream";
 import {
-    makeLdosTestHardDiskBinary, makeTrsdos23TestDisk, type LdosTestPartition, type TestFile,
+    makeLdosTestHardDiskBinary, makeTrsdos23TestDisk, type LdosTestPartition, type TestDiskOptions, type TestFile,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {setColorLevel} from "../colors.js";
@@ -15,6 +15,8 @@ import type {
     KillResultJson, LabelResultJson, ListResultJson, MapResultJson, PartitionListResultJson,
     PartitionSelectResultJson, RenameResultJson, SaveResultJson, UndoResultJson,
 } from "./DiskJson.js";
+import {trimDoneToJson} from "./DiskJson.js";
+import {TrimCylindersReason} from "trs80-disk";
 
 const HELLO_TEXT = "10 PRINT \"HELLO\"\n20 GOTO 10\n";
 
@@ -112,9 +114,9 @@ describe("disk --json", () => {
     /**
      * Write a TRSDOS 2.3 test disk to the image file, as a JV1 image.
      */
-    function makeJv1Image(files: TestFile[]): string {
+    function makeJv1Image(files: TestFile[], options: TestDiskOptions = {}): string {
         const pathname = path.join(dir, "test.jv1");
-        fs.writeFileSync(pathname, makeTrsdos23TestDisk(files, {cylinderCount: 18}).binary);
+        fs.writeFileSync(pathname, makeTrsdos23TestDisk(files, {cylinderCount: 18, ...options}).binary);
         return pathname;
     }
 
@@ -460,9 +462,24 @@ describe("disk --json", () => {
         expect(run.saved).to.equal(hdv);
     });
 
+    it("gives trim's counts before and after", () => {
+        expect(trimDoneToJson({
+            trimmed: true, removed: ["Removed cylinders 40-79 (the file system uses 0-39)."],
+            cylindersReason: TrimCylindersReason.FILE_SYSTEM_END, oldCylinderCount: 80, newCylinderCount: 40,
+            oldSideCount: 2, newSideCount: 2, oldSize: 409600, newSize: 204800,
+        })).to.eql({
+            trimmed: true, cylinders: {before: 80, after: 40}, cylindersReason: "file-system-end",
+            sides: {before: 2, after: 2}, size: {before: 409600, after: 204800},
+        });
+        expect(trimDoneToJson({
+            trimmed: true, removed: ["Removed side 1."], cylindersReason: undefined, oldCylinderCount: 40,
+            newCylinderCount: 40, oldSideCount: 2, newSideCount: 1, oldSize: 204800, newSize: 102400,
+        })).to.not.have.property("cylindersReason");
+    });
+
     it("says what a failed repair or check found on a damaged disk", async () => {
         // A file whose granules the GAT doesn't mark used.
-        const jv1 = makeJv1Image([HELLO]);
+        const jv1 = makeJv1Image([HELLO], {gatFree: [{lump: 2, granule: 1}]});
         const run = await runJsonOn(jv1, "check", ":", "repair");
         expect(run.commands.map(c => c.error)).to.eql([undefined, undefined]);
         const check = commandAt<CheckResultJson>(run, 0, "check").result;
@@ -470,7 +487,12 @@ describe("disk --json", () => {
         for (const finding of check.findings) {
             expect(["layout", "damage", "note"]).to.include(finding.severity);
             expect(finding.kind).to.match(/^[a-z-]+$/);
+            expect(finding.files).to.be.an("array");
+            expect(finding.granules).to.be.an("array");
         }
+        const aboutHello = check.findings.find(finding => finding.files.length > 0);
+        expect(aboutHello?.files[0]).to.match(/^HELLO\//);
+        expect(aboutHello?.granules[0]).to.have.keys("lump", "granule");
         expect(run.commands[1].result).to.have.keys(
             "changes", "remaining", "freeableUnclaimedGranules", "fixablePrograms", "writable");
     });

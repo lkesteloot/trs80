@@ -29,8 +29,8 @@ import {PARTITION_COMMAND} from "./DiskPartition.js";
 import {PROTECT_COMMAND} from "./DiskProtect.js";
 import {saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 import {
-    type AttribChangesJson, attribFileToJson, type CheckResultJson, dateToJson, diskInfoToJson, findingKindToJson,
-    findingSeverityToJson, freeSpaceToJson, type InfoResultJson, partitionsToJson, protectionToJson,
+    type AttribChangesJson, attribFileToJson, type CheckResultJson, dateToJson, diskInfoToJson, findingToJson,
+    freeSpaceToJson, type InfoResultJson, partitionsToJson, protectionToJson,
 } from "./DiskJson.js";
 import {type DiskOutput, type DiskRunOutput, TEXT_RUN_OUTPUT} from "./DiskOutput.js";
 import {makeLineHelpOutput} from "./DiskCommander.js";
@@ -879,11 +879,7 @@ const CHECK_COMMAND: DiskCommand = {
         out.line(readOnlyReason === undefined ? "Safe to write." : "Read-only: " + readOnlyReason);
 
         const result: CheckResultJson = {
-            findings: findings.map(finding => ({
-                kind: findingKindToJson(finding.kind),
-                severity: findingSeverityToJson(trsdosFindingKindSeverity(finding.kind)),
-                message: finding.message,
-            })),
+            findings: findings.map(findingToJson),
             writable: readOnlyReason === undefined,
         };
         if (readOnlyReason !== undefined) {

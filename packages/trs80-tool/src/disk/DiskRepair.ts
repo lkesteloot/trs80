@@ -1,5 +1,5 @@
 import type {DiskCommand} from "./DiskCommands.js";
-import type {RepairResultJson} from "./DiskJson.js";
+import {findingToJson, type RepairResultJson} from "./DiskJson.js";
 import {describeFixablePrograms, describeFreeableUnclaimed, repairDisk} from "trs80-disk";
 
 /**
@@ -68,7 +68,7 @@ export const REPAIR_COMMAND: DiskCommand = {
 
         const result: RepairResultJson = {
             changes: repaired.changes,
-            remaining: repaired.remaining.map(({finding, advice}) => ({message: finding.message, advice})),
+            remaining: repaired.remaining.map(({finding, advice}) => ({...findingToJson(finding), advice})),
             freeableUnclaimedGranules: repaired.freeableUnclaimed.length,
             fixablePrograms: fixableProgramNames,
             writable: readOnlyReasonAfter === undefined,

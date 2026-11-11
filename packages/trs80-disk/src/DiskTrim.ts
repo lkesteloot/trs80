@@ -2,6 +2,7 @@ import {
     canTrimFloppy, decodeFloppyFileSystem, type FloppyDisk, type FloppyFileSystem, type KnownFloppyFileSystem,
     SectorData, Trsdos, TrackPosition, trimFloppy, TRIMMABLE_FLOPPY_FORMATS,
 } from "trs80-base";
+import {assertNever} from "z80-base";
 import {DiskError} from "./DiskError.js";
 import {DiskSession} from "./DiskSession.js";
 import {pluralizeWithCount} from "./Plural.js";
@@ -214,6 +215,8 @@ interface TrimPlan {
     keepCylinders: number;
     /** The sides to keep, from side 0. */
     keepSides: number;
+    /** Why cylinders are dropped, or undefined if none are. */
+    cylindersReason: TrimCylindersReason | undefined;
     /** What to tell the user about what's dropped, one sentence each. Empty if nothing is. */
     removed: string[];
 }
@@ -225,7 +228,7 @@ interface TrimPlan {
  * @param analysis what the file system uses.
  * @return the count to keep, and the reason for dropping the rest (undefined if nothing is dropped).
  */
-function chooseDefaultCylinders(analysis: CylinderAnalysis): {keep: number, reason: string | undefined} {
+function chooseDefaultCylinders(analysis: CylinderAnalysis): {keep: number, reason: TrimCylindersReason | undefined} {
     const cylinders = analysis.cylinders;
     const claimedEnd = endOfCylinders(cylinders, use => use.claimedBy.length > 0);
     const readableEnd = endOfCylinders(cylinders, use => use.readable);
@@ -233,9 +236,9 @@ function chooseDefaultCylinders(analysis: CylinderAnalysis): {keep: number, reas
         endOfCylinders(cylinders, use => use.claimedBy.length > 0 || use.hasFreeSpace);
 
     const keep = Math.min(cylinders.length, Math.max(claimedEnd, Math.min(fileSystemEnd ?? Infinity, readableEnd)));
-    let reason: string | undefined = undefined;
+    let reason: TrimCylindersReason | undefined = undefined;
     if (keep < cylinders.length) {
-        reason = keep === fileSystemEnd ? "the file system uses 0-" + (keep - 1) : "they have no readable sectors";
+        reason = keep === fileSystemEnd ? TrimCylindersReason.FILE_SYSTEM_END : TrimCylindersReason.UNREADABLE;
     }
 
     return {keep, reason};
@@ -412,7 +415,7 @@ function makePlan(session: DiskSession, requestedCylinders: number | undefined, 
 
     // Cylinders.
     let keepCylinders: number;
-    let reason: string | undefined = undefined;
+    let reason: TrimCylindersReason | undefined = undefined;
     if (requestedCylinders === undefined) {
         if (dropSide) {
             // The user asked for a particular thing, so don't do the other.
@@ -422,6 +425,9 @@ function makePlan(session: DiskSession, requestedCylinders: number | undefined, 
         }
     } else {
         keepCylinders = checkRequestedCylinders(analysis, requestedCylinders, force);
+        if (keepCylinders < geometry.cylinderCount) {
+            reason = TrimCylindersReason.REQUESTED;
+        }
     }
 
     // Sides.
@@ -448,13 +454,28 @@ function makePlan(session: DiskSession, requestedCylinders: number | undefined, 
 
     if (keepCylinders < geometry.cylinderCount) {
         const dropped = cylinderRangeText(keepCylinders, geometry.cylinderCount - 1);
-        removed.push("Removed " + dropped + (reason === undefined ? "" : " (" + reason + ")") + ".");
+        let why: string;
+        switch (reason) {
+            case undefined:
+            case TrimCylindersReason.REQUESTED:
+                why = "";
+                break;
+            case TrimCylindersReason.FILE_SYSTEM_END:
+                why = " (the file system uses 0-" + (keepCylinders - 1) + ")";
+                break;
+            case TrimCylindersReason.UNREADABLE:
+                why = " (they have no readable sectors)";
+                break;
+            default:
+                assertNever(reason);
+        }
+        removed.push("Removed " + dropped + why + ".");
     }
     if (keepSides < geometry.sideCount) {
         removed.push("Removed side 1.");
     }
 
-    return {keepCylinders, keepSides, removed};
+    return {keepCylinders, keepSides, cylindersReason: keepCylinders < geometry.cylinderCount ? reason : undefined, removed};
 }
 
 /**
@@ -470,11 +491,44 @@ export enum TrimNothingReason {
 }
 
 /**
+ * Why trimDisk() dropped cylinders.
+ */
+export enum TrimCylindersReason {
+    /** The user asked for fewer cylinders. */
+    REQUESTED,
+    /** The file system doesn't use the dropped cylinders. */
+    FILE_SYSTEM_END,
+    /** The dropped cylinders, at the end of the image, have no readable sectors. */
+    UNREADABLE,
+}
+
+/**
+ * What trimDisk() did when it trimmed the image.
+ */
+export interface TrimDoneResult {
+    trimmed: true;
+    /** What was dropped, one sentence each. */
+    removed: string[];
+    /** Why cylinders were dropped, or undefined if none were. */
+    cylindersReason: TrimCylindersReason | undefined;
+    /** The image's cylinders before. */
+    oldCylinderCount: number;
+    /** The image's cylinders after. */
+    newCylinderCount: number;
+    /** The image's sides before. */
+    oldSideCount: number;
+    /** The image's sides after. */
+    newSideCount: number;
+    /** The image's size in bytes before. */
+    oldSize: number;
+    /** The image's size in bytes after. */
+    newSize: number;
+}
+
+/**
  * What trimDisk() did: nothing, or the new, smaller image.
  */
-export type TrimResult =
-    {trimmed: false, reason: TrimNothingReason, cylinderCount: number} |
-    {trimmed: true, removed: string[], oldSize: number, newSize: number};
+export type TrimResult = {trimmed: false, reason: TrimNothingReason, cylinderCount: number} | TrimDoneResult;
 
 /**
  * Rebuild the image without the tracks that nothing needs, and replace the session's disk with it, so that
@@ -532,5 +586,15 @@ export function trimDisk(session: DiskSession, options: {cylinders: number | und
 
     const oldSize = floppy.binary.length;
     session.setFloppy(trimmed);
-    return {trimmed: true, removed: plan.removed, oldSize, newSize: trimmed.binary.length};
+    return {
+        trimmed: true,
+        removed: plan.removed,
+        cylindersReason: plan.cylindersReason,
+        oldCylinderCount: geometry.cylinderCount,
+        newCylinderCount: plan.keepCylinders,
+        oldSideCount: geometry.sideCount,
+        newSideCount: plan.keepSides,
+        oldSize,
+        newSize: trimmed.binary.length,
+    };
 }

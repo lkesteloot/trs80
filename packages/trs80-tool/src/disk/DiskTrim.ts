@@ -2,7 +2,7 @@ import {assertNever} from "z80-base";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {parseCountOption} from "./DiskCommandParser.js";
-import {trimNothingReasonToJson} from "./DiskJson.js";
+import {trimDoneToJson, trimNothingReasonToJson} from "./DiskJson.js";
 import {TrimNothingReason, trimDisk} from "trs80-disk";
 
 /**
@@ -79,6 +79,6 @@ export const TRIM_COMMAND: DiskCommand = {
         }
         out.line("The image is now " + pluralizeWithCount(result.newSize, "byte") + ", from " +
             result.oldSize.toLocaleString() + "; nothing is saved until quit.");
-        out.result({trimmed: true, removed: result.removed, oldSize: result.oldSize, newSize: result.newSize});
+        out.result(trimDoneToJson(result));
     },
 };

@@ -1,10 +1,11 @@
 import {
-    TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, type LdosPartition, TrsdosFindingKind, TrsdosFindingSeverity,
+    TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
+    trsdosFindingKindSeverity, TrsdosFindingSeverity,
     type TrsdosDirEntry, type TrsdosDiskInfo, type TrsdosProtectionLevel, type TrsdosProtectionNames, trsdosProtectionLevelToString,
 } from "trs80-base";
 import {
     type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind,
-    TrimNothingReason,
+    TrimCylindersReason, type TrimDoneResult, TrimNothingReason,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
 import type {GeometryInfoJson, OsInfoJson} from "../info.js";
@@ -582,6 +583,20 @@ export interface FindingJson {
     severity: FindingSeverityJson;
     /** A complete sentence for a person. */
     message: string;
+    /** The names of the files involved, such as "HELLO/BAS", in the order the finding gives them. Possibly empty. */
+    files: string[];
+    /** The granules involved, in order. Possibly empty. */
+    granules: GranuleJson[];
+}
+
+/**
+ * A granule of a TRSDOS-family file system.
+ */
+export interface GranuleJson {
+    /** The granule's lump (the cylinder, on the DOSes where a lump is a cylinder). */
+    lump: number;
+    /** The granule's index within its lump. */
+    granule: number;
 }
 
 /**
@@ -597,11 +612,9 @@ export interface CheckResultJson {
 }
 
 /**
- * Damage that "repair" couldn't fix.
+ * Damage that "repair" couldn't fix: the finding as "check" gives it, and why it wasn't fixed.
  */
-export interface RepairRemainingJson {
-    /** A complete sentence describing the damage. */
-    message: string;
+export interface RepairRemainingJson extends FindingJson {
     /** Why it isn't fixed, and what the user could do. */
     advice: string;
 }
@@ -663,17 +676,40 @@ export interface TrimNothingResultJson {
 }
 
 /**
+ * Why "trim" dropped cylinders.
+ */
+export type TrimCylindersReasonJson =
+    /** --cylinders asked for fewer. */
+    "requested" |
+    /** The file system doesn't use them. */
+    "file-system-end" |
+    /** They're at the end of the image and have no readable sectors. */
+    "unreadable";
+
+/**
+ * A count before and after a change.
+ */
+export interface BeforeAfterJson {
+    /** The count before. */
+    before: number;
+    /** The count after. */
+    after: number;
+}
+
+/**
  * The result of "trim" when it trimmed the image.
  */
 export interface TrimDoneResultJson {
     /** Always true. */
     trimmed: true;
-    /** Messages saying what was dropped. */
-    removed: string[];
-    /** The image's size in bytes before. */
-    oldSize: number;
-    /** The image's size in bytes after. */
-    newSize: number;
+    /** The image's cylinders, before and after. */
+    cylinders: BeforeAfterJson;
+    /** Why cylinders were dropped. Only when some were. */
+    cylindersReason?: TrimCylindersReasonJson;
+    /** The image's sides, before and after. */
+    sides: BeforeAfterJson;
+    /** The image's size in bytes, before and after. */
+    size: BeforeAfterJson;
 }
 
 /**
@@ -780,6 +816,51 @@ export function mapCellKindToJson(kind: MapCellKind): MapCellKindJson {
             return "unclaimed";
         default:
             assertNever(kind);
+    }
+}
+
+/**
+ * Convert one of "check"'s findings to JSON.
+ */
+export function findingToJson(finding: TrsdosFinding): FindingJson {
+    return {
+        kind: findingKindToJson(finding.kind),
+        severity: findingSeverityToJson(trsdosFindingKindSeverity(finding.kind)),
+        message: finding.message,
+        files: finding.dirEntries.map(dirEntry => dirEntry.getFilename("/")),
+        granules: finding.granules.map(granule => ({lump: granule.lump, granule: granule.granule})),
+    };
+}
+
+/**
+ * Convert what "trim" did to JSON.
+ */
+export function trimDoneToJson(result: TrimDoneResult): TrimDoneResultJson {
+    const json: TrimDoneResultJson = {
+        trimmed: true,
+        cylinders: {before: result.oldCylinderCount, after: result.newCylinderCount},
+        sides: {before: result.oldSideCount, after: result.newSideCount},
+        size: {before: result.oldSize, after: result.newSize},
+    };
+    if (result.cylindersReason !== undefined) {
+        json.cylindersReason = trimCylindersReasonToJson(result.cylindersReason);
+    }
+    return json;
+}
+
+/**
+ * A string for why "trim" dropped cylinders.
+ */
+export function trimCylindersReasonToJson(reason: TrimCylindersReason): TrimCylindersReasonJson {
+    switch (reason) {
+        case TrimCylindersReason.REQUESTED:
+            return "requested";
+        case TrimCylindersReason.FILE_SYSTEM_END:
+            return "file-system-end";
+        case TrimCylindersReason.UNREADABLE:
+            return "unreadable";
+        default:
+            assertNever(reason);
     }
 }
 

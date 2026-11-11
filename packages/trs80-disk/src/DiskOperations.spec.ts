@@ -4,7 +4,7 @@ import {checkDisk, describeFixablePrograms, describeFreeableUnclaimed, repairDis
 import {DiskError} from "./DiskError.js";
 import {getWriteProtect, setWriteProtect} from "./DiskImageOperations.js";
 import {DiskSession} from "./DiskSession.js";
-import {TrimNothingReason, trimDisk} from "./DiskTrim.js";
+import {TrimCylindersReason, TrimNothingReason, trimDisk} from "./DiskTrim.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 
@@ -74,6 +74,9 @@ describe("DiskTrim", () => {
         if (result.trimmed) {
             expect(result.newSize).to.be.lessThan(result.oldSize);
             expect(result.removed.length).to.equal(1);
+            expect(result.cylindersReason).to.equal(TrimCylindersReason.REQUESTED);
+            expect([result.oldCylinderCount, result.newCylinderCount]).to.eql([80, 40]);
+            expect([result.oldSideCount, result.newSideCount]).to.eql([1, 1]);
         }
         const again = trimDisk(session, {cylinders: 40, dropSide: false, force: true});
         expect(again).to.eql({trimmed: false, reason: TrimNothingReason.CYLINDERS, cylinderCount: 40});
