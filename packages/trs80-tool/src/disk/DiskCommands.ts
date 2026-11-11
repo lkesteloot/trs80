@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import {
-    type TrsdosDiskInfoChanges, TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString,
+    type TrsdosDiskInfoChanges, type TrsdosFindingSeverity, trsdosFindingKindSeverity, trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
@@ -18,8 +18,8 @@ import {REPAIR_COMMAND} from "./DiskRepair.js";
 import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {
     type AddFileSource, type AddOptions, addFiles, type AttributeRequest, changeAttributes, changeDiskInfo,
-    checkAddAsCount, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
-    killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
+    checkAddAsCount, checkDisk, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
+    findingSeverityHeading, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
 } from "trs80-disk";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
@@ -735,22 +735,6 @@ const FREE_COMMAND: DiskCommand = {
 };
 
 /**
- * The heading for each severity of finding in the "check" command's report.
- */
-function findingSeverityHeading(severity: TrsdosFindingSeverity): string {
-    switch (severity) {
-        case TrsdosFindingSeverity.LAYOUT:
-            return "Doubts about the layout:";
-        case TrsdosFindingSeverity.DAMAGE:
-            return "Damage:";
-        case TrsdosFindingSeverity.NOTE:
-            return "Notes:";
-        default:
-            assertNever(severity);
-    }
-}
-
-/**
  * The "check" command: report what's inconsistent in the file system, changing nothing.
  */
 const CHECK_COMMAND: DiskCommand = {
@@ -768,15 +752,7 @@ const CHECK_COMMAND: DiskCommand = {
      * Print the findings, grouped by severity, then whether the disk can be written and why not.
      */
     run(session) {
-        const gate = session.getWriteGate();
-        if (gate === undefined) {
-            if (session.fileSystem === undefined) {
-                throw new ToolError("Can't find a DOS directory on \"" + session.name + "\"");
-            }
-            throw new ToolError("Checking " + session.fileSystem.nameAndVersion + " disks isn't supported yet");
-        }
-
-        const findings = gate.check.findings;
+        const {findings, readOnlyReason} = checkDisk(session);
         if (findings.length === 0) {
             console.log("No problems found.");
         }
@@ -791,7 +767,6 @@ const CHECK_COMMAND: DiskCommand = {
             console.log("  " + finding.message);
         }
 
-        const readOnlyReason = session.getReadOnlyReason();
         console.log(readOnlyReason === undefined ? "Safe to write." : "Read-only: " + readOnlyReason);
     },
 };

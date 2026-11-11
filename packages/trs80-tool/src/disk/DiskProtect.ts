@@ -1,4 +1,4 @@
-import {getImageWriteProtectFlag, withImageWriteProtectFlag} from "trs80-base";
+import {getWriteProtect, setWriteProtect} from "trs80-disk";
 import {ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 
@@ -31,10 +31,9 @@ export const PROTECT_COMMAND: DiskCommand = {
      * @throws ToolError if the argument isn't "on" or "off", or the image's format has no flag.
      */
     run(session, command) {
-        const image = session.image;
         const wanted = command.args[0]?.toLowerCase();
-        const current = getImageWriteProtectFlag(image);
         if (wanted === undefined) {
+            const current = getWriteProtect(session);
             if (typeof current === "string") {
                 console.log(current);
             } else {
@@ -46,21 +45,13 @@ export const PROTECT_COMMAND: DiskCommand = {
         if (wanted !== "on" && wanted !== "off") {
             throw new ToolError("Use \"protect on\" or \"protect off\", not \"" + command.args[0] + "\"");
         }
-        if (typeof current === "string") {
-            throw new ToolError(current);
-        }
 
         const writeProtected = wanted === "on";
-        if (current === writeProtected) {
+        const changed = setWriteProtect(session, writeProtected);
+        if (!changed) {
             console.log(writeProtected ? "The image is already write-protected." : "The image is already writable.");
             return;
         }
-
-        const binary = withImageWriteProtectFlag(image, writeProtected);
-        if (typeof binary === "string") {
-            throw new ToolError(binary);
-        }
-        session.replaceImageBinary(binary);
         console.log(writeProtected ? "The image is now write-protected." : "The image is now writable.");
     },
 };

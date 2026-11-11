@@ -17,6 +17,18 @@ function freeKilobytesText(granuleMap: TrsdosGranuleMap): string {
 }
 
 /**
+ * The space available for new files on a disk.
+ */
+export interface FreeSpace {
+    /** How many granules are free. */
+    freeGranules: number;
+    /** How many bytes each granule holds. */
+    granuleBytes: number;
+    /** How many bytes are free in all. */
+    freeBytes: number;
+}
+
+/**
  * Why a command wants to write to the disk, which decides whether a damaged file system blocks it.
  */
 export enum DiskWritePurpose {
@@ -1289,12 +1301,12 @@ export class DiskSession {
     }
 
     /**
-     * The space available for new files, such as "112 KB free (90 granules of 1,280 bytes each)".
+     * The space available for new files, as numbers.
      *
      * @throws DiskError if the disk has no file system, if its file system isn't TRSDOS-family, or
      * if the granule map can't be made.
      */
-    public getFreeSpaceText(): string {
+    public getFreeSpace(): FreeSpace {
         if (this.fileSystem === undefined) {
             throw new DiskError("Can't find a DOS directory on \"" + this.name + "\"");
         }
@@ -1307,9 +1319,22 @@ export class DiskSession {
         }
 
         const trsdos = granuleMap.trsdos;
-        const granuleBytes = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
-        const freeGranules = granuleMap.getFreeGranuleCount();
-        return freeKilobytesText(granuleMap) + " (" +
+        return {
+            freeGranules: granuleMap.getFreeGranuleCount(),
+            granuleBytes: trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize,
+            freeBytes: granuleMap.getFreeByteCount(),
+        };
+    }
+
+    /**
+     * The space available for new files, such as "112 KB free (90 granules of 1,280 bytes each)".
+     *
+     * @throws DiskError if the disk has no file system, if its file system isn't TRSDOS-family, or
+     * if the granule map can't be made.
+     */
+    public getFreeSpaceText(): string {
+        const {freeGranules, granuleBytes, freeBytes} = this.getFreeSpace();
+        return Math.floor(freeBytes/1024).toLocaleString() + " KB free (" +
             pluralizeWithCount(freeGranules, "granule") + " of " + granuleBytes.toLocaleString() + " bytes" +
             (freeGranules === 1 ? "" : " each") + ")";
     }
