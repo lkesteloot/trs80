@@ -521,6 +521,13 @@ export interface MapCellJson {
     kind: MapCellKindJson;
     /** The index into the map's files of the file that uses the granule. Only when the kind is "file". */
     file?: number;
+    /**
+     * The names of every file whose directory entries claim the granule, such as "HELLO.BAS", in directory
+     * order, including BOOT/SYS and DIR/SYS. Empty if none does. When two or more files other than those two
+     * claim it, the kind is "shared" and this names them all, unlike file. Files outside the map's files
+     * (unselected ones, and system files) are named too.
+     */
+    owners: string[];
 }
 
 /**
@@ -1056,16 +1063,16 @@ export function mapToJson(model: DiskMapModel): MapResultJson {
 
     return {
         cells: model.cells.map(cell => {
+            const fileIndex = cell.file === undefined ? undefined : fileIndexes.get(cell.file);
+            // The keys are in the order that MapCellJson documents them.
             const json: MapCellJson = {
                 lump: cell.lump,
                 granule: cell.granule,
                 sectors: cell.sectors.map(sectorPositionToJson),
                 kind: mapCellKindToJson(cell.kind),
+                ...(fileIndex === undefined ? {} : {file: fileIndex}),
+                owners: cell.owners.map(owner => owner.getFilename(".")),
             };
-            const fileIndex = cell.file === undefined ? undefined : fileIndexes.get(cell.file);
-            if (fileIndex !== undefined) {
-                json.file = fileIndex;
-            }
             return json;
         }),
         files: model.files.map(file => {

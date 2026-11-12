@@ -383,6 +383,23 @@ describe("disk --json", () => {
         expect(map.cells[0].sectors[0]).to.have.keys("cylinder", "side", "sector");
         expect(map.layout.sectorsPerTrack).to.be.greaterThan(0);
         expect(map.totals.granuleByteCount).to.equal(1280);
+
+        // Every cell names the files that claim it, selected or not.
+        expect(helloCells.every(cell => cell.owners.length === 1 && cell.owners[0] === "HELLO.BAS")).to.equal(true);
+        expect(map.cells.filter(cell => cell.kind === "otherFile").every(cell => cell.owners[0] === "KERNEL.SYS"))
+            .to.equal(true);
+        expect(map.cells.find(cell => cell.kind === "free")?.owners).to.eql([]);
+    });
+
+    it("names every file that claims a shared granule", async () => {
+        // WORLD/BAS's first granule is HELLO/BAS's last.
+        const world: TestFile = {name: "WORLD/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 2000};
+        const jv1 = makeJv1Image([HELLO, world]);
+        const map = commandAt<MapResultJson>(await runJsonOn(jv1, "map"), 0, "map").result;
+        const shared = map.cells.filter(cell => cell.kind === "shared");
+        expect(shared.map(cell => [cell.lump, cell.granule])).to.eql([[3, 0]]);
+        expect(shared[0].owners).to.eql(["HELLO.BAS", "WORLD.BAS"]);
+        expect(shared[0].file).to.equal(undefined);
     });
 
     it("lists, selects, and describes the partitions of a hard disk", async () => {
