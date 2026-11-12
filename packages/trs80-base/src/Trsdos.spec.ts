@@ -652,6 +652,19 @@ describe("Trsdos DOS name from the boot sector", () => {
             .to.eql("MultiDOS 6.20 or Esoteric 3.20");
     });
 
+    it("names UltraDOS from its boot sector, then from its GAT", () => {
+        const ultraDos41 = [0x00, 0xFE, 0x11, 0xF3, 0x31, 0x00, 0x42, 0xCD, 0xC9, 0x01, 0x01, 0x00, 0x4D];
+        const ultraDos42System = [0x00, 0xFE, 0x11, 0xF3, 0x11, 0x01, 0x3C];
+        const ultraDos42Data = [0x00, 0xFE, 0x11, 0xF3, 0x31, 0x00, 0x42, 0x21, 0x4A, 0x42];
+        const u41 = bytesAt(GAT_OFFSET + 0xCB, [0x55, 0x34, 0x31]);
+        expect(nameOf(ultraDos41, 0x55)).to.eql("UltraDOS 4.1");
+        expect(nameOf(ultraDos42Data, 0x55)).to.eql("UltraDOS 4.2");
+        // The boot sector is the system last put on the disk, which wins over the FORMAT's GAT.
+        expect(nameOf(ultraDos42System, 0x55, 0, u41)).to.eql("UltraDOS 4.2");
+        expect(nameOf(TRSDOS_2_BOOT, 0x55, 0, u41)).to.eql("UltraDOS 4.1");
+        expect(nameOf(TRSDOS_2_BOOT, 0x55, 0, bytesAt(GAT_OFFSET + 0xCB, [0x55, 0x05, 0x01]))).to.eql("Unknown DOS");
+    });
+
     it("names DOSPLUS from BOOT/SYS's passwords when the GAT doesn't", () => {
         expect(nameOf(TRSDOS_2_BOOT, 0x50, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0x27, 0x0B, 0x82, 0x2A])))
             .to.eql("DOSPLUS 3.2.1, 3.3 or 3.4");

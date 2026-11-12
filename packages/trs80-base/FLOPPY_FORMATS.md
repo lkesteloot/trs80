@@ -1192,6 +1192,7 @@ named by the disk's banner or GAT unless noted:
 | MultiDOS 4.01 on, Esoteric | `xx FE xx CD 0B 00 11 10 00 19 7E 23 CD 33 00 B7 20 F8` | 12 |
 | MultiDOS II | `00 FE xx ED 56 3A 00 42 B7 20 6F` | 2 |
 | UltraDOS 4.1 | `00 FE xx F3 31 00 42 CD C9 01 01 00 4D` | 5 |
+| UltraDOS 4.2, system and data disks | `00 FE xx F3 11 01 3C`; `00 FE xx F3 31 00 42 21 4A 42` | 4, 0 |
 | RapidDOS, Model 4 | `00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43` | 2 |
 | Percom MicroDOS | `FE 00 31 FC 41 CD C9 01 01 00 43 11 EC 37` | 17 |
 | Percom OS-80 III (sector 1) | `FE 00 3E D0 D3 F0 3E C3 32 49 40 21 7C 43` | 5 |
@@ -1308,6 +1309,10 @@ boot track text and GAT 0xCB, as above):
   what the disk's files were written under, and the GAT still holds the formatter. Data disks have no banner, and their
   boot sector is FORMAT's stub, so 0xCB names them, which agrees with it. We don't show
   both, since a single name is what `info` and the write rules use.
+- **UltraDOS** by its banner, then its boot sector (4.1, or 4.2's system or data-disk
+  one), then FORMAT's "U41" or "U42" at GAT 0xCB-0xCD (Ira). The boot sector comes before
+  the GAT for the reason DOSPLUS's banner does (above): one of our disks has 4.2's system
+  and banner on a 4.1 FORMAT's GAT.
 - **TRSDOS 3.0** writes 0xFC at 0xCB (its system disks are already named by banner).
 
 What didn't hold up on used disks:

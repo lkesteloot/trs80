@@ -454,7 +454,8 @@ export enum BootSectorDos {
     MULTIDOS_1_7_STUB,
     MULTIDOS_II,
     MULTIDOS_ESOTERIC,
-    ULTRADOS,
+    // UltraDOS 4.1's boot sector.
+    ULTRADOS_4_1,
     RAPIDOS,
     // TRSDOS 2.7DD's and 2.8's system disks, for Tandy's and Percom's doublers.
     TRSDOS_2_7,
@@ -462,6 +463,8 @@ export enum BootSectorDos {
     TRSDOS_2_7_STUB,
     // TRSDOS 2.7SD, the single-density edition.
     TRSDOS_2_7_SD,
+    // UltraDOS 4.2's system and data-disk boot sectors.
+    ULTRADOS_4_2,
     // Big Five Software's BFLOADER, which boots a game without a DOS.
     BFLOADER,
 }
@@ -528,8 +531,8 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
         case BootSectorDos.MULTIDOS_ESOTERIC:
             return "MultiDOS/Esoteric";
 
-        case BootSectorDos.ULTRADOS:
-            return "UltraDOS";
+        case BootSectorDos.ULTRADOS_4_1:
+            return "UltraDOS 4.1";
 
         case BootSectorDos.RAPIDOS:
             return "RAPIDOS";
@@ -542,6 +545,9 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
 
         case BootSectorDos.TRSDOS_2_7_SD:
             return "TRSDOS 2.7SD";
+
+        case BootSectorDos.ULTRADOS_4_2:
+            return "UltraDOS 4.2";
 
         case BootSectorDos.BFLOADER:
             return "Big Five BFLOADER";
@@ -599,8 +605,7 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     {dos: BootSectorDos.MULTIDOS_1_7_STUB, prefix: "xx FE xx 3A 03 00 FE 17 28 24 CD 0B 00 11 2F 00"},
     {dos: BootSectorDos.MULTIDOS_II, prefix: "00 FE xx ED 56 3A 00 42 B7 20 6F"},
     {dos: BootSectorDos.MULTIDOS_ESOTERIC, prefix: "xx FE xx CD 0B 00 11 10 00 19 7E 23 CD 33 00 B7 20 F8"},
-    {dos: BootSectorDos.ULTRADOS, prefix: "00 FE xx F3 31 00 42 CD C9 01 01 00 4D"},
-    {dos: BootSectorDos.ULTRADOS, prefix: "00 FE xx F3 31 00 42 21 4A 42"},
+    {dos: BootSectorDos.ULTRADOS_4_1, prefix: "00 FE xx F3 31 00 42 CD C9 01 01 00 4D"},
     // Model III.
     {dos: BootSectorDos.RAPIDOS, prefix: "FE xx 21 10 43 11 00 3C 01 11 00 ED B0 C3 0D 43"},
     // Model 4.
@@ -611,6 +616,9 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     {dos: BootSectorDos.TRSDOS_2_7, prefix: "FE xx 3E FF 32 EC 37"},
     {dos: BootSectorDos.TRSDOS_2_7_STUB, prefix: "FE xx F3 31 71 40 CD C9 01"},
     {dos: BootSectorDos.TRSDOS_2_7_SD, prefix: "FE xx 31 FF 41 3E A0"},
+    // UltraDOS 4.2's system disks, then its data disks.
+    {dos: BootSectorDos.ULTRADOS_4_2, prefix: "00 FE xx F3 11 01 3C"},
+    {dos: BootSectorDos.ULTRADOS_4_2, prefix: "00 FE xx F3 31 00 42 21 4A 42"},
     // Big Five's game loader, on game disks with no DOS.
     {dos: BootSectorDos.BFLOADER, prefix: "00 FE xx 31 FC 41 CD C9 01 F3 21 EC 37 36 D0 CD A5 42"},
     // Last, since it's mostly zeros.
@@ -671,11 +679,12 @@ function isLdosLineBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.MULTIDOS_1_7_STUB:
         case BootSectorDos.MULTIDOS_II:
         case BootSectorDos.MULTIDOS_ESOTERIC:
-        case BootSectorDos.ULTRADOS:
+        case BootSectorDos.ULTRADOS_4_1:
         case BootSectorDos.RAPIDOS:
         case BootSectorDos.TRSDOS_2_7:
         case BootSectorDos.TRSDOS_2_7_STUB:
         case BootSectorDos.TRSDOS_2_7_SD:
+        case BootSectorDos.ULTRADOS_4_2:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -715,11 +724,12 @@ function isMultiDosBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.NEWDOS_80:
         case BootSectorDos.NEWDOS_80_3:
         case BootSectorDos.MULTIDOS_ESOTERIC:
-        case BootSectorDos.ULTRADOS:
+        case BootSectorDos.ULTRADOS_4_1:
         case BootSectorDos.RAPIDOS:
         case BootSectorDos.TRSDOS_2_7:
         case BootSectorDos.TRSDOS_2_7_STUB:
         case BootSectorDos.TRSDOS_2_7_SD:
+        case BootSectorDos.ULTRADOS_4_2:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -3284,14 +3294,13 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             return this.decodeMultiDosVersion(bootSectorDos, gatInfo.osVersion) ??
                 (isMultiDos ? makeDosName(DosFamily.MULTIDOS) : multiDosOrEsoteric());
         }
-        if (bootTrack.includes("ULTRADOS")) {
-            const match = bootTrack.match(/ULTRADOS DISK OPERATING SYSTEM VERSION (\d\.\d)/);
-            if (match !== null) {
-                return makeDosName(DosFamily.ULTRADOS, match[1]);
-            }
-            // Some UltraDOS disks have "U" and the version in ASCII at 0xCB-0xCD ("U41").
-            const version = this.getGatText(0xCC, 0xCE);
-            return /^\d\d$/.test(version) ? makeDosName(DosFamily.ULTRADOS, `${version[0]}.${version[1]}`) : makeDosName(DosFamily.ULTRADOS);
+        // UltraDOS's FORMAT writes "U" and the version in ASCII at 0xCB-0xCD ("U41").
+        const ultraDosGatText = this.getGatText(0xCB, 0xCE);
+        const hasUltraDosGat = /^U4\d$/.test(ultraDosGatText);
+        if (bootTrack.includes("ULTRADOS") || hasUltraDosGat || bootSectorDos === BootSectorDos.ULTRADOS_4_1 ||
+            bootSectorDos === BootSectorDos.ULTRADOS_4_2) {
+
+            return this.decodeUltraDosRelease(bootTrack, bootSectorDos, ultraDosGatText);
         }
         if (bootTrack.includes("RAPIDOS")) {
             const match = bootTrack.match(/Version (\d\.\d)/);
@@ -3410,6 +3419,33 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 // whose boot sector isn't Super Utility+'s), and 0x55 (UltraDOS's "U").
                 return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS_NAME;
         }
+    }
+
+    /**
+     * The release of UltraDOS: the banner's, or the one whose boot sector the disk has, which is the
+     * system last put on it, or else the one whose FORMAT wrote the GAT. See "Boot sector code by
+     * DOS" in FLOPPY_FORMATS.md.
+     *
+     * @param bootTrack the boot track's text.
+     * @param bootSectorDos the DOS of the boot sector, if we recognize it.
+     * @param gatText GAT bytes 0xCB-0xCD as text, which UltraDOS's FORMAT sets to "U41" or "U42".
+     */
+    private decodeUltraDosRelease(bootTrack: string, bootSectorDos: BootSectorDos | undefined,
+                                  gatText: string): DosName {
+
+        const match = bootTrack.match(/ULTRADOS DISK OPERATING SYSTEM VERSION (\d\.\d)/);
+        if (match !== null) {
+            return makeDosName(DosFamily.ULTRADOS, match[1]);
+        }
+        if (bootSectorDos === BootSectorDos.ULTRADOS_4_1) {
+            return makeDosName(DosFamily.ULTRADOS, "4.1");
+        }
+        if (bootSectorDos === BootSectorDos.ULTRADOS_4_2) {
+            return makeDosName(DosFamily.ULTRADOS, "4.2");
+        }
+        const gatMatch = gatText.match(/^U(\d)(\d)$/);
+        return gatMatch === null ? makeDosName(DosFamily.ULTRADOS) :
+            makeDosName(DosFamily.ULTRADOS, `${gatMatch[1]}.${gatMatch[2]}`);
     }
 
     /**
