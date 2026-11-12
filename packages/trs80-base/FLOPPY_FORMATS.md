@@ -470,8 +470,19 @@ the number of backups, not a bad read. Measured on 17 disks in
 - **Marks.** On protected disks every sector has the 0xF8 deleted mark, which
   TRSDOS 1.x writes on every sector outside the directory (see "Deleted
   address marks" under "Evidence that turned out to be reliable"). Two disks (a Radio
-  Shack data disk, and a DOSPLUS disk probably formatted over a Tandy blank)
-  have the track with 0xFB marks and no code: formatted but never protected.
+  Shack data disk, and a DOSPLUS disk) have the track with 0xFB marks and only
+  the filler: that's TRSDOS 1.1's FORMAT output, not an unprotected protection
+  track. Ira found that 1.1's FORMAT writes this track on every disk (a bare disk
+  he made with 1.1): 18 sectors numbered 0x81-0x92 in 3:1 order, 0xFB marks,
+  0xE5 filler with `(c) 1980 Tandy  ` at 0xF0, and no code, which only protected
+  masters have. The Radio Shack data disk is from a TRSDOS 1.1 set. The DOSPLUS
+  disk can't be 1.1 FORMAT output, since none of the DOSes on its set format
+  cylinder 40, so the track is probably left from an earlier 1.1 format of the
+  diskette (unverified). A 40-cylinder imager drops the track, so a disk
+  without it may still have had it. Ira's other markers of a bare 1.1 disk:
+  boot byte 0xFE = 0x11 and the opening `FE 11 3A D0 00 D3 F0` (1.2-1.5 have
+  `3E D0 D3 F0`), and GAT 0xCE-0xCF = `EF 5C` (shared with 1.3.2, 1.3I and
+  1.4; 1.2 and 1.3 write `D3 8F`).
 - **The DOS loads it.** On nine of the disks, TRSDOS 1.1 and 1.2-era system
   disks, a system sector on cylinder 1 starts with `LD DE,2890h / LD BC,0300h`
   and reads the three code sectors, cylinder 0x28 from sector 0x90. TRSDOS 1.3
