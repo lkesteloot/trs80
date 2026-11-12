@@ -12,6 +12,7 @@ import type {FloppyFileSystem} from "./FloppyFileSystem.js";
 import {Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
 import {USER_DATA_ADDRESS_MARK_F9, USER_DATA_ADDRESS_MARK_FA} from "./TrackBytes.js";
 import {Trsdos, TrsdosVersion} from "./Trsdos.js";
+import {findTrsdosDiskSize} from "./TrsdosDiskSize.js";
 
 /**
  * What a sign says about the disk.
@@ -392,8 +393,12 @@ interface FileSystemTracks {
  * The tracks that the file system can allocate, or undefined if we can't tell (no file system, or one
  * outside the TRSDOS family). Tracks past them are often left from an earlier format, or are an
  * imager's reads past the end of the disk.
+ *
+ * The decoder's lumps run to the end of the image, so the cylinders come from the DOS's own records
+ * of the disk's size (see findTrsdosDiskSize()) when they prove one. Otherwise every cylinder of the
+ * image counts, so that a disk whose size we can't prove keeps all its signs.
  */
-function fileSystemTracks(fileSystem: FloppyFileSystem | undefined): FileSystemTracks | undefined {
+function fileSystemTracks(floppy: FloppyDisk, fileSystem: FloppyFileSystem | undefined): FileSystemTracks | undefined {
     if (!(fileSystem instanceof Trsdos) || fileSystem.lumpCount === 0) {
         return undefined;
     }
@@ -401,8 +406,10 @@ function fileSystemTracks(fileSystem: FloppyFileSystem | undefined): FileSystemT
     if (lastGranule.length === 0) {
         return undefined;
     }
+    const lumpCylinders = Math.max(...lastGranule.map(position => position.cylinderNumber)) + 1;
+    const diskSize = findTrsdosDiskSize(fileSystem, floppy);
     return {
-        cylinderCount: Math.max(...lastGranule.map(position => position.cylinderNumber)) + 1,
+        cylinderCount: typeof diskSize === "string" ? lumpCylinders : Math.min(lumpCylinders, diskSize.cylinderCount),
         sideCount: fileSystem.allocationSides,
     };
 }
@@ -828,7 +835,7 @@ export function findProtectionSigns(floppy: FloppyDisk, fileSystem: FloppyFileSy
     const directoryCylinder = trsdos?.getGatPosition().cylinderNumber;
     const usualLimit = usualSectorNumberLimit(floppy);
     const usualSpan = geometry.modalDataSectorSpan;
-    const fsTracks = fileSystemTracks(fileSystem);
+    const fsTracks = fileSystemTracks(floppy, fileSystem);
     const found = new TrackSigns();
     for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
         for (let side = 0; side < geometry.sideCount; side++) {

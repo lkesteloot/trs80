@@ -550,10 +550,9 @@ signs (see "Copy protection signs" in `FLOPPY_FORMATS.md`). Left out, or left ro
       the sign is checked only where lumps are cylinders, and only on the 2.3 family.
 - [ ] **TRSDOS 1.1's backup count** is read from the boot word at 0xFC-0xFD, as Ira describes, but no 1.1
       disk in the collection has a limited file to check it against.
-- [ ] **Leftovers past the GAT's end** still count as data tracks for the mixed-density and
-      other-cylinder signs, because the limit is the decoder's lump count, which follows the image. Using
-      the GAT's cylinder count (0xCC on the LDOS line) would drop `CLOAD Magazine Issue 58`'s cylinder 35,
-      but a wrong count would hide real signs, so it wants checking across the DOSes first.
+- [ ] **Leftovers past the end of a disk whose size isn't proven** still count as data tracks for the
+      mixed-density and other-cylinder signs. Past a proven end (`findTrsdosDiskSize()`) they don't, so this
+      shrinks as more DOSes get a size source (see "Tails and trim").
 - [ ] **Re-read tails and 80-track reads** of 40-track disks are reported as IDs naming another cylinder
       (possible). `FloppyTail.ts` now recognizes re-reads past a proven disk end, and trim and repair
       don't count the sign there, but the report itself still lists it. 80-track reads (every even track
