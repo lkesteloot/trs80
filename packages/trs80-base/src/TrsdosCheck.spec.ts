@@ -247,6 +247,7 @@ describe("TrsdosFindingKind", () => {
             [TrsdosFindingKind.DAMAGED_FILE, TrsdosFindingSeverity.DAMAGE],
             [TrsdosFindingKind.PROGRAM_PAST_EOF, TrsdosFindingSeverity.NOTE],
             [TrsdosFindingKind.USED_BUT_UNCLAIMED, TrsdosFindingSeverity.NOTE],
+            [TrsdosFindingKind.FREE_BUT_MISSING, TrsdosFindingSeverity.NOTE],
             [TrsdosFindingKind.BOOT_SYS_OVERLAP, TrsdosFindingSeverity.NOTE],
         ]);
 

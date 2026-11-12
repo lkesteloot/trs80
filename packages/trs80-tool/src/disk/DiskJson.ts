@@ -620,6 +620,8 @@ export type FindingKindJson =
     "damagedFile" |
     /** The GAT marks granules used that no file claims. */
     "usedButUnclaimed" |
+    /** The GAT says granules are free that the image doesn't fully hold, so new files skip them. */
+    "freeButMissing" |
     /** BOOT/SYS shares granules of the boot cylinder with another file. */
     "bootSysOverlap" |
     /** A program whose directory size ends before its transfer record. */
@@ -859,6 +861,8 @@ export function findingKindToJson(kind: TrsdosFindingKind): FindingKindJson {
             return "damagedFile";
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
             return "usedButUnclaimed";
+        case TrsdosFindingKind.FREE_BUT_MISSING:
+            return "freeButMissing";
         case TrsdosFindingKind.BOOT_SYS_OVERLAP:
             return "bootSysOverlap";
         case TrsdosFindingKind.PROGRAM_PAST_EOF:

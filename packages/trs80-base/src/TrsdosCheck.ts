@@ -1,6 +1,8 @@
 import {assertNever, toHexByte} from "z80-base";
 import {CMD_TRANSFER_ADDRESS, CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyFileContents} from "./FileDamage.js";
+import {FloppyDisk, type SectorPosition} from "./FloppyDisk.js";
+import {SectorOverlay} from "./SectorOverlay.js";
 import {
     hashForFilename,
     isOldDirSysHashInAnySlot,
@@ -8,6 +10,8 @@ import {
     type TrsdosDirEntry,
     type TrsdosDirSlot,
 } from "./Trsdos.js";
+import {findUnwritableGranuleSectors} from "./TrsdosAllocator.js";
+import {findDosDiskSize, findTrsdosCylinderUse} from "./TrsdosDiskSize.js";
 import {type TrsdosGranule, TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 
 /**
@@ -79,6 +83,12 @@ export enum TrsdosFindingKind {
     /** The GAT marks granules used that no file claims. */
     USED_BUT_UNCLAIMED,
     /**
+     * Granules that the GAT says are free but that the image doesn't fully hold: some of their sectors
+     * have no ID, no data field, or the wrong size. New files skip them, since writing them would fail.
+     * See {@link findFreeButMissingGranules}.
+     */
+    FREE_BUT_MISSING,
+    /**
      * BOOT/SYS shares granules of the boot cylinder with another file. See "BOOT/SYS overlaps SYS7/SYS
      * on LDOS 5.3.1" in FLOPPY_FORMATS.md.
      */
@@ -119,6 +129,8 @@ export function trsdosFindingKindToString(kind: TrsdosFindingKind): string {
             return "program-past-eof";
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
             return "used-but-unclaimed";
+        case TrsdosFindingKind.FREE_BUT_MISSING:
+            return "free-but-missing";
         case TrsdosFindingKind.BOOT_SYS_OVERLAP:
             return "boot-sys-overlap";
         default:
@@ -143,6 +155,7 @@ export function trsdosFindingKindSeverity(kind: TrsdosFindingKind): TrsdosFindin
         case TrsdosFindingKind.DAMAGED_FILE:
             return TrsdosFindingSeverity.DAMAGE;
         case TrsdosFindingKind.USED_BUT_UNCLAIMED:
+        case TrsdosFindingKind.FREE_BUT_MISSING:
         case TrsdosFindingKind.BOOT_SYS_OVERLAP:
         case TrsdosFindingKind.PROGRAM_PAST_EOF:
             return TrsdosFindingSeverity.NOTE;
@@ -445,6 +458,23 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
                 granules: unclaimed,
             });
         }
+
+        const missing = findFreeButMissingGranules(trsdos, granuleMap);
+        if (missing.granules.length > 0) {
+            const count = missing.granules.length;
+            const one = count === 1;
+            const lostBytes = count*trsdos.sectorsPerGranule*SECTOR_SIZE;
+            noteFindings.push({
+                kind: TrsdosFindingKind.FREE_BUT_MISSING,
+                message: `The GAT says ${count} ${plural(count, "granule")} ${plural(count, "is", "are")} free ` +
+                    `that the image doesn't fully hold (${formatGranules(missing.granules, lumpTerm)}): ` +
+                    `${missing.sectorCount} of ${one ? "its" : "their"} sectors ` +
+                    `${plural(missing.sectorCount, "is", "are")} missing or the wrong size. New files skip ` +
+                    `${one ? "it" : "them"}, so ${lostBytes.toLocaleString()} bytes of the free space can't be used.`,
+                dirEntries: [],
+                granules: missing.granules,
+            });
+        }
     }
 
     noteFindings.push(... programNotes);
@@ -453,6 +483,60 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
     return {
         findings,
         granuleMap: typeof granuleMap === "string" ? undefined : granuleMap,
+    };
+}
+
+/**
+ * The free granules that the image doesn't fully hold, and so that no new file can be given, with the
+ * same test the writer's allocator makes ({@link findUnwritableGranuleSectors}).
+ */
+export interface FreeButMissingGranules {
+    /** The granules, in disk order. */
+    granules: TrsdosGranule[];
+
+    /** How many of their sectors are missing or the wrong size. */
+    sectorCount: number;
+}
+
+/**
+ * Find the granules that the GAT and the files leave free ({@link TrsdosGranule.isFree}) but that the
+ * image doesn't fully hold: some sector has no ID, no data field, or the wrong size, so a file given the
+ * granule would fail when saved. The writer's allocator skips them. Only granules inside the disk's
+ * proven size count ({@link findDosDiskSize}), so a tail past the DOS's end doesn't, such as the
+ * cylinders past TRSDOS 1.3's 40, whose GAT bytes are zero. Where the size isn't proven (and on hard
+ * disk partitions), every granule counts.
+ *
+ * @param trsdos the file system.
+ * @param granuleMap its granule map.
+ */
+export function findFreeButMissingGranules(trsdos: Trsdos, granuleMap: TrsdosGranuleMap): FreeButMissingGranules {
+    const candidates: { granule: TrsdosGranule, sectors: SectorPosition[] }[] = [];
+    for (const granule of granuleMap.granules) {
+        if (granule.isFree()) {
+            const sectors = findUnwritableGranuleSectors(trsdos, granule.lump, granule.granule);
+            if (sectors.length > 0) {
+                candidates.push({granule, sectors});
+            }
+        }
+    }
+
+    // Most disks have none, so the size is worked out only when there are some.
+    let cylinderCount: number | undefined = undefined;
+    const volume = trsdos.disk instanceof SectorOverlay ? trsdos.disk.base : trsdos.disk;
+    if (candidates.length > 0 && volume instanceof FloppyDisk) {
+        const use = findTrsdosCylinderUse(trsdos, granuleMap, volume.getGeometry().cylinderCount);
+        const size = findDosDiskSize(trsdos, volume, use);
+        if (typeof size !== "string") {
+            cylinderCount = size.cylinderCount;
+        }
+    }
+
+    const inside = candidates.filter(({granule}) => cylinderCount === undefined ||
+        trsdos.getGranuleSectorPositions(granule.lump, granule.granule)
+            .every(position => position.cylinderNumber < cylinderCount));
+    return {
+        granules: inside.map(({granule}) => granule),
+        sectorCount: inside.reduce((sum, {sectors}) => sum + sectors.length, 0),
     };
 }
 

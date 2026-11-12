@@ -591,6 +591,17 @@ or left rough:
 - [ ] **Recovering the sectors.** A one-revolution read loses only the last few dozen bytes of one sector
       per track, and a converter's marker hides whether the data is right. Neither is repaired; Ira's rule
       is to leave the image alone, and reimaging is the fix.
+- [ ] **Free granules the image doesn't fully hold** (see "Free space the image lacks" in
+      `FLOPPY_FORMATS.md`) are a `check` note, and the writer's allocator skips them. Left as they are:
+      `free`, `info` and `map` still count them as free, so the writer's "not enough room" count can be
+      lower than `free`'s; nothing marks them used in the GAT (a repair option could, but the real disk
+      may have the sectors, and the DOS would then never use them); and the note is limited to the
+      disk's proven size while the allocator isn't, which matters only on TRSDOS 1.3 (below).
+- [ ] **TRSDOS 1.3's writer may allocate past cylinder 40.** Its GAT is zero past 40, so on an image
+      with a tail the tail's granules are free, and the allocator's smallest-run-that-fits rule would
+      pick a short tail first. An unformatted tail is skipped now (its sectors are missing), but a
+      re-read tail has its sectors. Not checked against the suite; the fix would be to give TRSDOS 1.3 a
+      never-allocated rule for lumps past 40, like NEWDOS/80's PDRIVE lump count.
 
 ## Tails and trim
 

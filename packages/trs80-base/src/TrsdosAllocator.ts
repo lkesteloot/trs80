@@ -1,5 +1,7 @@
 import {assertNever} from "z80-base";
-import {TrsdosVersion} from "./Trsdos.js";
+import {BYTES_PER_SECTOR, type SectorPosition} from "./FloppyDisk.js";
+import {findWritableSector} from "./SectorOverlay.js";
+import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
 import type {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 
 /**
@@ -65,6 +67,22 @@ export function maxGranulesPerExtent(version: TrsdosVersion): number {
  */
 export function freeGranuleFlags(map: TrsdosGranuleMap): boolean[] {
     return map.granules.map(granule => granule.isFree());
+}
+
+/**
+ * The sectors of a granule that a write would refuse, because the image doesn't hold them as 256-byte
+ * sectors: no ID, no data field, or another size (see {@link findWritableSector}). A file given the
+ * granule would fail when it's saved, since the writer writes every sector of its granules. CRC errors
+ * don't count, since a write replaces the data and its CRC.
+ *
+ * @param trsdos the file system, whose disk is read as a write would see it.
+ * @param lump the granule's lump.
+ * @param granule the granule within the lump.
+ * @return the sectors, in the granule's order. Empty if the whole granule can be written.
+ */
+export function findUnwritableGranuleSectors(trsdos: Trsdos, lump: number, granule: number): SectorPosition[] {
+    return trsdos.getGranuleSectorPositions(lump, granule)
+        .filter(position => typeof findWritableSector(trsdos.disk, position, BYTES_PER_SECTOR) === "string");
 }
 
 /**
