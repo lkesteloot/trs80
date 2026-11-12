@@ -1,7 +1,8 @@
 import {withCommas} from "teamten-ts-utils";
 import {densityToString, FloppyDisk, TrackGeometry} from "./FloppyDisk.js";
 import type {FloppyFileSystem} from "./FloppyFileSystem.js";
-import {pdriveSettingsToString, Trsdos} from "./Trsdos.js";
+import {Trsdos} from "./Trsdos.js";
+import {pdriveSettingsSourceToString, pdriveSettingsToString} from "./Pdrive.js";
 import {Cpm} from "./Cpm.js";
 import {MicroDos} from "./MicroDos.js";
 import {UcsdPascal} from "./UcsdPascal.js";
@@ -86,7 +87,7 @@ export function getFloppyDetails(floppy: FloppyDisk, fileSystem: FloppyFileSyste
         }
         const pdriveSettings = trsdos.getPdriveSettings();
         if (pdriveSettings !== undefined) {
-            add("PDRIVE", pdriveSettingsToString(pdriveSettings));
+            add("PDRIVE", `${pdriveSettingsToString(pdriveSettings)} (${pdriveSettingsSourceToString(pdriveSettings)})`);
         }
     } else if (fileSystem instanceof Cpm) {
         const cpm = fileSystem;

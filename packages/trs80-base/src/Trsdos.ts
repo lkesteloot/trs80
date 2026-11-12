@@ -15,8 +15,9 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {bytesToText, type DosBanner, findDosBanner} from "./DiskUtils.js";
-import {DosFamily, type DosName, dosNameToString, isTrsdos6Line, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
+import {DosFamily, type DosName, dosNameToString, isNewdos80Line, isTrsdos6Line, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
 import type {AllocatedExtent} from "./TrsdosAllocator.js";
+import {type PdriveSettings, PdriveSource, readPdriveTable} from "./Pdrive.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -2247,46 +2248,6 @@ export function encodeTrsdos13DirEntry(fields: Trsdos13DirEntryFields): Uint8Arr
 }
 
 /**
- * The NEWDOS/80 PDRIVE settings that read a disk the way we decoded it, worked out from its layout
- * rather than read from the disk. See "PDRIVE" in FLOPPY_FORMATS.md. The interface letter of TI and
- * the step rate (TSR) leave no trace on the disk, so they're not here.
- */
-export interface PdriveSettings {
-    /** Whether the data area skips cylinder 0, which is in the other density from the rest: the K flag of TI. */
-    track0OtherDensity: boolean;
-    /** Type of drive (TD): A, C, E, or G for 5", B, D, F, or H for 8". */
-    driveType: string;
-    /** Cylinders in the image (TC), not counting a skipped cylinder 0. */
-    trackCount: number;
-    /** Sectors per track, counting both sides (SPT). */
-    sectorsPerTrack: number;
-    /** Granules per lump (GPL). */
-    granulesPerLump: number;
-    /** The lump where the directory starts (DDSL). */
-    dirStartLump: number;
-    /** Granules in the directory (DDGA). */
-    dirGranules: number;
-}
-
-/**
- * Show PDRIVE settings as PDRIVE takes them, such as "TI=?K,TD=E,TC=43,SPT=18,GPL=2,DDSL=17,DDGA=2".
- * TI only appears with its K flag, after a "?" for the unknown interface letter.
- */
-export function pdriveSettingsToString(settings: PdriveSettings): string {
-    const fields: string[] = [];
-    if (settings.track0OtherDensity) {
-        fields.push("TI=?K");
-    }
-    fields.push(`TD=${settings.driveType}`,
-        `TC=${settings.trackCount}`,
-        `SPT=${settings.sectorsPerTrack}`,
-        `GPL=${settings.granulesPerLump}`,
-        `DDSL=${settings.dirStartLump}`,
-        `DDGA=${settings.dirGranules}`);
-    return fields.join(",");
-}
-
-/**
  * A TRSDOS diskette.
  *
  * We access physical disks with (cylinder,side,sector number) tuples. This would work for TRSDOS too,
@@ -2769,16 +2730,33 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * The NEWDOS/80 PDRIVE settings that read this disk as we decoded it, or undefined if its lumps
-     * are cylinders. Those disks may well be NEWDOS/80's, but any DOS's settings will read them, so
-     * PDRIVE isn't what decides it. Going by the layout rather than the DOS's name means this works
-     * on data disks too, which don't say what wrote them.
+     * The NEWDOS/80 PDRIVE settings for this disk. A NEWDOS/80 system disk's own drive table comes
+     * first, since only it has TI's interface letter and TSR (see {@link readPdriveTable}). Without
+     * one (data disks have none), the settings are worked out from the layout we decoded, which
+     * works on data disks too, since they don't say what wrote them.
+     *
+     * @return the settings, or undefined for a disk that isn't NEWDOS/80's and whose lumps are
+     * cylinders: any DOS's settings would read it, so PDRIVE says nothing about it.
      */
     public getPdriveSettings(): PdriveSettings | undefined {
-        if (this.lumpsAreCylinders) {
+        const isNewdos80 = isNewdos80Line(this.dosName);
+        if (isNewdos80) {
+            const table = readPdriveTable(this.disk);
+            if (table !== undefined) {
+                return table;
+            }
+        }
+        if (this.lumpsAreCylinders && !isNewdos80) {
             return undefined;
         }
+        return this.getLayoutPdriveSettings();
+    }
 
+    /**
+     * The NEWDOS/80 PDRIVE settings that read this disk the way we decoded it, worked out from its
+     * layout rather than read from the disk. See "PDRIVE" in FLOPPY_FORMATS.md.
+     */
+    public getLayoutPdriveSettings(): PdriveSettings {
         // The drive types for 5" disks, and the most sectors per side that one holds; more
         // means 8". See the sector table in FLOPPY_FORMATS.md.
         const sectorsPerSide = this.geometry.modalDataSectorSpan;
@@ -2804,6 +2782,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
 
         return {
+            source: PdriveSource.LAYOUT,
+            sectorOneLowest: false,
+            trackOneLowest: false,
             track0OtherDensity: this.firstDataCylinder === 1,
             driveType,
             trackCount: this.geometry.cylinderCount - this.firstDataCylinder,

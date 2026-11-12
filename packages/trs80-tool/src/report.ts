@@ -24,6 +24,8 @@ import {
     ModelIITrsdos,
     ModelIITrsdosDirEntry,
     modelIITrsdosLayoutToString,
+    pdriveSettingsToString,
+    pdriveSourceToString,
     type Trs80HardDisk,
     TrackGeometry,
     Trsdos,
@@ -138,6 +140,11 @@ export interface OsReport {
     // TRSDOS family only, exactly one of these:
     gatError?: string;
     gat?: GatReport;
+    // TRSDOS family only, for NEWDOS/80 disks and those whose lumps aren't cylinders: the PDRIVE
+    // settings, such as "TI=A,TD=E,TC=40,SPT=18,TSR=3,GPL=2,DDSL=17,DDGA=2", and where they came
+    // from, "table" (the disk's drive table) or "layout" (worked out from how we decoded it).
+    pdrive?: string;
+    pdriveSource?: string;
     // CP/M only.
     cpm?: CpmReport;
     // UCSD Pascal only.
@@ -642,6 +649,12 @@ function reportTrsdos(trsdos: Trsdos, report: FileSystemReport): void {
             autoCommand: gatInfo.autoCommand,
             password: gatInfo.password,
         };
+    }
+
+    const pdriveSettings = trsdos.getPdriveSettings();
+    if (pdriveSettings !== undefined) {
+        os.pdrive = pdriveSettingsToString(pdriveSettings);
+        os.pdriveSource = pdriveSourceToString(pdriveSettings.source);
     }
 
     report.files = trsdos.getDirEntries(true).map(dirEntry => reportTrsdosFile(trsdos, dirEntry));

@@ -355,3 +355,49 @@ export function isTrsdos6Line(name: DosName): boolean {
 
     return isTrsdos6 && (name.or === undefined || isTrsdos6Line(name.or));
 }
+
+/**
+ * Whether the DOS is NEWDOS/80 or one built from it, whose system disks carry a PDRIVE table (see
+ * "PDRIVE" in FLOPPY_FORMATS.md), for any of the candidates.
+ */
+export function isNewdos80Line(name: DosName): boolean {
+    let isNewdos80: boolean;
+    switch (name.family) {
+        case DosFamily.NEWDOS_80:
+        case DosFamily.NEWDOS_86:
+        case DosFamily.NEWDOS_90:
+        case DosFamily.G_DOS:
+        case DosFamily.H_DOS:
+            isNewdos80 = true;
+            break;
+
+        case DosFamily.UNKNOWN:
+        case DosFamily.TRSDOS:
+        case DosFamily.LDOS:
+        case DosFamily.LS_DOS:
+        case DosFamily.VTOS:
+        case DosFamily.DOSPLUS:
+        case DosFamily.DOSPLUS_II:
+        case DosFamily.DOSPLUS_IV:
+        case DosFamily.NEWDOS:
+        case DosFamily.NEWDOS_PLUS:
+        case DosFamily.DOUBLEDOS:
+        case DosFamily.MULTIDOS:
+        case DosFamily.MULTIDOS_II:
+        case DosFamily.ESOTERIC:
+        case DosFamily.Z_DOS:
+        case DosFamily.ULTRADOS:
+        case DosFamily.RAPIDOS:
+        case DosFamily.SUPERDOS:
+        case DosFamily.DOS500:
+        case DosFamily.SUPER_UTILITY_PLUS:
+        case DosFamily.BFLOADER:
+            isNewdos80 = false;
+            break;
+
+        default:
+            assertNever(name.family);
+    }
+
+    return isNewdos80 || (name.or !== undefined && isNewdos80Line(name.or));
+}
