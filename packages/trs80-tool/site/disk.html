@@ -529,7 +529,12 @@ partition --delete [N|NAME] [--force]</code></pre>
             damaged files), and says whether the disk is now safe to write. It works on a disk that
             is damaged but otherwise sound, which is the only kind of write that such a disk allows, so
             <code>repair : add FILE</code> works. It refuses a disk that can’t be written for another
-            reason, such as an uncertain layout, even with <code>--force</code>. Under TRSDOS 2.x’s
+            reason, such as an uncertain layout, even with <code>--force</code>. It also refuses, even
+            with <code>--force</code>, a floppy that shows any sign of copy protection that
+            <code>check</code> lists, naming the signs, since what looks like damage may be the
+            protection itself (a directory cylinder left allocated, say), and repairing it would break
+            the disk. IDs naming another cylinder don’t count when they’re only on an imager’s re-reads
+            past the disk’s end (see <a href="#trim"><code>trim</code></a>). Under TRSDOS 2.x’s
             rules the HIT bytes of extended directory entries are left alone, since we don’t know what
             the DOS puts there. Granules that the GAT marks used but no file claims are left alone, since some programs
             keep data there. So are programs whose directory size ends before their transfer record, further

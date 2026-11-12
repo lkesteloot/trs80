@@ -1,7 +1,10 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile} from "trs80-base";
+import {
+    appendDmkTestTracks, formatTrsdosDataDisk, makeTrsdos23TestDisk, SectorData, SectorPosition, type TestDiskOptions,
+    type TestFile, TRSDOS_23_TRACK_LAYOUT, TrsdosFormatDos, USER_DATA_ADDRESS_MARK_F9,
+} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {disk} from "./disk.js";
 import {openDiskSession, sessionInputFiles} from "./DiskFiles.js";
@@ -156,6 +159,50 @@ describe("disk repair", () => {
         await expect(runDisk("--dos", "ldos-5", "repair")).rejects.toThrow(/Can't repair this disk: .*TRSDOS/);
         await expect(runDisk("--dos", "ldos-5", "--force", "repair")).rejects.toThrow(/Can't repair this disk/);
         expect(fs.readFileSync(imagePathname)).to.eql(before);
+    });
+
+    describe("copy protection", () => {
+        /**
+         * Write a TRSDOS 2.3 DMK image of 40 cylinders, whose last is read twice more, to the image file,
+         * optionally with a sector marked as only protection marks it.
+         *
+         * @param markF9 whether to give sector 3 of cylinder 30 the 0xF9 data mark, a sign of copy protection.
+         */
+        function makeDmkImage(markF9: boolean): void {
+            imagePathname = path.join(dir, "test.dmk");
+            const formatted = formatTrsdosDataDisk({dos: TrsdosFormatDos.TRSDOS_2_3, cylinders: 40, sides: 1});
+            if (typeof formatted === "string") {
+                throw new Error(formatted);
+            }
+            if (markF9) {
+                const position = SectorPosition.make(30, 0, 3);
+                const sector = formatted.readSector(position);
+                if (sector === undefined) {
+                    throw new Error("No sector");
+                }
+                const marked = new SectorData(sector.data, position, sector.density);
+                marked.dataAddressMark = USER_DATA_ADDRESS_MARK_F9;
+                formatted.writeSector(position, marked);
+            }
+            const floppy = appendDmkTestTracks(formatted, [[{kind: "reRead", cylinder: 39}], [{kind: "reRead", cylinder: 39}]],
+                TRSDOS_23_TRACK_LAYOUT);
+            fs.writeFileSync(imagePathname, floppy.binary);
+        }
+
+        it("refuses a disk that shows signs of copy protection, even with --force", async () => {
+            makeDmkImage(true);
+            const before = fs.readFileSync(imagePathname);
+
+            await expect(runDisk("repair")).rejects.toThrow(/^Can't repair this disk: it shows signs of copy protection \(F9 data marks\), and a repair could destroy them, so it's left alone, even with --force\. Cylinder 30 has 1 single-density sector/);
+            await expect(runDisk("--force", "repair", "--free-unclaimed")).rejects.toThrow(/signs of copy protection/);
+            expect(fs.readFileSync(imagePathname)).to.eql(before);
+        });
+
+        it("doesn't take re-reads past the disk's end for protection", async () => {
+            makeDmkImage(false);
+
+            expect(await runDisk("repair")).to.eql(["Nothing to repair."]);
+        });
     });
 
     it("can be undone", async () => {

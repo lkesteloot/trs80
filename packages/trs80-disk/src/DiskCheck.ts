@@ -1,8 +1,9 @@
 import {
-    type TrsdosFinding, TrsdosFindingSeverity, type TrsdosRepairResult, TrsdosWriteAccess,
+    findBlockingProtectionSigns, FloppyDisk, protectionSignKindToString, type TrsdosFinding, TrsdosFindingSeverity,
+    type TrsdosRepairResult, TrsdosWriteAccess,
 } from "trs80-base";
 import {assertNever} from "z80-base";
-import {DiskError} from "./DiskError.js";
+import {DiskError, DiskErrorKind} from "./DiskError.js";
 import {DiskSession, DiskWritePurpose, writeBlockersErrorKind} from "./DiskSession.js";
 import {pluralizeWithCount} from "./Plural.js";
 
@@ -79,7 +80,10 @@ export function checkDisk(session: DiskSession): CheckResult {
 /**
  * Repair the disk. It works on a disk that is damaged but otherwise sound, and refuses one that can't be
  * written for any other reason (an uncertain layout, say), since a repair writes to the same places as any
- * other change.
+ * other change. It also refuses a floppy that shows signs of copy protection, even with --force, since what
+ * a check calls damage may be the protection itself (a directory cylinder left allocated, say). IDs naming
+ * another cylinder don't count when they're only on re-reads past the disk's end (see
+ * findBlockingProtectionSigns() in trs80-base).
  *
  * @param session the session.
  * @param options what to repair beyond the damage itself.
@@ -105,6 +109,18 @@ export function repairDisk(session: DiskSession, options: {freeUnclaimed: boolea
                     writeBlockersErrorKind(gate.blockers));
             default:
                 assertNever(gate.access);
+        }
+    }
+
+    // Before anything touches the GAT or HIT. Unknown means hands off.
+    const image = session.image;
+    if (image instanceof FloppyDisk) {
+        const signs = findBlockingProtectionSigns(image, session.fileSystem);
+        if (signs.length > 0) {
+            throw new DiskError("Can't repair this disk: it shows signs of copy protection (" +
+                signs.map(sign => protectionSignKindToString(sign.kind)).join(", ") + "), and a repair could " +
+                "destroy them, so it's left alone, even with --force. " + signs.map(sign => sign.message).join(" "),
+                DiskErrorKind.READ_ONLY);
         }
     }
 
