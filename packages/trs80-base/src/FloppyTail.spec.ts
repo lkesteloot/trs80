@@ -7,13 +7,14 @@ import type {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {SectorData, SectorPosition, TrackPosition} from "./FloppyDisk.js";
 import {decodeFloppyFileSystem} from "./FloppyFileSystem.js";
 import {
-    analyzeFloppyTail, describeTailKeepReason, findBlockingProtectionSigns, findDosDiskSize, findReReadCylinder,
-    findTrsdosCylinderUse, MAX_TRIMMABLE_TAIL, TailKeepReason, TailTrackKind,
+    analyzeFloppyTail, describeTailKeepReason, findBlockingProtectionSigns, findReReadCylinder, MAX_TRIMMABLE_TAIL,
+    TailKeepReason, TailTrackKind,
 } from "./FloppyTail.js";
 import {USER_DATA_ADDRESS_MARK_F9} from "./TrackBytes.js";
 import {LSDOS_DD_TRACK_LAYOUT, TRSDOS_13_TRACK_LAYOUT, TRSDOS_23_TRACK_LAYOUT, type TrackLayout} from "./TrackLayout.js";
 import {Trsdos} from "./Trsdos.js";
 import {formatTrsdosDataDisk, TrsdosFormatDos} from "./TrsdosFormat.js";
+import {findDosDiskSize, findTrsdosCylinderUse} from "./TrsdosDiskSize.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 
 /**
@@ -185,10 +186,21 @@ describe("analyzeFloppyTail", () => {
         expect(signed.cylinders.map(c => c.keepReason)).to.eql([TailKeepReason.LATER_CYLINDER_KEPT, TailKeepReason.PROTECTION_SIGN]);
         expect(describeTailKeepReason(signed, signed.cylinders[1], 1)).to.equal("it shows signs of copy protection (mixed-density track)");
 
-        // The disk's own signs include the re-reads' IDs naming cylinder 39, which don't count.
+        // The re-reads' IDs name cylinder 39, but they're past the disk's proven end, so they aren't a sign.
         const signs = findProtectionSigns(floppy, decodeFloppyFileSystem(floppy));
-        expect(signs.map(sign => sign.kind)).to.include(ProtectionSignKind.FOREIGN_CYLINDER_IDS);
+        expect(signs.map(sign => sign.kind)).to.not.include(ProtectionSignKind.FOREIGN_CYLINDER_IDS);
         expect(analyze(floppy, signs).dropFrom).to.equal(40);
+        expect(findBlockingProtectionSigns(floppy, decodeFloppyFileSystem(floppy))).to.eql([]);
+    });
+
+    it("keeps an earlier format's track past the end, but doesn't count its IDs as protection", () => {
+        // Cylinder 40 holds only filler, but its IDs name cylinder 42, which isn't in the image.
+        const floppy = trsdos23WithTail([{kind: "blank", idCylinder: 42}]);
+        const tail = analyze(floppy);
+        expect(tail.cylinders[0].tracks[0].kind).to.equal(TailTrackKind.FOREIGN_IDS);
+        expect(tail.cylinders[0].keepReason).to.equal(TailKeepReason.FOREIGN_IDS);
+        expect(tail.dropFrom).to.equal(41);
+        expect(findProtectionSigns(floppy, decodeFloppyFileSystem(floppy))).to.eql([]);
         expect(findBlockingProtectionSigns(floppy, decodeFloppyFileSystem(floppy))).to.eql([]);
     });
 
