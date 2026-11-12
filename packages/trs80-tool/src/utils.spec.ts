@@ -3,8 +3,8 @@ import * as os from "os";
 import * as path from "path";
 import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 import {
-    expandInputPattern, expandInputPatterns, fileNameMatchesPattern, ToolError, wordsAfterSubcommand,
-    wrapMessage, wrapText, writeFileAtomically,
+    combineExitCodes, expandInputPattern, expandInputPatterns, fileNameMatchesPattern, hostFileError, ToolError,
+    ToolErrorKind, toolErrorExitCode, ToolExitCode, wordsAfterSubcommand, wrapMessage, wrapText, writeFileAtomically,
 } from "./utils.js";
 
 describe("fileNameMatchesPattern", () => {
@@ -293,5 +293,34 @@ describe("wrapMessage", () => {
         for (const line of wrapMessage(long).split("\n")) {
             expect(line.length).to.be.at.most(80);
         }
+    });
+});
+
+describe("exit codes", () => {
+    it("exits with the code of the error's kind, and 1 for others", () => {
+        expect(toolErrorExitCode(new ToolError("x"))).to.equal(1);
+        expect(toolErrorExitCode(new ToolError("x", ToolErrorKind.NOT_FOUND))).to.equal(3);
+        expect(toolErrorExitCode(new ToolError("x", ToolErrorKind.READ_ONLY))).to.equal(4);
+        expect(toolErrorExitCode(new ToolError("x", ToolErrorKind.WRITE_PROTECTED))).to.equal(5);
+        expect(toolErrorExitCode(new ToolError("x", ToolErrorKind.DAMAGED))).to.equal(6);
+        expect(toolErrorExitCode(new ToolError("x", ToolErrorKind.DISK_FULL))).to.equal(7);
+    });
+
+    it("combines failures to their common code, or 1", () => {
+        expect(combineExitCodes([ToolExitCode.NOT_FOUND, ToolExitCode.NOT_FOUND])).to.equal(3);
+        expect(combineExitCodes([ToolExitCode.NOT_FOUND, ToolExitCode.DISK_FULL])).to.equal(1);
+    });
+
+    it("calls a host file that isn't there not found", () => {
+        let thrown: unknown;
+        try {
+            fs.readFileSync(path.join(os.tmpdir(), "trs80-tool-no-such-file-" + process.pid));
+        } catch (e) {
+            thrown = e;
+        }
+        const error = hostFileError("Can't open it", thrown);
+        expect(error.kind).to.equal(ToolErrorKind.NOT_FOUND);
+        expect(error.message).to.match(/^Can't open it: ENOENT/);
+        expect(hostFileError("Can't open it", new Error("other")).kind).to.equal(ToolErrorKind.GENERAL);
     });
 });

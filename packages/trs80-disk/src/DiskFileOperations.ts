@@ -1,12 +1,12 @@
 import {
-    type BasicDialect, parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo, TRSDOS_BLANK_PASSWORD_HASH,
-    TRSDOS_DEFAULT_PASSWORD_HASH, Trsdos, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
+    type BasicDialect, knownTrsdosPassword, parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo,
+    Trsdos, trsdosBlankPasswordHash, type TrsdosVersion, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
     type TrsdosAddResult, type TrsdosDiskInfoChanges, type TrsdosFilename, trsdosFilenameFromHost,
     trsdosFilenameToString, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString,
     type TrsdosProtectionNames,
 } from "trs80-base";
-import {DiskError} from "./DiskError.js";
-import {importHostFile, stemOf} from "./DiskImport.js";
+import {DiskError, DiskErrorKind} from "./DiskError.js";
+import {checkImportOptions, importHostFile, stemOf} from "./DiskImport.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {selectByPatterns, systemWildcardHint} from "./Patterns.js";
 import {pluralizeWithCount} from "./Plural.js";
@@ -33,7 +33,7 @@ export function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[
     }, false);
     if (unmatchedPattern !== undefined) {
         throw new DiskError("No file on the disk matches \"" + unmatchedPattern + "\"" +
-            systemWildcardHint(unmatchedOnlySystem));
+            systemWildcardHint(unmatchedOnlySystem), DiskErrorKind.NOT_FOUND);
     }
 
     return selected;
@@ -99,7 +99,7 @@ export function renameFile(session: DiskSession, oldText: string, newText: strin
     session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
         const dirEntry = writer.findFile(oldName);
         if (dirEntry === undefined) {
-            throw new DiskError("No file on the disk is called " + oldName);
+            throw new DiskError("No file on the disk is called " + oldName, DiskErrorKind.NOT_FOUND);
         }
         // The name as it is on the disk.
         shownOldName = dirEntry.getFilename("/");
@@ -181,10 +181,10 @@ export function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtec
     if (dirEntry.isSystemFile()) {
         parts.push("system");
     }
-    if (dirEntry.updatePassword !== undefined && dirEntry.updatePassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+    if (trsdosPasswordIsSet(dirEntry.updatePassword, dirEntry.version)) {
         parts.push("update password");
     }
-    if (dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+    if (trsdosPasswordIsSet(dirEntry.accessPassword, dirEntry.version)) {
         parts.push("access password");
     }
     if (dirEntry.hasDate()) {
@@ -299,15 +299,25 @@ export function listAttributes(session: DiskSession, patterns: string[]): Attrib
  * password is only known if it's one of the two common ones.
  *
  * @param passwordHash the hash of the password.
+ * @param version the disk's layout, whose hash it is (TRSDOS 1.3 has its own).
  */
-export function describeMasterPassword(passwordHash: number): string {
-    if (passwordHash === TRSDOS_DEFAULT_PASSWORD_HASH) {
-        return "PASSWORD";
-    } else if (passwordHash === TRSDOS_BLANK_PASSWORD_HASH) {
-        return "blank";
-    } else {
+export function describeMasterPassword(passwordHash: number, version: TrsdosVersion): string {
+    const password = knownTrsdosPassword(passwordHash, version);
+    if (password === undefined) {
         return "set (hash 0x" + passwordHash.toString(16).toUpperCase().padStart(4, "0") + ")";
     }
+    return password === "" ? "blank" : password;
+}
+
+/**
+ * Whether a directory entry's password hash is that of a real password, not the blank one.
+ *
+ * @param hash the hash, or undefined if the entry has none (an access password whose bytes hold a time stamp,
+ * or a TRSDOS 1.3 system file).
+ * @param version the disk's layout, whose blank hash differs on TRSDOS 1.3.
+ */
+export function trsdosPasswordIsSet(hash: number | undefined, version: TrsdosVersion): boolean {
+    return hash !== undefined && hash !== trsdosBlankPasswordHash(version);
 }
 
 /**
@@ -381,6 +391,8 @@ export interface AddOptions {
     ascii: boolean;
     /** Copy every file exactly as it is (--binary). */
     binary: boolean;
+    /** Treat every file as text, converting only its line endings (--text). */
+    text: boolean;
     /** The BASIC to tokenize for (--basic, or the disk's). */
     basic: BasicDialect;
     /** Make the files system files (--system). */
@@ -446,14 +458,12 @@ function checkAddAsCount(as: string | undefined, fileCount: number): void {
  * @param session the open disk.
  * @param sources the host files, in order.
  * @param options how to add them.
- * @throws DiskError for a problem with the whole request: --as with other than one file, or both
- * --ascii and --binary.
+ * @throws DiskError for a problem with the whole request: --as with other than one file, or --binary with
+ * --ascii or --text.
  */
 export function planAdd(session: DiskSession, sources: AddFileSource[], options: AddOptions): AddPlanItem[] {
     checkAddAsCount(options.as, sources.length);
-    if (options.ascii && options.binary) {
-        throw new DiskError("Use either --ascii or --binary, not both");
-    }
+    checkImportOptions(options);
 
     const trsdos = session.fileSystem;
     const existingEntries = trsdos instanceof Trsdos ? trsdos.getDirEntries(true) : [];
@@ -478,6 +488,7 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
             imported = importHostFile(source.name, source.bytes, {
                 ascii: options.ascii,
                 binary: options.binary,
+                text: options.text,
                 basic: options.basic,
             });
         } catch (e) {

@@ -1,6 +1,6 @@
 import {SectorPosition, Trsdos, TrsdosGranuleMap, type TrsdosDirEntry, type TrsdosGranule} from "trs80-base";
 import {assertNever} from "z80-base";
-import {DiskError} from "./DiskError.js";
+import {DiskError, DiskErrorKind} from "./DiskError.js";
 import type {DiskSession} from "./DiskSession.js";
 import {selectByPatterns, systemWildcardHint} from "./Patterns.js";
 import {pluralizeWithCount} from "./Plural.js";
@@ -405,7 +405,7 @@ export function buildDiskMap(session: DiskSession, patterns: string[]): DiskMapM
         }, false);
         if (selection.unmatchedPattern !== undefined) {
             throw new DiskError("No file on the disk matches \"" + selection.unmatchedPattern + "\"" +
-                systemWildcardHint(selection.unmatchedOnlySystem));
+                systemWildcardHint(selection.unmatchedOnlySystem), DiskErrorKind.NOT_FOUND);
         }
         selected = selection.selected;
     }

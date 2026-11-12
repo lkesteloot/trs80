@@ -1442,7 +1442,7 @@ describe("TrsdosWriter.setDiskInfo", () => {
     it("reads the test disk's information", () => {
         const {trsdos} = makeInfoFixture(TrsdosRuleSet.LDOS_5);
         expect(diskInfo(trsdos, TrsdosRuleSet.LDOS_5))
-            .to.eql({name: "TESTDISK", date: "10/25/26", passwordHash: 0x42E0, autoCommand: ""});
+            .to.eql({name: "TESTDISK", date: "10/25/26", passwordHash: 0x42E0, version: TrsdosVersion.V2_3, autoCommand: ""});
     });
 
     it("changes the name, date and password by changing only those GAT bytes", () => {
@@ -1461,7 +1461,7 @@ describe("TrsdosWriter.setDiskInfo", () => {
         expectedGat[0xCF] = hash >> 8;
         expect(readBytes(overlay, newTrsdos.getGatPosition())).to.eql(expectedGat);
         expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5))
-            .to.eql({name: "GAMES", date: "05/09/83", passwordHash: hash, autoCommand: ""});
+            .to.eql({name: "GAMES", date: "05/09/83", passwordHash: hash, version: TrsdosVersion.V2_3, autoCommand: ""});
 
         // The files are as they were.
         expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["HELLO/BAS", "WORLD/TXT"]);
@@ -1472,7 +1472,7 @@ describe("TrsdosWriter.setDiskInfo", () => {
         writer.setDiskInfo({name: "ONLY"});
         const newTrsdos = writer.flush();
         expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5))
-            .to.eql({name: "ONLY", date: "10/25/26", passwordHash: 0x42E0, autoCommand: ""});
+            .to.eql({name: "ONLY", date: "10/25/26", passwordHash: 0x42E0, version: TrsdosVersion.V2_3, autoCommand: ""});
     });
 
     it("blanks the master password", () => {
@@ -1617,7 +1617,7 @@ describe("TrsdosWriter.setDiskInfo", () => {
         expect(sysInfo.subarray(0, 0x20)).to.eql(oldSysInfo.subarray(0, 0x20));
         expect(sysInfo.subarray(0x70)).to.eql(oldSysInfo.subarray(0x70));
         expect(diskInfo(newTrsdos, TrsdosRuleSet.TRSDOS_6))
-            .to.eql({name: "WORK", date: "06/07/86", passwordHash: 0x42E0, autoCommand: "KEEP"});
+            .to.eql({name: "WORK", date: "06/07/86", passwordHash: 0x42E0, version: TrsdosVersion.V2_3, autoCommand: "KEEP"});
     });
 
     it("limits a TRSDOS 6 AUTO command to 79 characters", () => {
@@ -1655,7 +1655,7 @@ describe("TrsdosWriter.setDiskInfo", () => {
 
         expect(newTrsdos.getDirEntries(false).map(d => d.getFilename("/"))).to.eql(["WORLD/TXT"]);
         expect(diskInfo(newTrsdos, TrsdosRuleSet.LDOS_5))
-            .to.eql({name: "SECOND", date: "01/02/84", passwordHash: 0x42E0, autoCommand: "DIR"});
+            .to.eql({name: "SECOND", date: "01/02/84", passwordHash: 0x42E0, version: TrsdosVersion.V2_3, autoCommand: "DIR"});
     });
 
     it("does nothing when given no changes", () => {
@@ -2349,7 +2349,10 @@ describe("TrsdosWriter on TRSDOS 1.3 disks", () => {
     it("changes the disk's name, date, master password and AUTO command", () => {
         const {overlay, trsdos, writer} = make13Fixture();
         const info = readTrsdosDiskInfo(trsdos, TrsdosRuleSet.TRSDOS_1_3);
-        expect(info).to.eql({name: "DATADISK", date: "05/17/83", passwordHash: hashTrsdos13Password("PASSWORD"), autoCommand: ""});
+        expect(info).to.eql({
+            name: "DATADISK", date: "05/17/83", passwordHash: hashTrsdos13Password("PASSWORD"), version: TrsdosVersion.V1_3,
+            autoCommand: "",
+        });
 
         writer.setDiskInfo({
             name: "my disk", date: new Date(1984, 0, 2), masterPassword: "Secret", autoCommand: "BASIC MENU",
@@ -2357,7 +2360,8 @@ describe("TrsdosWriter on TRSDOS 1.3 disks", () => {
         const newTrsdos = writer.flush();
 
         expect(readTrsdosDiskInfo(newTrsdos, TrsdosRuleSet.TRSDOS_1_3)).to.eql({
-            name: "MY DISK", date: "01/02/84", passwordHash: hashTrsdos13Password("SECRET"), autoCommand: "BASIC MENU",
+            name: "MY DISK", date: "01/02/84", passwordHash: hashTrsdos13Password("SECRET"), version: TrsdosVersion.V1_3,
+            autoCommand: "BASIC MENU",
         });
         const gat = readBytes(overlay, newTrsdos.getGatPosition());
         expect(gat[0xCE]).to.eql(hashTrsdos13Password("SECRET") & 0xFF);

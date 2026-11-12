@@ -5,11 +5,13 @@ import {
 import {LogLevel, MAIN_SINK} from "z80-logger";
 import {assertNever} from "z80-base";
 import {type InputFile, loadInputFile, notContainerError, selectInputFiles} from "./InputFile.js";
-import {outputPathComponents, ToolError} from "./utils.js";
+import {
+    combineExitCodes, outputPathComponents, ToolError, ToolErrorKind, toolErrorExitCode, ToolExitCode,
+} from "./utils.js";
 
 // This file defines the types of the JSON that the --json flags of the "dir", "extract", "sectors",
 // and "info" commands print, and the helpers that build them. (The "disk" command's --json has its own
-// types, in disk/DiskJson.ts, which reuse some of these.) The comments on the interfaces are the
+// types, in disk/DiskJson.ts, which reuse some of these, and "help --json" has its own in helpJson.ts.) The comments on the interfaces are the
 // documentation of the format. The format is meant to be stable: field names are explicit, raw
 // values and their interpretations are in separate fields, and nothing depends on the terminal.
 // Optional fields are left out of the JSON when they don't apply.
@@ -159,6 +161,16 @@ export function contentTypeOf(trs80File: Trs80File): ContentType {
 export type FloppyFormat = "JV1" | "JV3" | "DMK" | "HFE" | "IMD" | "SCP";
 
 /**
+ * Every floppy image format that we read. A record, so that a format missing from it is a compile error.
+ */
+const FLOPPY_FORMAT_SET: Record<FloppyFormat, true> = {JV1: true, JV3: true, DMK: true, HFE: true, IMD: true, SCP: true};
+
+/**
+ * Every floppy image format that we read, in a fixed order.
+ */
+export const FLOPPY_FORMATS = Object.keys(FLOPPY_FORMAT_SET) as FloppyFormat[];
+
+/**
  * The format of the image file that the floppy was decoded from.
  */
 export function floppyFormatOf(floppy: Trs80Floppy): FloppyFormat {
@@ -259,6 +271,43 @@ export interface TrsdosFileJson {
     protection: string;
     /** The runs of granules, including those in the file's extended directory entries. */
     extents: GranuleExtentJson[];
+    /**
+     * The hash of the update password, from directory entry bytes 0x10-0x11, by the hash of the disk's layout
+     * (TRSDOS 1.3 has its own). Missing for TRSDOS 1.3's system files, which have no directory entries.
+     */
+    updatePasswordHash?: number;
+    /**
+     * The hash of the access password, from bytes 0x12-0x13. Missing where those bytes hold a time stamp (see
+     * timeStampsReplaceAccessPassword), and for TRSDOS 1.3's system files.
+     */
+    accessPasswordHash?: number;
+    /**
+     * The update password, if its hash is one we can name: "" for none, or "PASSWORD". Missing if it's
+     * another password, which only its hash tells of.
+     */
+    updatePassword?: string;
+    /** The access password, if its hash is one we can name, as for updatePassword. */
+    accessPassword?: string;
+    /**
+     * Whether the disk's directory entries keep a time stamp in bytes 0x12-0x13, where the access password
+     * would go (LDOS 5.3 and LS-DOS 6.3). If so, the access password can't be set ("disk attrib
+     * --access-password" refuses), and accessPasswordHash is missing from the entries that hold one. The
+     * same for every file on the disk.
+     */
+    timeStampsReplaceAccessPassword: boolean;
+    /**
+     * Directory entry byte 0 as stored: the attributes that osFile, hidden and protection decode, and bits
+     * that only some DOSes use. Missing for TRSDOS 1.3's system files, which have no directory entries.
+     */
+    entryByte0?: number;
+    /**
+     * Directory entry byte 1 as stored, whose meaning depends on the DOS: on LDOS and TRSDOS 6, bit 7 is
+     * "CREATEd", bit 6 "modified since the last backup" (MOD), bit 5 "open", bit 4 "no date", and the low
+     * nibble the month; NEWDOS/80 and TRSDOS 2.3 use the bits differently, and TRSDOS 1.3 keeps the month in
+     * the low nibble. See "Directory entries (2.3 family)" in trs80-base's FLOPPY_FORMATS.md. Missing for
+     * TRSDOS 1.3's system files.
+     */
+    entryByte1?: number;
 }
 
 /**
@@ -541,6 +590,11 @@ export interface InfileJson {
     infile: string;
     /** Missing if the input was read without a problem. Otherwise the input couldn't be read, decoded, or isn't the right kind. */
     error?: string;
+    /**
+     * The exit status that this error alone would give, such as 3 for a file that isn't there (the list is in
+     * "trs80-tool --help"). Only when error is.
+     */
+    errorCode?: number;
     /** Warnings that the decoders logged while reading the input. */
     warnings: string[];
 }
@@ -554,14 +608,25 @@ export interface InfilesJson<T extends InfileJson> {
 }
 
 /**
- * Print the JSON for a command, and set the exit code to 1 if any of the input files had an error.
+ * Print the JSON for a command, and set the exit code if any of the input files had an error: their
+ * errorCode if they all have the same one, else 1.
  */
 export function printInfilesJson<T extends InfileJson>(infiles: T[]): void {
     const output: InfilesJson<T> = { infiles };
     printJson(output);
-    if (infiles.some(infile => infile.error !== undefined)) {
-        process.exitCode = 1;
+    const codes = infiles
+        .filter(infile => infile.error !== undefined)
+        .map(infile => infile.errorCode ?? ToolExitCode.GENERAL);
+    if (codes.length > 0) {
+        process.exitCode = combineExitCodes(codes);
     }
+}
+
+/**
+ * The fields of an infile's JSON for an error.
+ */
+export function infileErrorJson(error: ToolError): Pick<InfileJson, "error" | "errorCode"> {
+    return { error: error.message, errorCode: toolErrorExitCode(error) };
 }
 
 /**
@@ -605,7 +670,8 @@ export function filesInfileJson(inFilename: string, includeSystemFiles: boolean,
             if (forExtract !== undefined) {
                 const { selected, unmatchedPattern } = selectInputFiles(inFiles, forExtract.patterns);
                 if (unmatchedPattern !== undefined) {
-                    throw new ToolError("No file in \"" + inFilename + "\" matches \"" + unmatchedPattern + "\"");
+                    throw new ToolError("No file in \"" + inFilename + "\" matches \"" + unmatchedPattern + "\"",
+                        ToolErrorKind.NOT_FOUND);
                 }
                 chosenFiles = selected;
             }
@@ -616,7 +682,7 @@ export function filesInfileJson(inFilename: string, includeSystemFiles: boolean,
             if (!(e instanceof ToolError)) {
                 throw e;
             }
-            return { infile: inFilename, files: [], error: e.message };
+            return { infile: inFilename, files: [], ...infileErrorJson(e) };
         }
     });
 

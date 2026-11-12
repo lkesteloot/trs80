@@ -7,16 +7,16 @@ import {
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
     TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type KnownFloppyFileSystem,
-    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
+    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, knownTrsdosPassword, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    trsdosAccessPasswordHoldsTimeStamp, trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {
-    ToolError, type PatternSelection, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
+    hostFileError, ToolError, type PatternSelection, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
     xenixTarTypeLetter, selectByPatterns,
 } from "./utils.js";
 import {colorDate} from "./lscolors.js";
-import type {ContainerJson, GranuleExtentJson, TrsdosIIFileJson, XenixTarFileJson} from "./json.js";
+import type {ContainerJson, GranuleExtentJson, TrsdosFileJson, TrsdosIIFileJson, XenixTarFileJson} from "./json.js";
 
 /**
  * Information about each input file.
@@ -308,14 +308,37 @@ export class TrsdosInputFile extends InputFile {
             }
         }
 
-        return {
-            trsdos: {
-                osFile: this.dirEntry.isSystemFile(),
-                hidden: this.dirEntry.isHidden(),
-                protection: trsdosProtectionLevelToString(this.dirEntry.getProtectionLevel(), this.trsdos.protectionNames),
-                extents,
-            },
+        const dirEntry = this.dirEntry;
+        const version = this.trsdos.version;
+        const trsdos: TrsdosFileJson = {
+            osFile: dirEntry.isSystemFile(),
+            hidden: dirEntry.isHidden(),
+            protection: trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), this.trsdos.protectionNames),
+            extents,
+            timeStampsReplaceAccessPassword: trsdosAccessPasswordHoldsTimeStamp(this.trsdos),
         };
+        if (dirEntry.updatePassword !== undefined) {
+            trsdos.updatePasswordHash = dirEntry.updatePassword;
+        }
+        if (dirEntry.accessPassword !== undefined) {
+            trsdos.accessPasswordHash = dirEntry.accessPassword;
+        }
+        const updatePassword = knownTrsdosPassword(dirEntry.updatePassword, version);
+        if (updatePassword !== undefined) {
+            trsdos.updatePassword = updatePassword;
+        }
+        const accessPassword = knownTrsdosPassword(dirEntry.accessPassword, version);
+        if (accessPassword !== undefined) {
+            trsdos.accessPassword = accessPassword;
+        }
+        if (dirEntry.storedByte0 !== undefined) {
+            trsdos.entryByte0 = dirEntry.storedByte0;
+        }
+        if (dirEntry.storedByte1 !== undefined) {
+            trsdos.entryByte1 = dirEntry.storedByte1;
+        }
+
+        return { trsdos };
     }
 }
 
@@ -823,8 +846,8 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
     let buffer;
     try {
         buffer = fs.readFileSync(inFilename);
-    } catch (e: any) {
-        throw new ToolError("Can't open \"" + inFilename + "\": " + e.message);
+    } catch (e) {
+        throw hostFileError("Can't open \"" + inFilename + "\"", e);
     }
 
     if (ext.toLowerCase() === ".wav") {

@@ -53,7 +53,7 @@ describe("buildDiskMap", () => {
     it("shows a file that addFiles put on the disk", () => {
         const session = makeSession();
         const options: AddOptions = {
-            ascii: false, binary: true, basic: BasicDialect.MODEL_III, system: false, invisible: false, overwrite: false,
+            ascii: false, binary: true, text: false, basic: BasicDialect.MODEL_III, system: false, invisible: false, overwrite: false,
         };
         const source = {label: "x.bin", name: "x.bin", bytes: new Uint8Array(3000)};
         addFiles(session, planAdd(session, [source], options), options);

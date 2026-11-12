@@ -11,7 +11,7 @@ const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
 
 const DEFAULT_OPTIONS: AddOptions = {
-    ascii: false, binary: false, basic: BasicDialect.MODEL_III, system: false, invisible: false, overwrite: false,
+    ascii: false, binary: false, text: false, basic: BasicDialect.MODEL_III, system: false, invisible: false, overwrite: false,
 };
 
 /**

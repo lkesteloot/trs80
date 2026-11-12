@@ -3,10 +3,11 @@ import {
     evaluateTrsdosWriteGate, findLdosPartitions, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type LdosPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
-    type TrsdosRuleSet, TrsdosWriteAccess, TrsdosWriteError, type TrsdosWriteGate, TrsdosWriter, type WritableDiskVolume,
+    type TrsdosRuleSet, TrsdosWriteAccess, type TrsdosWriteBlocker, TrsdosWriteBlockerKind, TrsdosWriteError,
+    TrsdosWriteErrorKind, type TrsdosWriteGate, TrsdosWriter, type WritableDiskVolume,
 } from "trs80-base";
 import {assertNever} from "z80-base";
-import {DiskError} from "./DiskError.js";
+import {DiskError, DiskErrorKind} from "./DiskError.js";
 import type {DiskTemplateSource} from "./DiskTemplates.js";
 import {pluralizeWithCount} from "./Plural.js";
 
@@ -46,8 +47,44 @@ export enum DiskWritePurpose {
 export type DiskWriteDecision =
     /** The write may go ahead. The warning, if any, should be shown first (the write was forced). */
     { allowed: true, warning: string | undefined } |
-    /** The write may not go ahead, for the reason in the error message. */
-    { allowed: false, error: string };
+    /** The write may not go ahead, for the reason in the error message, whose cause is errorKind. */
+    { allowed: false, error: string, errorKind: DiskErrorKind };
+
+/**
+ * The kind of error for a write refused because of these blockers: write protection or damage if that's all
+ * there is, and otherwise read-only.
+ *
+ * @param blockers the gate's blockers, at least one.
+ */
+export function writeBlockersErrorKind(blockers: TrsdosWriteBlocker[]): DiskErrorKind {
+    const kinds = new Set(blockers.map(blocker => writeBlockerErrorKind(blocker.kind)));
+    const onlyKind = kinds.size === 1 ? kinds.values().next().value : undefined;
+    return onlyKind ?? DiskErrorKind.READ_ONLY;
+}
+
+/**
+ * The kind of error for a write refused because of one kind of blocker.
+ */
+function writeBlockerErrorKind(kind: TrsdosWriteBlockerKind): DiskErrorKind {
+    switch (kind) {
+        case TrsdosWriteBlockerKind.WRITE_PROTECTED:
+            return DiskErrorKind.WRITE_PROTECTED;
+        case TrsdosWriteBlockerKind.DAMAGE:
+            return DiskErrorKind.DAMAGED;
+        case TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT:
+        case TrsdosWriteBlockerKind.UNKNOWN_DOS:
+        case TrsdosWriteBlockerKind.UNSUPPORTED_DOS:
+        case TrsdosWriteBlockerKind.DOS_MISMATCH:
+        case TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH:
+        case TrsdosWriteBlockerKind.IMAGE_CANT_HOLD_DIRECTORY:
+        case TrsdosWriteBlockerKind.LAYOUT_DOUBT:
+        case TrsdosWriteBlockerKind.SIDES_UNPROVEN:
+        case TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN:
+            return DiskErrorKind.READ_ONLY;
+        default:
+            assertNever(kind);
+    }
+}
 
 /**
  * Decide whether a command may write to a disk. (Exported for tests.)
@@ -63,7 +100,11 @@ export function decideWrite(gate: TrsdosWriteGate | undefined, fileSystemName: s
                             force: boolean): DiskWriteDecision {
 
     if (gate === undefined) {
-        return { allowed: false, error: "Writing " + fileSystemName + " disks isn't supported." };
+        return {
+            allowed: false,
+            error: "Writing " + fileSystemName + " disks isn't supported.",
+            errorKind: DiskErrorKind.READ_ONLY,
+        };
     }
 
     switch (gate.access) {
@@ -95,7 +136,22 @@ export function decideWrite(gate: TrsdosWriteGate | undefined, fileSystemName: s
     return {
         allowed: false,
         error: "Can't write to this disk: " + messages + (allForceable ? " Use --force to write anyway." : ""),
+        errorKind: writeBlockersErrorKind(gate.blockers),
     };
+}
+
+/**
+ * The kind of {@link DiskError} for a refusal by the writer.
+ */
+function writeErrorKindToDiskErrorKind(kind: TrsdosWriteErrorKind): DiskErrorKind {
+    switch (kind) {
+        case TrsdosWriteErrorKind.OTHER:
+            return DiskErrorKind.GENERAL;
+        case TrsdosWriteErrorKind.NO_SPACE:
+            return DiskErrorKind.DISK_FULL;
+        default:
+            assertNever(kind);
+    }
 }
 
 /**
@@ -461,7 +517,8 @@ export class DiskSession {
             if (number >= 1 && number <= this.partitions.length) {
                 return number - 1;
             }
-            throw new DiskError("There is no partition " + text + ".\n" + this.describePartitionChoices());
+            throw new DiskError("There is no partition " + text + ".\n" + this.describePartitionChoices(),
+                DiskErrorKind.NOT_FOUND);
         }
 
         const upperText = text.toUpperCase();
@@ -477,7 +534,8 @@ export class DiskSession {
         if (byDirectoryName.length === 1) {
             return byDirectoryName[0];
         }
-        throw new DiskError("No partition is named \"" + text + "\".\n" + this.describePartitionChoices());
+        throw new DiskError("No partition is named \"" + text + "\".\n" + this.describePartitionChoices(),
+            DiskErrorKind.NOT_FOUND);
     }
 
     /**
@@ -613,7 +671,7 @@ export class DiskSession {
      * The error for a command that needs a disk when the session has none.
      */
     private makeNoDiskError(): DiskError {
-        return new DiskError(this.name + " doesn't exist; use \"create\" to make it");
+        return new DiskError(this.name + " doesn't exist; use \"create\" to make it", DiskErrorKind.NOT_FOUND);
     }
 
     /**
@@ -735,7 +793,8 @@ export class DiskSession {
         if (hardDisk.isWriteProtected()) {
             const message = hardDiskWriteProtectionMessage(hardDisk) ?? "The disk is write-protected.";
             if (!this.force && !commandForce) {
-                throw new DiskError("Can't write to this disk: " + message + " Use --force to write anyway.");
+                throw new DiskError("Can't write to this disk: " + message + " Use --force to write anyway.",
+                    DiskErrorKind.WRITE_PROTECTED);
             }
             if (!this.forceWarningShown) {
                 this.warn("Writing anyway (--force): " + message);
@@ -1170,7 +1229,7 @@ export class DiskSession {
 
         const decision = decideWrite(this.getWriteGate(), this.fileSystem.nameAndVersion, purpose, this.force);
         if (!decision.allowed) {
-            throw new DiskError(decision.error);
+            throw new DiskError(decision.error, decision.errorKind);
         }
         if (decision.warning !== undefined && !this.forceWarningShown) {
             this.warn(decision.warning);
@@ -1196,7 +1255,8 @@ export class DiskSession {
         const sessionTrsdos = this.currentFileSystem;
         if (!(sessionTrsdos instanceof Trsdos)) {
             // requireWritable() has already refused anything that isn't TRSDOS-family.
-            throw new DiskError("Writing " + (sessionTrsdos?.nameAndVersion ?? "this") + " disks isn't supported.");
+            throw new DiskError("Writing " + (sessionTrsdos?.nameAndVersion ?? "this") + " disks isn't supported.",
+                DiskErrorKind.READ_ONLY);
         }
 
         const overlay = new SectorOverlay(this.writableVolume());
@@ -1204,13 +1264,14 @@ export class DiskSession {
         try {
             const trsdos = decodeTrsdosOnOverlay(overlay, sessionTrsdos);
             if (trsdos === undefined || !DiskSession.sameLayout(sessionTrsdos, trsdos)) {
-                throw new DiskError("Can't change this disk: it doesn't decode the same way when it is prepared for writing.");
+                throw new DiskError("Can't change this disk: it doesn't decode the same way when it is prepared for writing.",
+                    DiskErrorKind.READ_ONLY);
             }
 
             // requireWritable() has already refused a disk with no rule set.
             const ruleSet = this.getWriteGate()?.ruleSet;
             if (ruleSet === undefined) {
-                throw new DiskError("Can't change this disk: no DOS rules apply to it.");
+                throw new DiskError("Can't change this disk: no DOS rules apply to it.", DiskErrorKind.READ_ONLY);
             }
             const writer = new TrsdosWriter(trsdos, ruleSet);
             change(writer);
@@ -1222,7 +1283,7 @@ export class DiskSession {
         } catch (e) {
             overlay.discard();
             if (e instanceof TrsdosWriteError) {
-                throw new DiskError(e.message);
+                throw new DiskError(e.message, writeErrorKindToDiskErrorKind(e.kind));
             }
             throw e;
         }

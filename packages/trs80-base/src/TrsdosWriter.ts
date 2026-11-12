@@ -4,7 +4,7 @@ import {HardDiskPartition} from "./HardDiskPartition.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
     decodeDirEntry, decodeTrsdos, decodeTrsdosHardDiskPartition, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
-    hashForFilename, hashTrsdosPassword, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_13_EXTENTS_PER_ENTRY,
+    hashForFilename, TRSDOS_13_EXTENTS_PER_ENTRY,
     TRSDOS_BLANK_PASSWORD_HASH, type Trsdos, type Trsdos23TimeStamp, trsdos23TimeStampToWord,
     type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
@@ -15,7 +15,7 @@ import {
 } from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
-import {hashTrsdos13Password} from "./TrsdosFormat.js";
+import {hashTrsdosPasswordForVersion, trsdosBlankPasswordHash} from "./TrsdosFormat.js";
 import {type TrsdosGranule, TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {
     formatTrsdosGatDate, GAT_AUTO_OFFSET, GAT_DATE_OFFSET, GAT_NAME_OFFSET, GAT_PASSWORD_OFFSET, GAT_TEXT_LENGTH,
@@ -119,13 +119,39 @@ const PROTECTED_RAW_FILENAMES = ["BOOT    SYS", "DIR     SYS"];
  * and the caller must discard it.
  */
 export class TrsdosWriteError extends Error {
+    /** What kind of refusal this is, for callers that act on the cause. */
+    public readonly kind: TrsdosWriteErrorKind;
+
     /**
      * @param message what went wrong.
+     * @param kind what kind of refusal this is.
      */
-    constructor(message: string) {
+    constructor(message: string, kind: TrsdosWriteErrorKind = TrsdosWriteErrorKind.OTHER) {
         super(message);
         this.name = "TrsdosWriteError";
+        this.kind = kind;
     }
+}
+
+/**
+ * The kinds of {@link TrsdosWriteError}, for the causes that a caller may want to tell apart without
+ * reading the message.
+ */
+export enum TrsdosWriteErrorKind {
+    /** Anything not listed below. */
+    OTHER,
+
+    /** There's no room for the file: too few free granules, or no free directory entries. */
+    NO_SPACE,
+}
+
+/**
+ * Whether the disk's directory entries keep a time stamp where the access password would go (LDOS 5.3 and
+ * LS-DOS 6.3), in which case {@link TrsdosWriter.setAttributes} refuses to set an access password. See "Time
+ * stamps (LDOS 5.3 and LS-DOS 6.3)" in FLOPPY_FORMATS.md.
+ */
+export function trsdosAccessPasswordHoldsTimeStamp(trsdos: Trsdos): boolean {
+    return trsdos.hasTimeStamps;
 }
 
 /**
@@ -867,17 +893,7 @@ export class TrsdosWriter {
      * hashes with its own algorithm. See "Password hashes" in FLOPPY_FORMATS.md.
      */
     private blankPasswordHash(): number {
-        switch (this.trsdos.version) {
-            case TrsdosVersion.V2_3:
-            case TrsdosVersion.V2_7:
-                return TRSDOS_BLANK_PASSWORD_HASH;
-
-            case TrsdosVersion.V1_3:
-                return TRSDOS_13_BLANK_PASSWORD_HASH;
-
-            default:
-                assertNever(this.trsdos.version);
-        }
+        return trsdosBlankPasswordHash(this.trsdos.version);
     }
 
     /**
@@ -1189,7 +1205,17 @@ export class TrsdosWriter {
             }
         }
         if (typeof extents === "string") {
-            throw new TrsdosWriteError(`Can't ${verb} ${name}: ${extents.charAt(0).toLowerCase()}${extents.substring(1)}`);
+            // Fragmentation can also stop it, so say it's out of space only if the granules are too few.
+            const available = this.freeGranules.slice();
+            if (replacing !== undefined) {
+                for (const index of this.releasableGranules(replacing)) {
+                    available[index] = true;
+                }
+            }
+            const freeCount = available.filter(free => free).length;
+            const kind = freeCount < neededGranules ? TrsdosWriteErrorKind.NO_SPACE : TrsdosWriteErrorKind.OTHER;
+            throw new TrsdosWriteError(`Can't ${verb} ${name}: ${extents.charAt(0).toLowerCase()}${extents.substring(1)}`,
+                kind);
         }
         if (extents.some(extent => extent.lump > 0xFD)) {
             throw new TrsdosWriteError(`Can't ${verb} ${name}: it would need a lump that a directory entry can't hold`);
@@ -1250,7 +1276,10 @@ export class TrsdosWriter {
                 const reason = `${moreDecs.charAt(0).toLowerCase()}${moreDecs.substring(1)}`;
                 const fragmentation = extentGroups.length > 1 ?
                     `the free space is fragmented, so it needs ${extents.length} extents; ` : "";
-                throw new TrsdosWriteError(`Can't ${verb} ${name}: ${fragmentation}${reason}`);
+                // The slots can be in any sector, so if the HIT can be read, the directory is full.
+                const hitReadable = typeof trsdos.getHitInfo() !== "string";
+                throw new TrsdosWriteError(`Can't ${verb} ${name}: ${fragmentation}${reason}`,
+                    hitReadable ? TrsdosWriteErrorKind.NO_SPACE : TrsdosWriteErrorKind.OTHER);
             }
             decs.push(...moreDecs);
         }
@@ -1631,7 +1660,8 @@ export class TrsdosWriter {
         }
         expected.updatePassword = word(bytes[17], bytes[16]);
         if (changes.accessPassword !== undefined) {
-            if (trsdos.hasTimeStamps) {
+            const holdsTimeStamp = trsdosAccessPasswordHoldsTimeStamp(trsdos);
+            if (holdsTimeStamp) {
                 throw new TrsdosWriteError(`Can't set the access password of ${name}: entries on this disk keep ` +
                     `a time stamp where the access password would go`);
             }
@@ -1950,7 +1980,7 @@ export class TrsdosWriter {
      */
     private hashPassword(password: string): number {
         try {
-            return this.trsdos.version === TrsdosVersion.V1_3 ? hashTrsdos13Password(password) : hashTrsdosPassword(password);
+            return hashTrsdosPasswordForVersion(password, this.trsdos.version);
         } catch (e) {
             throw new TrsdosWriteError(e instanceof Error ? e.message : String(e));
         }

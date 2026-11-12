@@ -3,7 +3,7 @@ import {
     SectorData, Trsdos, TrackPosition, trimFloppy, TRIMMABLE_FLOPPY_FORMATS,
 } from "trs80-base";
 import {assertNever} from "z80-base";
-import {DiskError} from "./DiskError.js";
+import {DiskError, DiskErrorKind} from "./DiskError.js";
 import {DiskSession} from "./DiskSession.js";
 import {pluralizeWithCount} from "./Plural.js";
 
@@ -572,7 +572,7 @@ export function trimDisk(session: DiskSession, options: {cylinders: number | und
     }
 
     if (floppy.isWriteProtected() && !force) {
-        throw new DiskError("The image is write-protected; use --force to trim it anyway.");
+        throw new DiskError("The image is write-protected; use --force to trim it anyway.", DiskErrorKind.WRITE_PROTECTED);
     }
 
     const trimmed = trimFloppy(floppy, plan.keepCylinders, plan.keepSides);

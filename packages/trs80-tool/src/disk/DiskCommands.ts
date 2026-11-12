@@ -10,7 +10,7 @@ import {type ExtractedFile, extractInputFiles, extractOneInputFile} from "../ext
 import {floppyDetailLines, floppyGeometryToJson, osToJson} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
 import {fileToJson} from "../json.js";
-import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError} from "../utils.js";
+import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {BOOT_COMMAND} from "./DiskBoot.js";
@@ -149,14 +149,17 @@ const DIR_COMMAND: DiskCommand = {
             selectInputFiles(allFiles, command.args, command.options.has("--system"));
         if (unmatchedPattern !== undefined) {
             throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"" +
-                systemWildcardHint(unmatchedOnlySystem));
+                systemWildcardHint(unmatchedOnlySystem), ToolErrorKind.NOT_FOUND);
         }
         for (const line of dirListingLines(selected)) {
             out.line(line);
         }
+        const readOnlyReason = session.getReadOnlyReason();
         out.result({
             os: session.fileSystem?.nameAndVersion ?? "",
             files: selected.map(inFile => fileToJson(inFile, undefined)),
+            writable: readOnlyReason === undefined,
+            ...(readOnlyReason === undefined ? {} : {readOnlyReason}),
         });
     },
 };
@@ -455,6 +458,12 @@ const ADD_COMMAND: DiskCommand = {
                 description: "copy every file exactly as it is, with no conversion",
             },
             {
+                name: "--text",
+                valueName: undefined,
+                description: "treat every file as text, whatever its extension: convert its line endings " +
+                    "to CR, and nothing else",
+            },
+            {
                 name: "--basic",
                 valueName: "3|4",
                 description: "tokenize BASIC for Model III or Model 4 BASIC (default: the disk's DOS's)",
@@ -503,6 +512,7 @@ const ADD_COMMAND: DiskCommand = {
             as: asText,
             ascii: command.options.has("--ascii"),
             binary: command.options.has("--binary"),
+            text: command.options.has("--text"),
             basic: basicText === undefined ? session.getBasicDialect() : parseBasicName(basicText),
             system: command.options.has("--system"),
             invisible: command.options.has("--invisible"),
@@ -515,7 +525,7 @@ const ADD_COMMAND: DiskCommand = {
         for (const pathname of expandInputPatterns(command.args)) {
             const stat = fs.statSync(pathname, {throwIfNoEntry: false});
             if (stat === undefined) {
-                throw new ToolError("Can't read \"" + pathname + "\": no such file");
+                throw new ToolError("Can't read \"" + pathname + "\": no such file", ToolErrorKind.NOT_FOUND);
             }
             if (!stat.isFile()) {
                 throw new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
@@ -643,7 +653,7 @@ const LABEL_COMMAND: DiskCommand = {
             const info = readDiskInfo(session);
             out.line("Name: " + info.name);
             out.line("Date: " + (info.date === "" ? "none" : info.date));
-            out.line("Master password: " + describeMasterPassword(info.passwordHash));
+            out.line("Master password: " + describeMasterPassword(info.passwordHash, info.version));
             out.line("AUTO command: " + describeAutoCommand(info.autoCommand));
             out.result(labelResultToJson(session, info));
             return;
@@ -1082,7 +1092,7 @@ export async function runDiskCommands(session: DiskSession, commands: ParsedDisk
             }
         } catch (e) {
             if (runOutput.json && e instanceof ToolError) {
-                runOutput.failCommand(e.message);
+                runOutput.failCommand(e);
             }
             throw e;
         }

@@ -1,6 +1,6 @@
 import {setColorLevel} from "../colors.js";
 import {captureLogsAsync, printJson} from "../json.js";
-import {ToolError} from "../utils.js";
+import {ToolError, ToolExitCode} from "../utils.js";
 import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS, runDiskCommands} from "./DiskCommands.js";
 import {type ParsedDiskCommand, parseDiskCommandLine, type DiskOptionValues} from "./DiskCommandParser.js";
 import {parseDosName} from "./DiskHelp.js";
@@ -101,13 +101,14 @@ async function diskJson(pathname: string, commands: ParsedDiskCommand[], globalO
             }
             // A failing command has recorded its own error.
             if (!run.hasFailedCommand()) {
-                run.setError(e.message);
+                run.setError(e);
             }
         }
     });
 
     printJson(run.toJson(pathname, globalOptions.has("--dry-run"), warnings));
-    if (run.hasError()) {
-        process.exitCode = 1;
+    const exitCode = run.exitCode();
+    if (exitCode !== ToolExitCode.SUCCESS) {
+        process.exitCode = exitCode;
     }
 }

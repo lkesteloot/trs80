@@ -214,12 +214,34 @@
             </table>
 
             <p>The <code>--json</code> flags of <code>dir</code>, <code>extract</code>, <code>sectors</code>,
-            <code>info</code>, and <code>disk</code> print JSON that a program can rely on. New fields may
+            <code>info</code>, <code>disk</code>, and <a href="#help"><code>help</code></a> print JSON that a program
+            can rely on. New fields may
             be added, but existing fields keep their names, types, and meanings. New values may appear in lists of
             string values (such as content types), so a program should accept values it doesn’t know. Fields meant
             for people, such as <code>messages</code>, <code>message</code>, <code>advice</code>,
             <code>description</code>, <code>readOnlyReason</code>, <code>error</code>, and <code>warnings</code>,
             can change their wording. There is no version number.</p>
+
+            <p id="exit-status">The exit status says why a command failed, so that a script doesn’t have to read the
+            message. A failure whose cause is clear gets its own code; anything else is 1, so a script that only
+            checks for non-zero works as before. With <code>--json</code>, each input file’s entry (and each failed
+            <code>disk</code> command) has the same number in an <code>errorCode</code> field, next to its
+            <code>error</code>. When several input files fail with different codes, the status is 1.</p>
+            <table class="flags">
+                <tr><td><code>0</code></td><td>Success.</td></tr>
+                <tr><td><code>1</code></td><td>Any error not listed below.</td></tr>
+                <tr><td><code>3</code></td><td>Not found: a host file, the image, a partition, or a file on the
+                    disk (<code>disk games.dmk extract NOPE.BAS</code>).</td></tr>
+                <tr><td><code>4</code></td><td>The disk can’t be written: there are no DOS rules or no writer for it,
+                    its layout is in doubt, or several of the reasons for 5 and 6 apply at once.</td></tr>
+                <tr><td><code>5</code></td><td>The image is write-protected, and that’s all that’s in the way
+                    (<code>--force</code> writes anyway).</td></tr>
+                <tr><td><code>6</code></td><td>The file system is damaged, and that’s all that’s in the way
+                    (<a href="disk.html#repair"><code>disk repair</code></a> may fix it).</td></tr>
+                <tr><td><code>7</code></td><td>There’s no room on the disk: too few free granules, or no free
+                    directory entries.</td></tr>
+                <tr><td><code>130</code></td><td>The pager was closed before the output ended.</td></tr>
+            </table>
 
             <h3 id="dir"><code>dir</code></h3>
 
@@ -580,15 +602,16 @@ C CRC error (ID or data).
             </div>
 
             <p>If the program is a <code>.CMD</code>, <code>.SYS</code>, or <code>.3BN</code> file, it is loaded into the correct place
-            in memory. If it’s a <code>.ROM</code> or <code>.BIN</code> file, it is loaded at 0x0000.</p>
+            in memory. If it’s a <code>.ROM</code> or <code>.BIN</code> file, it is loaded at 0x0000. A boot sector, even one
+            saved as a <code>.BIN</code> file, is loaded at 0x4200.</p>
             <p>The disassembler tries to guess which bytes are code and which are data by
             following the path of the program, starting with its main entry point.</p>
 
             <table class="flags">
                 <tr>
                     <td><code>--org ADDRESS</code></td>
-                    <td>Load a <code>.ROM</code> or <code>.BIN</code> file at this address
-                        rather than 0x0000.</td>
+                    <td>Load a <code>.ROM</code> or <code>.BIN</code> file, or a boot sector, at this address
+                        rather than 0x0000 (0x4200 for a boot sector).</td>
                 </tr>
                 <tr>
                     <td><code>--entry ADDRESSES</code></td>
@@ -766,6 +789,25 @@ C CRC error (ID or data).
             <div><pre><code>% trs80-tool help dir
 % trs80-tool help convert</code></pre>
             </div>
+            <p id="help-json">With <code>--json</code>, it prints what this version of the tool can do as one JSON
+            object, for a program that drives the tool, such as a front end that offers only what the user’s copy
+            supports. It has the <code>version</code> and the <code>gitHash</code> it was built from; the program’s
+            <code>options</code>; every command in <code>commands</code>, each with its <code>name</code>,
+            <code>aliases</code>, <code>arguments</code> (whether each is required or takes the rest), and
+            <code>options</code> (with the <code>value</code> each takes, its <code>choices</code> and
+            <code>default</code>, if any); and, in <code>disk</code>, the <a href="disk.html">disk</a> command’s own
+            options and commands in the same form. It also lists the values that are data rather than text:
+            <code>writableDoses</code> (the names <code>disk --dos</code> takes), <code>formatDoses</code> (the
+            names <code>disk create</code> and <code>disk format</code> take), <code>systemDisks</code> (what
+            <code>disk create --system</code> can make), <code>imageFormats</code> (which formats are
+            <code>read</code>, made by <code>convert</code>, changed by <code>disk</code>, and made by <code>disk
+            create</code>), and the <a href="#exit-status"><code>exitCodes</code></a>. Name a command to describe
+            only that one (<code>help --json disk</code>). The comments in
+            <a href="https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/src/helpJson.ts"><code>src/helpJson.ts</code></a>
+            are the full reference.</p>
+            <div><pre><code>% trs80-tool help --json
+% trs80-tool help --json disk</code></pre>
+            </div>
 
             <h2 id="limitations">Limitations</h2>
             <ul>
@@ -792,6 +834,36 @@ C CRC error (ID or data).
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+            <h3 id="2026-11-11">November 11, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v5.1.0:
+                    <ul>
+                        <li><a href="disk.html#create"><code>disk create</code></a> makes HDV hard
+                            disks, blank or with LDOS 5.3 or LS-DOS 6.3 partitions, and
+                            <code>disk partition</code> adds and deletes partitions.</li>
+                        <li><a href="disk.html#json"><code>disk --json</code></a> describes the whole
+                            run as JSON, for programs.</li>
+                        <li><a href="#help-json"><code>help --json</code></a> describes every
+                            command, option, and disk command, and the DOSes and image formats, for
+                            programs that drive the tool.</li>
+                        <li>New <a href="#exit-status">exit statuses</a> say why a command failed:
+                            not found, read-only, write-protected, damaged, or disk full.</li>
+                        <li>In <code>dir --json</code>, TRSDOS files have their password hashes,
+                            the passwords when they’re blank or <code>PASSWORD</code>, whether the
+                            disk keeps time stamps where the access password goes, and their raw
+                            directory attribute bytes. <code>info --json --verbose</code> names the
+                            master password.</li>
+                        <li><code>disk label</code> and <code>disk attrib</code> recognize TRSDOS
+                            1.3’s blank and default passwords, which hash differently.</li>
+                        <li><a href="disk.html#add"><code>disk add --text</code></a> converts the
+                            line endings of any file, whatever its extension.</li>
+                        <li><a href="#disasm"><code>disasm</code></a> handles a boot sector saved
+                            as a file, and its <code>--org</code>.</li>
+                        <li>Files whose directory entry has a month of 0 are shown with no date.</li>
+                    </ul>
+                </li>
+            </ul>
+
             <h3 id="2026-11-07">November 7, 2026</h3>
             <ul>
                 <li><code>trs80-tool</code> v5.0.0:

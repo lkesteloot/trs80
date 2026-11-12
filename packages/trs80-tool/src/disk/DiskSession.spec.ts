@@ -7,7 +7,7 @@ import {
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
-import {decideWrite, DiskSession, DiskWritePurpose} from "trs80-disk";
+import {decideWrite, DiskErrorKind, DiskSession, DiskWritePurpose} from "trs80-disk";
 import {openDiskSession, saveDiskSession, saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 
 const BYTES_PER_SECTOR = 256;
@@ -210,7 +210,7 @@ describe("decideWrite", () => {
 
     it("refuses a file system that isn't TRSDOS-family", () => {
         expect(decideWrite(undefined, "CP/M 2.2", DiskWritePurpose.CHANGE, false)).to.eql({
-            allowed: false, error: "Writing CP/M 2.2 disks isn't supported.",
+            allowed: false, error: "Writing CP/M 2.2 disks isn't supported.", errorKind: DiskErrorKind.READ_ONLY,
         });
         // Forcing can't help.
         expect(decideWrite(undefined, "CP/M 2.2", DiskWritePurpose.REPAIR, true).allowed).to.equal(false);
@@ -232,6 +232,7 @@ describe("decideWrite", () => {
         });
         expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, false)).to.eql({
             allowed: false, error: "Can't write to this disk: It is damaged. Use --force to write anyway.",
+            errorKind: DiskErrorKind.DAMAGED,
         });
     });
 
@@ -243,6 +244,16 @@ describe("decideWrite", () => {
         expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, false)).to.eql({
             allowed: false,
             error: "Can't write to this disk: The layout is doubtful. It is damaged. Use --force to write anyway.",
+            // Two kinds of reason, so neither damage nor write protection alone.
+            errorKind: DiskErrorKind.READ_ONLY,
+        });
+    });
+
+    it("calls a refusal for write protection alone write-protected", () => {
+        const protectedBlocker = makeBlocker(TrsdosWriteBlockerKind.WRITE_PROTECTED, "It is write-protected.", true);
+        const gate = makeGate(TrsdosWriteAccess.READ_ONLY, [protectedBlocker]);
+        expect(decideWrite(gate, "LDOS 5.1.4", DiskWritePurpose.CHANGE, false)).to.include({
+            allowed: false, errorKind: DiskErrorKind.WRITE_PROTECTED,
         });
     });
 
@@ -259,6 +270,7 @@ describe("decideWrite", () => {
             const decision = decideWrite(gate, "TRSDOS 2.3", DiskWritePurpose.CHANGE, force);
             expect(decision).to.eql({
                 allowed: false, error: "Can't write to this disk: Name the DOS with --dos. The layout is doubtful.",
+                errorKind: DiskErrorKind.READ_ONLY,
             });
         }
     });

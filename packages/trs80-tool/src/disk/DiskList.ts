@@ -6,7 +6,7 @@ import {hexdumpLines} from "../hexdump.js";
 import type {InputFile} from "../InputFile.js";
 import {selectInputFiles} from "../InputFile.js";
 import {pageTextSync} from "../pager.js";
-import {systemWildcardHint, ToolError} from "../utils.js";
+import {systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import type {ListedFileJson, ListKindJson} from "./DiskJson.js";
 import type {DiskOutput} from "./DiskOutput.js";
@@ -276,7 +276,8 @@ function selectListFiles(session: DiskSession, pattern: string, basic: BasicDial
         return selected;
     }
 
-    throw new ToolError("No file on the disk matches \"" + pattern + "\"" + systemWildcardHint(unmatchedOnlySystem));
+    throw new ToolError("No file on the disk matches \"" + pattern + "\"" + systemWildcardHint(unmatchedOnlySystem),
+        ToolErrorKind.NOT_FOUND);
 }
 
 /**

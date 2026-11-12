@@ -1,11 +1,11 @@
 import {
-    parseTrsdosGatDate, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
+    knownTrsdosPassword, parseTrsdosGatDate, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
     trsdosFindingKindSeverity, TrsdosFindingSeverity,
     type TrsdosDirEntry, type TrsdosDiskInfo, type TrsdosProtectionLevel, type TrsdosProtectionNames,
-    trsdosProtectionLevelToString, type TrsdosRuleSet,
+    trsdosProtectionLevelToString, type TrsdosRuleSet, type TrsdosVersion,
 } from "trs80-base";
 import {
-    type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind,
+    type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind, trsdosPasswordIsSet,
     TrimCylindersReason, type TrimDoneResult, TrimNothingReason,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
@@ -64,6 +64,8 @@ export interface DiskRunJson {
      * entry instead. A script's error starts with "Line N: ".
      */
     error?: string;
+    /** The exit status that the error gives, such as 3 for an image that isn't there. Only when error is. */
+    errorCode?: number;
 }
 
 /**
@@ -80,6 +82,11 @@ export interface DiskCommandJson {
     warnings: string[];
     /** Missing if the command worked. Otherwise its error, and it was the last command run. */
     error?: string;
+    /**
+     * The exit status that the error gives, such as 5 for a write-protected image (the list is in
+     * "trs80-tool --help"). Only when error is.
+     */
+    errorCode?: number;
     /**
      * The command's own result, whose type is the one that {@link DiskCommandResultsJson} has under the
      * command's name. Missing if the command failed or has no result ("quit", "abort", "help").
@@ -129,6 +136,10 @@ export interface DirResultJson {
     os: string;
     /** The files listed, as "dir --json" gives them. */
     files: FileJson[];
+    /** Whether the disk can be written to, as "info" says. */
+    writable: boolean;
+    /** Why it can't be. Only when it's not writable. */
+    readOnlyReason?: string;
 }
 
 /**
@@ -944,23 +955,24 @@ export function attribFileToJson(dirEntry: TrsdosDirEntry, names: TrsdosProtecti
         protection: protectionToJson(dirEntry.getProtectionLevel(), names),
         invisible: dirEntry.isHidden(),
         system: dirEntry.isSystemFile(),
-        updatePassword: dirEntry.updatePassword !== undefined && dirEntry.updatePassword !== TRSDOS_BLANK_PASSWORD_HASH,
-        accessPassword: dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH,
+        updatePassword: trsdosPasswordIsSet(dirEntry.updatePassword, dirEntry.version),
+        accessPassword: trsdosPasswordIsSet(dirEntry.accessPassword, dirEntry.version),
         date: trsdosDirEntryJsonDate(dirEntry) ?? null,
     };
 }
 
 /**
  * What we know of a master password from its hash.
+ *
+ * @param passwordHash the hash.
+ * @param version the disk's layout, whose hash it is (TRSDOS 1.3 has its own).
  */
-export function masterPasswordToJson(passwordHash: number): "PASSWORD" | "blank" | "other" {
-    if (passwordHash === TRSDOS_DEFAULT_PASSWORD_HASH) {
-        return "PASSWORD";
-    } else if (passwordHash === TRSDOS_BLANK_PASSWORD_HASH) {
-        return "blank";
-    } else {
+export function masterPasswordToJson(passwordHash: number, version: TrsdosVersion): "PASSWORD" | "blank" | "other" {
+    const password = knownTrsdosPassword(passwordHash, version);
+    if (password === undefined) {
         return "other";
     }
+    return password === "" ? "blank" : "PASSWORD";
 }
 
 /**
@@ -976,7 +988,7 @@ export function diskInfoToJson(info: TrsdosDiskInfo, ruleSet: TrsdosRuleSet | un
         name: info.name,
         date,
         storedDate: info.date === "" ? null : info.date,
-        masterPassword: masterPasswordToJson(info.passwordHash),
+        masterPassword: masterPasswordToJson(info.passwordHash, info.version),
         masterPasswordHash: info.passwordHash,
         autoCommand: info.autoCommand ?? null,
     };

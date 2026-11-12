@@ -3,11 +3,13 @@ import {
     BYTES_PER_SECTOR,
     CMD_END_OF_PDS_MEMBER,
     CmdIsamDirectoryEntryChunk,
-    CmdLoadBlockChunk, CmdProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
+    CmdLoadBlockChunk, CmdProgram, addModel3RomEntryPoints, decodeBootSector, decodeTrs80File, disasmForTrs80,
+    disasmForTrs80Program, type Trs80File } from "trs80-base";
 import {toHex, toHexByte } from "z80-base";
 import {Disasm, HexFormat, instructionsToText, InstructionsToTextConfig } from "z80-disasm";
 import {colorAsciiByte, colors} from "./colors.js";
 import {expandFile} from "./InputFile.js";
+import {ToolError} from "./utils.js";
 
 /**
  * Whether the CMD file is structured as a Partial Data Set. Some LDOS SYS files
@@ -21,6 +23,28 @@ function isPdsFile(trs80File: CmdProgram): boolean {
     }
 
     return false;
+}
+
+/**
+ * Whether the CMD file has any bytes to load, and so anything to disassemble.
+ */
+function hasLoadBlocks(trs80File: CmdProgram): boolean {
+    return trs80File.chunks.some(chunk => chunk instanceof CmdLoadBlockChunk);
+}
+
+/**
+ * The file to disassemble, which is what the input decoded as, except that a boot sector saved on its own
+ * (such as "boot.bin") decodes as a CMD program: its "00 FE" start reads as one chunk of a type that loads
+ * nothing. Such a file is treated as the boot sector it is.
+ *
+ * @param trs80File what the input decoded as.
+ * @param binary the input's bytes.
+ */
+function fileToDisassemble(trs80File: Trs80File, binary: Uint8Array): Trs80File {
+    if (trs80File.className === "CmdProgram" && !hasLoadBlocks(trs80File)) {
+        return decodeBootSector(binary) ?? trs80File;
+    }
+    return trs80File;
 }
 
 /**
@@ -111,14 +135,13 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     let mainEntryPoint: number | undefined = undefined;
     const inputFiles = expandFile(filename, false, false);
     if (inputFiles.length === 0) {
-        console.log("No file to disassemble");
-        return;
+        throw new ToolError("No file to disassemble in \"" + filename + "\"");
     }
     if (inputFiles.length > 1) {
         console.log("Only disassembling first file");
     }
     const inputFile = inputFiles[0];
-    const trs80File = inputFile.trs80File;
+    const trs80File = fileToDisassemble(inputFile.trs80File, inputFile.binary);
     // Use the contained file's extension, not the container's.
     const ext = path.extname(inputFile.filename).toUpperCase();
     switch (trs80File.className) {
@@ -128,12 +151,27 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
                 decodePdsFile(trs80File, createLabels, useKnownLabels, hexFormat, full, toTextOptions);
                 return;
             }
+            if (!hasLoadBlocks(trs80File)) {
+                throw new ToolError("Can't disassemble " + inputFile.filename + ": the CMD program loads nothing");
+            }
             // FALLTHROUGH.
         case "SystemProgram":
         case "Level1Program":
-        case "BootSector":
             disasm = disasmForTrs80Program(trs80File);
             mainEntryPoint = trs80File.entryPointAddress;
+            break;
+
+        case "BootSector":
+            if (org === undefined) {
+                disasm = disasmForTrs80Program(trs80File);
+                mainEntryPoint = trs80File.entryPointAddress;
+            } else {
+                // The user says where it's loaded, so treat it as raw bytes there.
+                disasm = disasmForTrs80();
+                disasm.addChunk(inputFile.binary, org);
+                disasm.addEntryPoint(org);
+                mainEntryPoint = org;
+            }
             break;
 
         case "RawBinaryFile":
@@ -147,14 +185,13 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
                 // Do this with a flag, the ROM might not be from a Model 3:
                 // addModel3RomEntryPoints(disasm);
             } else {
-                console.log("Can't disassemble " + inputFile.filename);
-                return;
+                throw new ToolError("Can't disassemble " + inputFile.filename +
+                    ": it isn't a program, and only .bin and .rom files are disassembled as raw bytes");
             }
             break;
 
         default:
-            console.log("Can't disassemble " + trs80File.getDescription());
-            return;
+            throw new ToolError("Can't disassemble " + inputFile.filename + " (" + trs80File.getDescription() + ")");
     }
 
     disasm.setCreateLabels(createLabels);

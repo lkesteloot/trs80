@@ -20,7 +20,9 @@ import {
     TRSDOS_23_TRACK_LAYOUT,
 } from "./TrackLayout.js";
 import {DATA_ADDRESS_MARK, DELETED_DATA_ADDRESS_MARK} from "./TrackBytes.js";
-import {hashTrsdosPassword} from "./Trsdos.js";
+import {
+    hashTrsdosPassword, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TrsdosVersion,
+} from "./Trsdos.js";
 
 /**
  * The DOSes whose data disks we can format.
@@ -334,6 +336,68 @@ export function hashTrsdos13Password(password: string): number {
     }
 
     return (hi << 8) | lo;
+}
+
+/**
+ * Hash a password with the hash of a layout: TRSDOS 1.3 has its own ({@link hashTrsdos13Password}), and
+ * the rest of the 2.3 family, 2.7 included, use {@link hashTrsdosPassword}.
+ *
+ * @param password one to eight letters and digits, starting with a letter, in any case; or empty for none.
+ * @param version the disk's layout.
+ * @return the 16-bit hash.
+ * @throws Error if the DOS wouldn't accept the password.
+ */
+export function hashTrsdosPasswordForVersion(password: string, version: TrsdosVersion): number {
+    switch (version) {
+        case TrsdosVersion.V2_3:
+        case TrsdosVersion.V2_7:
+            return hashTrsdosPassword(password);
+
+        case TrsdosVersion.V1_3:
+            return hashTrsdos13Password(password);
+
+        default:
+            assertNever(version);
+    }
+}
+
+/**
+ * The hash that a layout stores for a blank password, in a directory entry or the GAT.
+ */
+export function trsdosBlankPasswordHash(version: TrsdosVersion): number {
+    switch (version) {
+        case TrsdosVersion.V2_3:
+        case TrsdosVersion.V2_7:
+            return TRSDOS_BLANK_PASSWORD_HASH;
+
+        case TrsdosVersion.V1_3:
+            return TRSDOS_13_BLANK_PASSWORD_HASH;
+
+        default:
+            assertNever(version);
+    }
+}
+
+/**
+ * The passwords that {@link knownTrsdosPassword} can name: none, and the default master password.
+ */
+const KNOWN_TRSDOS_PASSWORDS = ["", "PASSWORD"];
+
+/**
+ * The password whose hash this is, if it's one we can name: "" for none, or "PASSWORD", the default
+ * master password. The hash is the layout's own, since TRSDOS 1.3 hashes differently from the rest of
+ * the 2.3 family. Any other password is unknown, since only its hash is stored.
+ *
+ * @param hash the stored hash, or undefined if there's none (as for an access password whose bytes hold
+ * a time stamp).
+ * @param version the disk's layout.
+ * @return the password, or undefined if it isn't one we can name.
+ */
+export function knownTrsdosPassword(hash: number | undefined, version: TrsdosVersion): string | undefined {
+    if (hash === undefined) {
+        return undefined;
+    }
+    return KNOWN_TRSDOS_PASSWORDS.find(password => hashTrsdosPasswordForVersion(password, version) === hash);
 }
 
 /**
