@@ -294,7 +294,7 @@ function makeSign(kind: ProtectionSignKind, message: string, tracks: TrackPositi
         schemeName: protectionSignKindSchemeName(kind),
         message,
         tracks: [...tracks].sort(compareTracks),
-        sectors: [...sectors].sort(compareSectors),
+        sectors: [...sectors].sort(compareSectorPositions),
     };
 }
 
@@ -308,7 +308,7 @@ function compareTracks(a: TrackPosition, b: TrackPosition): number {
 /**
  * Orders sector positions by track, then sector number.
  */
-function compareSectors(a: SectorPosition, b: SectorPosition): number {
+export function compareSectorPositions(a: SectorPosition, b: SectorPosition): number {
     return compareTracks(a.trackPosition, b.trackPosition) || a.sectorNumber - b.sectorNumber;
 }
 
@@ -317,7 +317,7 @@ function compareSectors(a: SectorPosition, b: SectorPosition): number {
  *
  * @param numbers the numbers, in any order, possibly repeated.
  */
-function describeNumbers(numbers: number[]): string {
+export function describeNumbers(numbers: number[]): string {
     const sorted = [...new Set(numbers)].sort((a, b) => a - b);
     const parts: string[] = [];
     let runStart = 0;
@@ -336,7 +336,7 @@ function describeNumbers(numbers: number[]): string {
  * Describes tracks for a message, such as "cylinder 5" or "cylinders 3-7 on side 0 and 3 on side 1".
  * The side is named only if the disk has more than one.
  */
-function describeTracks(tracks: TrackPosition[], sideCount: number): string {
+export function describeTracks(tracks: TrackPosition[], sideCount: number): string {
     const sides = [...new Set(tracks.map(track => track.side))].sort((a, b) => a - b);
     const parts = sides.map(side => {
         const cylinders = tracks.filter(track => track.side === side).map(track => track.cylinderNumber);

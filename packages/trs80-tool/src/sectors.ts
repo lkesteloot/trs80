@@ -3,9 +3,14 @@ import {
     decodeFloppyFileSystem,
     decodeTrs80File,
     Density,
+    describeSectorArtifact,
+    findImagingArtifacts,
     findProtectionSigns,
+    findSectorArtifactKind,
     FloppyDiskGeometry,
     FloppyFileSystem,
+    type ImagingArtifact,
+    ImagingArtifactKind,
     isFloppy,
     SectorData,
     SectorNumberRange,
@@ -15,6 +20,8 @@ import {
     Trs80Floppy,
 } from "trs80-base";
 import {toHexWord} from "z80-base";
+import {type ImagingArtifactJson, imagingArtifactKindToJson, type ImagingArtifactKindJson, imagingArtifactsToLines,
+    imagingArtifactToJson} from "./artifacts.js";
 import {colors, type Style} from "./colors.js";
 import {hexdumpBinary} from "./hexdump.js";
 import {captureLogs, type InfileJson, infileErrorJson, printInfilesJson, toBase64} from "./json.js";
@@ -49,6 +56,8 @@ interface SectorVisit {
     sector: SectorData | undefined;
     /** Whether the sector number is outside the usual numbers of its track. */
     outsideExpected: boolean;
+    /** The imaging artifact that explains why the sector is missing or bad, if one does. */
+    artifact: ImagingArtifactKind | undefined;
 }
 
 /**
@@ -62,8 +71,11 @@ function isBadSector(sector: SectorData | undefined): boolean {
  * Read every sector that the "sectors" command lists, in cylinder, side, and sector order: all of
  * the sector numbers that each track is expected to have (so that missing ones are reported) and
  * any stray ones that exist.
+ *
+ * @param file the floppy.
+ * @param artifacts the floppy's imaging artifacts, which label the sectors they explain.
  */
-function visitSectors(file: Trs80Floppy): SectorVisit[] {
+function visitSectors(file: Trs80Floppy, artifacts: readonly ImagingArtifact[]): SectorVisit[] {
     const visits: SectorVisit[] = [];
     const geometry = file.getGeometry();
 
@@ -82,6 +94,7 @@ function visitSectors(file: Trs80Floppy): SectorVisit[] {
                     position,
                     sector: file.readSector(position),
                     outsideExpected: !isUsualSectorNumber(expected, sectorNumber),
+                    artifact: findSectorArtifactKind(artifacts, position),
                 });
             }
         }
@@ -168,8 +181,9 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
 
     // The sectors to dump.
     let visits: SectorVisit[] = [];
+    const artifacts = findImagingArtifacts(file);
     if (showContents || onlyShowBad) {
-        visits = visitSectors(file);
+        visits = visitSectors(file, artifacts);
         if (onlyShowBad) {
             visits = visits.filter(visit => isBadSector(visit.sector));
 
@@ -186,8 +200,17 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
         printMap(file);
     }
 
+    // What explains bad sectors, before them. Most disks have none.
+    if (onlyShowBad && artifacts.length > 0) {
+        console.log("Imaging artifacts, which explain some of the bad sectors:");
+        for (const line of imagingArtifactsToLines(artifacts)) {
+            console.log("    " + line);
+        }
+        console.log("");
+    }
+
     const filenamesAtSector = onlyShowBad ? filesBySector(fileSystem) : new Map<string, string[]>();
-    for (const {position, sector, outsideExpected} of visits) {
+    for (const {position, sector, outsideExpected, artifact} of visits) {
         let header = `Cylinder ${position.cylinderNumber}, side ${position.side}, sector ${position.sectorNumber}: `;
 
         if (sector === undefined) {
@@ -216,6 +239,9 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
         }
 
         console.log(header);
+        if (artifact !== undefined) {
+            console.log("Imaging artifact: " + describeSectorArtifact(artifact) + ".");
+        }
 
         if (showContents && sector !== undefined) {
             hexdumpBinary(sector.data, false, []);
@@ -276,6 +302,11 @@ interface SectorJson {
     dataCrc?: SectorCrcJson;
     /** With "--contents", the sector's data in base64. Missing for missing sectors. */
     contents?: string;
+    /**
+     * The imaging artifact that explains why the sector is missing or bad: the imager lost it or cut it short,
+     * or a converter made up its CRC. Missing if none does, which is always the case for good sectors.
+     */
+    imagingArtifact?: ImagingArtifactKindJson;
 }
 
 /**
@@ -293,13 +324,18 @@ export interface SectorsInfileJson extends InfileJson {
      * doesn't prove that the disk is unprotected. Missing if the input had an error.
      */
     protection?: ProtectionSignJson[];
+    /**
+     * The imaging artifacts, which explain some bad or missing sectors as the imager's or a converter's
+     * doing. Empty if there are none. Missing if the input had an error.
+     */
+    imagingArtifacts?: ImagingArtifactJson[];
 }
 
 /**
  * Convert one sector to JSON.
  */
 function sectorToJson(visit: SectorVisit, filenames: string[], showContents: boolean): SectorJson {
-    const {position, sector, outsideExpected} = visit;
+    const {position, sector, outsideExpected, artifact} = visit;
     const json: SectorJson = {
         cylinder: position.cylinderNumber,
         side: position.side,
@@ -324,6 +360,9 @@ function sectorToJson(visit: SectorVisit, filenames: string[], showContents: boo
         if (showContents) {
             json.contents = toBase64(sector.data);
         }
+    }
+    if (artifact !== undefined) {
+        json.imagingArtifact = imagingArtifactKindToJson(artifact);
     }
 
     return json;
@@ -353,7 +392,8 @@ function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: b
     }
 
     const fileSystem = decodeFloppyFileSystem(file);
-    let visits = visitSectors(file);
+    const artifacts = findImagingArtifacts(file);
+    let visits = visitSectors(file, artifacts);
     if (onlyShowBad) {
         visits = visits.filter(visit => isBadSector(visit.sector));
         if (visits.length === 0) {
@@ -368,6 +408,7 @@ function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: b
         os: fileSystem === undefined ? null : fileSystem.nameAndVersion,
         sectors: visits.map(visit =>
             sectorToJson(visit, filenamesAtSector.get(visit.position.key()) ?? [], showContents)),
+        imagingArtifacts: artifacts.map(imagingArtifactToJson),
     };
     if (showProtection) {
         json.protection = findProtectionSigns(file, fileSystem).map(protectionSignToJson);

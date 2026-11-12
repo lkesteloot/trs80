@@ -36,7 +36,7 @@ import {
 import {TRS80_FLOPPY_LOGGER} from "z80-logger";
 
 export const FILE_HEADER_SIZE = 16;
-const TRACK_HEADER_SIZE = 128;
+export const TRACK_HEADER_SIZE = 128;
 /**
  * The most cylinders a DMK can have, which is all that the header's one-byte count can say. NEWDOS/80
  * can use far more than 80 (see "NEWDOS/80 lumps" in FLOPPY_FORMATS.md).

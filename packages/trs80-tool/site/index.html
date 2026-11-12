@@ -570,7 +570,13 @@ C CRC error (ID or data).
                     <td><code>--bad</code></td>
                     <td>Instead of the table, list the sectors that are missing or that have
                         a CRC error, and which file (if any) is on each one. Floppies without
-                        bad sectors are left out.</td>
+                        bad sectors are left out. Bad sectors that an imaging artifact explains
+                        are labeled as one: a DMK read that began late, after the track’s first
+                        sector had gone by (as cw2dmk did before version 4.6.0), a DMK read that
+                        stopped after one revolution and cut off each track’s last sector, and a
+                        converter’s CRC marker (the CRC of the data with its low byte inverted,
+                        which makes no CRC test possible). They’re still bad in the image, but
+                        reimaging the disk may well read them.</td>
                 </tr>
                 <tr>
                     <td><code>--protection</code></td>
@@ -595,7 +601,12 @@ C CRC error (ID or data).
                         add each floppy’s signs of copy protection as <code>protection</code>
                         (<code>kind</code>, <code>verdict</code>, <code>schemes</code>,
                         <code>scheme</code>, <code>message</code>, <code>tracks</code>,
-                        <code>sectors</code>).</td>
+                        <code>sectors</code>). Each floppy always has its imaging artifacts as
+                        <code>imagingArtifacts</code> (<code>kind</code>, which is
+                        <code>readBeganLate</code>, <code>readOneRevolution</code> or
+                        <code>converterCrcMarker</code>, <code>message</code>, <code>tracks</code>,
+                        <code>sectors</code>), and each sector that one explains has that
+                        <code>kind</code> as <code>imagingArtifact</code>.</td>
                 </tr>
             </table>
             <div><pre><code>% trs80-tool sectors --protection vtos301.dmk

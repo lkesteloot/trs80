@@ -12,6 +12,7 @@ import {assertNever} from "z80-base";
 import type {GeometryInfoJson, OsInfoJson} from "../info.js";
 import {trsdosDirEntryJsonDate} from "../InputFile.js";
 import {type FileJson, type SectorPositionJson, sectorPositionToJson} from "../json.js";
+import type {ImagingArtifactJson} from "../artifacts.js";
 import type {ProtectionSignJson} from "../protection.js";
 
 // The types of the JSON that the "disk" command prints with --json, and the helpers that build it. The
@@ -666,6 +667,12 @@ export interface CheckResultJson {
      * don't change whether the disk is writable.
      */
     protection?: ProtectionSignJson[];
+    /**
+     * The floppy's imaging artifacts: sectors that the imager lost or cut short, and CRCs that a converter made
+     * up, as "sectors --json" gives them. Empty if there are none. Missing for hard disks. The damage they explain
+     * is still in the findings, and they don't change whether the disk is writable.
+     */
+    imagingArtifacts?: ImagingArtifactJson[];
 }
 
 /**

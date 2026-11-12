@@ -572,6 +572,26 @@ signs (see "Copy protection signs" in `FLOPPY_FORMATS.md`). Left out, or left ro
       drops (see "IDs the HFE reader can't see" above), and raw size codes on JV3 and IMD, which can't
       store them.
 
+## Imaging artifacts
+
+`findImagingArtifacts()` (`ImagingArtifacts.ts`) labels three of the five artifacts in "Imaging
+artifacts that look like damage" in `FLOPPY_FORMATS.md`; the other two never show as damage. Left out,
+or left rough:
+
+- [ ] **HFE and SCP images** get only the converter-marker rule. The late-start and one-revolution rules
+      read DMK track bytes; flux images could have both, but no suite disk shows them.
+- [ ] **A late start that lost two or more sectors** isn't recognized: the rule needs exactly one missing
+      and the rest in place, which keeps it from excusing real damage. Nor does it use the lost sector's
+      data tail before the first ID, which Ira describes (read without byte sync).
+- [ ] **Ira's case disks aren't in the suite**: `Modem-80 v3.0 [Set 2]`, Network 3 Disk 1, Nightwalker
+      and `GRAFPAC-80 [Set 1]`, and four of the five NEWDOS-90 images. Each rule was confirmed on other
+      disks instead; adding these would check the rules on the disks that suggested them.
+- [ ] **`info --report` doesn't carry the artifacts**, so the regression suite doesn't snapshot them. That
+      needs a `REPORT_VERSION` bump in both repos.
+- [ ] **Recovering the sectors.** A one-revolution read loses only the last few dozen bytes of one sector
+      per track, and a converter's marker hides whether the data is right. Neither is repaired; Ira's rule
+      is to leave the image alone, and reimaging is the fix.
+
 ## Tails and trim
 
 `trim` drops only what `analyzeFloppyTail()` proves is outside the disk (see "Tails past the disk's

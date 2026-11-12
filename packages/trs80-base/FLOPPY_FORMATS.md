@@ -780,6 +780,80 @@ The rest of `ira/odderrors-420/`:
   cylinder 40, and it matches track 40 except for one byte before the first
   gap. `FloppyDiskGeometry` takes it as cylinder 42.
 
+## Imaging artifacts that look like damage
+
+Five more artifacts from Ira's DMK repair work (GitHub issue #48), besides the stale IDAM tables,
+noise IDs, re-reads, 80-track stepping and pointers past the track end above. Each leaves a sector
+missing or bad in the image, but says nothing about the disk, which reimaging may well read
+cleanly. `findImagingArtifacts()` (`ImagingArtifacts.ts`) recognizes three of them, and `sectors
+--bad` and `disk check` label them. They stay damage to the image: `check` still reports the files
+they spoil, and whether a disk may be written doesn't change. The other two never show up as damage
+in our readers. Positions below are logical bytes from the start of the track, counting a doubled
+single-density byte once.
+
+- **A read that began late.** cw2dmk before version 4.6.0 could start reading a track some way past
+  the index (its ChangeLog for 4.6.0: missing data between the index hole and the start of the read,
+  "occasionally dropping of entire sectors"). The track's first sector is then missing, and all the
+  other IDs sit earlier than usual by the same amount. That shift is what tells it from damage: an
+  ID that can't be read leaves the others where they were. Found on four tracks of three NEWDOS/80
+  MFM 18 × 256 disks:
+
+  | Disk | Track | First ID | Usual first ID | Missing |
+  |------|-------|----------|----------------|---------|
+  | `NEWDOS-90 (1990)(Warwick Sands)[M1][Original][Utilities Disk 2]` | 36 | 275 | 29 | 16 |
+  | `newdos80/hustle_hscore_work_4-26-82` | 3 | 256 | 28 | 12 |
+  | `NEWDOS-80 v2.0-Genie ...[80T][DS][DD]` | 14 side 1, 59 side 0 | 269, 265 | 10-13 | 11, 0 |
+
+  The IDs are 330 apart, so on every one the missing ID would have been 55-74 bytes *before* the
+  start of the read, and the track's last data byte is earlier by about the same amount (84 and 103
+  bytes on the first two). Ira found the same on five NEWDOS-90 images, with first IDs at 244-285;
+  only one NEWDOS-90 disk in the suite has it. The rule: exactly one of the track's usual sectors is
+  missing, the IDs are evenly spaced (no gap over 1.5 spacings), and the first ID is at least half a
+  spacing later than the median first ID of the disk's tracks of that density but less than one
+  spacing into the track. Nothing else in the suite matches; the other late starts there (Defense
+  Command, the VS-100 and Talker disks, Boss, BFBDEM) lose most of a track and are damage.
+- **A read of exactly one revolution of tracks written longer.** The imager stopped after one turn,
+  so every MFM track's bytes end at the same place and the rest of the track is 4E filler, and each
+  track's physically last sector loses its last few dozen data bytes and its CRC, which reads `4E
+  4E`. Ira's case is `Modem-80 v3.0 [Set 2]`, cut at about 6,145; the suite has only Sets 1 and 3,
+  which don't show it. It has two others: `peter/Long and Loud! v2.11 ...[Original]` (40 tracks, cut
+  at 6,124-6,137) and `peter/Col 2 - 010 - No Box - Dos+ Master [T27-1 T28-1]` (39 MFM tracks, cut at
+  6,109-6,123; cylinder 0 is FM and whole). The rule: the last ID of a double-density track has a
+  bad data CRC stored as `4E 4E`, and the filler starts inside its data; at least three tracks are cut
+  that way within 64 bytes of their median; and no double-density track has a byte other than 4E
+  more than 64 bytes past that median.
+- **A converter's "00FF marker".** The stored data CRC is the CRC of the data as stored with its low
+  byte inverted, which some converter writes for a sector that its source format marked bad. Then the
+  CRC was made up and says nothing about how much of the data is wrong. On every one of the 11 suite
+  disks with such a CRC, *every* bad data CRC is one (41 of the suite's 554 bad data CRCs), and by
+  chance one would be once in 65,536. Their layouts are synthetic, as Ira says: MFM IDs 342 apart from
+  47 (`Maxi CRAS ...[DP]` and `NEWDOS-80 v2.5 [DOUBLE DENSITY][Set 3]` have their bad sector at 389, the
+  second slot), FM IDs 307 apart from 22 (`Super Utility + Copy Utility [Set 3]`, whose ten marked
+  sectors are the decoy DIR/SYS cylinder 17 of its protection; see "Cylinders, sides, and
+  allocation"). The others are PowerFILE Disks 1 and 3, `Model III Basic Course [Set 1][Disk 1 of 2]`,
+  DupliCat v4.15, LOAD-80 Issue 023, `NEWDOS-80 v2.0 [M4P][Hacked for 4P][Set 1]`, and two of the
+  `simple/` disks with deliberate CRC errors (`ldos-5.3.0-ssdd-crc-boot-sector`,
+  `trsdos-6.2-ssdd-crc-weird-version`), whose origin isn't recorded. Ira's cases, Network 3 Disk 1
+  and Nightwalker, aren't in the suite. No converter whose source we have writes it: cw2dmk, xtrs,
+  sdltrs, samdisk, HxC and trs80gp don't, and ours inverts bit 0 (`pushCrc()` in `TrackStream.ts`),
+  so its bad CRCs aren't mistaken for markers.
+- **A garbled ID decoded from past the index** of a read longer than one revolution: a bad ID CRC, no
+  data field, past about 3,125 FM bytes, and the same bytes on every track of the read. Ira's case is
+  `GRAFPAC-80 [Set 1]`, `FE 02 DA 37 6F C5` on cylinders 2-4, which isn't in the suite; `French
+  Teacher #1 ...[Set 2]` has it on all its tracks (cylinder 32 sector 11, cylinder 9 sector 66 and
+  cylinder 13 sector 22, at 3,135-3,160 of 3,200). Our readers already ignore it, since an ID with a
+  bad CRC is no part of a track's layout, can't replace a good copy of a sector, and isn't a
+  protection sign, so `sectors --bad` and `check` never report it.
+- **MFM sync bytes stored as 14, 15 or A9 instead of A1**, in the first of the three before an ID.
+  The CRCs still use A1 × 3, which is what the controller saw, and our DMK reader always uses the
+  constant (`initialCrc()`), so these sectors read cleanly. In the suite: three Cornsoft disks
+  (`peter/Cornsoft-Brix-Development-newshell2-bath3` and `bath4`, `diffs/Cornsoft-Micro-SynthDev-newshell-bath6`).
+
+The three rules fire on 16 of the suite's 1,749 floppies (4 late starts on 3, one-revolution reads on
+2, converter markers on 11). `check` runs on 15 of them and finds damage on 9, which the artifacts
+explain in whole or in part. Across the suite it calls 705 floppies writable and finds damage on 181,
+before and after the labels, with no finding changed on any disk.
+
 ## TRSDOS 2.3B
 
 Measured on `trsdos-2.3B-sssd.dmk`, which boots on an emulator and calls itself

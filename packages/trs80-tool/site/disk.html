@@ -523,7 +523,12 @@ partition --delete [N|NAME] [--force]</code></pre>
             signs of copy protection, if there are any, as
             <a href="index.html#sectors"><code>sectors --protection</code></a> does (with
             <code>--json</code>, always, as <code>protection</code>); they don’t change whether the disk
-            can be written. It also says whether the disk would be safe to write, and if not, why not.</p>
+            can be written. It also lists the floppy’s imaging artifacts, if there are any, as
+            <a href="index.html#sectors"><code>sectors --bad</code></a> labels them (with
+            <code>--json</code>, always, as <code>imagingArtifacts</code>): sectors that the imager lost
+            or cut short, and CRCs that a converter made up. The damage they explain is still damage to
+            the image, so it stays among the findings, and they don’t change whether the disk can be
+            written either. It also says whether the disk would be safe to write, and if not, why not.</p>
 
             <h3 id="repair"><code>repair</code></h3>
             <p>Fix the damage that <code>check</code> finds, where it can be fixed without guessing, in
