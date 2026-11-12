@@ -600,6 +600,41 @@ limit below used the DOS's own disk size):
   sectors in the middle of EDTASM/CMD. Nothing marks them as protection; the
   sign is left as possible.
 
+### Big Five's Read Track check
+
+Big Five's 1980-81 loaders check that each of several tracks is as long as on the
+original disk, by Read Track, which no sign above sees. Measured on Attack Force
+v3.0's HFE (GitHub issue #56; not in the suite), a single-sided Model I/III
+dual-boot disk: FM sector 0 and MFM sector 1 on cylinder 0, five FM sectors of
+512 on cylinders 1, 2 and 4-19, and the serial-number track, cylinder 3, with one
+FM sector of 1,024 and one of 256.
+
+- **The check.** Once the load reaches track 11, the Model I loader (at
+  B200h-B380h in memory when the check ran) stores E4h (Read Track) in its own FDC
+  command byte at B34Ah, which was Read Sector, and Read-Tracks cylinders 11 down to 4
+  into ROM, so only the byte count in DE is kept. It compares the eight counts
+  with eight words loaded from cylinder 3 sector 1 at offset ABh (to A4ABh):
+  `SBC HL,DE`, negated if negative, then the high byte must be 0 and the low
+  below 6. So each count must be within 5 bytes of its entry.
+- **This disk's table** is 3120 3118 3117 3120 3119 3119 3119 3120, so a count
+  passes on every track only from 3,115 to 3,122. The HFE's turns of those
+  cylinders are 99,752-99,840 cells, or 3,117-3,120 FM bytes, and pass. 3,125
+  (300 rpm exactly), 3,136 (a DMK of 0x1900) and 3,200 (0x1980) all fail.
+- **On failure it destroys the disk.** It stores F4h (Write Track) in the
+  command byte, patches its copy loop at B364h from `LD A,(BC) / LD (DE),A` to
+  `LD A,(DE) / LD (BC),A`, and formats tracks 1 to 19 with ROM bytes. In our
+  emulator that's 19 Write Tracks; in trs80gp the DMK's cylinders 1-19 lost their
+  sectors on a Model I, and cylinders 1-16 were rewritten by frame 1,000 on a
+  Model III. The Model III boot does the same Read Tracks (11 down to 4) and Write
+  Tracks in our emulator; its loader wasn't traced.
+- **What it takes to boot.** The check passes only on an image that records a turn
+  within a few bytes of the original's: an HFE, or a DMK whose track length is
+  that turn (see "DMK track length"). Booted in our emulator and in trs80gp, on a
+  Model I and a Model III, the HFE and a DMK of 0x18DF (3,119 FM bytes) reach the
+  game, and a DMK of 0x1980 fails.
+- The issue's notes say Robot Attack has the same check with another table, and
+  that some copies have it disabled by a RET at its entry. Neither is checked.
+
 ## Leftovers from earlier formats
 
 Disks were often formatted more than once. When the later format covers fewer
@@ -3463,6 +3498,24 @@ about 0x3154 for a 3½" high-density disk. The reader accepts up to 0x4000, all
 that the pointers' 14-bit offsets can reach. None of the collection's 691 DMK
 images (October 2026) is over 0x2940.
 
+**DMK track length.** A DMK has one track length for every track, and an
+emulator's Read Track returns the bytes after the table: half as many in single
+density, where they're doubled. trs80gp's WD17xx (`wd17xx_f.cpp`, the
+`op_ReadTrack` states) reads from one index pulse to the next, and its DMK track
+(`fd_image_dmktrack.cpp`) wraps at the track length, so that's its count; Big
+Five's check above passes there on a DMK of 0x18DF and fails on one of 0x1980.
+Our emulator does the same since November 2026 (for HFE, the track's own cells).
+xtrs doesn't: it gives a fixed 6,250 bytes (`TRKSIZE_DD`) whatever the length.
+So copy protection that checks Read Track counts boots from a DMK only if its
+track length is the disk's real turn, and only if every checked track has about
+the same turn. Nothing needs the length to be a multiple of 16: David Keil's
+description lists 0x0CC0, 0x14E0, 0x1900 and 0x2940 but asks for no rounding;
+our reader and trs80gp take any length, xtrs any from 16 to 0x4000; and MAME's `dmk_dsk.cpp` takes
+0x80-0x3FFF (not 0x4000, which our reader allows). On a single-density disk the
+round-up alone could add 7 bytes to every Read Track. A DMK reader doesn't
+continue a field across the end of the track, so a sector whose data crosses
+the index needs a track longer than a turn.
+
 **Size codes use only their low two bits**, as on the WD179x, so a code above 3
 means `128 << (code & 3)`, which is also what the emulator's FDC does. (The
 FD1771's non-IBM mode instead reads 16 × N bytes, but the Model I DOSes don't use
@@ -3683,7 +3736,8 @@ two disks sector by sector, so everything below is what a reader can read back.
   HFE and back is a change of encoding, and a track with both densities lines up in both. A turn of
   a 5¼-inch track is 6,250 slots (100,000 cells, 12,500 bytes a side), and of an 8-inch track 10,416.
 - **Raw formats keep their bytes.** DMK to HFE and HFE to DMK keep the track's bytes (gaps,
-  filler, copy-protection), and the HFE round trip of a FORMAT-made DMK comes back byte for byte.
+  filler, copy-protection), and the HFE round trip of a FORMAT-made DMK comes back byte for byte up
+  to the end of the HFE's turn, with the track length 6,378 (the turn and the table).
   Only the bytes' special clock flags have to be rebuilt, from the IDAM table (DMK) or the marks found
   in the cells (HFE).
 - **Sector formats get synthesized tracks.** JV1, JV3 and IMD have no gaps, so a DMK or HFE made
@@ -3729,8 +3783,19 @@ two disks sector by sector, so everything below is what a reader can read back.
   images in the collection) and 8-inch use 500 (modes 0 and 3, as every Model II image does). The
   header is `IMD 1.18: dd/mm/yyyy hh:mm:ss`, a CR LF, and a comment line, then 0x1A.
 - **Sizes.** The disk size is taken from the source when it says (DMK track length, IMD mode,
-  HFE bit rate), else the 5¼-inch size unless some track doesn't fit in it. DMK tracks are 0x1900 (5¼
-  inch) or 0x2940 (8 inch) bytes, longer if a stream needs it.
+  HFE bit rate), else the 5¼-inch size unless some track doesn't fit in it. A DMK made from sectors
+  (JV1, JV3, IMD, SCP) has tracks of 0x1900 (5¼ inch) or 0x2940 (8 inch) bytes, longer if a track needs
+  it, rounded up to 16.
+- **A DMK made from an HFE gets the HFE's turn.** Its track length is the median turn of the HFE's
+  tracks (in slots) plus the table, not rounded, so that Read Track on the DMK returns about what the
+  real disk does (see "DMK track length" and "Big Five's Read Track check"). The median, not the
+  longest, because an imager can record one track longer than the rest: Attack Force's cylinder 0 is
+  6,400 slots and the others 6,234-6,242. The length is longer only if a track's sectors need it (a
+  sector that crosses the index); past the last sector there's only gap, and that's what's cut. Before
+  this, the length was the longest track rounded up to 16, never below 0x1900. Of the suite's 32 HFEs
+  (November 2026), 27 now get 6,378 (turns of 6,250), three 6,382, one 6,351 and one 6,400 (its turns
+  are 6,272, as if it had been made from a DMK of 0x1900), against 6,400 for all of them before; every
+  one still converts with nothing lost, and regress is unchanged.
 - **Two reader rules came out of it.** The HFE reader read a size code above 3 as 256 bytes and now takes
   the low two bits as DMK does (there are none in the 32 HFE images), and it picks among sectors with the
   same number by `laterSectorReplaces()` as the geometry and the DMK reader do (it took the first; there

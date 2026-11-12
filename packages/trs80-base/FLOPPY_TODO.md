@@ -562,6 +562,15 @@ formats" in `FLOPPY_FORMATS.md` for what each holds and the results on the colle
       sector (duplicate, number too high, no data). The writers know; the comparison doesn't.
 - [ ] **Filling the other direction:** `convert` makes floppy images only from floppy images. Putting
       files on a new disk is the `disk` command's job.
+- [ ] **DMK to HFE ignores the DMK's track length.** The HFE writer always makes turns of 6,250 slots,
+      so a Read Track check like Big Five's (see "Big Five's Read Track check" in `FLOPPY_FORMATS.md`)
+      fails on an HFE made from a DMK that held the right length. Most DMKs from imagers are longer than
+      a turn (0x1900 or 0x1980 for 6,250), so the length can't be trusted as a turn in general; it could
+      be when it's close to a turn and not a usual value.
+- [ ] **One length for a whole DMK.** A disk whose checked tracks differ by more than its check allows,
+      or one that has both a sector crossing the index and a Read Track check, can't be held as a DMK
+      that boots. The converter can't tell; it could at least say so when the HFE's turns differ widely.
+- [ ] **DMK tracks of 0x4000.** Our reader and the converter allow it; MAME's reader stops at 0x3FFF.
 
 ## Copy protection signs
 
@@ -788,6 +797,22 @@ What it would take, from FreHD's source, Tandy's LS-DOS drivers and trs80gp's
   - the controller's state in `Trs80State`, for `save()` and `restore()`;
   - a way to mount a hard disk in trs80-tool's `run` and `mcp`, and in the web
     apps.
+
+## Emulating floppy copy protection
+
+The emulator's Read Track returns a turn of the image's length where the format records one (DMK, HFE),
+which Big Five's check needs (see "Big Five's Read Track check" in `FLOPPY_FORMATS.md`). What's left:
+
+- [ ] **Read Track synthesizes the track** from the sectors with standard gaps, even for DMK and HFE,
+      which keep the real bytes. A protection that looks at the gaps, or at IDs the readers drop, sees
+      something other than the disk.
+- [ ] **Write Track ends after 3,125 or 6,250 bytes**, not after the image's turn.
+- [ ] **Nothing else in the suite exercises it.** Booting every DMK and HFE in the suite (November 2026)
+      on a Model I and a Model III for 20 emulated seconds, typing nothing, found two that issue a Read
+      Track while booting: Super Utility (`SuperUtility-1su.dmk`, Model III, 3,136 bytes now against
+      3,125) and a SoftSide issue (`SoftSide Magazine Vol 5 No 12 ... [Set 3].dmk`, Model I, 3,200 against
+      3,125, which loops reading track 0 and doesn't boot either way). Both end on the same screen with
+      either length. A protected program that checks later, or after a key, wasn't reached.
 
 ## Regression suite housekeeping
 

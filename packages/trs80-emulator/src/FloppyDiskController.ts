@@ -46,7 +46,8 @@ const RPM = 300;
 // How long the disk motor stays on after drive selected, in seconds.
 const MOTOR_TIME_AFTER_SELECT = 2;
 
-// Bytes in a track at 300 RPM: 250 kbps in single density, 500 kbps in double density.
+// Bytes in a track at 300 RPM: 125 kbit/s in single density, 250 kbit/s in double density. Read Track
+// returns this many when the image doesn't record the length of a turn.
 const SINGLE_DENSITY_TRACK_BYTES = 3125;
 const DOUBLE_DENSITY_TRACK_BYTES = 6250;
 
@@ -1323,7 +1324,8 @@ export class FloppyDiskController {
         }
 
         const sectorInfos = this.getTrackSectorInfos(floppyDisk, drive);
-        const bytes = this.synthesizeTrack(floppyDisk, sectorInfos);
+        const turnLength = floppyDisk.getTurnLength(new TrackPosition(drive.physicalTrack, this.side));
+        const bytes = this.synthesizeTrack(floppyDisk, sectorInfos, turnLength);
         this.sectorData = new SectorData(bytes, SectorPosition.make(drive.physicalTrack, this.side, 0),
             this.doubleDensity ? Density.DOUBLE : Density.SINGLE);
         this.dataIndex = 0;
@@ -1462,12 +1464,22 @@ export class FloppyDiskController {
 
     /**
      * Make the bytes that a READ_TRACK command returns, from the track's sectors. The image
-     * formats don't keep the gaps, so we make up the standard ones.
+     * formats don't keep the gaps, so we make up the standard ones. The number of bytes is a turn of the
+     * track if the image records how long that is, since some copy protection checks it, and otherwise
+     * a turn at the nominal speed.
+     *
+     * @param floppyDisk the disk.
+     * @param sectorInfos the sectors that the controller can see on the track, in order.
+     * @param turnLength the length of a turn in double-density bytes, if the image records it.
      */
-    private synthesizeTrack(floppyDisk: FloppyDisk, sectorInfos: SectorInfo[]): Uint8Array {
+    private synthesizeTrack(floppyDisk: FloppyDisk, sectorInfos: SectorInfo[],
+                            turnLength: number | undefined): Uint8Array {
+
         const doubleDensityCount = sectorInfos.filter(info => info.density === Density.DOUBLE).length;
         const doubleDensity = sectorInfos.length === 0 ? this.doubleDensity : doubleDensityCount*2 > sectorInfos.length;
-        const trackLength = doubleDensity ? DOUBLE_DENSITY_TRACK_BYTES : SINGLE_DENSITY_TRACK_BYTES;
+        const trackLength = turnLength === undefined
+            ? (doubleDensity ? DOUBLE_DENSITY_TRACK_BYTES : SINGLE_DENSITY_TRACK_BYTES)
+            : (doubleDensity ? turnLength : Math.floor(turnLength/2));
         const bytes: number[] = [];
 
         const addGap = (doubleDensity: boolean, count: number): void => {

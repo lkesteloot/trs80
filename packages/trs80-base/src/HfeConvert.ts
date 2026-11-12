@@ -20,7 +20,7 @@ import {
     mfmByteCells,
     SIDE_BLOCK_SIZE,
 } from "./HfeFloppyDisk.js";
-import {ID_ADDRESS_MARK, isDataAddressMark, MFM_SYNC, MFM_SYNC_COUNT} from "./TrackBytes.js";
+import {MFM_SYNC, MFM_SYNC_COUNT} from "./TrackBytes.js";
 import {gapByte, slotsPerByte, TrackStream} from "./TrackStream.js";
 
 /**
@@ -80,6 +80,7 @@ export function hfeTrackToStream(disk: HfeFloppyDisk, trackPosition: TrackPositi
     }).sort((a, b) => a.idStart - b.idStart);
 
     const stream = new TrackStream();
+    stream.turnSlots = Math.floor(hfeTrack.cellCount()/MFM_CELLS_PER_BYTE);
     const length = cells.length;
 
     // Push the bytes of cells [from, to) in a density, on a grid that ends at "to" if "anchorEnd" and
@@ -175,37 +176,6 @@ export function encodeStreamCells(stream: TrackStream): Uint8Array {
 }
 
 /**
- * The farthest a data address mark can be from the end of its ID field, in bytes, from the WD179x data sheet
- * (the longer of the two densities).
- */
-const MAX_DATA_MARK_GAP = 43;
-
-/**
- * Find the end of the sector whose ID address mark is at an index of a stream: the index just after its data
- * field's CRC, or just after its ID field if no data address mark follows.
- */
-function sectorEndIndex(stream: TrackStream, idIndex: number): number {
-    const idEnd = idIndex + 7;
-    const sizeCode = stream.values[idIndex + 4] ?? 0;
-    const size = 128 << (sizeCode & 3);
-    const doubleDensity = stream.densities[idIndex] === Density.DOUBLE;
-
-    for (let i = idEnd; i < Math.min(idEnd + MAX_DATA_MARK_GAP, stream.values.length); i++) {
-        if (stream.values[i] === ID_ADDRESS_MARK && (stream.specials[i] || stream.specials[i - 1])) {
-            // The next sector's ID field.
-            break;
-        }
-        const afterSync = !doubleDensity || (stream.specials[i - 1] && stream.specials[i - 2] && stream.specials[i - 3]);
-        const isMark = isDataAddressMark(stream.values[i]) && (doubleDensity ? !stream.specials[i] : stream.specials[i]);
-        if (isMark && afterSync) {
-            return i + 1 + size + 2;
-        }
-    }
-
-    return idEnd;
-}
-
-/**
  * Make a stream fit in one turn of a track. A stream from an imager can be longer than a turn, as DMK tracks
  * often are, and the part past the turn is the same track passing the index again. A sector that starts
  * before the end of the turn and runs past it is a sector whose data crosses the index, so its excess is
@@ -241,7 +211,7 @@ export function fitStreamToTurn(stream: TrackStream, slots: number): void {
     for (const mark of marks) {
         firstMarkIndex = Math.min(firstMarkIndex, mark.index);
         if (positions[mark.index] < slots) {
-            excessEnd = Math.max(excessEnd, sectorEndIndex(stream, mark.index));
+            excessEnd = Math.max(excessEnd, stream.sectorEndIndex(mark.index));
         }
     }
     excessEnd = Math.min(excessEnd, stream.values.length);

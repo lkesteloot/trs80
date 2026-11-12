@@ -1,11 +1,13 @@
 import {describe, expect, it} from "vitest";
 import {
+    convertFloppy,
     CRC_16_CCITT,
     CRC_PRESET,
     DATA_ADDRESS_MARK,
     DELETED_DATA_ADDRESS_MARK,
     decodeTrs80File,
     FloppyDisk,
+    FloppyImageFormat,
     FM_GAP,
     ID_ADDRESS_MARK,
     INDEX_ADDRESS_MARK,
@@ -241,10 +243,9 @@ function makeJv3(trackCount = 2): FloppyDisk {
 
 /**
  * A single-sided, double-density DMK disk with sectors 1 to sectorCount of 256 bytes on
- * each track, filled with the track number.
+ * each track, filled with the track number. The track length includes the 128-byte table.
  */
-function makeDmk(trackCount = 2, sectorCount = 18): FloppyDisk {
-    const trackLength = 0x1900;
+function makeDmk(trackCount = 2, sectorCount = 18, trackLength = 0x1900): FloppyDisk {
     const binary = new Uint8Array(16 + trackCount*trackLength);
     binary[1] = trackCount;
     binary[2] = lo(trackLength);
@@ -537,6 +538,38 @@ describe("read address and read track", () => {
         const text = String.fromCharCode(...bytes);
         expect(text.includes(String.fromCharCode(ID_ADDRESS_MARK, 2, 0, 9, 1))).to.be.true;
         expect(text.includes(String.fromCharCode(DATA_ADDRESS_MARK, ...new Array(10).fill(29)))).to.be.true;
+    });
+
+    it("reads a turn of the length that a DMK records", () => {
+        // An odd length, as a DMK made from a flux image has: 6,239 bytes after the table.
+        const setup = new Setup(makeDmk(2, 10, 128 + 6239), SELECT_DRIVE_0 | SELECT_MFM);
+        setup.seek(1);
+        const bytes = setup.read(READ_TRACK);
+        expect(bytes.length).to.equal(6239);
+        const text = String.fromCharCode(...bytes);
+        expect(text.includes(String.fromCharCode(ID_ADDRESS_MARK, 1, 0, 10, 1))).to.be.true;
+    });
+
+    it("reads half the length of a DMK or HFE turn in single density", () => {
+        const jv1 = makeJv1();
+        const dmk = convertFloppy(jv1, FloppyImageFormat.DMK);
+        const hfe = convertFloppy(jv1, FloppyImageFormat.HFE);
+        if (typeof dmk === "string" || typeof hfe === "string") {
+            throw new Error("Conversion failed");
+        }
+        // Shorten the HFE's track 2 to 12,478 bytes a side, as an imager might record it: 99,824 cells, or
+        // 6,239 double-density bytes. Its entry in the track list (block 1) gives both sides' length.
+        const hfeBinary = hfe.binary.slice();
+        hfeBinary[512 + 2*4 + 2] = lo(2*12478);
+        hfeBinary[512 + 2*4 + 3] = hi(2*12478);
+        const shortHfe = decode(hfeBinary, "test.hfe");
+
+        // The usual DMK length, 0x1900 with the table, and the HFE's turn.
+        for (const [disk, length] of [[dmk, (0x1900 - 128)/2], [shortHfe, 3119]] as const) {
+            const setup = new Setup(disk);
+            setup.seek(2);
+            expect(setup.read(READ_TRACK).length).to.equal(length);
+        }
     });
 });
 

@@ -544,6 +544,20 @@ export class DmkFloppyDisk extends FloppyDisk {
         return this.geometry !== undefined;
     }
 
+    /**
+     * The length of a turn, which this version takes from the header's track length (less the table of
+     * ID pointers), the same for every track. With the single-density flag each byte is a single-density
+     * byte, so the turn is twice as long in double-density bytes. With the flag that says to ignore density,
+     * a byte could be either, so the length isn't known.
+     */
+    public override getTurnLength(_trackPosition: TrackPosition): number | undefined {
+        if ((this.flags & FLAG_IGNORE_DENSITY) !== 0) {
+            return undefined;
+        }
+        const bytes = this.trackLength - TRACK_HEADER_SIZE;
+        return (this.flags & FLAG_SINGLE_DENSITY) !== 0 ? bytes*2 : bytes;
+    }
+
     public getGeometry(): FloppyDiskGeometry {
         if (this.geometry === undefined) {
             // The decoder rejects disks whose geometry can't be computed.
