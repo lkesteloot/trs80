@@ -1191,6 +1191,8 @@ named by the disk's banner or GAT unless noted:
 | MultiDOS 1.7-2.10 | `xx FE xx 3A 03 00 FE 17 28 24 CD 0B 00 11 2F 00` | 2 |
 | MultiDOS 4.01 on, Esoteric | `xx FE xx CD 0B 00 11 10 00 19 7E 23 CD 33 00 B7 20 F8` | 12 |
 | MultiDOS II | `00 FE xx ED 56 3A 00 42 B7 20 6F` | 2 |
+| DoubleDOS 4.2, 4.23, 4.24, system disks (no directory cylinder byte) | `36 FF 36 D0 31 FC 41 CD C9 01` | 14 |
+| DoubleDOS, data disks ("NO SYSTEM") | `21 10 42 7E CD 33 00 23 FE 0D 20 F7 CD 40 00 76` | 0 |
 | UltraDOS 4.1 | `00 FE xx F3 31 00 42 CD C9 01 01 00 4D` | 5 |
 | UltraDOS 4.2, system and data disks | `00 FE xx F3 11 01 3C`; `00 FE xx F3 31 00 42 21 4A 42` | 4, 0 |
 | RapidDOS, Model 4 | `00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43` | 2 |
@@ -1309,6 +1311,12 @@ boot track text and GAT 0xCB, as above):
   what the disk's files were written under, and the GAT still holds the formatter. Data disks have no banner, and their
   boot sector is FORMAT's stub, so 0xCB names them, which agrees with it. We don't show
   both, since a single name is what `info` and the write rules use.
+- **DoubleDOS** writes TRSDOS 2.x's 0x21, so where it has no banner its boot sector names
+  it (Ira): the system boot sector is "DoubleDOS 4.2, 4.23 or 4.24", and FORMAT's stub,
+  which ends "PERCOM DBLDOS FORMAT/BACKUP UTILITY VERSION 1.2x", is "4.2 or 4.23" with
+  0x30 at byte 0x4F and "4.24" with 0x31 (4.2 and 4.23 make byte-identical data disks). Ira
+  spells the first "4.20"; we use "4.2", as its banner does. All 14 of our DoubleDOS disks
+  are named by their banners, which these agree with.
 - **VTOS 3.0's data disks** (0x30) are "VTOS 3.0, 3.0.0 or 3.0.1", since those releases
   write the same boot sector and GAT (Ira). Our bare 3.0.0 and 3.0.1 data disks differ only
   in a few ASCII digits and the CRCs after them.

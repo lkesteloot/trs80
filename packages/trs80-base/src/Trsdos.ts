@@ -465,6 +465,10 @@ export enum BootSectorDos {
     TRSDOS_2_7_SD,
     // UltraDOS 4.2's system and data-disk boot sectors.
     ULTRADOS_4_2,
+    // Percom's DoubleDOS 4.2x for the Model I, system disks.
+    DOUBLEDOS,
+    // DoubleDOS's data-disk stub ("NO SYSTEM").
+    DOUBLEDOS_STUB,
     // Big Five Software's BFLOADER, which boots a game without a DOS.
     BFLOADER,
 }
@@ -549,6 +553,12 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
         case BootSectorDos.ULTRADOS_4_2:
             return "UltraDOS 4.2";
 
+        case BootSectorDos.DOUBLEDOS:
+            return "DoubleDOS";
+
+        case BootSectorDos.DOUBLEDOS_STUB:
+            return "DoubleDOS data disks";
+
         case BootSectorDos.BFLOADER:
             return "Big Five BFLOADER";
 
@@ -619,6 +629,9 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     // UltraDOS 4.2's system disks, then its data disks.
     {dos: BootSectorDos.ULTRADOS_4_2, prefix: "00 FE xx F3 11 01 3C"},
     {dos: BootSectorDos.ULTRADOS_4_2, prefix: "00 FE xx F3 31 00 42 21 4A 42"},
+    // DoubleDOS, whose boot sectors have no directory cylinder.
+    {dos: BootSectorDos.DOUBLEDOS, prefix: "36 FF 36 D0 31 FC 41 CD C9 01"},
+    {dos: BootSectorDos.DOUBLEDOS_STUB, prefix: "21 10 42 7E CD 33 00 23 FE 0D 20 F7 CD 40 00 76"},
     // Big Five's game loader, on game disks with no DOS.
     {dos: BootSectorDos.BFLOADER, prefix: "00 FE xx 31 FC 41 CD C9 01 F3 21 EC 37 36 D0 CD A5 42"},
     // Last, since it's mostly zeros.
@@ -685,6 +698,8 @@ function isLdosLineBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.TRSDOS_2_7_STUB:
         case BootSectorDos.TRSDOS_2_7_SD:
         case BootSectorDos.ULTRADOS_4_2:
+        case BootSectorDos.DOUBLEDOS:
+        case BootSectorDos.DOUBLEDOS_STUB:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -730,6 +745,8 @@ function isMultiDosBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.TRSDOS_2_7_STUB:
         case BootSectorDos.TRSDOS_2_7_SD:
         case BootSectorDos.ULTRADOS_4_2:
+        case BootSectorDos.DOUBLEDOS:
+        case BootSectorDos.DOUBLEDOS_STUB:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -3308,6 +3325,19 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         }
         if (bootSectorDos === BootSectorDos.RAPIDOS) {
             return makeDosName(DosFamily.RAPIDOS);
+        }
+
+        // DoubleDOS writes TRSDOS 2.x's 0x21 at 0xCB, so its boot sector decides. Its system boot
+        // sector doesn't tell its releases apart; its FORMAT's stub ends with its own version, at
+        // byte 0x4F ("... UTILITY VERSION 1.20" or "1.21"). See "Boot sector code by DOS" in
+        // FLOPPY_FORMATS.md.
+        if (bootSectorDos === BootSectorDos.DOUBLEDOS) {
+            return makeDosName(DosFamily.DOUBLEDOS, "4.2", "4.23", "4.24");
+        }
+        if (bootSectorDos === BootSectorDos.DOUBLEDOS_STUB && bootSector !== undefined) {
+            const formatVersion = bootSector.data[0x4F];
+            return formatVersion === 0x30 ? makeDosName(DosFamily.DOUBLEDOS, "4.2", "4.23") :
+                formatVersion === 0x31 ? makeDosName(DosFamily.DOUBLEDOS, "4.24") : makeDosName(DosFamily.DOUBLEDOS);
         }
 
         // Super Utility+ writes its own version at 0xCB (0x22 and 0x31 look like TRSDOS 2.2 and

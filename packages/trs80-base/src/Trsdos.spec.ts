@@ -652,6 +652,20 @@ describe("Trsdos DOS name from the boot sector", () => {
             .to.eql("MultiDOS 6.20 or Esoteric 3.20");
     });
 
+    it("names DoubleDOS from its boot sectors", () => {
+        const system = [0x36, 0xFF, 0x36, 0xD0, 0x31, 0xFC, 0x41, 0xCD, 0xC9, 0x01];
+        const stub = [0x21, 0x10, 0x42, 0x7E, 0xCD, 0x33, 0x00, 0x23, 0xFE, 0x0D, 0x20, 0xF7, 0xCD, 0x40, 0x00, 0x76];
+        // nameOf() keeps byte 2, so put the stub's own byte back.
+        const withStub = (formatVersion: number) => (binary: Uint8Array) => {
+            binary.set(stub, 0);
+            binary[0x4F] = formatVersion;
+        };
+        expect(nameOf(system, 0x21, 0, bytesAt(2, [system[2]]))).to.eql("DoubleDOS 4.2, 4.23 or 4.24");
+        expect(nameOf(stub, 0x21, 0, withStub(0x30))).to.eql("DoubleDOS 4.2 or 4.23");
+        expect(nameOf(stub, 0x21, 0, withStub(0x31))).to.eql("DoubleDOS 4.24");
+        expect(nameOf(stub, 0x21, 0, withStub(0x20))).to.eql("DoubleDOS");
+    });
+
     it("lists VTOS 3.0's releases, which write the same data disk", () => {
         const vtos3Boot = [0x00, 0xFE, 0x11, 0xF3, 0x31, 0xE0, 0x41, 0x21, 0xE2, 0x42, 0xCD, 0x9A, 0x42];
         expect(nameOf(vtos3Boot, 0x30)).to.eql("VTOS 3.0, 3.0.0 or 3.0.1");
