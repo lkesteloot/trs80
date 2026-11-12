@@ -121,6 +121,8 @@ export type ContentType =
     "edtasm" |
     /** The first sector of a floppy, as a file. */
     "bootSector" |
+    /** A dump of a hi-res graphics board's screen (.HR, .HRG, .HRX, .CHR, or .SHR). */
+    "hiResScreen" |
     /** Bytes that we couldn't decode as anything else. */
     "binary" |
     /** A cassette image (CAS file) with one or more files. */
@@ -141,6 +143,7 @@ export function contentTypeOf(trs80File: Trs80File): ContentType {
         case "Level1Program": return "level1Program";
         case "EdtasmFile": return "edtasm";
         case "BootSector": return "bootSector";
+        case "HiResScreen": return "hiResScreen";
         case "RawBinaryFile": return "binary";
         case "Cassette": return "cassette";
         case "Jv1FloppyDisk":
