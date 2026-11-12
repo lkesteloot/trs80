@@ -171,8 +171,9 @@ interface DosNameRule {
  * shorter one's row.
  */
 const DOS_NAME_RULES: readonly DosNameRule[] = [
-    // 2.0 through 2.3 (2.1C is a variant of 2.1), and the data disks that only know their GAT says 0x21.
-    {pattern: /^TRSDOS 2\.(?:[0-3]C?|x)$/, ruleSet: TrsdosRuleSet.TRSDOS_2},
+    // 2.0 through 2.3 (2.1C is a variant of 2.1), the data disks that only know their GAT says 0x21,
+    // and those whose boot sector says the 2.2 or 2.3 FORMAT wrote them.
+    {pattern: /^TRSDOS 2\.(?:[0-3]C?|x|2-2\.3)$/, ruleSet: TrsdosRuleSet.TRSDOS_2},
     // Every 1.x, including the data disks that only know they're "TRSDOS 1.x".
     {pattern: /^TRSDOS 1\./, ruleSet: TrsdosRuleSet.TRSDOS_1_3},
     {pattern: /^LDOS 5\./, ruleSet: TrsdosRuleSet.LDOS_5},

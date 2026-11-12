@@ -77,9 +77,9 @@ interface BootSectorSource {
  * DOS formatted.
  */
 const BOOT_SECTORS: BootSectorSource[] = [
-    {key: "ldos-5.3-single", source: "formatted/m1-ldos-blank.dmk", nameAndVersion: "LDOS 5.3", sectors: [0, 1]},
-    {key: "ldos-5.3-double", source: "formatted/m3-ldos-blank.dmk", nameAndVersion: "LDOS 5.3", sectors: [0, 1]},
-    {key: "lsdos-6.3", source: "formatted/m4-lsdos-blank.dmk", nameAndVersion: "LS-DOS 6.3", sectors: [0, 1]},
+    {key: "ldos-5.3-single", source: "formatted/m1-ldos-blank.dmk", nameAndVersion: "LDOS 5.3.1", sectors: [0, 1]},
+    {key: "ldos-5.3-double", source: "formatted/m3-ldos-blank.dmk", nameAndVersion: "LDOS 5.3.1", sectors: [0, 1]},
+    {key: "lsdos-6.3", source: "formatted/m4-lsdos-blank.dmk", nameAndVersion: "LS-DOS 6.3.1", sectors: [0, 1]},
     {key: "trsdos-6.2", source: "formatted/m4-trsdos-blank.dmk", nameAndVersion: "TRSDOS 6.2", sectors: [0, 1]},
     {key: "trsdos-1.3", source: "formatted/m3-trsdos-blank.dmk", nameAndVersion: "TRSDOS 1.3", sectors: [1, 2]},
     {key: "trsdos-2.3", source: "TRSDOS23.DSK", nameAndVersion: "TRSDOS 2.3", sectors: [0]},

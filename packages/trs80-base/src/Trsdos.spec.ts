@@ -500,20 +500,30 @@ describe("Trsdos.getGranuleSectorPositions", () => {
 });
 
 describe("Trsdos DOS name from the boot sector", () => {
+    // The GAT is the first sector of cylinder 17, with 10 sectors per track.
+    const GAT_OFFSET = 17*10*256;
+    // BOOT/SYS is the first entry of the first directory sector (after the GAT and HIT), DIR/SYS
+    // the first of the second.
+    const BOOT_SYS_OFFSET = GAT_OFFSET + 2*256;
+    const DIR_SYS_OFFSET = GAT_OFFSET + 3*256;
+
     /**
      * Name the DOS of a test disk whose boot sector starts with these bytes (after the directory
      * cylinder at byte 2, which is kept), whose GAT version byte is the given one, and whose
-     * system sector (sector 2) starts with the given byte.
+     * system sector (sector 2) starts with the given byte. The patch, if given, then changes
+     * anything else in the image.
      */
-    function nameOf(bootPrefix: number[], gatVersion: number, systemSectorByte = 0): string {
+    function nameOf(bootPrefix: number[], gatVersion: number, systemSectorByte = 0,
+                    patch?: (binary: Uint8Array) => void): string {
+
         const disk = makeTrsdos23TestDisk([]);
         const binary = disk.binary;
         const dirCylinder = binary[2];
         binary.set(bootPrefix, 0);
         binary[2] = dirCylinder;
         binary[2*256] = systemSectorByte;
-        // The GAT is the first sector of cylinder 17, with 10 sectors per track.
-        binary[17*10*256 + 0xCB] = gatVersion;
+        binary[GAT_OFFSET + 0xCB] = gatVersion;
+        patch?.(binary);
         const trsdos = decodeTrsdos(disk);
         if (trsdos === undefined) {
             throw new Error("Test disk didn't decode as TRSDOS");
@@ -538,5 +548,109 @@ describe("Trsdos DOS name from the boot sector", () => {
         expect(nameOf(LDOS_BOOT, 0x50)).to.eql("LDOS 5.0");
         expect(nameOf(TRSDOS_2_BOOT, 0x50, 0x50)).to.eql("LDOS 5.0");
         expect(nameOf(TRSDOS_2_BOOT, 0x50)).to.eql("Unknown DOS");
+    });
+
+    /**
+     * A patch that writes these bytes at this offset of the image.
+     */
+    function bytesAt(offset: number, bytes: number[]): (binary: Uint8Array) => void {
+        return binary => binary.set(bytes, offset);
+    }
+
+    const TRSDOS_6_0_STUB = [0x00, 0xFE, 0x11, 0xF3, 0x21, 0x0E, 0x43];
+    const TRSDOS_6_1_STUB = [0x00, 0xFE, 0x11, 0xF3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x11, 0x87, 0xFB];
+    const NEWDOS_80_3_BOOT = [0x00, 0xFE, 0x11, 0xF3, 0x11, 0x05, 0x00, 0xD9, 0x31, 0xE0, 0x41, 0x21, 0xFF, 0x51,
+        0xCD, 0x47, 0x43];
+    const NEWDOS_80_2_BOOT = [...NEWDOS_80_3_BOOT.slice(0, 15), 0x45, 0x43];
+    const BFLOADER_BOOT = [0x00, 0xFE, 0x11, 0x31, 0xFC, 0x41, 0xCD, 0xC9, 0x01, 0xF3, 0x21, 0xEC, 0x37, 0x36, 0xD0,
+        0xCD, 0xA5, 0x42];
+
+    it("tells TRSDOS 2.2 and 2.3 data disks by boot byte 0x7D", () => {
+        expect(nameOf(TRSDOS_2_BOOT, 0x21, 0, bytesAt(0x7D, [0xB6]))).to.eql("TRSDOS 2.2-2.3");
+        expect(nameOf(TRSDOS_2_BOOT, 0x21, 0, bytesAt(0x7D, [0xE1]))).to.eql("TRSDOS 2.x");
+    });
+
+    it("gives LDOS 5.1 data disks a third digit from BOOT/SYS's passwords", () => {
+        expect(nameOf(LDOS_BOOT, 0x51, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0x20, 0xC2, 0x52, 0xC3])))
+            .to.eql("LDOS 5.1.0-5.1.1");
+        const ldos513 = bytesAt(BOOT_SYS_OFFSET + 0x10, [0xAE, 0x01, 0xF5, 0x9C]);
+        expect(nameOf(LDOS_BOOT, 0x51, 0, binary => {
+            ldos513(binary);
+            binary[BOOT_SYS_OFFSET + 0x1A] = 0x00;
+        })).to.eql("LDOS 5.1.2-5.1.3");
+        expect(nameOf(LDOS_BOOT, 0x51, 0, binary => {
+            ldos513(binary);
+            binary[BOOT_SYS_OFFSET + 0x1A] = 0xFF;
+        })).to.eql("LDOS 5.1.4");
+        expect(nameOf(LDOS_BOOT, 0x51, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0x96, 0x42, 0x96, 0x42])))
+            .to.eql("LDOS 5.1");
+    });
+
+    it("names LDOS 5.3.1 from DIR/SYS's passwords", () => {
+        expect(nameOf(LDOS_BOOT, 0x53, 0, bytesAt(DIR_SYS_OFFSET + 0x10, [0xAE, 0x01, 0x96, 0x42])))
+            .to.eql("LDOS 5.3.1");
+        expect(nameOf(LDOS_BOOT, 0x53, 0, bytesAt(DIR_SYS_OFFSET + 0x10, [0xAE, 0x01, 0x00, 0x00])))
+            .to.eql("LDOS 5.3");
+    });
+
+    it("prefers the system sector's release to the GAT's", () => {
+        expect(nameOf(LDOS_BOOT, 0x34, 0x51)).to.eql("LDOS 5.1");
+        expect(nameOf(TRSDOS_6_0_STUB, 0x62, 0x61)).to.eql("TRSDOS 6.1.0");
+    });
+
+    it("names TRSDOS 6.0 and 6.1 data disks by their stubs", () => {
+        expect(nameOf(TRSDOS_6_0_STUB, 0x60, 0x60)).to.eql("TRSDOS 6.0.0");
+        expect(nameOf(TRSDOS_6_1_STUB, 0x61, 0x61)).to.eql("TRSDOS 6.1.1-6.1.2");
+    });
+
+    it("names DOSPLUS IV from BOOT/SYS's password rather than TRSDOS 6.0", () => {
+        expect(nameOf(TRSDOS_6_0_STUB, 0x60, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0xDD, 0x23]))).to.eql("DOSPLUS IV");
+    });
+
+    it("names LS-DOS 6.3's release from the media block and BOOT/SYS's password", () => {
+        const media = (text: string, password: number[]) => (binary: Uint8Array) => {
+            binary.set([...text].map(c => c.charCodeAt(0)), GAT_OFFSET + 0xF6);
+            binary.set(password, BOOT_SYS_OFFSET + 0x10);
+        };
+        expect(nameOf(LDOS_BOOT.slice(0, 3), 0x63, 0, media("631", [0xF4, 0x71]))).to.eql("LS-DOS 6.3.1");
+        expect(nameOf(LDOS_BOOT.slice(0, 3), 0x63, 0, media("LSI", [0xF6, 0x37]))).to.eql("LS-DOS 6.3.0");
+        expect(nameOf(LDOS_BOOT.slice(0, 3), 0x63, 0, media("631", [0xF6, 0x37]))).to.eql("LS-DOS 6.3");
+    });
+
+    it("gives NEWDOS/80 2.x data disks a range, and tells 3.0 by its boot sector", () => {
+        expect(nameOf(NEWDOS_80_2_BOOT, 0x82)).to.eql("NEWDOS/80 v2.0-2.74");
+        expect(nameOf(NEWDOS_80_3_BOOT, 0x82)).to.eql("NEWDOS/80 v3.0");
+    });
+
+    it("names Big Five's loader, which isn't a DOS", () => {
+        expect(nameOf(BFLOADER_BOOT, 0x21)).to.eql("Big Five BFLOADER");
+    });
+
+    it("doesn't take a fill of MULTIDOS on the boot track for MultiDOS", () => {
+        // In the boot track's second granule, outside BOOT/SYS, whose text is searched for banners.
+        const fill = (binary: Uint8Array) => binary.set([..."MULTIDOS".repeat(32)].map(c => c.charCodeAt(0)), 7*256);
+        expect(nameOf(TRSDOS_2_BOOT, 0x33, 0, fill)).to.eql("DOSPLUS 3.3");
+    });
+
+    it("gives MultiDOS data disks a version from their stub", () => {
+        const stub15 = [0x00, 0xFE, 0x11, 0xCD, 0x0B, 0x00, 0x11, 0x2E, 0x00, 0x19, 0x7E, 0x23, 0xB7];
+        const stub17 = [0x00, 0xFE, 0x11, 0x3A, 0x03, 0x00, 0xFE, 0x17, 0x28, 0x24, 0xCD, 0x0B, 0x00, 0x11, 0x2F, 0x00];
+        // FORMAT's AUTO text in the GAT, which DIR/SYS covers, also reads as a MultiDOS banner.
+        const autoText = (binary: Uint8Array) =>
+            binary.set([..."MULTIDOS format."].map(c => c.charCodeAt(0)), GAT_OFFSET + 0xE0);
+        expect(nameOf(stub15, 0x16)).to.eql("MultiDOS 1.6");
+        expect(nameOf(stub15, 0x16, 0, autoText)).to.eql("MultiDOS 1.6");
+        expect(nameOf(stub17, 0x17, 0, autoText)).to.eql("MultiDOS 2.00");
+        expect(nameOf(stub17, 0xFF)).to.eql("MultiDOS 2.10");
+    });
+
+    it("names a MultiDOS or Esoteric disk by DIR/SYS's passwords", () => {
+        expect(nameOf(ESOTERIC_BOOT, 0xFF, 0, bytesAt(DIR_SYS_OFFSET + 0x10, [0xD6, 0x63, 0x7B, 0xC0])))
+            .to.eql("MultiDOS 6.20 or Esoteric 3.20");
+    });
+
+    it("names DOSPLUS from BOOT/SYS's passwords when the GAT doesn't", () => {
+        expect(nameOf(TRSDOS_2_BOOT, 0x50, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0x27, 0x0B, 0x82, 0x2A])))
+            .to.eql("DOSPLUS 3.2.1-3.4");
     });
 });

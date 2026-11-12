@@ -41,9 +41,9 @@ interface DosCase {
 const DOS_CASES: DosCase[] = [
     {dos: "trsdos-2.3", nameAndVersion: "TRSDOS 2.x"},
     {dos: "trsdos-1.3", nameAndVersion: "TRSDOS 1.3"},
-    {dos: "ldos-5.3", nameAndVersion: "LDOS 5.3"},
+    {dos: "ldos-5.3", nameAndVersion: "LDOS 5.3.1"},
     {dos: "trsdos-6.2", nameAndVersion: "TRSDOS 6.2"},
-    {dos: "lsdos-6.3", nameAndVersion: "LS-DOS 6.3"},
+    {dos: "lsdos-6.3", nameAndVersion: "LS-DOS 6.3.1"},
 ];
 
 /**
@@ -281,7 +281,7 @@ describe("disk create and format", () => {
         const lines = await runDisk("create", "ldos-5.3", "--force");
         expect(lines[0]).to.eql("Replaced the disk in memory; nothing is saved until quit.");
         expect(lines[1]).to.include("LDOS 5.3");
-        expect(openDiskSession(imagePathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
+        expect(openDiskSession(imagePathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3.1");
     });
 
     it("refuses to create twice in one run without --force", async () => {
@@ -311,7 +311,7 @@ describe("disk create and format", () => {
         const outputPathname = path.join(dir, "out.dmk");
         await runDiskOn(inputPathname, "--output", outputPathname, "create", "ldos-5.3");
         expect(fs.existsSync(inputPathname)).to.eql(false);
-        expect(openDiskSession(outputPathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3");
+        expect(openDiskSession(outputPathname).fileSystem?.nameAndVersion).to.eql("LDOS 5.3.1");
     });
 
     it("says that a missing image doesn't exist for every other command", async () => {
@@ -406,7 +406,7 @@ describe("disk create and format", () => {
 
     it("still makes a disk where we have no boot sectors of the DOS's own", async () => {
         await runDisk("create", "lsdos-6.3", "--density", "single");
-        expect(openDiskSession(imagePathname).fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
+        expect(openDiskSession(imagePathname).fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3.1");
     });
 
     describe("--system", () => {
@@ -574,7 +574,7 @@ describe("disk create and format", () => {
 
             await runDiskOn(pathname, "format", "lsdos-6.3", "--force", "--cylinders", "80");
             const session = openDiskSession(pathname);
-            expect(session.fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3");
+            expect(session.fileSystem?.nameAndVersion).to.eql("LS-DOS 6.3.1");
             expect(sessionInputFiles(session, false)).to.eql([]);
             expect(session.floppy.getGeometry().cylinderCount).to.eql(80);
         });

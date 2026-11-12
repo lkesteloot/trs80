@@ -151,7 +151,7 @@ describe("disk --json", () => {
         expect(added.files[0].conversions.length).to.be.greaterThan(0);
 
         const listing = commandAt<DirResultJson>(run, 2, "dir").result;
-        expect(listing.os).to.equal("LDOS 5.3");
+        expect(listing.os).to.equal("LDOS 5.3.1");
         expect(listing.files.map(f => f.name)).to.eql(["HELLO.BAS"]);
         expect(listing.files[0].contentType).to.equal("basicProgram");
 
@@ -161,7 +161,7 @@ describe("disk --json", () => {
 
         const info = commandAt<InfoResultJson>(run, 4, "info").result;
         expect(info.description).to.contain("1 file");
-        expect(info.os?.name).to.equal("LDOS 5.3");
+        expect(info.os?.name).to.equal("LDOS 5.3.1");
         expect(info.os?.fileCount).to.equal(1);
         expect(info.os?.trsdos?.dirLump).to.equal(20);
         expect(info.geometry?.cylinderCount).to.equal(40);

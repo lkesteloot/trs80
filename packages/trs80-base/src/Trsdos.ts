@@ -123,9 +123,11 @@ const SYSTEM_BANNERS: readonly SystemFileBanner[] = [
     {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => `NEWDOS/${m[1]}`},
     {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => `NEWDOS/80 v${m[1]}`},
     // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text. Some zap
-    // levels shorten "VERSION 2.0" to "VER 2.1 Z38" or "Vr2.0 Zap 82", and the German edition
-    // says "Apparat Inc." and "Vers. 2.052".
-    {pattern: /APPARAT,? INC\.[\s\S]{0,60}?(?:VERSION |VER |VERS\. |Vr)(\d\.[\dX]\d*)/i, name: m => `NEWDOS/80 v${m[1]}`},
+    // levels shorten "VERSION 2.0" to "VER 2.1 Z38", "Vr2.0 Zap 82" or "V 2.0  Z 85", and the
+    // German edition says "Apparat Inc." and "Vers. 2.052".
+    {pattern: /APPARAT,? INC\.[\s\S]{0,60}?(?:VERSION |VER |VERS\. |Vr|V )(\d\.[\dX]\d*)/i, name: m => `NEWDOS/80 v${m[1]}`},
+    // Others drop "APPARAT, INC." for the zap level, as in "VERSION 2.0" then "Z=90 SD".
+    {pattern: /VERSION (\d\.\d+)[\s\S]{0,60}?Z=\d+ [SD]D/, name: m => `NEWDOS/80 v${m[1]}`, file: /^SYS0\/SYS$/i},
     // NEWDOS 2.2 (NEWDOS+) says it this way.
     {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
     {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
@@ -392,23 +394,44 @@ export function hashForFilename(filename: string): number {
 
 /**
  * The DOS whose FORMAT wrote a disk's boot sector, as far as the boot sector's opening bytes can
- * tell. Some entries name a family of DOSes that share a FORMAT. See "Boot sector code by DOS" in
- * FLOPPY_FORMATS.md.
+ * tell. Some entries name a family of DOSes that share a FORMAT, and one a game loader that isn't a
+ * DOS. See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
  */
 export enum BootSectorDos {
     TRSDOS_1,
     TRSDOS_2,
     VTOS_3,
     LDOS,
+    // TRSDOS 6's and LS-DOS 6.3's system disks.
     TRSDOS_6,
+    // The data-disk stub of TRSDOS 6.0.0 and 6.01.00 ("No system").
+    TRSDOS_6_0_STUB,
+    // The data-disk stub of TRSDOS 6.01.01 and 6.01.02 ("Can not boot, Model-4 DATA DISK!").
+    TRSDOS_6_1_STUB,
+    // The data-disk stub of TRSDOS 6.02.00 and 6.02.01 and LS-DOS 6.3.0 and 6.3.1 ("Cannot boot,
+    // DATA DISK!").
+    TRSDOS_6_2_STUB,
     DOSPLUS_3,
     DOSPLUS_EMPTY,
     DOSPLUS_IV,
+    // NEWDOS/80 1.x and 2.x.
     NEWDOS_80,
-    MULTIDOS,
+    // NEWDOS/80 3.0 for the Model III.
+    NEWDOS_80_3,
+    // MultiDOS 1.0 for the Model I.
+    MULTIDOS_1_0,
+    // The data-disk stub of MultiDOS 1.0 (Model III) through 1.4.
+    MULTIDOS_1_0_STUB,
+    // The data-disk stub of MultiDOS 1.5 and 1.6.
+    MULTIDOS_1_5_STUB,
+    // The data-disk stub of MultiDOS 1.7 through 2.10.
+    MULTIDOS_1_7_STUB,
+    MULTIDOS_II,
     MULTIDOS_ESOTERIC,
     ULTRADOS,
     RAPIDOS,
+    // Big Five Software's BFLOADER, which boots a game without a DOS.
+    BFLOADER,
 }
 
 /**
@@ -431,6 +454,15 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
         case BootSectorDos.TRSDOS_6:
             return "TRSDOS 6 and LS-DOS 6.3";
 
+        case BootSectorDos.TRSDOS_6_0_STUB:
+            return "TRSDOS 6.0.0 and 6.1.0 data disks";
+
+        case BootSectorDos.TRSDOS_6_1_STUB:
+            return "TRSDOS 6.1.1 and 6.1.2 data disks";
+
+        case BootSectorDos.TRSDOS_6_2_STUB:
+            return "TRSDOS 6.2 and LS-DOS 6.3 data disks";
+
         case BootSectorDos.DOSPLUS_3:
             return "DOSPLUS 3";
 
@@ -443,8 +475,23 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
         case BootSectorDos.NEWDOS_80:
             return "NEWDOS/80";
 
-        case BootSectorDos.MULTIDOS:
-            return "MultiDOS";
+        case BootSectorDos.NEWDOS_80_3:
+            return "NEWDOS/80 3.0";
+
+        case BootSectorDos.MULTIDOS_1_0:
+            return "MultiDOS 1.0 (Model I)";
+
+        case BootSectorDos.MULTIDOS_1_0_STUB:
+            return "MultiDOS 1.0-1.4 data disks";
+
+        case BootSectorDos.MULTIDOS_1_5_STUB:
+            return "MultiDOS 1.5 and 1.6 data disks";
+
+        case BootSectorDos.MULTIDOS_1_7_STUB:
+            return "MultiDOS 1.7-2.10 data disks";
+
+        case BootSectorDos.MULTIDOS_II:
+            return "MultiDOS II";
 
         case BootSectorDos.MULTIDOS_ESOTERIC:
             return "MultiDOS/Esoteric";
@@ -454,6 +501,9 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
 
         case BootSectorDos.RAPIDOS:
             return "RAPIDOS";
+
+        case BootSectorDos.BFLOADER:
+            return "Big Five BFLOADER";
 
         default:
             assertNever(bootSectorDos);
@@ -481,10 +531,10 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     {dos: BootSectorDos.LDOS, prefix: "00 FE xx F3 3A 02 43 57 1E 04"},
     // Lobo MAX-80, whose byte 1 isn't FE.
     {dos: BootSectorDos.LDOS, prefix: "00 1E 14 06 00"},
-    {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 21 0E 43"},
     // Data disks.
-    {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 00 00 00 00 00 00 00 00 00 00 00 00 11 87 FB"},
-    {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 00 00 00 00 00 00 00 00 00 00 00 00 11 8D FB"},
+    {dos: BootSectorDos.TRSDOS_6_0_STUB, prefix: "00 FE xx F3 21 0E 43"},
+    {dos: BootSectorDos.TRSDOS_6_1_STUB, prefix: "00 FE xx F3 00 00 00 00 00 00 00 00 00 00 00 00 11 87 FB"},
+    {dos: BootSectorDos.TRSDOS_6_2_STUB, prefix: "00 FE xx F3 00 00 00 00 00 00 00 00 00 00 00 00 11 8D FB"},
     // System disks.
     {dos: BootSectorDos.TRSDOS_6, prefix: "00 FE xx F3 3E 86 D3 84 32 78 00"},
     // 3.1.
@@ -501,12 +551,12 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     // 2.x Model III.
     {dos: BootSectorDos.NEWDOS_80, prefix: "00 FE xx F3 11 05 00 D9 31 E0 41 21 FF 51 CD 45 43"},
     // 3.0 Model III.
-    {dos: BootSectorDos.NEWDOS_80, prefix: "00 FE xx F3 11 05 00 D9 31 E0 41 21 FF 51 CD 47 43"},
-    {dos: BootSectorDos.MULTIDOS, prefix: "00 FE xx 32 20 40 0F C5 F5 7B AD 47"},
-    {dos: BootSectorDos.MULTIDOS, prefix: "xx FE xx CD 0B 00 11 0E 00 19 CD 67 44"},
-    {dos: BootSectorDos.MULTIDOS, prefix: "xx FE xx CD 0B 00 11 2E 00 19 7E 23 B7"},
-    {dos: BootSectorDos.MULTIDOS, prefix: "xx FE xx 3A 03 00 FE 17 28 24 CD 0B 00 11 2F 00"},
-    {dos: BootSectorDos.MULTIDOS, prefix: "00 FE xx ED 56 3A 00 42 B7 20 6F"},
+    {dos: BootSectorDos.NEWDOS_80_3, prefix: "00 FE xx F3 11 05 00 D9 31 E0 41 21 FF 51 CD 47 43"},
+    {dos: BootSectorDos.MULTIDOS_1_0, prefix: "00 FE xx 32 20 40 0F C5 F5 7B AD 47"},
+    {dos: BootSectorDos.MULTIDOS_1_0_STUB, prefix: "xx FE xx CD 0B 00 11 0E 00 19 CD 67 44"},
+    {dos: BootSectorDos.MULTIDOS_1_5_STUB, prefix: "xx FE xx CD 0B 00 11 2E 00 19 7E 23 B7"},
+    {dos: BootSectorDos.MULTIDOS_1_7_STUB, prefix: "xx FE xx 3A 03 00 FE 17 28 24 CD 0B 00 11 2F 00"},
+    {dos: BootSectorDos.MULTIDOS_II, prefix: "00 FE xx ED 56 3A 00 42 B7 20 6F"},
     {dos: BootSectorDos.MULTIDOS_ESOTERIC, prefix: "xx FE xx CD 0B 00 11 10 00 19 7E 23 CD 33 00 B7 20 F8"},
     {dos: BootSectorDos.ULTRADOS, prefix: "00 FE xx F3 31 00 42 CD C9 01 01 00 4D"},
     {dos: BootSectorDos.ULTRADOS, prefix: "00 FE xx F3 31 00 42 21 4A 42"},
@@ -514,6 +564,8 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     {dos: BootSectorDos.RAPIDOS, prefix: "FE xx 21 10 43 11 00 3C 01 11 00 ED B0 C3 0D 43"},
     // Model 4.
     {dos: BootSectorDos.RAPIDOS, prefix: "00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43"},
+    // Big Five's game loader, on game disks with no DOS.
+    {dos: BootSectorDos.BFLOADER, prefix: "00 FE xx 31 FC 41 CD C9 01 F3 21 EC 37 36 D0 CD A5 42"},
     // Last, since it's mostly zeros.
     {dos: BootSectorDos.DOSPLUS_EMPTY, prefix: "00 FE xx 00 00 00 00 00 00 00 00 00 00 00 00 00"},
 ];
@@ -539,6 +591,139 @@ export function matchBootSectorDos(sector: Uint8Array): BootSectorDos | undefine
     }
 
     return undefined;
+}
+
+/**
+ * Whether the boot sector is one of the LDOS line's (LDOS 5, TRSDOS 6 and LS-DOS 6.3), whose
+ * system sector holds the release. Undefined (no boot sector we recognize) isn't.
+ */
+function isLdosLineBootSectorDos(bootSectorDos: BootSectorDos | undefined): boolean {
+    if (bootSectorDos === undefined) {
+        return false;
+    }
+
+    switch (bootSectorDos) {
+        case BootSectorDos.LDOS:
+        case BootSectorDos.TRSDOS_6:
+        case BootSectorDos.TRSDOS_6_0_STUB:
+        case BootSectorDos.TRSDOS_6_1_STUB:
+        case BootSectorDos.TRSDOS_6_2_STUB:
+            return true;
+
+        case BootSectorDos.TRSDOS_1:
+        case BootSectorDos.TRSDOS_2:
+        case BootSectorDos.VTOS_3:
+        case BootSectorDos.DOSPLUS_3:
+        case BootSectorDos.DOSPLUS_EMPTY:
+        case BootSectorDos.DOSPLUS_IV:
+        case BootSectorDos.NEWDOS_80:
+        case BootSectorDos.NEWDOS_80_3:
+        case BootSectorDos.MULTIDOS_1_0:
+        case BootSectorDos.MULTIDOS_1_0_STUB:
+        case BootSectorDos.MULTIDOS_1_5_STUB:
+        case BootSectorDos.MULTIDOS_1_7_STUB:
+        case BootSectorDos.MULTIDOS_II:
+        case BootSectorDos.MULTIDOS_ESOTERIC:
+        case BootSectorDos.ULTRADOS:
+        case BootSectorDos.RAPIDOS:
+        case BootSectorDos.BFLOADER:
+            return false;
+
+        default:
+            assertNever(bootSectorDos);
+    }
+}
+
+/**
+ * Whether the boot sector is MultiDOS's, before 4.01 (whose FORMAT also writes Esoteric's disks).
+ * Undefined (no boot sector we recognize) isn't.
+ */
+function isMultiDosBootSectorDos(bootSectorDos: BootSectorDos | undefined): boolean {
+    if (bootSectorDos === undefined) {
+        return false;
+    }
+
+    switch (bootSectorDos) {
+        case BootSectorDos.MULTIDOS_1_0:
+        case BootSectorDos.MULTIDOS_1_0_STUB:
+        case BootSectorDos.MULTIDOS_1_5_STUB:
+        case BootSectorDos.MULTIDOS_1_7_STUB:
+        case BootSectorDos.MULTIDOS_II:
+            return true;
+
+        case BootSectorDos.TRSDOS_1:
+        case BootSectorDos.TRSDOS_2:
+        case BootSectorDos.VTOS_3:
+        case BootSectorDos.LDOS:
+        case BootSectorDos.TRSDOS_6:
+        case BootSectorDos.TRSDOS_6_0_STUB:
+        case BootSectorDos.TRSDOS_6_1_STUB:
+        case BootSectorDos.TRSDOS_6_2_STUB:
+        case BootSectorDos.DOSPLUS_3:
+        case BootSectorDos.DOSPLUS_EMPTY:
+        case BootSectorDos.DOSPLUS_IV:
+        case BootSectorDos.NEWDOS_80:
+        case BootSectorDos.NEWDOS_80_3:
+        case BootSectorDos.MULTIDOS_ESOTERIC:
+        case BootSectorDos.ULTRADOS:
+        case BootSectorDos.RAPIDOS:
+        case BootSectorDos.BFLOADER:
+            return false;
+
+        default:
+            assertNever(bootSectorDos);
+    }
+}
+
+/**
+ * Whether the bytes starting at the offset are these, given as space-separated hex. False if
+ * there are no bytes.
+ */
+function hexBytesAt(data: Uint8Array | undefined, offset: number, hex: string): boolean {
+    return data !== undefined && hex.split(" ").every((b, i) => data[offset + i] === parseInt(b, 16));
+}
+
+/**
+ * The DIR/SYS passwords (directory entry bytes 0x10 on) that copying the system of a MultiDOS
+ * release from 4.01 on, or of an Esoteric release, writes, and the releases that write them. Two
+ * releases can share them. Only the ones that the disks we have confirm. See "MultiDOS, Z'DOS and
+ * Esoteric" in FLOPPY_FORMATS.md.
+ */
+const MULTIDOS_DIR_SYS_PASSWORDS: readonly {passwords: string, name: string}[] = [
+    {passwords: "B1 01 00 00", name: "MultiDOS 5.11 or Esoteric 2.12"},
+    {passwords: "BD 18", name: "Esoteric 2.11"},
+    {passwords: "D2 44 00 00", name: "MultiDOS 6.00 or Esoteric 3.00"},
+    {passwords: "D6 63 7B C0", name: "MultiDOS 6.20 or Esoteric 3.20"},
+];
+
+/**
+ * The LDOS 5.1 release whose FORMAT gave BOOT/SYS the passwords that this one has, and padded
+ * its unused extents with 0xFF (5.1.4) or zeros. "LDOS 5.1" if the passwords don't say, as when
+ * they've been cleared. See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
+ *
+ * @param bootSys BOOT/SYS's directory entry, if the disk has one.
+ */
+function decodeLdos51Release(bootSys: Uint8Array | undefined): string {
+    if (hexBytesAt(bootSys, 0x10, "20 C2 52 C3")) {
+        return "LDOS 5.1.0-5.1.1";
+    }
+    if (bootSys !== undefined && hexBytesAt(bootSys, 0x10, "AE 01 F5 9C")) {
+        return bootSys[0x1A] === 0xFF ? "LDOS 5.1.4" : "LDOS 5.1.2-5.1.3";
+    }
+    return "LDOS 5.1";
+}
+
+/**
+ * "LDOS 5.3.1" if its FORMAT's passwords on BOOT/SYS or DIR/SYS say so, otherwise "LDOS 5.3",
+ * since 5.3.0's passwords are also on 5.3.1 disks. See "Boot sector code by DOS" in
+ * FLOPPY_FORMATS.md.
+ *
+ * @param bootSys BOOT/SYS's directory entry, if the disk has one.
+ * @param dirSys DIR/SYS's directory entry, if the disk has one.
+ */
+function decodeLdos53Release(bootSys: Uint8Array | undefined, dirSys: Uint8Array | undefined): string {
+    const is531 = hexBytesAt(dirSys, 0x10, "AE 01 96 42") || hexBytesAt(bootSys, 0x10, "5F 01");
+    return is531 ? "LDOS 5.3.1" : "LDOS 5.3";
 }
 
 // Various TRSDOS versions. All other TRS-80 DOS formats are variants of one of these.
@@ -2926,6 +3111,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         const bootSector = this.getBootSector();
         const bootSectorDos = bootSector?.dos;
 
+        // Big Five's loader boots a game with no DOS, whatever layout its directory fits.
+        if (bootSectorDos === BootSectorDos.BFLOADER) {
+            return "Big Five BFLOADER";
+        }
+
         switch (this.version) {
             case TrsdosVersion.V2_3:
                 // Check the many DOSes that use this layout below.
@@ -2991,18 +3181,24 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         if (banner !== undefined && (this.lumpTerm === "cylinder" ||
             /^(NEWDOS\/(80|86|90)|MultiDOS|Z'DOS|Esoteric|DoubleDOS)/.test(banner))) {
 
+            // "MultiDOS" with no version is also what the AUTO text that MultiDOS's FORMAT
+            // leaves in the GAT (inside DIR/SYS) gives, so let its stub give the version.
+            if (banner === "MultiDOS") {
+                return this.decodeMultiDosVersion(bootSectorDos, gatInfo.osVersion) ?? banner;
+            }
             return banner;
         }
 
-        // MultiDOS 1.4 through 1.7 boot sectors start with 3B FE, and their data disks have
-        // nothing else to go on.
-        if (/MULTIDOS|Cosmopolitan|C\.E\.C\.|\(c\) CEC/.test(bootTrack) || this.bootSectorStartsWith(0x3B, 0xFE) ||
-            bootSectorDos === BootSectorDos.MULTIDOS) {
-
-            return "MultiDOS";
-        }
-        if (bootSectorDos === BootSectorDos.MULTIDOS_ESOTERIC) {
-            return "MultiDOS/Esoteric";
+        // MultiDOS 1.4 through 1.7 boot sectors start with 3B FE. Something fills unused sectors
+        // with "MULTIDOS" over and over, and that fill is left on disks that other DOSes and game
+        // loaders formatted later, so it doesn't count. See "MultiDOS, Z'DOS and Esoteric" in
+        // FLOPPY_FORMATS.md.
+        const bootTrackWithoutFill = bootTrack.replace(/(?:MULTIDOS){2,}/g, "");
+        const isMultiDos = /MULTIDOS|Cosmopolitan|C\.E\.C\.|\(c\) CEC/.test(bootTrackWithoutFill) ||
+            this.bootSectorStartsWith(0x3B, 0xFE) || isMultiDosBootSectorDos(bootSectorDos);
+        if (isMultiDos || bootSectorDos === BootSectorDos.MULTIDOS_ESOTERIC) {
+            return this.decodeMultiDosVersion(bootSectorDos, gatInfo.osVersion) ??
+                (isMultiDos ? "MultiDOS" : "MultiDOS/Esoteric");
         }
         if (bootTrack.includes("ULTRADOS")) {
             const match = bootTrack.match(/ULTRADOS DISK OPERATING SYSTEM VERSION (\d\.\d)/);
@@ -3030,33 +3226,44 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             return `Super Utility+ ${superUtilityMajor}.${gatVersion & 0x0F} data disk`;
         }
 
-        // The LDOS line also writes its release number in the system sector. It can disagree
-        // with the GAT's, so use it only when the boot sector is the LDOS line's and the GAT's
-        // is outside the line's range. See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
+        // The LDOS line also writes its release number in the system sector. Where it disagrees
+        // with the GAT's, the system sector's agrees with the banner on every system disk, so it
+        // wins, but only when the boot sector is the LDOS line's. See "Boot sector code by DOS" in
+        // FLOPPY_FORMATS.md.
         const isLdosVersion = (version: number): boolean =>
             (version >= 0x50 && version <= 0x53) || (version >= 0x60 && version <= 0x63);
         const systemSectorVersion = this.getSystemSectorVersion();
         let osVersion = gatVersion;
-        if ((bootSectorDos === BootSectorDos.TRSDOS_6 || bootSectorDos === BootSectorDos.LDOS) &&
-            !isLdosVersion(osVersion) && systemSectorVersion !== undefined && isLdosVersion(systemSectorVersion)) {
+        if (isLdosLineBootSectorDos(bootSectorDos) && systemSectorVersion !== undefined &&
+            isLdosVersion(systemSectorVersion)) {
 
             osVersion = systemSectorVersion;
         }
+        const bootSys = this.getSystemDirEntryBytes("BOOT    SYS");
+        const dirSys = this.getSystemDirEntryBytes("DIR     SYS");
         switch (osVersion) {
             case 0x00:
                 return this.hasTrsdos23BBootSector() ? "TRSDOS 2.3B" : UNKNOWN_DOS;
             case 0x20:
                 return "TRSDOS 2.0";
             case 0x21:
-                // TRSDOS 2.1 through 2.3 all write 0x21, as do their derivatives NEWDOS 2.1 and
-                // DoubleDOS, whose system disks are named by their banners.
+                // TRSDOS 2.1 through 2.3 all write 0x21, as do their derivatives NEWDOS 2.1,
+                // NEWDOS 3.0 and DoubleDOS, whose system disks are named by their banners. Only
+                // the 2.2 and 2.3 FORMATs write 0xB6 at 0x7D of the boot sector. The others write
+                // 0xE1, which every 2.x system disk also has, so 0xE1 says nothing.
+                if (bootSectorDos === BootSectorDos.TRSDOS_2 && bootSector !== undefined &&
+                    bootSector.data[0x7D] === 0xB6) {
+
+                    return "TRSDOS 2.2-2.3";
+                }
                 return "TRSDOS 2.x";
             case 0x30:
                 return "VTOS 3.0";
             case 0x31: case 0x32: case 0x33: case 0x34: case 0x35:
                 return `DOSPLUS 3.${osVersion & 0x0F}`;
             case 0x40:
-                // Written by VTOS 4.0, DOSPLUS 4.0, and DOSPLUS 3.4a.
+                // Written by VTOS 4.0, DOSPLUS 3.4a and 3.4D, and the Model I and III DOSPLUS 4.0
+                // (not DOSPLUS IV, which writes 0x60).
                 if (bootTrack.includes("VTOS")) {
                     return "VTOS 4.0";
                 }
@@ -3068,38 +3275,151 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     return "DOSPLUS 3.4";
                 }
                 if (bootSectorDos === BootSectorDos.DOSPLUS_EMPTY) {
-                    // Could be 3.4a or 4.0.
+                    // Could be 3.4a or the Model I and III's 4.0.
                     return "DOSPLUS";
                 }
                 return bootTrack.includes("DOSPLUS") ? "DOSPLUS" : UNKNOWN_DOS;
             case 0x50:
                 // Kim Watt's utility disks also write 0x50, with neither of these.
-                return bootSectorDos === BootSectorDos.LDOS || systemSectorVersion === 0x50 ? "LDOS 5.0" : UNKNOWN_DOS;
+                if (bootSectorDos === BootSectorDos.LDOS || systemSectorVersion === 0x50) {
+                    return "LDOS 5.0";
+                }
+                return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS;
             case 0x51:
-                return "LDOS 5.1";
+                return bootSectorDos === BootSectorDos.LDOS ? decodeLdos51Release(bootSys) : "LDOS 5.1";
             case 0x53:
-                // NEWDOS 3.0 uses TRSDOS 2.x's boot sector and also writes 0x53; LDOS has its
-                // own boot sector. NEWDOS 3.0's system disks are named by their banner.
-                return bootSectorDos === BootSectorDos.TRSDOS_2 ? "NEWDOS 3.0" : "LDOS 5.3";
+                // Disks with TRSDOS 2.x's boot sector and 0x53 carry NEWDOS 3.0's system on
+                // cylinder 0, though NEWDOS 3.0's FORMAT writes 0x21. LDOS has its own boot sector.
+                // See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
+                if (bootSectorDos === BootSectorDos.TRSDOS_2) {
+                    return "NEWDOS 3.0";
+                }
+                return bootSectorDos === BootSectorDos.LDOS ? decodeLdos53Release(bootSys, dirSys) : "LDOS 5.3";
             case 0x60:
-                // DOSPLUS IV writes the TRSDOS 6 GAT.
-                return bootTrack.includes("DOSPLUS") || bootSectorDos === BootSectorDos.DOSPLUS_IV ||
-                    bootSectorDos === BootSectorDos.DOSPLUS_EMPTY ? "DOSPLUS IV" : "TRSDOS 6.0";
-            case 0x61: case 0x62:
-                return `TRSDOS 6.${osVersion & 0x0F}`;
+                // DOSPLUS IV writes the TRSDOS 6 GAT, so test for it first.
+                if (bootTrack.includes("DOSPLUS") || bootSectorDos === BootSectorDos.DOSPLUS_IV ||
+                    bootSectorDos === BootSectorDos.DOSPLUS_EMPTY || hexBytesAt(bootSys, 0x10, "DD 23")) {
+
+                    return "DOSPLUS IV";
+                }
+                return bootSectorDos === BootSectorDos.TRSDOS_6_0_STUB ? "TRSDOS 6.0.0" : "TRSDOS 6.0";
+            case 0x61:
+                // TRSDOS 6.01.00 writes 6.0.0's stub.
+                if (bootSectorDos === BootSectorDos.TRSDOS_6_0_STUB) {
+                    return "TRSDOS 6.1.0";
+                }
+                return bootSectorDos === BootSectorDos.TRSDOS_6_1_STUB ? "TRSDOS 6.1.1-6.1.2" : "TRSDOS 6.1";
+            case 0x62:
+                // 6.02.00 and 6.02.01 write the same data disk.
+                return "TRSDOS 6.2";
             case 0x63:
-                return "LS-DOS 6.3";
+                return this.decodeLsdos63Release(bootSys);
             case 0x80:
                 return "NEWDOS/80 v1.0";
             case 0x82:
-                return "NEWDOS/80 v2.0";
+                // 2.0, 2.5 and 2.74 write the same data disk, and 3.0 has its own boot sector.
+                return bootSectorDos === BootSectorDos.NEWDOS_80_3 ? "NEWDOS/80 v3.0" : "NEWDOS/80 v2.0-2.74";
             case 0xFC:
                 return "TRSDOS 3.0";
             default:
                 // Among others: 0x22 (Super Utility+ 2.2's version, not TRSDOS 2.2, on a disk
                 // whose boot sector isn't Super Utility+'s), and 0x55 (UltraDOS's "U").
-                return UNKNOWN_DOS;
+                return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS;
         }
+    }
+
+    /**
+     * The name and version range of a MultiDOS disk with no banner, from the data-disk stub that its
+     * FORMAT wrote and the directory, or undefined if they don't say. See "MultiDOS, Z'DOS and
+     * Esoteric" in FLOPPY_FORMATS.md.
+     *
+     * @param bootSectorDos the DOS of the boot sector, if we recognize it.
+     * @param gatVersion GAT byte 0xCB.
+     */
+    private decodeMultiDosVersion(bootSectorDos: BootSectorDos | undefined, gatVersion: number): string | undefined {
+        switch (bootSectorDos) {
+            case BootSectorDos.MULTIDOS_1_5_STUB:
+                return gatVersion === 0x15 ? "MultiDOS 1.5" : gatVersion === 0x16 ? "MultiDOS 1.6" : undefined;
+
+            case BootSectorDos.MULTIDOS_1_7_STUB:
+                if (gatVersion === 0xFF) {
+                    return "MultiDOS 2.10";
+                }
+                if (gatVersion === 0x17) {
+                    // FORMAT adds a BOOT/SYS entry from 2.00 on.
+                    return this.getSystemDirEntryBytes("BOOT    SYS") !== undefined ? "MultiDOS 2.00" : "MultiDOS 1.7-1.71";
+                }
+                return undefined;
+
+            case BootSectorDos.MULTIDOS_ESOTERIC: {
+                // These FORMATs all write the same disk, but copying the system writes each release's
+                // own DIR/SYS passwords.
+                const dirSys = this.getSystemDirEntryBytes("DIR     SYS");
+                return MULTIDOS_DIR_SYS_PASSWORDS.find(({passwords}) => hexBytesAt(dirSys, 0x10, passwords))?.name;
+            }
+
+            default:
+                // We have no disks to check Ira's rules for the others against.
+                return undefined;
+        }
+    }
+
+    /**
+     * The release of LS-DOS 6.3 that formatted a disk with no banner, from the media block (GAT
+     * bytes 0xF6-0xF8) and BOOT/SYS's update password, which change together. See "Boot sector
+     * code by DOS" in FLOPPY_FORMATS.md.
+     *
+     * @param bootSys BOOT/SYS's directory entry, if the disk has one.
+     */
+    private decodeLsdos63Release(bootSys: Uint8Array | undefined): string {
+        const mediaText = this.getGatText(0xF6, 0xF9);
+        if (mediaText === "631" && hexBytesAt(bootSys, 0x10, "F4 71")) {
+            return "LS-DOS 6.3.1";
+        }
+        if (mediaText === "LSI" && hexBytesAt(bootSys, 0x10, "F6 37")) {
+            return "LS-DOS 6.3.0";
+        }
+        return "LS-DOS 6.3";
+    }
+
+    /**
+     * "DOSPLUS" and the range of versions whose FORMAT gives BOOT/SYS the passwords that this one
+     * has, or undefined if they aren't DOSPLUS's. For disks whose GAT byte 0xCB names no DOS. See
+     * "Boot sector code by DOS" in FLOPPY_FORMATS.md.
+     *
+     * @param bootSys BOOT/SYS's directory entry, if the disk has one.
+     */
+    private decodeDosplusFromPasswords(bootSys: Uint8Array | undefined): string | undefined {
+        if (hexBytesAt(bootSys, 0x10, "7E B2 82 2A")) {
+            return "DOSPLUS 3.1-3.2";
+        }
+        if (hexBytesAt(bootSys, 0x10, "27 0B 82 2A")) {
+            return "DOSPLUS 3.2.1-3.4";
+        }
+        return undefined;
+    }
+
+    /**
+     * The directory entry of BOOT/SYS or DIR/SYS, which FORMAT puts in DEC 0x00 or 0x01 (MultiDOS
+     * has DIR/SYS in either), or undefined if neither slot holds an active entry with that name.
+     *
+     * @param rawFilename the name as the entry stores it, padded to 8 and 3 characters.
+     */
+    private getSystemDirEntryBytes(rawFilename: "BOOT    SYS" | "DIR     SYS"): Uint8Array | undefined {
+        for (const hitIndex of [0x00, 0x01]) {
+            const location = this.getDirEntryLocation(hitIndex);
+            const sector = this.disk.readSector(location.sectorPosition)?.data;
+            if (sector === undefined) {
+                continue;
+            }
+            const entry = sector.subarray(location.offset, location.offset + this.dirEntryLength);
+            const isActive = (entry[0] & 0x10) !== 0;
+            if (isActive && bytesToText(entry.subarray(5, 16)) === rawFilename) {
+                return entry;
+            }
+        }
+
+        return undefined;
     }
 
     /**

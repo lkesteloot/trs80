@@ -805,8 +805,12 @@ bit misleads in both directions: Cornsoft-Brix `bath3` (DOSPLUS 4.0) allocates
 both sides with 0xCD = 0, and the Infocom disks claim two sides on one-sided
 media.
 
-0xCB alone doesn't identify the DOS. `newdos30.dmk` (NEWDOS 3.0) writes 0x53
-and then zeros. `ORCH80.DMK` is a 1980 Orchestra-80 distribution disk on an
+0xCB alone doesn't identify the DOS. `newdos30.dmk`, a NEWDOS 3.0 system disk,
+has 0x53 and then zeros, under a boot sector we don't recognize (`00 FE 11 31 00
+42 21 43 42 CD C9 01`). That isn't NEWDOS 3.0's FORMAT: on Ira's bare disk it
+writes `21 00 00`, and his NEWDOS 3.0 and NEWDOS+ 3.0 system disks have 0x21 too,
+except one with this same boot sector, which he says is correctly labelled and
+leaves unexplained (see "Boot sector code by DOS"). `ORCH80.DMK` is a 1980 Orchestra-80 distribution disk on an
 UltraDOS data disk: its boot track says "ULTRADOS formatted diskette", and its
 GAT has the ASCII text "U41" (UltraDOS 4.1) in 0xCB-0xCD where TRSDOS 2.3 writes
 21 00 00. Read as LDOS fields that's version 5.5, 87 cylinders and two sides, on
@@ -1049,7 +1053,8 @@ Strongest first. Measured on all 274 images.
   has three spaces before "VER" (both negated, like Tandy's); NEWDOS/80 v2 draws its
   name in graphics characters, leaving only "APPARAT, INC." and "VERSION 2.0"
   (also 2.5, 2.06, 2.74, "2.X" and "2/4") as text, which some zap levels shorten
-  to "VER 2.1 Z38" or "Vr2.0 Zap 82", and the German edition writes "Apparat
+  to "VER 2.1 Z38", "Vr2.0 Zap 82" or "V 2.0  Z 85" (or drop "APPARAT, INC.",
+  leaving "VERSION 2.0" and then "Z=90 SD"), and the German edition writes "Apparat
   Inc." and "Vers. 2.052"; DOSPLUS IV says "DOSPLUS IV - Model 4 Disk Operating
   System - Version 1.00" in SYS0; Percom DoubleDOS says "DBLDOS - DISK
   OPERATING SYSTEM - VER 4.23"; VTOS 3.0.1, 4.0 and 4.0.1 are negated like
@@ -1057,8 +1062,8 @@ Strongest first. Measured on all 274 images.
   0xCB); DOSPLUS 3.5 says "3.50". NEWDOS/86 and NEWDOS/90 (W. S. and D. S.
   Sands's extensions of NEWDOS/80 v2.0, 1984-1990) keep NEWDOS/80's banner and
   disk format and add "a NewDos86 SYSTEM disk" (or "NewDos90") in SYS6/SYS, so
-  their system disks are named by that and their data disks stay NEWDOS/80
-  v2.0. They also add SYS22-SYS29 and SYS5HELP/SYS.
+  their system disks are named by that and their data disks are NEWDOS/80's.
+  They also add SYS22-SYS29 and SYS5HELP/SYS.
 - **A banner has to fit the layout.** `Manufacturing and Inventory Control`
   carries TRSDOS 2.3's SYS0 on a NEWDOS/80-formatted disk with `GPL=8` lumps,
   which TRSDOS 2.3 can't read. Lumps that aren't whole cylinders belong to
@@ -1068,6 +1073,9 @@ Strongest first. Measured on all 274 images.
   version 1.3" (or "version 1.2"); UltraDOS "ULTRADOS DISK OPERATING SYSTEM
   VERSION 4.2" or "ULTRADOS formatted diskette", with the version in ASCII at
   0xCB-0xCD on the latter ("U41"); RAPIDOS "RAPIDOS Ready" and "Version 1.3".
+  Some fill pattern writes "MULTIDOS" over and over in unused sectors, and it's
+  left on disks that other DOSes and loaders formatted later (two DOSPLUS 3.3
+  `LOAD-80` disks, and a Big Five game disk), so runs of it aren't MultiDOS text.
   MultiDOS 1.4-1.7 boot sectors start with 3B FE, which identifies their data
   disks, whose GATs say 0x16 (MultiDOS 1.6) and which hold a mixed-case
   `NoDOS/Ind` file.
@@ -1075,7 +1083,8 @@ Strongest first. Measured on all 274 images.
   there (0x21, 0x22, 0x31, 0x32; see "Super Utility+" below), not TRSDOS 2.2's
   or DOSPLUS 3.1's; 0x50 is on disks of Kim Watt's other programs (Power-Copy,
   Make-80, Multi-Disk Copy), with Super Utility+ 2.x's boot sector, not LDOS
-  5.0's; 0x55 is UltraDOS's "U"; 0x40 is DOSPLUS 4.0, DOSPLUS 3.4a or VTOS 4.0.
+  5.0's; 0x55 is UltraDOS's "U"; 0x40 is VTOS 4.0, DOSPLUS 3.4a or 3.4D, or the
+  Model I and III DOSPLUS 4.0 (not DOSPLUS IV, whose FORMAT writes 0x60).
   These name a data disk "Unknown DOS", or by its formatter, rather than by a
   wrong DOS.
 
@@ -1144,7 +1153,9 @@ named by the disk's banner or GAT unless noted:
 | LDOS 5, Model I DD | `00 FE xx F3 31 E0 41 FD 21 1C 42` | 6 |
 | LDOS 5, Model III | `00 FE xx F3 3A 02 43 57 1E 04` | 82 |
 | LDOS 5, Lobo MAX-80 | `00 1E 14 06 00` | 1 |
-| TRSDOS 6, LS-DOS, data disks | `00 FE xx F3 21 0E 43`; `00 FE xx F3`, twelve zeros, `11 87 FB` or `11 8D FB` | 17 |
+| TRSDOS 6.0.0 and 6.01.00, data disks ("No system") | `00 FE xx F3 21 0E 43` | 2 |
+| TRSDOS 6.01.01 and 6.01.02, data disks | `00 FE xx F3`, twelve zeros, `11 87 FB` | 0 |
+| TRSDOS 6.02.00, 6.02.01, LS-DOS 6.3.0, 6.3.1, data disks | `00 FE xx F3`, twelve zeros, `11 8D FB` | 15 |
 | TRSDOS 6, LS-DOS, system disks | `00 FE xx F3 3E 86 D3 84 32 78 00` | 201 |
 | DOSPLUS 3.1, 3.2, 3.4 | `00 FE xx F3 31 FC 41 CD C9 01 3E 01 32 E1 37 3A 02 42 57`; `F3 FE xx 31 FC 41 CD C9 01 3A 02 42 57`; `00 FE xx 06 0C 21 13 43 7E 23 CD 33 00` | 7, 2, 4 |
 | DOSPLUS 3.5 and IV, data disks | `00 FE xx` and zeros | 35 |
@@ -1160,6 +1171,7 @@ named by the disk's banner or GAT unless noted:
 | RapidDOS, Model 4 | `00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43` | 2 |
 | Percom MicroDOS | `FE 00 31 FC 41 CD C9 01 01 00 43 11 EC 37` | 17 |
 | Percom OS-80 III (sector 1) | `FE 00 3E D0 D3 F0 3E C3 32 49 40 21 7C 43` | 5 |
+| Big Five's BFLOADER (no DOS) | `00 FE xx 31 FC 41 CD C9 01 F3 21 EC 37 36 D0 CD A5 42` | 8 |
 
 The exceptions: the empty DOSPLUS boot sector is also on two Kim Watt Super Utility disks
 (with 0x22 at 0xCB), and the NEWDOS/80 2.x prefixes are on two disks named TRSDOS 2.x and
@@ -1184,25 +1196,78 @@ boot track text and GAT 0xCB, as above):
   text on the boot track, unless the directory has a BOOT/SYS entry: GRL's TRSDOS 1.5 also
   keeps 1.3's byte, but its FORMAT adds that entry (Ira), which 1.1-1.4 don't write.
 - **MultiDOS 4.01 on and Esoteric**, whose data disks carry nothing else: named
-  "MultiDOS/Esoteric", since their FORMATs write the same disk. The other stubs name
-  "MultiDOS".
+  "MultiDOS/Esoteric", since their FORMATs write the same disk, or by DIR/SYS's
+  passwords where they're a release's (see "MultiDOS, Z'DOS and Esoteric"). The 1.5-1.6
+  stub with 0x15 or 0x16 at 0xCB is "MultiDOS 1.5" or "MultiDOS 1.6"; the 1.7-2.10 stub
+  is "MultiDOS 2.10" with 0xFF, "MultiDOS 2.00" with 0x17 and a BOOT/SYS entry (which
+  FORMAT adds from 2.00 on), and "MultiDOS 1.7-1.71" with 0x17 and none. The other
+  stubs name "MultiDOS".
+- **NEWDOS/80 2.x data disks** are "NEWDOS/80 v2.0-2.74", since 2.0, 2.5 and 2.74 write
+  the same disk (Ira), and 3.0's Model III boot sector (`CD 47 43`) makes "NEWDOS/80 v3.0".
+- **Big Five's BFLOADER** boots a game with no DOS (Ira: sector 0 seeks to cylinder 2,
+  reads an address, and loads a /CMD-format module; on the dual-boot disks sector 1 is a
+  Model III loader that reads one from cylinder 18 on). It's on all four `Defense Command`
+  disks, all three `Stellar Escort` disks and `Weerd`, which were named "TRSDOS 1.x" or
+  "MultiDOS", and are now "Big Five BFLOADER", a name we don't write to.
 - **DOSPLUS 3.4 with 0x40 at 0xCB** (DOSPLUS 3.4a): its own boot sector. The empty
   DOSPLUS boot sector with 0x40 could be 3.4a or 4.0. With 0x60 the empty one or DOSPLUS
   IV's system boot sector makes DOSPLUS IV rather than TRSDOS 6.0.
-- **NEWDOS 3.0 against LDOS 5.3**, which both write 0x53 at 0xCB. NEWDOS 3.0 uses TRSDOS
-  2.x's boot sector, and LDOS has its own. (Five `Hidden Planet` disks with TRSDOS's boot
-  sector, 0x53, and the same cylinder 0 sector 2 as the NEWDOS 3.0 system disks were
-  being named LDOS 5.3.)
+- **NEWDOS 3.0 against LDOS 5.3**, both with 0x53 at 0xCB. LDOS has its own boot sector,
+  and the disks with TRSDOS 2.x's are NEWDOS 3.0's. (Five `Forbidden Planet` disks with
+  TRSDOS's boot sector, 0x53, and the same cylinder 0 sector 2 as the NEWDOS 3.0 system
+  disks were being named LDOS 5.3.) That sector is SYS0 code, copied with the system, so it
+  shows that NEWDOS 3.0's system is on them, not that its FORMAT wrote the 0x53: Ira's bare
+  NEWDOS 3.0 disk has 0x21. What wrote 0x53 is unknown, there and on the other disks with
+  TRSDOS 2.x's boot sector and 0x53 (`NEWDOS-3.dmk`, a Super Utility disk and a `lanhawk`
+  disk). All eight have DIR/SYS's correct hash (0xC4) in HIT byte 1, which NEWDOS+ writes
+  and TRSDOS doesn't. We keep naming them NEWDOS 3.0, after the system they carry.
+- **TRSDOS 2.2 and 2.3 data disks** by boot byte 0x7D. Ira: TRSDOS 2.0, 2.1, NEWDOS 2.1,
+  NEWDOS 3.0, NEWDOS+ 3.0 and NEWDOS+++ all write 0xE1 there; only the 2.2 and 2.3 FORMATs
+  write 0xB6. 0xB6 is on four of our disks, all data disks with 0x21 at 0xCB, which are now
+  "TRSDOS 2.2-2.3". 0xE1 isn't used, since every 2.2 and 2.3 system disk has it too (their
+  boot sector is the system's, not FORMAT's), and so does any disk whose boot sector was
+  copied from one, including the TRSDOS 2.3 data disks that our own formatter writes.
 - **RapidDOS for the Model 4**, which writes TRSDOS 6's GAT, by its boot sector.
 - **The LDOS line's system information sector** (cylinder 0 sector 2): byte 0 is the
   release. Wherever 0xCB is 0x50-0x53, byte 0 equals it, and the Kim Watt formatter that
-  also writes 0x50 doesn't have it, so it tells LDOS 5.0 from that. But it can disagree
-  with 0xCB: on 15 disks of the TRSDOS 6 line (a 6.1.1 system sector with 0x62 at 0xCB,
-  for one), and on LDOS 5.1 disks whose 0xCB says 0x32, 0x33 or 0x34 (`LDOS v5.1.3 …
-  [Disk 1 of 2]` has 0x34). So it's used only when the boot sector is the LDOS or TRSDOS 6
-  line's and 0xCB is outside both lines' range. That names three disks that 0xCB alone
-  called DOSPLUS: LDOS 5.1.3's `LDOS XTRA` disk and a `LOAD-80` disk (LDOS 5.1), and
-  Montezuma Micro's hard disk drivers (TRSDOS 6.2).
+  also writes 0x50 doesn't have it, so it tells LDOS 5.0 from that. It disagrees with
+  0xCB on 19 of our disks with the LDOS line's boot sector, and on all 16 of those with
+  a banner, byte 0 agrees with the banner and 0xCB doesn't: a 6.01.01 system disk with
+  0x62 at 0xCB, 6.02.00 and 6.02.01 disks with 0x61, two 6.02 disks with 0x35, LS-DOS
+  6.3.0 disks with 0x62, and LDOS 5.1.3 and 5.1.4 disks with 0x34 and 0x32. The three
+  without a banner agree with the rest of the disk: two Western Digital driver disks
+  (byte 0 0x61, 0xCB 0x62) have the 6.0.0 and 6.01.00 stub, which 6.2 never writes, and
+  `Screens` (0x62 against 0x63) has 6.02's BOOT/SYS passwords. Ira found byte 0 right
+  on all 160 of his LDOS 5 and LS-DOS 6 disks and 0xCB on 153. So byte 0 wins whenever
+  the boot sector is the LDOS line's and byte 0 is a release (0x50-0x53, 0x60-0x63). That
+  also names the three disks that 0xCB alone called DOSPLUS: LDOS 5.1.3's `LDOS XTRA`
+  disk and a `LOAD-80` disk (LDOS 5.1), and Montezuma Micro's hard disk drivers (TRSDOS
+  6.2). Where 0xCB is 0x32-0x34 on LDOS 5.1 disks, Ira puts it down to BACKUP copying the
+  source disk's GAT; LDOS 5.1.3 masters have 0x34, and what first wrote it is unknown.
+- **TRSDOS 6 data disks' release**, from the stub and the version: the 6.0.0 and 6.01.00
+  stub with 0x60 or 0x61 is "TRSDOS 6.0.0" or "TRSDOS 6.1.0", the 6.01.01 stub with 0x61
+  is "TRSDOS 6.1.1-6.1.2", and 6.02.00 and 6.02.01 write the same disk ("TRSDOS 6.2").
+  A stub and version that disagree (the 6.0 stub with 0x62) give only the version.
+- **LS-DOS 6.3's release**, from the media block and BOOT/SYS's update password, which
+  change together: "631" and `F4 71` is 6.3.1, "LSI" and `F6 37` is 6.3.0 (see Ira's
+  table below). Anything else is "LS-DOS 6.3". The trs80gp blanks and telanoc's disks,
+  which telanoc says were made with 6.3.1, are 6.3.1.
+- **LDOS's third digit** on disks with LDOS's boot sector and no banner, from BOOT/SYS's
+  passwords: `20 C2 52 C3` is "LDOS 5.1.0-5.1.1"; `AE 01 F5 9C` is 5.1.4 if BOOT/SYS's
+  unused extents are padded with 0xFF (byte 0x1A), otherwise "LDOS 5.1.2-5.1.3". With
+  0x53, DIR/SYS's `AE 01 96 42` or BOOT/SYS's `5F 01` is 5.3.1, and anything else is
+  "LDOS 5.3" (5.3.0's passwords are also on 5.3.1 disks). Checked against the banners of
+  our system disks: byte 0x1A is 0xFF on 34 disks, all 5.1.4; 0x00 on 36 5.1.2 and
+  5.1.3 disks and one 5.1.4 disk (probably formatted by 5.1.3); no 5.3.0 disk has
+  5.3.1's passwords. Two LDOS 5.1.3 disks have `20 C2 52 C3`, which Ira also found: they
+  were formatted by 5.1.0 or 5.1.1. So these name the formatter, and a banner, where
+  there is one, still names the system. telanoc's LDOS data disks, which it says were
+  made with 5.3.1, come out 5.3.1.
+- **DOSPLUS from BOOT/SYS's passwords**, where 0xCB names nothing: `7E B2 82 2A` is
+  "DOSPLUS 3.1-3.2" and `27 0B 82 2A` "DOSPLUS 3.2.1-3.4" (Ira's FORMAT table below; on our
+  disks they're only on DOSPLUS). That names three `lanhawk` disks with 0x50 at 0xCB.
+- **DOSPLUS IV** also by BOOT/SYS's update password `DD 23` with 0x60, which TRSDOS 6
+  never writes (DOSPLUS 3.5 writes it too).
 - **G-DOS and H-DOS**, German NEWDOS/80 2.1b builds, rename BOOT/SYS to GDOS/SYS or
   HDOS/SYS and DIR/SYS to INHALT/SYS, and keep NEWDOS/80's banner. (Ira gives their boot
   sector's byte 2 as 0x18, but that's the directory cylinder, not a fingerprint.)
@@ -1210,16 +1275,30 @@ boot track text and GAT 0xCB, as above):
 
 What didn't hold up on used disks:
 
-- **The TRSDOS 6 data stubs don't give the version.** The 6.0 stub (`00 FE xx F3 21 0E
-  43`) is on data disks whose 0xCB and system sector say 6.1 and 6.2. The stubs only say
-  "the TRSDOS 6 line"; 0xCB gives the version.
-- **Boot byte 0x7D** (Ira: E1 from a 2.0 or 2.1 FORMAT, B6 from 2.2 or 2.3) is E1 on 21
-  TRSDOS 2.3 system disks, and B6 on only four disks, all data disks. Not used.
+- **The TRSDOS 6 data stubs.** We used to say they don't give the version, because the
+  6.0 stub (`00 FE xx F3 21 0E 43`) is on data disks whose system sector says 6.1. That's
+  expected: 6.01.00 writes 6.0.0's stub (Ira). They're used now, with the version.
+- **Boot byte 0x7D as 2.0-2.1 against 2.2-2.3** (Ira's first rule): E1 is on every 2.x
+  system disk, whatever its version, so only B6 is used (above).
+- **HIT byte 1 = 0xC4** (Ira: a NEWDOS+ 2.2 or 3.0 FORMAT, since the others write the old
+  wrong DIR/SYS hash, 0x2C). It's also on two TRSDOS 2.3 system disks (one an original
+  Tandy master), a TRSDOS 2.1 disk, a NEWDOS 2.1 disk and four 0x21 data disks, so on used
+  disks it means that something rewrote DIR/SYS's HIT byte, not which FORMAT ran. Not used.
+- **Boot bytes 0xBB-0xBE = `E3 E3 E3 E3`** (Ira: NEWDOS+ 2.1) is on our one NEWDOS+ 2.1
+  disk, which its banner names. Not needed.
 - **The GAT copy in cylinder 0 sector 3** (LDOS, VTOS 4, TRSDOS 6) matches the GAT on
   none of our disks. It's a copy made at FORMAT time, and the GAT changes as soon as a
   file is written.
-- **NEWDOS 3.0's GAT bytes** (Ira: 0xC0 = 0x23 or 0xC1 = 0xA5) are on the NEWDOS 3.0
-  system disks but not on the `Hidden Planet` disks above, where 0xC0-0xCA are all 0xFF.
+- **NEWDOS 3.0's GAT bytes** (Ira: 0xC0 = 0x23 or 0xC1 = 0xA5, from its FORMAT) are on
+  the NEWDOS 3.0 system disks but not on the `Forbidden Planet` disks above, where 0xC0-0xCA
+  are all 0xFF, and the preliminary 3.0 and NEWDOS+ 2.1 have 0x28 at 0xC0 (with 0xA5 at
+  0xC1, so 0xC1 alone doesn't tell 3.0 from NEWDOS+ 2.1). Not used.
+- **MultiDOS 4.01's stub's byte 0xFA** (Ira: 0x00 for 4.01 and 5.00, 0x22 for 5.10 on) is
+  0x00 on the Esoteric 2.11 disks and 0x11 on the rest of our twelve, never 0x22. Not used.
+- **MultiDOS 1.7's FORMAT year** (Ira: GAT 0xF4-0xF5 "84" for 1.7 and 1.7.0, "85" for 1.7.1
+  and 1.71) is in the GAT's AUTO text, `MULTIDOS format.(c) '85 C. E. C.` (so at 0xF5-0xF6 by
+  our count). telanoc's two 1.7 data disks say '85, but come from a set whose system disk
+  is 1.7P, an edition Ira didn't measure. Not used.
 - **GAT 0xCE-0xCF**, which Ira lists as a code per DOS (E0 42 for TRSDOS, 96 42 for
   DOSPLUS), is the master password hash (see "Password hashes"): "PASSWORD" and no
   password. It's FORMAT's default, which the user can change; two DOSPLUS 3.4 disks have
@@ -1229,13 +1308,104 @@ What didn't hold up on used disks:
   names them anyway. DOSPLUS 3.3's sector 1 (`06 0C 21 10 43 7E 23 CD 33 00`) matches 2
   of our 30 3.3 disks; 0x33 at 0xCB names them all.
 
-The update passwords of BOOT/SYS and DIR/SYS (directory bytes 0x10-0x11) are another
-fingerprint Ira lists, since each FORMAT gives them fixed passwords: BOOT/SYS's is
-`60 7F` on TRSDOS 2.x, NEWDOS 2.1 and 3.0, VTOS 3.0 and NEWDOS/80 2.x; `F6 37` on TRSDOS 6
-and RapidDOS for the Model 4; `AE 01` on LDOS 5.1 and 5.3; `27 0B` or `7E B2` on DOSPLUS
-3.1-3.4; `DD 23` on DOSPLUS 3.5 and IV; `F4 71` on LS-DOS 6.3.1. They agree with the names
-we give, but aren't used: a disk can have them cleared (the `Hidden Planet` disks have
-none), and the banner or GAT already decides.
+The passwords of BOOT/SYS and DIR/SYS (directory bytes 0x10-0x13, the update password's
+hash then the access password's) are another fingerprint Ira lists, since each FORMAT
+gives them fixed passwords: BOOT/SYS's update password is `60 7F` on TRSDOS 2.x, NEWDOS
+2.1 and 3.0, VTOS 3.0 and NEWDOS/80 2.x; `F6 37` on TRSDOS 6 and RapidDOS for the Model 4;
+`AE 01` on LDOS 5.1 and 5.3; `27 0B` or `7E B2` on DOSPLUS 3.1-3.4; `DD 23` on DOSPLUS 3.5
+and IV; `F4 71` on LS-DOS 6.3.1. They agree with the names we give. A disk can have them
+cleared (`96 42 96 42`, as on the `Forbidden Planet` disks), so a match confirms and a
+mismatch says nothing. They're used only where the banner and GAT leave a release open,
+as above. On LDOS 5.3 and LS-DOS 6.3, bytes 0x12-0x13 can hold a time stamp instead (see
+"Time stamps (LDOS 5.3 and LS-DOS 6.3)"), so only the exact FORMAT values count.
+
+#### What each FORMAT writes, from Ira's bare disks
+
+Ira formatted 123 disks under the real DOSes in trs80gp, FORMAT only, so these are
+ground truth for FORMAT, not for how a used disk got its bytes. The rules above use the
+rows that our disks bear out.
+
+The TRSDOS 6 line:
+
+| Release | 0xCB-0xCD | Media block (0xF5 on) | BOOT/SYS | DIR/SYS |
+|---|---|---|---|---|
+| 6.0.0 | `60 05 C2` | none | `F6 37 F5 9C` | `F6 37 96 42` |
+| 6.01.00, 6.01.02 | `61 05 C2` | none | `F6 37 F5 9C` | `F6 37 96 42` |
+| 6.02.00, 6.02.01 | `62 05 C2` | `03 "LSI" 44 42 00 27 11 45 14` | `F6 37 F5 9C` | `F6 37 96 42` |
+| LS-DOS 6.3.0 | `63 05 CA` | `03 "LSI" …` | `F6 37 00 00` | `F6 37 96 42` |
+| LS-DOS 6.3.1 | `63 05 CA` | `03 "631" …` | `F4 71 00 00` | `F4 71 96 42` |
+
+Cylinder 0 sector 2 byte 0 is the same release. On system disks the boot sector also
+names it: byte 0x48 = 0x51 is 6.0.0, byte 0x8A = 0xEE 6.01.00, byte 0x38 = 0x7B 6.01.01 or
+6.01.02, and MFM sector 0 byte 0xF1 is 0x08 on 6.02.00 and 0x0A on 6.02.01 (their data
+disks are identical). We don't use these, since system disks have banners.
+
+LDOS 5:
+
+| FORMAT | 0xCB | BOOT/SYS | DIR/SYS | Other |
+|---|---|---|---|---|
+| LDOS 5.0.1 (Lobo) | 0x50 | `60 7F 1F B2` | `A7 1D 96 42` | VTOS's passwords |
+| LDOS 5.1.1 | 0x51 | `20 C2 52 C3` | `72 E9 96 42` | |
+| LDOS 5.1.3 | 0x51 | `AE 01 F5 9C` | `AE 01 96 42` | BOOT/SYS's unused extents 0x00 |
+| LDOS 5.1.4 | 0x51 | `AE 01 F5 9C` | `AE 01 96 42` | BOOT/SYS's unused extents 0xFF |
+| LDOS 5.3.0 | 0x53 | `AE 01 00 00` | `AE 01 00 00` | |
+| LDOS 5.3.1 | 0x53 | `AE 01 00 00` | `AE 01 96 42` | |
+
+5.1.2 wasn't measured bare; its masters go with 5.1.3 and 5.1.4. The `20 C2 52 C3` pair on
+our 5.0 masters isn't 5.0.1's FORMAT's, so we don't use it to name 5.0 (0x50 is "LDOS 5.0").
+
+DOSPLUS:
+
+| | 3.1, 3.2 | 3.2.1-3.4 | 3.5 |
+|---|---|---|---|
+| BOOT/SYS | `7E B2 82 2A` | `27 0B 82 2A` | `DD 23 DD 23` |
+| DIR/SYS | `7E B2 82 2A` | `27 0B 96 42` | `DD 23 96 42` |
+| Never-written sectors | 0x00 | 3.3 0xE5, 3.4 0x00 | 0x6C |
+
+DOSPLUS 3.4's FORMAT writes its own stub (`00 FE xx 06 0C 21 13 43 …`, "NO SYSTEM!"), 3.5's
+and DOSPLUS IV's the empty one. DOSPLUS 3.4a and 3.4D write 0x40 at 0xCB, and DOSPLUS IV
+`60 05 C2`, so the empty boot sector with 0x40 is 3.4a (never measured bare) or the Model
+I and III's DOSPLUS 4.0 (not measured), and never DOSPLUS IV. DOSPLUS IV's marks: its system
+boot sector, the empty one with 0x60, "DCT" at the start of cylinder 0 sector 2 (which
+DOSPLUS 3.5 and DOSPLUS II also have, so it doesn't decide alone), BOOT/SYS `DD 23`, and
+0x60 with `96 42` at 0xCE. 0x35 under DOSPLUS IV's system boot sector (one disk of ours) is
+a disk that DOSPLUS 3.5 formatted and DOSPLUS IV's system was copied to. Ira found the
+passwords kept on 60 of 65 used DOSPLUS disks, and 0xCE-0xCF on only 32.
+
+MultiDOS's FORMATs (stubs as in the table at the top of this section):
+
+| 0xCB | Versions |
+|---|---|
+| 0x50 | 1.0 and 1.2D (Model I) |
+| 0x10 | 1.0 (Model III), 1.1, 1.2, 1.3, 1.4 |
+| 0x15 | 1.5 |
+| 0x16 | 1.6 |
+| 0x17 | 1.7.0, 1.7.1, 1.71, 2.0.0, 2.00 |
+| 0xFF | 2.10 on |
+
+On system disks 0xCB isn't FORMAT's: Ira found it right on 35 of 71 used MultiDOS disks
+(1.x system disks have 0x55 or 0x13 where FORMAT writes 0x50 or 0x10). Ira's other
+MultiDOS rules, which no disk of ours exercises: the Model I 1.0 boot is 1.0 with an 0xFA
+GAT data mark and 1.2D with 0xF8; on the 1.0-1.4 stub, 0x50 at 0xCB is 1.0 for the Model
+I, and otherwise DIR/SYS's bytes 1-2 (a constant per FORMAT build) are `01 BA` for 1.0
+(Model III), `03 AA` for 1.1-1.3 and `04 F2` for 1.4 or 1.5; and the 4.01 stub's FORMAT
+gives DIR/SYS `A8 00 00 00`.
+
+Releases whose data disks are byte-identical, so that no rule can tell them apart:
+
+| DOS | Identical data disks | Told apart on system disks by |
+|---|---|---|
+| NEWDOS/80 | 2.0, 2.5, 2.74 | the system files |
+| TRSDOS 6 | 6.02.00, 6.02.01 | MFM sector 0 byte 0xF1 |
+| TRSDOS 2.7DD, 2.8DD | 2.7, 2.8 | boot bytes 0xF6-0xF8: `00 52 08` 2.7, `01 21 58` 2.8 |
+| DOSPLUS | 3.4 and 3.5, Model I against Model III | nothing in the format |
+| MultiDOS, Esoteric | 5.10, 6.20, Esoteric 2.12, Esoteric 3.20 | DIR/SYS's passwords |
+| VTOS | 3.0, 3.0.0, 3.0.1; 4.0, 4.0.1, 4.0.2 | the system files (3.0.0 against 3.0.1; 4.0.x unmeasured) |
+
+NEWDOS/80 1.0's FORMAT writes 0x80 (1.1 unmeasured). NEWDOS/80 3.0's FORMAT writes
+Apparat's passwords `56 78 12 34` on BOOT/SYS and DIR/SYS, and 2.x's TRSDOS's `60 7F 1F B2`
+and `A7 1D F9 E5`, so `56 78 12 34` on a 2.x disk came with the system. TRSDOS 3.0's FORMAT
+writes 0xFC at 0xCB or `FF FF FF FF` as BOOT/SYS's passwords; TRSDOS 2.0's writes 0x20.
 
 ### Booting as ground truth
 
@@ -1267,8 +1437,39 @@ of the banner as text beside it. All three keep it in the resident system file:
   "pseudo" density editions (which the filenames also give), K appears on
   editions customized for other companies (Computer Shack's 1.5SK, Merlin's 1.6K,
   and the 1.3K and 1.5K on Computer Shack's and Sunburst's software disks), and a lower-case letter is a revision (1.3a, 1.6c, 1.6d). The banner is
-  the only reliable version: GAT byte 0xCB says 0x10, 0x17 or 0xFF for whole
-  ranges of versions.
+  the only reliable version on a system disk: GAT byte 0xCB there isn't FORMAT's,
+  and FORMAT's says 0x10, 0x17 or 0xFF for whole ranges of versions (Ira's table
+  in "Boot sector code by DOS").
+- **Data disks** are named from FORMAT's stub and 0xCB, as "Boot sector code by
+  DOS" says, which gives a version or a range ("MultiDOS 1.6", "MultiDOS
+  1.7-1.71"). FORMAT also leaves AUTO text in the GAT (`MULTIDOS format.(c) '85
+  C. E. C.`), which DIR/SYS covers, so the bare "MultiDOS" banner matches data
+  disks too; the stub refines it.
+- **DIR/SYS's passwords name the release** that copied its system to a disk, since
+  each release writes its own (Ira). They're kept on few used disks (18 of Ira's 71),
+  so a match confirms and a mismatch says nothing. Ira's table, of which our
+  disks confirm the four marked, on the twelve with the 4.01 stub (the utility disks
+  of the 4.01-6.20 and Esoteric sets), which are named by them:
+
+  | DIR/SYS | Versions |
+  |---|---|
+  | `FF FF FF FF` | 1.0-1.3, 1.6 (Model III) |
+  | `89 AB CD EF` | 1.4-1.6 (and 1.x bare disks) |
+  | `9A BC DE F0` | 1.0, 1.2D (Model I bare disks) |
+  | `52 44 96 42` | 1.7-2.0 |
+  | `52 44 00 07`, `FF FF 00 07`, `FF FF 00 14` | 2.10 |
+  | `B2 21 00 00` | 4.01, 5.11, Esoteric 2.11 |
+  | `C4 B6 00 00` | 5.00 |
+  | `D4 3E 90 00` | 5.10 |
+  | `B1 01 00 00` | 5.11, Esoteric 2.12 (confirmed) |
+  | `BE EB …` | Esoteric 2.12 |
+  | `BD 18 …` | Esoteric 2.11 (confirmed) |
+  | `D2 44 00 00` | 6.00, Esoteric 3.00 (confirmed) |
+  | `D6 63 7B C0` | 6.20, Esoteric 3.20 (confirmed) |
+
+- **"MULTIDOS" over and over** fills unused sectors on some disks that other DOSes and
+  loaders formatted later (two DOSPLUS 3.3 `LOAD-80` disks, and `Defense Command`), so
+  runs of it on the boot track don't make a disk MultiDOS.
 - **`DOS/SYS` isn't all loaded.** Before 1.7 it's a 75-byte CMD loader, then a
   transfer address, then the resident itself (about 7K), which the boot sector
   reads directly. So the banner is past the transfer address, where for other

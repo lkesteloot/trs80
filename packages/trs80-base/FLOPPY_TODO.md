@@ -184,19 +184,45 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       decoded contents (`getTrs80FileExtension()` already does that for cassettes),
       for every file system at once.
 - [ ] **What `nameAndVersion` still can't tell.** It reads system-file banners,
-      then boot-track strings, then only the 0xCB values no other DOS has been
-      seen to write, and says "Unknown DOS" otherwise (see "Identifying the
-      DOS" in `FLOPPY_FORMATS.md`). On data disks: 0x21 is "TRSDOS 2.x" even when
-      NEWDOS 2.1 or DoubleDOS formatted it; 0x53 is "LDOS 5.3" even when
-      NEWDOS 3.0 did; LDOS 5.1/5.3 and TRSDOS 6.x get no third digit; NEWDOS/80
-      data disks are "v1.0" or "v2.0" (the versions Apparat advertised), though
-      0x80 also covers 1.1 and 0x82 covers 2.5; Super Utility+'s data
-      disks are named by its version, not a DOS (see "Super Utility+" in
-      `FLOPPY_FORMATS.md`); and Kim Watt's 0x50 and the Planet Makruk disks are "Unknown DOS". A table of boot sector hashes, labelled from the
-      banners of system disks that share them, would name most data disks
-      (FORMAT writes the same boot sector on both). MultiDOS's version is never
-      given: its banners and 0xCB disagree. NEWDOS/80 v2's banner gives "2.X"
-      and "2/4" on some disks, and the second falls back to "v2.0".
+      then boot-track strings, then 0xCB with the boot sector, the system sector
+      and FORMAT's BOOT/SYS and DIR/SYS passwords, and says "Unknown DOS"
+      otherwise (see "Identifying the DOS" and "Boot sector code by DOS" in
+      `FLOPPY_FORMATS.md`, which also lists the rules of Ira's that we tried and
+      didn't use). On data disks: 0x21 is "TRSDOS 2.x" unless the boot sector is
+      the 2.2 or 2.3 FORMAT's, though TRSDOS 2.0, 2.1, NEWDOS 2.1, NEWDOS 3.0 and
+      DoubleDOS also write it; 0x53 with TRSDOS 2.x's boot sector is "NEWDOS 3.0"
+      after the system on cylinder 0, though NEWDOS 3.0's FORMAT writes 0x21, and
+      what wrote the 0x53 is unknown; LDOS 5.0 and VTOS 4.0 get no third digit,
+      5.3.0 can't be told from a 5.3.1 disk with 5.3.0's passwords, and the third
+      digit names the formatter, not the system later used; TRSDOS 6.02.00 and
+      6.02.01 write the same data disk, as NEWDOS/80 2.0, 2.5 and 2.74 do; 0x80
+      is "NEWDOS/80 v1.0" though Ira hasn't measured whether 1.1 also writes it;
+      Super Utility+'s data disks are named by its version, not a DOS (see
+      "Super Utility+" in `FLOPPY_FORMATS.md`); and Kim Watt's 0x50 and the
+      Planet Makruk disks are "Unknown DOS". NEWDOS/80 v2's banner gives "2.X"
+      and "2/4" on some disks, and the second falls back to "v2.0-2.74"; Ira
+      suggests matching their system files' CRC-32s against the File Manifests
+      of each NEWDOS/80 release group (2.0 and 2.5 differ in SYS0, SYS3, SYS16,
+      SYS17, SYS21 and the utilities).
+- [ ] **Ira's naming rules that no disk of ours exercises** (see "What each
+      FORMAT writes, from Ira's bare disks" in `FLOPPY_FORMATS.md`): MultiDOS
+      1.0's Model I boot sector (1.0 or 1.2D by the GAT's data mark), the 1.0-1.4
+      stub (0x50 at 0xCB, or DIR/SYS's bytes 1-2), the 4.01 stub's FORMAT
+      passwords (`A8 00 00 00`), the MultiDOS DIR/SYS passwords that no disk of
+      ours has, the TRSDOS 6.01.01 stub, DOSPLUS's fill byte by version, and
+      HIT byte 1 = 0xC4 with 0x21 (NEWDOS+ 2.2 or 3.0, but see "What didn't hold
+      up"). Add them when disks turn up.
+- [ ] **Our TRSDOS 2.3 data disks have the system disk's boot sector.** The
+      formatter's template is TRSDOS 2.3's system boot sector, with 0xE1 at 0x7D,
+      but 2.3's FORMAT writes 0xB6 there (Ira, and `issue-1/m1-trsdos-blank.dmk`),
+      so our disks aren't what 2.3's FORMAT makes, and decode as "TRSDOS 2.x"
+      rather than "TRSDOS 2.2-2.3". Taking the template from a 2.3 FORMAT's disk
+      would fix both, if its boot code also works on disks we write.
+- [ ] **A "MULTIDOS" fill in a system file still makes a MultiDOS banner.** The
+      boot track's runs of "MULTIDOS" are ignored, but the banner fallback
+      (`/MULTIDOS|Cosmopolitan Electronics/`) searches every system file,
+      including BOOT/SYS, which covers the boot track on some disks. No disk of
+      ours is named wrongly by it now.
 - [ ] **`TrsdosGatInfo`'s LDOS fields are unused.** With `Trsdos14GatInfo` and
       `generateLdosCandidates()` gone and the report no longer printing them,
       `cylinderCount`, `granulesPerTrack`, `sideCount` and `density` (and the
@@ -310,16 +336,19 @@ more.
   with good IDs) after them. Files reach cylinder 45, so reading that track would
   recover 18 of the 156 missing sectors. Decide whether the reader should load
   whole tracks past the header's count.
-- `lanhawk/Archive2a/ARCH067.DSK`, `ARCH146.DSK`, `ARCH158.DSK`: "Unknown DOS", since
-  0xCB is 0x50, but the boot sector is byte for byte the `F3 FE` one of eight DOSPLUS 3.3
-  disks (including `ARCH121` and `ARCH151` of the same set), and BOOT/SYS fills cylinder 0
-  as DOSPLUS's does. Something rewrote 0xCB along with the name and date (all three say
-  "DISK", in capitals). Naming DOSPLUS from its boot sectors would fix these, but other
-  DOSPLUS boot sectors are shared by 3.3, 3.4 and 3.5, so a boot sector names the DOS, not
-  the version, and "DOSPLUS" alone means 4.0 or 3.4a today (see `DOS_NAME_RULES`).
-- `ira/no-extract/Dot Writer ... [M4].dmk` (both): GAT byte 0xCB is 0x40 with no
-  "VTOS" or "DOSPLUS" on the boot track, so the DOS is "Unknown DOS". The files
-  read cleanly.
+- `lanhawk/Archive2a/ARCH067.DSK`, `ARCH146.DSK`, `ARCH158.DSK`: 0xCB is 0x50, but
+  BOOT/SYS has the DOSPLUS 3.2.1-3.4 FORMAT's passwords, so they're "DOSPLUS 3.2.1-3.4"
+  (November 2026). Their boot sector is byte for byte the `F3 FE` one of eight DOSPLUS 3.3
+  disks (including `ARCH121` and `ARCH151` of the same set), and nothing else of ours, so
+  they're probably 3.3. Ira's fill test would settle it (3.3 fills never-written sectors
+  with 0xE5, 3.4 with 0x00). Something rewrote 0xCB along with the name and date (all
+  three say "DISK", in capitals).
+- `ira/lk-341-set-1/Defense Command ... [M13][Dual Boot]` (both), `... [M1][Original]`,
+  the three `Stellar Escort` disks and `Weerd`: named "Big Five BFLOADER" from their boot
+  sector (Ira), but decoded with the TRSDOS 1.3 layout, one file each. Ira says the
+  `Defense Command` disks have a TRSDOS 2.3-layout directory on cylinder 17 with
+  BOOTER/SYS, DEFENSE/CMD and HISCORES/DEF, as `Defense Command [Set 1]` decodes. Find
+  out why the 1.3 layout wins on these.
 
 - `peter/Col 2 - 030 - No Box - No Label.dmk`: now decodes as NEWDOS/80, `GPL=2`,
   directory lump 17, with all 24 system files clean. Earlier notes said its boot
@@ -347,8 +376,8 @@ more.
   November 2026: `Super Utility + Copy Utility [Set 3]` (directory moved to
   cylinder 3, see "Cylinders, sides, and allocation" in `FLOPPY_FORMATS.md`),
   named NEWDOS 3.0 from its boot sector, and `Defense Command [Set 1]` (see "A
-  HIT can be rebuilt over leftover bytes"), whose name, "MultiDOS", is
-  probably wrong.
+  HIT can be rebuilt over leftover bytes"), which is now "Big Five BFLOADER"
+  (it was "MultiDOS", from a fill of "MULTIDOS" on its boot track).
   `French Teacher #1` and `MultiDOS II [Incomplete]` only needed IDs with bad
   CRCs ignored (see "An IDAM pointer can point at data" in `FLOPPY_FORMATS.md`).
 
@@ -693,3 +722,15 @@ bit for a one-side reading. Of the suite's 1,339 TRSDOS-family floppies the gate
 630), allows repairs only on 72 (from 69), and leaves 620 read-only (from 640); `info --json`
 doesn't report the gate, so these come from a throwaway script that decodes every disk. 33
 disks changed directory size and nothing else (13 LDOS-line, 19 NEWDOS/80-style, 1 MultiDOS).
+
+November 11, 2026: Ira's DOS identification rules from 123 disks he formatted under the real
+DOSes (issues #31-#37), checked against the suite (see "Boot sector code by DOS" in
+`FLOPPY_FORMATS.md` for what was used and what wasn't). Of the suite's 1,760 disks, 149 changed
+name and nothing else: 65 NEWDOS/80 2.x data disks became "v2.0-2.74", 46 LDOS and LS-DOS disks
+got a third digit or a range, 12 MultiDOS and Esoteric utility disks a release, 6 MultiDOS data
+disks a version from their stub, 8 game disks with Big Five's loader "Big Five BFLOADER", 4
+TRSDOS 2.x data disks "TRSDOS 2.2-2.3", 3 `lanhawk` disks DOSPLUS instead of "Unknown DOS", 2
+`LOAD-80` disks DOSPLUS 3.3 instead of MultiDOS, and 3 disks of the TRSDOS 6 line took the
+system sector's release over the GAT's. Every name that a filename, banner or provenance can
+check agrees with it; telanoc's LDOS and LS-DOS disks now match the 5.3.1 and 6.3.1 its README
+says they were made with, and its MultiDOS 1.7 data disks are "MultiDOS 1.7-1.71".

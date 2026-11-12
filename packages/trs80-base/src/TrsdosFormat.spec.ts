@@ -127,7 +127,7 @@ function makeConfigs(): Config[] {
     const ldosLine: {dos: TrsdosFormatDos, dosName: string, ruleSet: TrsdosRuleSet}[] = [
         {dos: TrsdosFormatDos.LDOS_5_3, dosName: "LDOS 5.3", ruleSet: TrsdosRuleSet.LDOS_5},
         {dos: TrsdosFormatDos.TRSDOS_6_2, dosName: "TRSDOS 6.2", ruleSet: TrsdosRuleSet.TRSDOS_6},
-        {dos: TrsdosFormatDos.LSDOS_6_3, dosName: "LS-DOS 6.3", ruleSet: TrsdosRuleSet.TRSDOS_6},
+        {dos: TrsdosFormatDos.LSDOS_6_3, dosName: "LS-DOS 6.3.1", ruleSet: TrsdosRuleSet.TRSDOS_6},
     ];
     const spread: {cylinders: number, sides: number, density: Density}[] = [
         {cylinders: 35, sides: 1, density: Density.SINGLE},
@@ -332,7 +332,7 @@ describe("formatTrsdosDataDisk", () => {
         expect(readBytes(disk, 0, 0, 1)).to.eql(expectedSecond);
         // The given sectors are left alone.
         expect(first[2]).not.to.eql(40);
-        expect(decode(disk).nameAndVersion).to.eql("LS-DOS 6.3");
+        expect(decode(disk).nameAndVersion).to.eql("LS-DOS 6.3.1");
 
         // TRSDOS 1.3 numbers its sectors from 1 and patches only the boot sector's byte 1.
         const disk13 = format({dos: TrsdosFormatDos.TRSDOS_1_3, cylinders: 35, sides: 1, bootSectors: [first, second]});
