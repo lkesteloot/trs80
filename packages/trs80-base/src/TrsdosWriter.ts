@@ -22,6 +22,7 @@ import {
     GAT_MEDIA_BLOCK_OFFSET, gatHasMediaBlock, isTrsdosSystemInformationSector, readTrsdosDiskInfo, SYSINFO_AUTO_LENGTH, SYSINFO_AUTO_OFFSET,
     type TrsdosDiskInfo, trsdosGatDateYearRange, trsdosKeepsAutoInSystemInformation, trsdosSystemInformationPosition,
 } from "./TrsdosDiskInfo.js";
+import {NEWDOS80_MAX_EXTENT_LUMP, newdos80DosLumpCount, newdos80GranuleNeverAllocated} from "./TrsdosNewdos80.js";
 import {TrsdosRuleSet, trsdosRuleSetLayout, trsdosRuleSetToString} from "./TrsdosRuleSet.js";
 
 /**
@@ -50,6 +51,14 @@ const BYTE1_MODIFIED = 0x40;
  * was written, so the date in the entry (if any) isn't to be trusted.
  */
 const BYTE1_DATE_NOT_SET = 0x10;
+
+/**
+ * Byte 1 of a NEWDOS/80 entry: the bit that says the file was written since the flag was last cleared, which
+ * the DOS sets on every file it writes. NEWDOS/80 has no file dates, so the rest of the byte is flags that
+ * we leave alone (bit 7: may not be extended, bit 6: CLOSE may not free excess granules). See "Writing
+ * NEWDOS/80" in FLOPPY_FORMATS.md.
+ */
+const NEWDOS80_BYTE1_WRITTEN = 0x20;
 
 /**
  * The bits of a directory entry's byte 0 that hold the protection level.
@@ -682,6 +691,19 @@ export class TrsdosWriter {
     private readonly freeGranules: boolean[];
 
     /**
+     * The GAT sector's bytes as they were on the disk, for {@link isNeverAllocated}, which the constructor
+     * needs before {@link gat} is read. NEWDOS/80's granule existence table is in it, and nothing changes that
+     * table.
+     */
+    private readonly originalGatBytes: Uint8Array;
+
+    /**
+     * Under NEWDOS/80's rules, the number of lumps the DOS allocates ({@link newdos80DosLumpCount}), worked out
+     * once since it reads the PDRIVE table. The layout's lump count under other rules.
+     */
+    private readonly dosLumpCount: number;
+
+    /**
      * The files that {@link addFile} has added.
      */
     private readonly added: AddedFile[] = [];
@@ -734,6 +756,8 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(granuleMap);
         }
         this.granuleMap = granuleMap;
+        this.originalGatBytes = trsdos.disk.readSector(trsdos.getGatPosition())?.data ?? new Uint8Array(0);
+        this.dosLumpCount = ruleSet === TrsdosRuleSet.NEWDOS_80 ? newdos80DosLumpCount(trsdos) : trsdos.lumpCount;
         this.freeGranules = freeGranuleFlags(granuleMap).map((free, index) => free && !this.isNeverAllocated(index));
 
         this.gat = this.copySector(trsdos.getGatPosition(), "GAT");
@@ -1094,6 +1118,13 @@ export class TrsdosWriter {
                 warning = this.makeDateFields(options.date).warning;
                 break;
 
+            case TrsdosRuleSet.NEWDOS_80:
+                // No file dates either, but the DOS sets the written bit on any file it writes, and bits 7 and
+                // 6 stay as they were.
+                warning = this.makeDateFields(options.date).warning;
+                byte1 |= NEWDOS80_BYTE1_WRITTEN;
+                break;
+
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6:
                 // The DOS sets this bit on any file it writes.
@@ -1248,7 +1279,8 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(`Can't ${verb} ${name}: ${extents.charAt(0).toLowerCase()}${extents.substring(1)}`,
                 kind);
         }
-        if (extents.some(extent => extent.lump > 0xFD)) {
+        const maxLump = this.ruleSet === TrsdosRuleSet.NEWDOS_80 ? NEWDOS80_MAX_EXTENT_LUMP : 0xFD;
+        if (extents.some(extent => extent.lump > maxLump)) {
             throw new TrsdosWriteError(`Can't ${verb} ${name}: it would need a lump that a directory entry can't hold`);
         }
         // The directory slots: one for the primary entry, and one for each extended entry (FXDE) that
@@ -1388,6 +1420,14 @@ export class TrsdosWriter {
                 return {byte1: 0, byte2: 0, timeStamp: undefined, warning};
             }
 
+            case TrsdosRuleSet.NEWDOS_80: {
+                // NEWDOS/80 has no file dates: byte 1 holds flags, and the DOS sets the written bit on a new
+                // file. Byte 2 is reserved and zero.
+                const warning = date === undefined ? undefined :
+                    `${trsdosRuleSetToString(this.ruleSet)} disks don't store file dates, so the date was ignored`;
+                return {byte1: NEWDOS80_BYTE1_WRITTEN, byte2: 0, timeStamp: undefined, warning};
+            }
+
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6: {
                 if (date === undefined) {
@@ -1444,6 +1484,7 @@ export class TrsdosWriter {
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6:
             case TrsdosRuleSet.DOSPLUS:
+            case TrsdosRuleSet.NEWDOS_80:
                 return false;
 
             default:
@@ -1460,6 +1501,8 @@ export class TrsdosWriter {
      *   in FLOPPY_FORMATS.md and FLOPPY_TODO.md.
      * - TRSDOS 2.7 and 2.8: their entries have the 2.3 family's link to a next entry, but no disk we've seen has
      *   an extended entry, so we don't know what the DOS writes in one.
+     * - NEWDOS/80: written, because 24 of the 25 extended entries on the NEWDOS/80 version 2 disks that we
+     *   measured are in the form that we write for LDOS ("Writing NEWDOS/80" in FLOPPY_FORMATS.md).
      * - TRSDOS 1.3 has no extended entries, so the question doesn't arise.
      */
     private extendedEntriesUnsupported(): string | undefined {
@@ -1475,6 +1518,7 @@ export class TrsdosWriter {
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6:
             case TrsdosRuleSet.DOSPLUS:
+            case TrsdosRuleSet.NEWDOS_80:
                 return undefined;
 
             default:
@@ -1677,6 +1721,7 @@ export class TrsdosWriter {
             case TrsdosRuleSet.DOSPLUS:
             case TrsdosRuleSet.TRSDOS_1_3:
             case TrsdosRuleSet.TRSDOS_2_7:
+            case TrsdosRuleSet.NEWDOS_80:
                 break;
 
             default:
@@ -1749,6 +1794,7 @@ export class TrsdosWriter {
             switch (this.ruleSet) {
                 case TrsdosRuleSet.TRSDOS_2:
                 case TrsdosRuleSet.DOSPLUS:
+                case TrsdosRuleSet.NEWDOS_80:
                     throw new TrsdosWriteError(`Can't set the date of ${name}: ` +
                         `${trsdosRuleSetToString(this.ruleSet)} disks don't store file dates`);
 
@@ -1859,6 +1905,7 @@ export class TrsdosWriter {
             case TrsdosRuleSet.DOSPLUS:
             case TrsdosRuleSet.TRSDOS_1_3:
             case TrsdosRuleSet.TRSDOS_2_7:
+            case TrsdosRuleSet.NEWDOS_80:
                 break;
 
             default:
@@ -1931,8 +1978,10 @@ export class TrsdosWriter {
                     throw new TrsdosWriteError(`The AUTO command is ${command.length} characters, but at most ` +
                         `${fieldLength - 1} fit on this disk`);
                 }
-                // The DOSes that keep it here pad with spaces, except TRSDOS 2.x, whose FORMAT leaves 0xFF.
-                const filler = this.ruleSet === TrsdosRuleSet.TRSDOS_2 ? 0xFF : 0x20;
+                // The DOSes that keep it here pad with spaces, except TRSDOS 2.x and NEWDOS/80, whose FORMAT
+                // leaves 0xFF.
+                const filler = this.ruleSet === TrsdosRuleSet.TRSDOS_2 || this.ruleSet === TrsdosRuleSet.NEWDOS_80 ?
+                    0xFF : 0x20;
                 gatBytes.fill(filler, GAT_AUTO_OFFSET, fieldEnd);
                 TrsdosWriter.putAutoCommand(gatBytes, GAT_AUTO_OFFSET, command);
             }
@@ -1985,6 +2034,7 @@ export class TrsdosWriter {
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6:
             case TrsdosRuleSet.TRSDOS_2_7:
+            case TrsdosRuleSet.NEWDOS_80:
                 return trimmed.toUpperCase();
 
             default:
@@ -2384,8 +2434,9 @@ export class TrsdosWriter {
      * Free, in the GAT in memory, the granules that are marked used and that no file claims, if asked to, except
      * those that are never freed: the boot cylinder's, and locked-out ones. (A TRSDOS 1.3 GAT has no lockout
      * bits, but it has a table of cylinders that don't exist or are flawed, and a granule on such a cylinder
-     * is kept too.) On TRSDOS 2.7 none is freed, since the DOS's system files, which aren't in the directory,
-     * look unclaimed (see {@link repair}).
+     * is kept too. Under NEWDOS/80's rules, a granule that the GAT's existence table says doesn't exist, or that
+     * is in a lump the DOS doesn't allocate, is kept as well.) On TRSDOS 2.7 none is freed, since the DOS's system
+     * files, which aren't in the directory, look unclaimed (see {@link repair}).
      *
      * @param free whether to free the granules.
      * @param changes the user-facing lines, to which the line for this fix is added.
@@ -2402,7 +2453,9 @@ export class TrsdosWriter {
         for (const granule of this.granuleMap.getUsedButUnclaimedGranules()) {
             const neverFreed = granule.lump === 0 || granule.lockedOut ||
                 (existenceTable !== undefined && (existenceTable[granule.lump] ?? 0) !== 0) ||
-                this.trsdos.version === TrsdosVersion.V2_7;
+                this.trsdos.version === TrsdosVersion.V2_7 ||
+                (this.ruleSet === TrsdosRuleSet.NEWDOS_80 &&
+                    this.isNeverAllocated(granule.lump*this.trsdos.granulesPerLump + granule.granule));
             if (neverFreed) {
                 kept.push(granule);
             } else if (free) {
@@ -2571,7 +2624,7 @@ export class TrsdosWriter {
      * Delete one directory entry in memory: clear its in-use bit and its HIT byte, as the DOS's own KILL does. The
      * KILLs of TRSDOS 1.3 (Model III TRSDOS Commented, PDF page 77) and of TRSDOS 2.2 and 2.3 (SYS3/SYS at 5005H)
      * also zero the rest of the entry, so it does here under their rules. The others, TRSDOS 2.7 and 2.8 among them,
-     * leave the rest, which their UNKILL needs. See "Deleting a file" in FLOPPY_FORMATS.md.
+     * leave the rest, which their UNKILL needs, as does NEWDOS/80's. See "Deleting a file" in FLOPPY_FORMATS.md.
      */
     private clearDirEntry(slot: TrsdosDirSlot): void {
         const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slot.hitIndex);
@@ -2588,6 +2641,9 @@ export class TrsdosWriter {
             case TrsdosRuleSet.TRSDOS_6:
             case TrsdosRuleSet.DOSPLUS:
             case TrsdosRuleSet.TRSDOS_2_7:
+            case TrsdosRuleSet.NEWDOS_80:
+                // NEWDOS/80's KILL clears only the in-use bit and the HIT byte (NEWDOS/80 Version 2.0 manual,
+                // PDF page 98).
                 zeroEntry = false;
                 break;
 
@@ -2630,7 +2686,8 @@ export class TrsdosWriter {
             for (let index = start; index < end; index++) {
                 const granule = this.granuleMap.granules[index];
                 const stillClaimed = granule.owners.some(owner => owner !== dirEntry && !this.deleted.has(owner));
-                if (!stillClaimed && !granule.inDirectory && !granule.lockedOut) {
+                const neverAllocated = this.ruleSet === TrsdosRuleSet.NEWDOS_80 && this.isNeverAllocated(index);
+                if (!stillClaimed && !granule.inDirectory && !granule.lockedOut && !neverAllocated) {
                     indexes.push(index);
                 }
             }
@@ -2662,12 +2719,19 @@ export class TrsdosWriter {
     /**
      * Whether a granule is never given to a new file, whatever the GAT says. On TRSDOS 2.7 that's the boot
      * cylinder's: it's single density, with fewer sectors than its granules count, and the DOS's own GATs mark it
-     * all used.
+     * all used. Under NEWDOS/80's rules it's a granule in a lump that the DOS doesn't allocate, or one that the GAT's
+     * existence table says doesn't exist (see {@link newdos80GranuleNeverAllocated}). This reads the GAT as it
+     * was on the disk, since the constructor calls it before {@link gat} is set.
      *
      * @param index the granule's linear index (lump*granulesPerLump + granule).
      */
     private isNeverAllocated(index: number): boolean {
-        const lump = Math.floor(index/this.trsdos.granulesPerLump);
+        const granulesPerLump = this.trsdos.granulesPerLump;
+        const lump = Math.floor(index/granulesPerLump);
+        if (this.ruleSet === TrsdosRuleSet.NEWDOS_80) {
+            return newdos80GranuleNeverAllocated(this.trsdos, this.originalGatBytes, this.dosLumpCount, lump,
+                index % granulesPerLump);
+        }
         switch (this.trsdos.version) {
             case TrsdosVersion.V2_3:
             case TrsdosVersion.V1_3:

@@ -236,6 +236,11 @@ export function findDosDiskSize(trsdos: Trsdos, floppy: FloppyDisk, use: TrsdosC
                 gatEnd = claimedEnd;
                 size = {cylinderCount: TRSDOS_1_3_CYLINDERS, source: "TRSDOS 1.x's fixed size"};
                 break;
+            case TrsdosRuleSet.NEWDOS_80:
+                // Normally handled above, by family; this is a name with candidate families that all
+                // follow NEWDOS/80's rules.
+                size = newdos80DiskSize(trsdos, floppy);
+                break;
             case TrsdosRuleSet.TRSDOS_2_7:
                 size = "we don't know where TRSDOS 2.7 records a disk's size";
                 break;

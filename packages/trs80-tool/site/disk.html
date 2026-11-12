@@ -27,9 +27,11 @@
             so in memory, and the image is written once, after the last command: if any
             command in the chain or any line of a script fails, nothing is saved.</p>
             <p>Only some disks can be changed: floppies of the TRSDOS family whose DOS is TRSDOS 2.x,
-            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, DOSPLUS 3, or TRSDOS 2.7 / 2.8, and LDOS 5 and LS-DOS 6 partitions of
+            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, DOSPLUS 3, TRSDOS 2.7 / 2.8, or NEWDOS/80 version 2, and LDOS 5 and LS-DOS 6 partitions of
             hard disks, as long as <code>check</code> finds no problem with the
-            file system. <code>--dos</code> and <code>--force</code> below can relax the
+            file system. NEWDOS/80 version 2 disks are written but not created or formatted, and are refused when
+            their GAT, HIT and PDRIVE table disagree about the layout, or when they have more than 96 lumps and no
+            PDRIVE table. <code>--dos</code> and <code>--force</code> below can relax the
             requirements on the disk when the tool is unsure.</p>
 
             <h2>Table of contents</h2>
@@ -93,8 +95,9 @@
                     <td>Write by the rules of this DOS, for a disk that doesn’t say which DOS wrote it or to
                         override what it says. The names are <code>trsdos-2</code>, <code>trsdos-1.3</code>,
                         <code>ldos-5</code>, <code>trsdos-6</code> (also <code>ldos-6</code> and
-                        <code>ls-dos-6</code>), <code>dosplus</code>, and <code>trsdos-2.7</code> (also
-                        <code>trsdos-2.8</code>); <code>help dos</code> lists them. It
+                        <code>ls-dos-6</code>), <code>dosplus</code>, <code>trsdos-2.7</code> (also
+                        <code>trsdos-2.8</code>), and <code>newdos-80</code> (also <code>newdos80</code> and
+                        <code>newdos/80</code>); <code>help dos</code> lists them. It
                         doesn’t change how the disk is read, and it only applies to TRSDOS-family disks. It also
                         changes what <code>info</code> and <code>check</code> say about whether the disk is
                         writable. Put it before the first command.</td>
@@ -257,8 +260,8 @@
                 <tr>
                     <td><code>--date YYYY-MM-DD</code></td>
                     <td>Give the files this date. Files get no date unless you give one, and only LDOS
-                        and TRSDOS 6 / LS-DOS 6 disks keep one: TRSDOS 2.x and DOSPLUS 3 disks ignore it, with a
-                        warning. Those disks hold the years 1980 to 1987, or 1980 to 2011 on an LDOS 5.3 or
+                        and TRSDOS 6 / LS-DOS 6 disks keep one: TRSDOS 2.x, DOSPLUS 3 and NEWDOS/80 disks ignore it, with a
+                        warning (<code>attrib</code> refuses one on those disks). Those disks hold the years 1980 to 1987, or 1980 to 2011 on an LDOS 5.3 or
                         LS-DOS 6.3 disk (which also stores the time of day), and a year outside that is an
                         error. With no date, the entry is marked as having none. TRSDOS 1.3 and TRSDOS 2.7 / 2.8
                         disks keep only the month and year, from 1980 to 1999.</td>
@@ -384,7 +387,9 @@
             which keep it in the same sector as the name, and up to 79 on TRSDOS 6 and LS-DOS 6, which keep it in
             the system information sector of the boot track. A TRSDOS 6 disk that has no such sector
             (one that another program formatted) can’t be given an AUTO command. Changing the
-            name or date doesn’t change the DOS release banner that TRSDOS 6 keeps in that sector.</p>
+            name or date doesn’t change the DOS release banner that TRSDOS 6 keeps in that sector. On NEWDOS/80 disks
+            the name, date, password and AUTO command are in the GAT, and an unused AUTO field is filled with 0xFF,
+            as NEWDOS/80 does; the PDRIVE table in cylinder 0 is left alone.</p>
 
             <h3 id="protect"><code>protect</code></h3>
             <div><pre><code>protect [on|off]</code></pre>
@@ -547,7 +552,8 @@ partition --delete [N|NAME] [--force]</code></pre>
                     <td><code>--free-unclaimed</code></td>
                     <td>Also free the granules that the GAT marks used but no file claims. Granules on the boot cylinder
                         and locked-out ones are never freed. It’s refused on TRSDOS 2.7 / 2.8 disks, whose system files
-                        aren’t in the directory, so that their granules look unclaimed.</td>
+                        aren’t in the directory, so that their granules look unclaimed. On NEWDOS/80 disks it never frees
+                        a granule that the GAT’s existence table says doesn’t exist.</td>
                 </tr>
                 <tr>
                     <td><code>--fix-program-sizes</code></td>

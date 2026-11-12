@@ -68,8 +68,12 @@ const LAYOUT_2_3_NAMES: [DosName, TrsdosRuleSet | undefined][] = [
     [makeDosName(DosFamily.DOSPLUS_IV, "1.0"), undefined],
     [makeDosName(DosFamily.DOSPLUS_IV), undefined],
     [makeDosName(DosFamily.DOSPLUS), undefined],
-    [makeDosName(DosFamily.NEWDOS_80, "2.0"), undefined],
-    [makeDosName(DosFamily.NEWDOS_80, "2.0", "2.5", "2.74"), undefined],
+    [makeDosName(DosFamily.NEWDOS_80, "2.0"), TrsdosRuleSet.NEWDOS_80],
+    [makeDosName(DosFamily.NEWDOS_80, "2.0", "2.5", "2.74"), TrsdosRuleSet.NEWDOS_80],
+    [makeDosName(DosFamily.NEWDOS_80, "2.X"), TrsdosRuleSet.NEWDOS_80],
+    [makeDosName(DosFamily.NEWDOS_80, "1.0"), undefined],
+    [makeDosName(DosFamily.NEWDOS_80, "1.1"), undefined],
+    [makeDosName(DosFamily.NEWDOS_80, "3.0"), undefined],
     [makeDosName(DosFamily.BFLOADER), undefined],
     [makeDosName(DosFamily.NEWDOS, "2.1"), undefined],
     [makeDosName(DosFamily.MULTIDOS, "1.6"), undefined],
@@ -115,6 +119,12 @@ describe("ruleSetForDosName", () => {
         for (const name of [trsdos("2.77D"), trsdos("2.3"), trsdos("2.x"), makeDosName(DosFamily.LDOS, "5.3")]) {
             expect(ruleSetForDosName(name, TrsdosVersion.V2_7), dosNameToString(name)).to.be.undefined;
         }
+    });
+
+    it("maps NEWDOS/80 version 2 on the 2.3 layout only", () => {
+        const v2 = makeDosName(DosFamily.NEWDOS_80, "2.X");
+        expect(ruleSetForDosName(v2, TrsdosVersion.V2_3)).to.equal(TrsdosRuleSet.NEWDOS_80);
+        expect(ruleSetForDosName(v2, TrsdosVersion.V1_3)).to.be.undefined;
     });
 
     it("rejects a name whose layout doesn't fit its rule set", () => {
@@ -208,9 +218,14 @@ describe("rule set names", () => {
         expect(parseTrsdosRuleSet("TRSDOS-2.8")).to.equal(TrsdosRuleSet.TRSDOS_2_7);
     });
 
+    it("accepts the NEWDOS/80 names", () => {
+        expect(parseTrsdosRuleSet("newdos-80")).to.equal(TrsdosRuleSet.NEWDOS_80);
+        expect(parseTrsdosRuleSet("NEWDOS/80")).to.equal(TrsdosRuleSet.NEWDOS_80);
+        expect(parseTrsdosRuleSet("newdos80")).to.equal(TrsdosRuleSet.NEWDOS_80);
+    });
+
     it("rejects other names", () => {
         expect(parseTrsdosRuleSet("")).to.be.undefined;
-        expect(parseTrsdosRuleSet("newdos-80")).to.be.undefined;
         expect(parseTrsdosRuleSet("trsdos")).to.be.undefined;
     });
 });

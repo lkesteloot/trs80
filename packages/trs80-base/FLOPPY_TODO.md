@@ -264,6 +264,15 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       FXDE, so we don't know what 2.7 writes in one. The writer refuses a file
       that would need one (more than four extents) and won't rename or repair
       one. A disk made by the DOS with a fragmented big file would settle it.
+- [ ] **Writing NEWDOS/80: what's left.** The writer covers version 2 disks (see "Writing NEWDOS/80" in
+      FLOPPY_FORMATS.md). Not written:
+      - Version 1.x: v1 double-sided double-density disks use a different sector order, the decoder can't tell
+        v1.0 from v1.1 data disks (GAT 0xCB = 0x80 for both), and two NEWDOS/86 utility disks are named v1.0.
+      - Version 3.0 (its own Model III boot sector): a different release that we haven't studied.
+      - Disks of more than 96 lumps with no PDRIVE table, whose GAT bytes 0x60 and up we can't confirm are
+        allocation.
+      - Creating and formatting NEWDOS/80 disks (`create`, `format`): we have no NEWDOS/80 boot sector to write.
+      - The other NEWDOSes (NEWDOS/86, NEWDOS/90, NEWDOS+), and the German G-DOS and H-DOS.
 - [ ] **Protection level names on TRSDOS 1.3 and 2.7** are TRSDOS 6's (1
       remove, 3 write, 4 update), which comes from 1.3 being Model II
       TRSDOS's descendant, not from a manual: the TRSDOS 1.3 Reference Guide

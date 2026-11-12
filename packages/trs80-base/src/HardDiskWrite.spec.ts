@@ -265,7 +265,7 @@ describe("the write gate on partitions", () => {
     it("blocks a DOSPLUS 3 partition, which can't be forced", () => {
         const found = firstPartition({version: 0x35, mediaData: false, granulesPerCylinder: 2});
         expect(found.trsdos.nameAndVersion).to.equal("DOSPLUS 3.5");
-        expect(unsupportedLayoutMessage(found.trsdos)).to.contain("DOSPLUS 3");
+        expect(unsupportedLayoutMessage(found.trsdos, undefined)).to.contain("DOSPLUS 3");
         const gate = evaluateTrsdosWriteGate(found.trsdos);
         expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
         const blocker = gate.blockers.find(b => b.kind === TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT);
@@ -296,14 +296,14 @@ describe("the write gate on partitions", () => {
         // Pretend that it has more.
         const trsdos = found.trsdos;
         const bigger = Object.create(trsdos, {lumpCount: {value: 210}});
-        expect(unsupportedLayoutMessage(bigger)).to.contain("210 cylinders");
+        expect(unsupportedLayoutMessage(bigger, undefined)).to.contain("210 cylinders");
     });
 
     it("applies the same rules when the file system is decoded through an overlay", () => {
         const found = firstPartition({});
         const overlay = new SectorOverlay(found.partition);
         const trsdos = decodeTrsdosOnOverlay(overlay, found.trsdos)!;
-        expect(unsupportedLayoutMessage(trsdos)).to.be.undefined;
+        expect(unsupportedLayoutMessage(trsdos, undefined)).to.be.undefined;
         expect(evaluateTrsdosWriteGate(trsdos).access).to.equal(TrsdosWriteAccess.WRITABLE);
     });
 });

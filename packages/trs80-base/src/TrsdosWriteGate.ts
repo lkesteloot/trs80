@@ -10,6 +10,8 @@ import {Jv1FloppyDisk, JV1_DIRECTORY_CYLINDER} from "./Jv1FloppyDisk.js";
 import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
+import {newdos80DirectorySizeRecorded, newdos80LayoutProblem} from "./TrsdosNewdos80.js";
+import {readPdriveTable} from "./Pdrive.js";
 import {type DosName, dosNameToString, isUnknownDosName} from "./DosName.js";
 import {
     checkTrsdos,
@@ -77,8 +79,9 @@ export function trsdosWriteAccessToString(access: TrsdosWriteAccess): string {
  */
 export enum TrsdosWriteBlockerKind {
     /**
-     * We have no writer for this layout: lumps that aren't cylinders (NEWDOS/80 style), the TRSDOS 2.7
-     * layout, a hard disk partition of a DOS other than LDOS 5 and TRSDOS 6, or a volume that is neither
+     * We have no writer for this layout: lumps that aren't cylinders (except under the NEWDOS/80 rules,
+     * which also refuse a NEWDOS/80 disk that disagrees with itself or isn't version 2), a hard disk
+     * partition of a DOS other than LDOS 5 and TRSDOS 6, or a volume that is neither
      * a floppy nor a hard disk partition.
      */
     UNSUPPORTED_LAYOUT,
@@ -257,8 +260,10 @@ export function trsdosWriteAccessForBlockerKinds(kinds: TrsdosWriteBlockerKind[]
  * Why we have no writer for this file system's layout, or undefined if we do. (Exported for tests.)
  *
  * @param trsdos the decoded file system.
+ * @param ruleSet the rules the disk would be written under, if any. Under NEWDOS/80's, lumps that aren't
+ * cylinders are fine, and the disk must pass {@link newdos80LayoutProblem}.
  */
-export function unsupportedLayoutMessage(trsdos: Trsdos): string | undefined {
+export function unsupportedLayoutMessage(trsdos: Trsdos, ruleSet: TrsdosRuleSet | undefined): string | undefined {
     const volume = volumeOf(trsdos);
     if (volume instanceof HardDiskPartition) {
         // The layout is the LDOS one, which the writer handles. Only the DOSPLUS 3 partitions differ.
@@ -274,6 +279,9 @@ export function unsupportedLayoutMessage(trsdos: Trsdos): string | undefined {
     }
     if (!(volume instanceof FloppyDisk)) {
         return "Writing to this kind of disk isn't supported yet.";
+    }
+    if (ruleSet === TrsdosRuleSet.NEWDOS_80) {
+        return newdos80LayoutProblem(trsdos);
     }
     if (!trsdos.lumpsAreCylinders) {
         return "This disk allocates space in lumps that aren't whole cylinders (as NEWDOS/80 does), " +
@@ -399,8 +407,10 @@ export function sidesAreUnproven(version: TrsdosVersion, allocationSides: number
  * Whether the disk's own GAT settles the number of allocation sides. The LDOS line (LDOS 5 and
  * TRSDOS 6 / LS-DOS 6) records whether the disk is double-sided in GAT byte 0xCD, and that bit
  * matched the allocation sides on every such disk checked (see "GAT bytes 0xCB-0xCD" in
- * FLOPPY_FORMATS.md). Other DOSes leave it zero or wrong, so it counts for nothing there. Goes by
- * the DOS the disk names, not by a rule set the user chose. (Exported for tests.)
+ * FLOPPY_FORMATS.md). Other DOSes leave it zero or wrong, so it counts for nothing there. NEWDOS/80's
+ * PDRIVE table settles it instead: its SPT counts both sides, so it proves the sides when it equals the
+ * layout's sectors per cylinder. Goes by the DOS the disk names, not by a rule set the user chose.
+ * (Exported for tests.)
  *
  * @param trsdos the decoded file system.
  */
@@ -415,6 +425,10 @@ export function gatProvesSides(trsdos: Trsdos): boolean {
         case TrsdosRuleSet.TRSDOS_2_7:
             gatIsReliable = false;
             break;
+        case TrsdosRuleSet.NEWDOS_80: {
+            const table = readPdriveTable(trsdos.disk);
+            return table !== undefined && table.sectorsPerTrack === trsdos.sectorsPerCylinder;
+        }
         case TrsdosRuleSet.LDOS_5:
         case TrsdosRuleSet.TRSDOS_6:
             gatIsReliable = true;
@@ -604,13 +618,13 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRul
     const check = checkTrsdos(trsdos);
     const blockers: TrsdosWriteBlocker[] = [];
 
-    const unsupported = unsupportedLayoutMessage(trsdos);
+    let ruleSet = givenRuleSet ?? identifyTrsdosRuleSet(trsdos).ruleSet;
+    const unsupported = unsupportedLayoutMessage(trsdos, ruleSet);
     if (unsupported !== undefined) {
         blockers.push({kind: TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT, message: unsupported, forceable: false});
     }
 
     // The rules are for a layout we can write, as with the sides and the directory size below.
-    let ruleSet = givenRuleSet ?? identifyTrsdosRuleSet(trsdos).ruleSet;
     if (unsupported === undefined) {
         const verdict = evaluateDosRules(trsdos.dosName, trsdos.version, givenRuleSet);
         blockers.push(...verdict.blockers);
@@ -668,7 +682,9 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRul
             directorySizesTried(trsdos.version, trsdos.allocationSides, trsdos.granulesPerLump,
                 trsdos.sectorsPerGranule, trsdos.geometry.cylinder0Differs);
         const directorySizeIsOnlyChoice = sizesTried.length <= 1;
-        if (!directorySizeIsOnlyChoice && !dirSysCoversDirectory(trsdos)) {
+        const sizeProven = dirSysCoversDirectory(trsdos) ||
+            (ruleSet === TrsdosRuleSet.NEWDOS_80 && newdos80DirectorySizeRecorded(trsdos));
+        if (!directorySizeIsOnlyChoice && !sizeProven) {
             blockers.push({
                 kind: TrsdosWriteBlockerKind.DIRECTORY_SIZE_UNPROVEN,
                 message: "The directory's size isn't recorded on this disk, so a new entry could land in a " +

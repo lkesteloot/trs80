@@ -310,17 +310,24 @@ describe("the gate's DOS rules", () => {
 
 describe("unsupportedLayoutMessage", () => {
     it("accepts the 2.3 family", () => {
-        expect(unsupportedLayoutMessage(decode())).to.be.undefined;
+        expect(unsupportedLayoutMessage(decode(), TrsdosRuleSet.TRSDOS_2)).to.be.undefined;
     });
 
     it("accepts the TRSDOS 2.7 layout", () => {
         const trsdos = reinterpret(decode(), TrsdosVersion.V2_7, 2, 2);
-        expect(unsupportedLayoutMessage(trsdos)).to.be.undefined;
+        expect(unsupportedLayoutMessage(trsdos, TrsdosRuleSet.TRSDOS_2_7)).to.be.undefined;
     });
 
     it("rejects lumps that aren't cylinders", () => {
         const trsdos = reinterpret(decode(), TrsdosVersion.V2_3, 4, 4);
-        expect(unsupportedLayoutMessage(trsdos)).to.contain("lumps");
+        expect(unsupportedLayoutMessage(trsdos, TrsdosRuleSet.TRSDOS_2)).to.contain("lumps");
+        expect(unsupportedLayoutMessage(trsdos, undefined)).to.contain("lumps");
+    });
+
+    it("leaves a NEWDOS/80 disk to the NEWDOS/80 checks", () => {
+        // This disk's GAT isn't NEWDOS/80 version 2's, so it's refused, but not for its lumps.
+        const trsdos = reinterpret(decode(), TrsdosVersion.V2_3, 4, 4);
+        expect(unsupportedLayoutMessage(trsdos, TrsdosRuleSet.NEWDOS_80)).to.contain("version 2");
     });
 
     it("rejects a volume that is neither a floppy nor a hard disk partition", () => {
@@ -332,7 +339,7 @@ describe("unsupportedLayoutMessage", () => {
             getBootTrackText: () => trsdos.disk.getBootTrackText(),
         };
         const partition = new Trsdos(volume, trsdos.geometry, TrsdosVersion.V2_3, 1, 2, 5, 17, 2, 0);
-        expect(unsupportedLayoutMessage(partition)).to.contain("kind of disk");
+        expect(unsupportedLayoutMessage(partition, undefined)).to.contain("kind of disk");
     });
 });
 

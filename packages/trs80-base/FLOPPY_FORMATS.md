@@ -2432,6 +2432,49 @@ sector field vary, so hashes land in the first 8 bytes of each 32, which in a
 SYS files are not on the disk", so a NEWDOS/80 decoder must not assume entries 0 and
 1 of each sector are reserved.
 
+### Writing NEWDOS/80
+
+What the writer (`TrsdosRuleSet.NEWDOS_80`, `--dos newdos-80`) does, and the rules behind it. It covers
+version 2 disks only (GAT byte 0xCB = 0x82); version 1 (0x80) and 3.0 aren't written. Cites are to the
+NEWDOS/80 Version 2.0 manual, PDF pages 96-101, paraphrased.
+
+- **New entries.** Byte 1 is 0x20 and byte 2 is 0 on about 2,000 files from NEWDOS/80 version 2 disks. NEWDOS/80
+  has no file dates: byte 1 holds flags (bit 7: the file may not be extended, bit 6: CLOSE may not free the excess
+  granules, bit 5: written since the flag was last cleared) and byte 2 is reserved. A date given to `add` is
+  ignored, and `attrib` refuses one. EOF and size follow the 2.3 family: the sector count includes a partial last
+  sector.
+- **KILL** clears only bit 4 of byte 0 and the HIT byte, and frees the granules; the rest of the entry stays (PDF
+  page 98).
+- **Extended entries.** 24 of the 25 FXDEs on NEWDOS/80 version 2 disks in the collection are byte 0 = 0x90, byte 1 =
+  the previous DEC, bytes 2-21 zero, and a HIT byte equal to the primary's name hash. That is the form we write for
+  LDOS, so the writer may use extended entries. Extent lump bytes go only to 191 (PDF page 100).
+- **Granule existence table.** With 96 lumps or fewer, GAT bytes 0x60-0xBF are an existence table, byte 0x60+N for
+  lump N: a 1 bit means that granule doesn't exist, must never be used, and has its allocation bit set too. FORMAT
+  writes 0xFC per lump with two granules, and 0xFF past the formatted lumps, and never marks an existing granule
+  non-existent. With more than 96 lumps the allocation table runs through 0xBF and there is no existence table; 192
+  lumps is the most the GAT holds. `TrsdosGatInfo.lockOut` is cut at the cylinder count, which is short of the lump
+  count here, so the writer reads the raw GAT. A disk whose existence table has a bit that the allocation table lacks
+  isn't written. Lumps past the PDRIVE table's lump count are never allocated either.
+- **Directory size.** HIT byte 0x1F is the number of entry sectors beyond 8 (0, 5, 10, 15 or 20), so the directory
+  is `GAT + HIT + 8 + that` sectors, in granules of 5. The writer insists on the match, and then treats the size as
+  proven even without DIR/SYS's extents.
+- **PDRIVE agrees.** When the disk has a PDRIVE table (system disks), its GPL, SPT, DDSL, DDGA and K flag must equal
+  the layout we decoded, the I and J flags must be clear, and its lump count must be on the same side of 96 as the
+  disk's. TC and the lump count may differ otherwise: the table describes the drive, which differs from the image on 21
+  of about 150 disks. Where the table's SPT equals the layout's sectors per cylinder it also settles the number of
+  sides. Without a table, a disk of more than 96 lumps isn't written, since nothing confirms that GAT bytes 0x60 and
+  up are allocation.
+- **System-file slots.** The DOS finds BOOT/SYS at DEC 0x00, DIR/SYS at 0x01, SYS0-SYS5 at 0x02-0x07, SYS6-SYS13 at
+  0x20-0x27, SYS14-SYS21 at 0x40-0x47 and SYS22-SYS29 at 0x60-0x67. A data disk keeps only 0x00 and 0x01 free of user
+  files, as NEWDOS/80 does (62 free entries on a two-granule directory). On a system disk (some SYS0-SYS29 entry is
+  in its slot) the writer keeps all 32 DECs, even where a SYS file is absent, since the loader would take a user file in
+  a system slot as the module.
+- **DIR/SYS's hash.** Old Model I disks have 0x2C in HIT byte 1 instead of the hash 0xC4; the writer leaves it alone.
+- **The GAT's information.** The AUTO field after its 0x0D is 0xFF, as TRSDOS 2.x leaves it. The PDRIVE table is in
+  cylinder 0, sector 2, which `label` never touches, and the boot sector holds no disk name.
+- **Not written:** create and format (there's no NEWDOS/80 boot sector to write), NEWDOS/80 version 1 and 3.0,
+  and the other NEWDOSes.
+
 ## Evidence that turned out to be reliable
 
 For guessing a layout and directory location, strongest first:

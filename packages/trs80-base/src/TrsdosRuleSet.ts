@@ -42,6 +42,12 @@ export enum TrsdosRuleSet {
      * Tandy's Model I TRSDOS 2.7DD, 2.7SD and 2.8, on their own layout.
      */
     TRSDOS_2_7,
+
+    /**
+     * NEWDOS/80 version 2.x (Apparat), on the TRSDOS 2.3 layout with its own file flags, no file
+     * dates, and a granule existence table in the GAT. See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
+     */
+    NEWDOS_80,
 }
 
 /**
@@ -61,6 +67,8 @@ export function trsdosRuleSetToString(ruleSet: TrsdosRuleSet): string {
             return "DOSPLUS 3";
         case TrsdosRuleSet.TRSDOS_2_7:
             return "TRSDOS 2.7 and 2.8";
+        case TrsdosRuleSet.NEWDOS_80:
+            return "NEWDOS/80 2.x";
         default:
             assertNever(ruleSet);
     }
@@ -84,6 +92,8 @@ export function trsdosRuleSetCliName(ruleSet: TrsdosRuleSet): string {
             return "dosplus";
         case TrsdosRuleSet.TRSDOS_2_7:
             return "trsdos-2.7";
+        case TrsdosRuleSet.NEWDOS_80:
+            return "newdos-80";
         default:
             assertNever(ruleSet);
     }
@@ -99,6 +109,7 @@ export const TRSDOS_RULE_SETS: readonly TrsdosRuleSet[] = [
     TrsdosRuleSet.TRSDOS_6,
     TrsdosRuleSet.DOSPLUS,
     TrsdosRuleSet.TRSDOS_2_7,
+    TrsdosRuleSet.NEWDOS_80,
 ];
 
 /**
@@ -116,6 +127,8 @@ export function trsdosRuleSetAliases(ruleSet: TrsdosRuleSet): string[] {
             return ["ldos-6", "ls-dos-6"];
         case TrsdosRuleSet.TRSDOS_2_7:
             return ["trsdos-2.8"];
+        case TrsdosRuleSet.NEWDOS_80:
+            return ["newdos80", "newdos/80"];
         default:
             assertNever(ruleSet);
     }
@@ -149,6 +162,7 @@ export function trsdosRuleSetLayout(ruleSet: TrsdosRuleSet): TrsdosVersion {
         case TrsdosRuleSet.LDOS_5:
         case TrsdosRuleSet.TRSDOS_6:
         case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.NEWDOS_80:
             return TrsdosVersion.V2_3;
         case TrsdosRuleSet.TRSDOS_2_7:
             return TrsdosVersion.V2_7;
@@ -203,13 +217,18 @@ function ruleSetForVersion(family: DosFamily, version: DosVersion): TrsdosRuleSe
         case DosFamily.DOSPLUS:
             return version.major() === 3 ? TrsdosRuleSet.DOSPLUS : undefined;
 
+        case DosFamily.NEWDOS_80:
+            // Only version 2: v1 double-sided double-density disks use a different sector order, the
+            // decoder can't tell v1.0 from v1.1 data disks, and two NEWDOS/86 utility disks are
+            // misnamed v1.0. Version 3.0 is a different release that we haven't studied.
+            return version.major() === 2 ? TrsdosRuleSet.NEWDOS_80 : undefined;
+
         case DosFamily.UNKNOWN:
         case DosFamily.VTOS:
         case DosFamily.DOSPLUS_II:
         case DosFamily.DOSPLUS_IV:
         case DosFamily.NEWDOS:
         case DosFamily.NEWDOS_PLUS:
-        case DosFamily.NEWDOS_80:
         case DosFamily.NEWDOS_86:
         case DosFamily.NEWDOS_90:
         case DosFamily.G_DOS:
@@ -309,6 +328,7 @@ export function trsdosRuleSetBasicDialect(ruleSet: TrsdosRuleSet): BasicDialect 
         case TrsdosRuleSet.LDOS_5:
         case TrsdosRuleSet.DOSPLUS:
         case TrsdosRuleSet.TRSDOS_2_7:
+        case TrsdosRuleSet.NEWDOS_80:
             return BasicDialect.MODEL_III;
         case TrsdosRuleSet.TRSDOS_6:
             return BasicDialect.MODEL_4;

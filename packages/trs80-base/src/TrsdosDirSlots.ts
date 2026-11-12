@@ -1,5 +1,6 @@
 import {assertNever} from "z80-base";
 import type {Trsdos} from "./Trsdos.js";
+import {newdos80IsSystemDisk} from "./TrsdosNewdos80.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
 
 /**
@@ -11,6 +12,11 @@ const SYSTEM_FILE_SECTOR_COUNT = 8;
  * The number of entries at the start of each of those sectors that the system files use.
  */
 const SYSTEM_FILE_ENTRIES_PER_SECTOR = 2;
+
+/**
+ * The entries at the start of each of those sectors that NEWDOS/80's system files can use.
+ */
+const NEWDOS80_SYSTEM_FILE_ENTRIES_PER_SECTOR = 4;
 
 /**
  * The GAT byte that holds TRSDOS 6's disk flags, and the flag that marks a data disk. See "GAT bytes
@@ -46,12 +52,28 @@ function systemFileDecs(trsdos: Trsdos): number[] {
 }
 
 /**
+ * The DECs of entries 0 to 3 of the first eight directory sectors: the 32 slots that NEWDOS/80's
+ * system files (BOOT/SYS, DIR/SYS and SYS0-SYS29) can occupy.
+ */
+function newdos80SystemFileDecs(trsdos: Trsdos): number[] {
+    const decs: number[] = [];
+    for (let entryIndex = 0; entryIndex < NEWDOS80_SYSTEM_FILE_ENTRIES_PER_SECTOR; entryIndex++) {
+        for (let sectorIndex = 0; sectorIndex < SYSTEM_FILE_SECTOR_COUNT; sectorIndex++) {
+            decs.push(trsdos.dirEntryToHitNumber(sectorIndex, entryIndex));
+        }
+    }
+    return decs;
+}
+
+/**
  * The directory slots (DECs) that a rule set keeps for its system files, which a user file must
  * never take. See "System files sit at fixed DECs" in the HIT section of FLOPPY_FORMATS.md.
  *
  * - TRSDOS 2.x, LDOS 5 and DOSPLUS 3: entries 0 and 1 of the first eight directory sectors (16).
  * - TRSDOS 6: those 16 on a system disk, but only DECs 0 and 1 (BOOT/SYS and DIR/SYS) on a data
  *   disk, which the GAT says with bit 7 of byte 0xCD.
+ * - NEWDOS/80 2.x: DECs 0 and 1 on a data disk, and on a system disk all 32 DECs of entries 0 to 3 of
+ *   the first eight directory sectors (the slots of BOOT/SYS, DIR/SYS and SYS0-SYS29).
  * - TRSDOS 1.3: none, since its system files aren't in the directory (see "TRSDOS 1.3 system files").
  * - TRSDOS 2.7 and 2.8: none, since their system files aren't in the directory either (see "Which DOSes
  *   share a layout").
@@ -67,6 +89,12 @@ export function reservedDecs(trsdos: Trsdos, ruleSet: TrsdosRuleSet): Set<number
             const dataDisk = isTrsdos6DataDisk(trsdos);
             return dataDisk ? new Set([0, 1]) : new Set(systemFileDecs(trsdos));
         }
+
+        case TrsdosRuleSet.NEWDOS_80:
+            // NEWDOS/80 itself keeps only DECs 0 and 1 free of user files on a data disk. On a system disk
+            // all the system file slots stay reserved even when a SYS file is absent, since the DOS's loader
+            // would take a user file in one of them as the module.
+            return newdos80IsSystemDisk(trsdos) ? new Set(newdos80SystemFileDecs(trsdos)) : new Set([0, 1]);
 
         case TrsdosRuleSet.TRSDOS_1_3:
         case TrsdosRuleSet.TRSDOS_2_7:

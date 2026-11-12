@@ -90,6 +90,13 @@ export interface TestFile {
     extendedHitByte?: number | undefined;
 
     /**
+     * The DEC (HIT index) of the file's primary entry, instead of the next free user slot, for a file
+     * that belongs in a system file's slot, such as SYS0/SYS at DEC 2. It must not be a slot that another
+     * file takes.
+     */
+    dec?: number | undefined;
+
+    /**
      * The DEC to write as the link to an extended entry (for a file with no extended entries
      * of its own), pointing at a slot that holds nothing, to make a broken chain. See
      * {@link testUserSlotDec}.
@@ -374,7 +381,9 @@ export function makeTrsdos23TestDisk(files: TestFile[], options: TestDiskOptions
         {file: dirFile, fillByte: undefined, fixedSlot: {dirSectorIndex: 1, entryIndex: 0}},
     ];
     files.forEach((file, i) => {
-        placed.push({file, fillByte: file.data ?? (0x41 + i) & 0xFF, fixedSlot: undefined});
+        const fixedSlot = file.dec === undefined ? undefined :
+            {dirSectorIndex: file.dec & 0x1F, entryIndex: file.dec >> 5};
+        placed.push({file, fillByte: file.data ?? (0x41 + i) & 0xFF, fixedSlot});
     });
 
     // Allocate the next free user slot.

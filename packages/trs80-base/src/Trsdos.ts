@@ -338,7 +338,7 @@ export function isOldDirSysHashInAnySlot(version: TrsdosVersion, rawFilename: st
  * 0x02-0x07, SYS6-SYS13 at 0x20-0x27, SYS14-SYS21 at 0x40-0x47 (NEWDOS/80 v2), and
  * SYS22-SYS29 at 0x60-0x67 (NEWDOS/90). See "The HIT" in FLOPPY_FORMATS.md.
  */
-function trsdos23SystemFilename(hitIndex: number): string | undefined {
+export function trsdos23SystemFilename(hitIndex: number): string | undefined {
     const row = hitIndex >> 5;
     const column = hitIndex & 0x1F;
     if (row > 3 || column > 7) {
