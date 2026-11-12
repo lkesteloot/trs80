@@ -67,6 +67,13 @@ export interface DiskCommand {
     floppyOnly?: boolean;
 
     /**
+     * Whether the command writes host files other than the image (as "extract" does), so that a caller that
+     * mustn't change anything, such as the MCP server's read-only "disk" tool, can refuse it. Leave it out
+     * for the commands that only change the disk in memory.
+     */
+    writesHostFiles?: boolean;
+
+    /**
      * Run the command.
      *
      * @param session the open disk.
@@ -199,6 +206,8 @@ const EXTRACT_COMMAND: DiskCommand = {
     },
 
     endsSession: false,
+
+    writesHostFiles: true,
 
     /**
      * Write the selected files to the host, as the top-level "extract" command does, or with --as write the

@@ -267,7 +267,7 @@ interface SectorJson {
 /**
  * The JSON for one input file of "sectors --json".
  */
-interface SectorsInfileJson extends InfileJson {
+export interface SectorsInfileJson extends InfileJson {
     /** A short description of the floppy image, such as "DMK floppy with 40 cylinders". Missing if the input had an error. */
     description?: string;
     /** The name and version of the floppy's operating system, or null if there's none we recognize. Missing if the input had an error. */
@@ -357,6 +357,20 @@ function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: b
  * With onlyShowBad, floppies without bad sectors aren't in it.
  */
 export function sectorsJson(filenames: string[], showContents: boolean, onlyShowBad: boolean): void {
+    printInfilesJson(sectorsJsonInfiles(filenames, showContents, onlyShowBad));
+}
+
+/**
+ * The "infiles" of "sectors --json", without printing them. With onlyShowBad, floppies without bad
+ * sectors aren't in it.
+ *
+ * @param filenames the input files, with wildcards already expanded.
+ * @param showContents whether to include each sector's contents, in base64.
+ * @param onlyShowBad whether to include only the bad sectors.
+ */
+export function sectorsJsonInfiles(filenames: string[], showContents: boolean,
+                                   onlyShowBad: boolean): SectorsInfileJson[] {
+
     const infiles: SectorsInfileJson[] = [];
     for (const filename of filenames) {
         const {result, warnings} = captureLogs(() => sectorsFileJson(filename, showContents, onlyShowBad));
@@ -364,8 +378,7 @@ export function sectorsJson(filenames: string[], showContents: boolean, onlyShow
             infiles.push({ ...result, warnings });
         }
     }
-
-    printInfilesJson(infiles);
+    return infiles;
 }
 
 /**

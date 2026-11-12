@@ -2,7 +2,7 @@ import {expandFile, InputFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
 import {colorError, colorFilename, colorSize} from "./lscolors.js";
 import {combineExitCodes, ToolError, toolErrorExitCode, type ToolExitCode} from "./utils.js";
-import {filesInfileJson, printInfilesJson} from "./json.js";
+import {filesInfileJson, type FilesInfileJson, printInfilesJson} from "./json.js";
 
 /**
  * Handle the "dir" command.
@@ -13,8 +13,7 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
                           json: boolean): Promise<void> {
 
     if (json) {
-        printInfilesJson(inFilenames.map(inFilename =>
-            filesInfileJson(inFilename, showSystemFiles, cpmWholeRecords, undefined)));
+        printInfilesJson(dirJsonInfiles(inFilenames, showSystemFiles, cpmWholeRecords));
         return;
     }
 
@@ -45,6 +44,19 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
     if (exitCodes.length > 0) {
         process.exitCode = combineExitCodes(exitCodes);
     }
+}
+
+/**
+ * The "infiles" of "dir --json", without printing them.
+ *
+ * @param inFilenames the input files, with wildcards already expanded.
+ * @param showSystemFiles whether to include system files from floppies.
+ * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records.
+ */
+export function dirJsonInfiles(inFilenames: string[], showSystemFiles: boolean,
+                               cpmWholeRecords: boolean): FilesInfileJson[] {
+
+    return inFilenames.map(inFilename => filesInfileJson(inFilename, showSystemFiles, cpmWholeRecords, undefined));
 }
 
 /**
