@@ -1,6 +1,7 @@
 /**
  * Makes DMK images with tracks past the disk's end, as imagers leave them, for tests of what a trim may
- * drop: re-reads of an earlier cylinder, unformatted tracks, and blank tracks formatted like the disk.
+ * drop: re-reads of an earlier cylinder, unformatted tracks, and blank tracks formatted like the disk (or
+ * like another cylinder of it, as an earlier format leaves them).
  */
 
 import {makeBlankFloppy} from "./DmkBuilder.js";
@@ -20,8 +21,11 @@ export type TestTailTrack =
     {kind: "reRead", cylinder: number} |
     /** No IDs at all. */
     {kind: "unformatted"} |
-    /** Formatted by the layout, holding its filler, with IDs naming the track's own cylinder. */
-    {kind: "blank"};
+    /**
+     * Formatted by the layout, holding its filler, with IDs naming the track's own cylinder, or idCylinder
+     * if given (which may be past the image's end).
+     */
+    {kind: "blank", idCylinder?: number};
 
 /**
  * Add cylinders to the end of a DMK image.
@@ -39,7 +43,9 @@ export function appendDmkTestTracks(floppy: DmkFloppyDisk, cylinders: TestTailTr
     const trackLength = floppy.trackLength;
     const trackOffset = (cylinder: number, side: number) => DMK_HEADER_SIZE + (cylinder*sideCount + side)*trackLength;
 
-    const blank = makeBlankFloppy(layout, newCylinders, sideCount);
+    const blankCylinders = Math.max(newCylinders,
+        ...cylinders.flat().map(track => track.kind === "blank" && track.idCylinder !== undefined ? track.idCylinder + 1 : 0));
+    const blank = makeBlankFloppy(layout, blankCylinders, sideCount);
     if (blank === undefined || blank.trackLength !== trackLength) {
         throw new Error("Can't make blank tracks of the image's length");
     }
@@ -60,9 +66,11 @@ export function appendDmkTestTracks(floppy: DmkFloppyDisk, cylinders: TestTailTr
                     break;
                 case "unformatted":
                     break;
-                case "blank":
-                    binary.set(blank.binary.subarray(to, to + trackLength), to);
+                case "blank": {
+                    const from = trackOffset(track.idCylinder ?? cylinder, side);
+                    binary.set(blank.binary.subarray(from, from + trackLength), to);
                     break;
+                }
             }
         });
     });

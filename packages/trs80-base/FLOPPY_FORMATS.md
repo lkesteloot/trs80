@@ -558,7 +558,8 @@ the reader, so JV1's synthesized deleted marks (see "Deleted address marks")
 never count, and only DMK and HFE record the raw size code (`SectorInfo.sizeCode`).
 
 **What the collection showed** (October-November 2026, all 1,745 floppy images
-in the regression suite; 98 flagged, none of them by an error):
+in the regression suite; 98 flagged, none of them by an error, and 94 once the
+limit below used the DOS's own disk size):
 
 - Every VTOS 3.0 disk (25, including its data disks) has the mini-sectors, as
   do two others (`ORGADV1M.DMK`, and side 1 of `Small C v2.1 ... [Disk 2 of 4]`).
@@ -580,15 +581,19 @@ in the regression suite; 98 flagged, none of them by an error):
   cylinder 2*n*, as on `Teasers by Tobbs` and `SuperCop`), and reads past the
   end of the disk that repeat an earlier cylinder. So the mixed-density and
   other-cylinder signs count only tracks that a TRSDOS-family file system can
-  allocate: its lumps' cylinders, on its allocation sides. That limit is the
-  decoder's lump count, which follows the image, not the GAT's cylinder count,
-  so leftovers past the GAT's end but inside the image still count: `CLOAD
-  Magazine Issue 58 [Set 3]`, an LDOS disk of 35 cylinders whose cylinder 35
-  mixes densities (see "Leftovers from earlier formats"), and re-read tails
-  (TRSDOS 6.2.1 and CP/M Plus originals, cylinder 40; `Xenos [Set 3]`, cylinder
-  42; `RemDisk 1`, 34-39), as do 80-track reads of 40-track disks (`Make-80 ...
-  [Set 2]`). The other-cylinder ones are reported only as possible, and are what
-  trim (#47) needs to know about.
+  allocate: its allocation sides, and its cylinders up to the disk's size by
+  the DOS's own records (see "Tails past the disk's end"). The decoder's lump
+  count can't be the limit, since it follows the image. Where the records prove
+  no size, every cylinder of the image counts. Using the proven size dropped the
+  signs on five disks, all on tracks past the end: `CLOAD Magazine Issue 58 [Set
+  3]`, an LDOS disk of 35 cylinders whose cylinder 35 mixes densities (see
+  "Leftovers from earlier formats"); `Xenos [Set 3]`'s re-read cylinder 42;
+  `NEWDOS80 v2.052 [German][Set 2]`'s cylinder 42; `Creator and Reportor`'s
+  cylinders 40-42 (its 24-39, inside the disk, still count); and cylinder 40 of
+  `TRSDOS v6.02.01-AR [Original][Set 5]`, 18 sectors of 0x6C filler (DOSPLUS
+  3.5's and IV's, below) whose IDs all name cylinder 42. Tails on disks whose
+  size isn't proven (`RemDisk 1`'s 34-39, from a DOS we can't name), and
+  80-track reads of 40-track disks (`Make-80 ... [Set 2]`), still count. The other-cylinder ones are reported only as possible.
 - A dual-boot disk's boot sector belongs to the other DOS (`Moon Rover`'s says
   directory cylinder 0), so a boot byte of 0 doesn't count against the directory.
 - `newdos80-SSSD-80T.dmk` and its double-sided twin are flagged for 18 0xFA
