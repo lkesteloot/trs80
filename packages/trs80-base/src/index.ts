@@ -28,6 +28,7 @@ export * from "./TrsdosDiskInfo.js";
 export * from "./TrsdosFilename.js";
 export * from "./TrsdosFormat.js";
 export * from "./TrsdosGranuleMap.js";
+export * from "./TrsdosMultidos.js";
 export * from "./TrsdosNewdos80.js";
 export * from "./TrsdosRuleSet.js";
 export * from "./TrsdosTestDisk.js";

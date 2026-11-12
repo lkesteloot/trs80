@@ -24,6 +24,7 @@ import {
     GAT_MEDIA_BLOCK_OFFSET, gatHasMediaBlock, isTrsdosSystemInformationSector, readTrsdosDiskInfo, SYSINFO_AUTO_LENGTH, SYSINFO_AUTO_OFFSET,
     type TrsdosDiskInfo, trsdosGatDateYearRange, trsdosKeepsAutoInSystemInformation, trsdosSystemInformationPosition,
 } from "./TrsdosDiskInfo.js";
+import {MULTIDOS_MARKER_RAW_FILENAME} from "./TrsdosMultidos.js";
 import {NEWDOS80_MAX_EXTENT_LUMP, newdos80DosLumpCount, newdos80GranuleNeverAllocated} from "./TrsdosNewdos80.js";
 import {TrsdosRuleSet, trsdosRuleSetLayout, trsdosRuleSetToString} from "./TrsdosRuleSet.js";
 
@@ -886,7 +887,7 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(`${name} is a system file that TRSDOS 1.3 doesn't list in its directory, ` +
                 `so it can't be replaced`);
         }
-        if (PROTECTED_RAW_FILENAMES.includes(dirEntry.rawFilename)) {
+        if (this.isProtectedEntry(dirEntry)) {
             throw new TrsdosWriteError(`${name} can't be replaced: the DOS needs it where it is`);
         }
         this.checkFilesWritable("Replacing files");
@@ -1126,6 +1127,16 @@ export class TrsdosWriter {
                 // 6 stay as they were.
                 warning = this.makeDateFields(options.date).warning;
                 byte1 |= NEWDOS80_BYTE1_WRITTEN;
+                break;
+
+            case TrsdosRuleSet.MULTIDOS:
+                // Bytes 1 and 2 and 16 to 19 stay as they were. A file that a later MultiDOS wrote keeps its
+                // access password in bytes 1 and 2 and its date in 16 to 19, which can't be told from a 1.x
+                // entry, so a date isn't stored over them.
+                if (options.date !== undefined) {
+                    warning = "The date of a file that replaces another isn't changed on MultiDOS disks, " +
+                        "so the date was ignored";
+                }
                 break;
 
             case TrsdosRuleSet.LDOS_5:
@@ -1431,6 +1442,23 @@ export class TrsdosWriter {
                 return {byte1: NEWDOS80_BYTE1_WRITTEN, byte2: 0, timeStamp: undefined, warning};
             }
 
+            case TrsdosRuleSet.MULTIDOS: {
+                // MultiDOS 1.x and 2.00 keep the month in the low nibble of byte 1, whose other bits are zero on
+                // nearly every file, and the day and the year since 1980 in byte 2, as the LDOS line does. With no
+                // date both are zero. See "Writing MultiDOS" in FLOPPY_FORMATS.md.
+                if (date === undefined) {
+                    return {byte1: 0, byte2: 0, timeStamp: undefined, warning: undefined};
+                }
+                const year = date.getFullYear();
+                if (Number.isNaN(year) || year < FIRST_YEAR || year > LAST_YEAR_WITHOUT_TIME_STAMP) {
+                    throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
+                        `${Number.isNaN(year) ? "of that date" : year}; give a date from ${FIRST_YEAR} to ` +
+                        `${LAST_YEAR_WITHOUT_TIME_STAMP}, or none`);
+                }
+                const byte2 = (date.getDate() << 3) | ((year - FIRST_YEAR) & 0x07);
+                return {byte1: date.getMonth() + 1, byte2, timeStamp: undefined, warning: undefined};
+            }
+
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6: {
                 if (date === undefined) {
@@ -1488,6 +1516,7 @@ export class TrsdosWriter {
             case TrsdosRuleSet.TRSDOS_6:
             case TrsdosRuleSet.DOSPLUS:
             case TrsdosRuleSet.NEWDOS_80:
+            case TrsdosRuleSet.MULTIDOS:
                 return false;
 
             default:
@@ -1506,6 +1535,8 @@ export class TrsdosWriter {
      *   an extended entry, so we don't know what the DOS writes in one.
      * - NEWDOS/80: written, because 24 of the 25 extended entries on the NEWDOS/80 version 2 disks that we
      *   measured are in the form that we write for LDOS ("Writing NEWDOS/80" in FLOPPY_FORMATS.md).
+     * - MultiDOS: not written, since only one of the MultiDOS 1.x and 2.00 disks we measured has an extended
+     *   entry, which isn't enough to say what the DOS writes in one.
      * - TRSDOS 1.3 has no extended entries, so the question doesn't arise.
      */
     private extendedEntriesUnsupported(): string | undefined {
@@ -1517,6 +1548,10 @@ export class TrsdosWriter {
                 return "writing TRSDOS 2.7's extended directory entries isn't supported, since no disk we've seen " +
                     "has one";
 
+            case TrsdosRuleSet.MULTIDOS:
+                return "writing MultiDOS's extended directory entries isn't supported, since too few disks we've " +
+                    "seen have one";
+
             case TrsdosRuleSet.TRSDOS_1_3:
             case TrsdosRuleSet.LDOS_5:
             case TrsdosRuleSet.TRSDOS_6:
@@ -1527,6 +1562,16 @@ export class TrsdosWriter {
             default:
                 assertNever(this.ruleSet);
         }
+    }
+
+    /**
+     * Whether an entry must stay as it is, because the DOS needs it where it is: BOOT/SYS and DIR/SYS, and under
+     * MultiDOS's rules the NoDOS/Ind marker entry that its FORMAT writes, which isn't a user file (see
+     * {@link MULTIDOS_MARKER_RAW_FILENAME}).
+     */
+    private isProtectedEntry(dirEntry: TrsdosDirEntry): boolean {
+        return PROTECTED_RAW_FILENAMES.includes(dirEntry.rawFilename) ||
+            (this.ruleSet === TrsdosRuleSet.MULTIDOS && dirEntry.rawFilename === MULTIDOS_MARKER_RAW_FILENAME);
     }
 
     /**
@@ -1554,7 +1599,7 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(`${name} is a system file that TRSDOS 1.3 doesn't list in its directory, ` +
                 `so it can't be deleted`);
         }
-        if (PROTECTED_RAW_FILENAMES.includes(dirEntry.rawFilename)) {
+        if (this.isProtectedEntry(dirEntry)) {
             throw new TrsdosWriteError(`${name} can't be deleted: the DOS needs it where it is`);
         }
 
@@ -1610,7 +1655,7 @@ export class TrsdosWriter {
             throw new TrsdosWriteError(`${name} is a system file that TRSDOS 1.3 doesn't list in its directory, ` +
                 `so it can't be renamed`);
         }
-        if (PROTECTED_RAW_FILENAMES.includes(dirEntry.rawFilename)) {
+        if (this.isProtectedEntry(dirEntry)) {
             throw new TrsdosWriteError(`${name} can't be renamed: the DOS needs it where it is`);
         }
 
@@ -1727,6 +1772,23 @@ export class TrsdosWriter {
             case TrsdosRuleSet.NEWDOS_80:
                 break;
 
+            case TrsdosRuleSet.MULTIDOS: {
+                if (dirEntry.rawFilename === MULTIDOS_MARKER_RAW_FILENAME) {
+                    throw new TrsdosWriteError(`${name} is the marker that MultiDOS's FORMAT writes, not a file, ` +
+                        `so its attributes can't be changed`);
+                }
+                // MultiDOS 2.10 keeps a time stamp in the access password bytes, and 4.01 on keep the access
+                // password in bytes 1 and 2 and the date in bytes 16 to 19. A file that one of them wrote can be
+                // on a 1.x disk, and its entry can't be told from a 1.x one, so neither is written over.
+                const changesPassword = changes.updatePassword !== undefined || changes.accessPassword !== undefined;
+                if (changesPassword || changes.date !== undefined) {
+                    throw new TrsdosWriteError(`Can't set the ${changesPassword ? "passwords" : "date"} of ${name}: ` +
+                        "later MultiDOS releases keep dates and passwords in each other's bytes, and an entry that " +
+                        "one of them wrote can't be told from one that MultiDOS 1.x wrote");
+                }
+                break;
+            }
+
             default:
                 assertNever(this.ruleSet);
         }
@@ -1756,7 +1818,7 @@ export class TrsdosWriter {
         }
         const wasSystem = (flags & FLAG_SYSTEM) !== 0;
         if (changes.system !== undefined && changes.system !== wasSystem) {
-            if (PROTECTED_RAW_FILENAMES.includes(dirEntry.rawFilename)) {
+            if (this.isProtectedEntry(dirEntry)) {
                 throw new TrsdosWriteError(`${name} can't become ${wasSystem ? "a user" : "a system"} file: ` +
                     `the DOS needs it as it is`);
             }
@@ -1806,6 +1868,10 @@ export class TrsdosWriter {
                 case TrsdosRuleSet.TRSDOS_1_3:
                 case TrsdosRuleSet.TRSDOS_2_7:
                     break;
+
+                case TrsdosRuleSet.MULTIDOS:
+                    // Refused above.
+                    throw new TrsdosWriteError(`Can't set the date of ${name} on a MultiDOS disk`);
 
                 default:
                     assertNever(this.ruleSet);
@@ -1909,6 +1975,14 @@ export class TrsdosWriter {
             case TrsdosRuleSet.TRSDOS_1_3:
             case TrsdosRuleSet.TRSDOS_2_7:
             case TrsdosRuleSet.NEWDOS_80:
+                break;
+
+            case TrsdosRuleSet.MULTIDOS:
+                // MultiDOS's AUTO commands start with a flag character ("#DIR", "!.CC/CMD") that we haven't
+                // worked out, and FORMAT leaves its copyright in the field.
+                if (changes.autoCommand !== undefined) {
+                    throw new TrsdosWriteError("Changing the AUTO command isn't supported on MultiDOS disks");
+                }
                 break;
 
             default:
@@ -2030,6 +2104,8 @@ export class TrsdosWriter {
         }
         switch (this.ruleSet) {
             case TrsdosRuleSet.DOSPLUS:
+            case TrsdosRuleSet.MULTIDOS:
+                // Both keep mixed-case names ("Multidos").
                 return trimmed;
 
             case TrsdosRuleSet.TRSDOS_2:
@@ -2440,7 +2516,9 @@ export class TrsdosWriter {
      * bits, but it has a table of cylinders that don't exist or are flawed, and a granule on such a cylinder
      * is kept too. Under NEWDOS/80's rules, a granule that the GAT's existence table says doesn't exist, or that
      * is in a lump the DOS doesn't allocate, is kept as well.) On TRSDOS 2.7 none is freed, since the DOS's system
-     * files, which aren't in the directory, look unclaimed (see {@link repair}).
+     * files, which aren't in the directory, look unclaimed (see {@link repair}), and under MultiDOS's rules none
+     * is either, since some editions keep their resident on the boot track or below the directory, outside
+     * any file.
      *
      * @param free whether to free the granules.
      * @param changes the user-facing lines, to which the line for this fix is added.
@@ -2458,6 +2536,7 @@ export class TrsdosWriter {
             const neverFreed = granule.lump === 0 || granule.lockedOut ||
                 (existenceTable !== undefined && (existenceTable[granule.lump] ?? 0) !== 0) ||
                 this.trsdos.version === TrsdosVersion.V2_7 ||
+                this.ruleSet === TrsdosRuleSet.MULTIDOS ||
                 (this.ruleSet === TrsdosRuleSet.NEWDOS_80 &&
                     this.isNeverAllocated(granule.lump*this.trsdos.granulesPerLump + granule.granule));
             if (neverFreed) {
@@ -2628,7 +2707,8 @@ export class TrsdosWriter {
      * Delete one directory entry in memory: clear its in-use bit and its HIT byte, as the DOS's own KILL does. The
      * KILLs of TRSDOS 1.3 (Model III TRSDOS Commented, PDF page 77) and of TRSDOS 2.2 and 2.3 (SYS3/SYS at 5005H)
      * also zero the rest of the entry, so it does here under their rules. The others, TRSDOS 2.7 and 2.8 among them,
-     * leave the rest, which their UNKILL needs, as does NEWDOS/80's. See "Deleting a file" in FLOPPY_FORMATS.md.
+     * leave the rest, which their UNKILL needs, as do NEWDOS/80's and MultiDOS's. See "Deleting a file" in
+     * FLOPPY_FORMATS.md.
      */
     private clearDirEntry(slot: TrsdosDirSlot): void {
         const {sectorPosition, offset} = this.trsdos.getDirEntryLocation(slot.hitIndex);
@@ -2646,8 +2726,10 @@ export class TrsdosWriter {
             case TrsdosRuleSet.DOSPLUS:
             case TrsdosRuleSet.TRSDOS_2_7:
             case TrsdosRuleSet.NEWDOS_80:
+            case TrsdosRuleSet.MULTIDOS:
                 // NEWDOS/80's KILL clears only the in-use bit and the HIT byte (NEWDOS/80 Version 2.0 manual,
-                // PDF page 98).
+                // PDF page 98), and so does MultiDOS's, whose RESTOR sets the bit again (see "Writing MultiDOS"
+                // in FLOPPY_FORMATS.md).
                 zeroEntry = false;
                 break;
 

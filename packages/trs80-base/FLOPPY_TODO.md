@@ -277,6 +277,22 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
         existence table at all (manual PDF page 117), so they may well be writable. A decision for the user.
       - Creating and formatting NEWDOS/80 disks (`create`, `format`): we have no NEWDOS/80 boot sector to write.
       - The other NEWDOSes (NEWDOS/86, NEWDOS/90, NEWDOS+), and the German G-DOS and H-DOS.
+- [ ] **Writing MultiDOS: what's left.** The writer covers 1.x and 2.00 (see "Writing MultiDOS" in
+      FLOPPY_FORMATS.md). Not written:
+      - 2.10, whose access password bytes hold a time stamp, and 4.01 on, which keep the access password in
+        bytes 1-2 and the date in bytes 16-19. The decoder doesn't read either yet: 4.01's files show the blank
+        hash as 08/06/1982 and its system files as month 15. Reading them, and telling a later release's entry on
+        a 1.x disk from a 1.x one, would also let `attrib` set passwords and dates on 1.x disks.
+      - Disks with a volume on each side (`SI=2`): none is in the collection, so the second volume isn't read
+        either. The writer refuses a two-sided image that allocates one side, or whose side-1 IDs say side 0.
+      - GATs whose 0xCC and 0xCD don't describe the image (most are images with an extra cylinder, or of 35
+        cylinders whose GAT says 40). Those with fewer lumps in the GAT than the image could be written by never
+        allocating past the GAT's count, as for NEWDOS/80's PDRIVE count.
+      - Extended entries (one disk has one), and the AUTO command, whose leading `#` or `!` we haven't worked out.
+      - A MultiDOS disk with no version (`Bright-412` is 2.0 by its label but has no banner or stub that says so),
+        MultiDOS II, and the "MultiDOS or Esoteric" disks.
+      - Creating and formatting MultiDOS disks: #28 gives 1.0's FORMAT track layout (FM `0 5 1 6 2 7 3 8 4 9`,
+        MFM 3:1 with a 5-sector skew, `MULTIDOS` fill), but we have no MultiDOS boot sector to write.
 - [ ] **Protection level names on TRSDOS 1.3 and 2.7** are TRSDOS 6's (1
       remove, 3 write, 4 update), which comes from 1.3 being Model II
       TRSDOS's descendant, not from a manual: the TRSDOS 1.3 Reference Guide

@@ -12,6 +12,7 @@ import {readPdriveTable} from "./Pdrive.js";
 import type {Trsdos} from "./Trsdos.js";
 import {GAT_MEDIA_BLOCK_OFFSET, gatHasMediaBlock} from "./TrsdosDiskInfo.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
+import {multidosGatSize} from "./TrsdosMultidos.js";
 import {identifyTrsdosRuleSet, TrsdosRuleSet} from "./TrsdosRuleSet.js";
 
 /**
@@ -28,6 +29,30 @@ const TRSDOS_1_3_CYLINDERS = 40;
  * Offset in the media block of the highest cylinder number.
  */
 const MEDIA_BLOCK_HIGHEST_CYLINDER = 7;
+
+/**
+ * The size of a MultiDOS disk, from GAT bytes 0xCC and 0xCD, which MultiDOS keeps in one of two forms
+ * (see multidosGatSize()). Only a GAT that agrees with the image's cylinders counts, since a "P" density
+ * disk's 0xCC is lumps rather than cylinders, and so is a NEWDOS/80 disk's after MultiDOS's CAT (X).
+ */
+function multidosDiskSize(trsdos: Trsdos): DosDiskSize | string {
+    const gat = trsdos.disk.readSector(trsdos.getGatPosition());
+    if (gat === undefined) {
+        return "its GAT can't be read";
+    }
+    const size = multidosGatSize(trsdos, gat.data);
+    if (size === undefined) {
+        return "GAT bytes 0xCC and 0xCD don't describe this disk's layout in either of the forms MultiDOS writes";
+    }
+    switch (size.form) {
+        case "counts":
+            return {cylinderCount: size.cylinderCount, source: "GAT byte 0xCD"};
+        case "ldos":
+            return {cylinderCount: size.cylinderCount, source: "GAT byte 0xCC"};
+        default:
+            assertNever(size.form);
+    }
+}
 
 /**
  * How many cylinders a disk has by its DOS's own records.
@@ -190,7 +215,7 @@ function newdos80DiskSize(trsdos: Trsdos, floppy: FloppyDisk): DosDiskSize | str
 
 /**
  * How many cylinders a disk has by its DOS's own records: LDOS and TRSDOS 6's GAT byte 0xCC (and media
- * block), DOSPLUS's 0xCC, NEWDOS/80's PDRIVE table, or TRSDOS 2.x and 1.x's fixed size. The GAT must agree:
+ * block), DOSPLUS's 0xCC, MultiDOS's 0xCC and 0xCD, NEWDOS/80's PDRIVE table, or TRSDOS 2.x and 1.x's fixed size. The GAT must agree:
  * no file, and on the 2.3 layout no free space, past the end. A disk whose DOS we can't name has no size.
  *
  * @param trsdos the file system.
@@ -239,6 +264,9 @@ export function findDosDiskSize(trsdos: Trsdos, floppy: FloppyDisk, use: TrsdosC
                 break;
             case TrsdosRuleSet.DOSPLUS:
                 size = dosplusDiskSize(trsdos);
+                break;
+            case TrsdosRuleSet.MULTIDOS:
+                size = multidosDiskSize(trsdos);
                 break;
             default:
                 assertNever(ruleSet);

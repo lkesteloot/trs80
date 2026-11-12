@@ -219,6 +219,7 @@ describe("help dos", () => {
             "  dosplus     DOSPLUS 3",
             "  trsdos-2.7  TRSDOS 2.7 and 2.8 (also trsdos-2.8)",
             "  newdos-80   NEWDOS/80 2.x (also newdos80, newdos/80)",
+            "  multidos    MultiDOS 1.x and 2.00",
         ]);
     });
 
@@ -256,6 +257,6 @@ describe("parseDosName", () => {
 
     it("rejects an unknown name and lists the choices", () => {
         expect(() => parseDosName("bogus")).to.throw(ToolError,
-            "Unknown DOS \"bogus\" for --dos. The choices are trsdos-2, trsdos-1.3, ldos-5, trsdos-6, dosplus, trsdos-2.7, newdos-80");
+            "Unknown DOS \"bogus\" for --dos. The choices are trsdos-2, trsdos-1.3, ldos-5, trsdos-6, dosplus, trsdos-2.7, newdos-80, multidos");
     });
 });

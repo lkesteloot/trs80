@@ -472,7 +472,8 @@ export function getSessionFormatDos(session: DiskSession): TrsdosFormatDos | und
         case TrsdosRuleSet.DOSPLUS:
         case TrsdosRuleSet.TRSDOS_2_7:
         case TrsdosRuleSet.NEWDOS_80:
-            // We have no NEWDOS/80 boot sector to write.
+        case TrsdosRuleSet.MULTIDOS:
+            // We have no NEWDOS/80 or MultiDOS boot sector to write.
             return undefined;
         default:
             assertNever(ruleSet);

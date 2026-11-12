@@ -27,12 +27,17 @@
             so in memory, and the image is written once, after the last command: if any
             command in the chain or any line of a script fails, nothing is saved.</p>
             <p>Only some disks can be changed: floppies of the TRSDOS family whose DOS is TRSDOS 2.x,
-            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, DOSPLUS 3, TRSDOS 2.7 / 2.8, or NEWDOS/80 version 2, and LDOS 5 and LS-DOS 6 partitions of
+            TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, DOSPLUS 3, TRSDOS 2.7 / 2.8, NEWDOS/80 version 2, or MultiDOS 1.x
+            and 2.00, and LDOS 5 and LS-DOS 6 partitions of
             hard disks, as long as <code>check</code> finds no problem with the
             file system. NEWDOS/80 version 2 disks are written but not created or formatted, and are refused when
             their GAT, HIT and PDRIVE table disagree about the layout, or when they have more than 96 lumps, no
-            PDRIVE table, and a GAT that doesn't prove the disk's size. <code>--dos</code> and <code>--force</code> below can relax the
-            requirements on the disk when the tool is unsure.</p>
+            PDRIVE table, and a GAT that doesn't prove the disk's size. MultiDOS 1.x and 2.00 disks (including “P” density ones) are written but not created or
+            formatted, and are refused, even with <code>--force</code>, when GAT bytes 0xCC and 0xCD don’t describe
+            the image, or when the image has two sides but the disk isn’t one volume over both (MultiDOS also makes
+            disks with a directory on each side). Later MultiDOS releases (2.10 on), MultiDOS II, and a MultiDOS disk
+            that doesn’t say which release made it aren’t written. <code>--dos</code> and <code>--force</code> below
+            can relax the requirements on the disk when the tool is unsure.</p>
 
             <h2>Table of contents</h2>
 
@@ -96,8 +101,10 @@
                         override what it says. The names are <code>trsdos-2</code>, <code>trsdos-1.3</code>,
                         <code>ldos-5</code>, <code>trsdos-6</code> (also <code>ldos-6</code> and
                         <code>ls-dos-6</code>), <code>dosplus</code>, <code>trsdos-2.7</code> (also
-                        <code>trsdos-2.8</code>), and <code>newdos-80</code> (also <code>newdos80</code> and
-                        <code>newdos/80</code>); <code>help dos</code> lists them. It
+                        <code>trsdos-2.8</code>), <code>newdos-80</code> (also <code>newdos80</code> and
+                        <code>newdos/80</code>), and <code>multidos</code>; <code>help dos</code> lists them. A
+                        MultiDOS disk is written only by <code>multidos</code>, and <code>multidos</code> only on a
+                        MultiDOS 1.x or 2.00 disk. It
                         doesn’t change how the disk is read, and it only applies to TRSDOS-family disks. It also
                         changes what <code>info</code> and <code>check</code> say about whether the disk is
                         writable. Put it before the first command.</td>
@@ -259,12 +266,13 @@
                 </tr>
                 <tr>
                     <td><code>--date YYYY-MM-DD</code></td>
-                    <td>Give the files this date. Files get no date unless you give one, and only LDOS
-                        and TRSDOS 6 / LS-DOS 6 disks keep one: TRSDOS 2.x, DOSPLUS 3 and NEWDOS/80 disks ignore it, with a
+                    <td>Give the files this date. Files get no date unless you give one, and only LDOS,
+                        TRSDOS 6 / LS-DOS 6 and MultiDOS disks keep one: TRSDOS 2.x, DOSPLUS 3 and NEWDOS/80 disks ignore it, with a
                         warning (<code>attrib</code> refuses one on those disks). Those disks hold the years 1980 to 1987, or 1980 to 2011 on an LDOS 5.3 or
                         LS-DOS 6.3 disk (which also stores the time of day), and a year outside that is an
                         error. With no date, the entry is marked as having none. TRSDOS 1.3 and TRSDOS 2.7 / 2.8
-                        disks keep only the month and year, from 1980 to 1999.</td>
+                        disks keep only the month and year, from 1980 to 1999. A file that replaces another on a
+                        MultiDOS disk keeps the old file’s date, and a date given is ignored with a warning.</td>
                 </tr>
                 <tr>
                     <td><code>--overwrite</code></td>
@@ -345,6 +353,12 @@
                 </tr>
             </table>
 
+            <p>On MultiDOS disks <code>attrib</code> doesn’t set passwords or dates. MultiDOS 2.10 keeps a time
+            in the access password’s bytes, and 4.01 on keep the access password where 1.x keeps the date and the
+            date where 1.x keeps the passwords. A file that a later release copied onto a 1.x disk looks just like
+            one that 1.x wrote, so writing either could change the other. FORMAT’s <code>NoDOS/Ind</code> entry, which
+            MultiDOS 1.x writes where other DOSes have BOOT/SYS, can’t be killed, renamed, replaced or changed.</p>
+
             <p>The protection level is a name or a number from 0 to 7, in any case. The names
             are the disk’s DOS’s: <code>FULL</code> (0), <code>KILL</code> (1), <code>RENAME</code> (2),
             <code>WRITE</code> (4), <code>READ</code> (5), <code>EXEC</code> (6), and
@@ -389,7 +403,9 @@
             (one that another program formatted) can’t be given an AUTO command. Changing the
             name or date doesn’t change the DOS release banner that TRSDOS 6 keeps in that sector. On NEWDOS/80 disks
             the name, date, password and AUTO command are in the GAT, and an unused AUTO field is filled with 0xFF,
-            as NEWDOS/80 does; the PDRIVE table in cylinder 0 is left alone.</p>
+            as NEWDOS/80 does; the PDRIVE table in cylinder 0 is left alone. On MultiDOS disks the name keeps its
+            case, and the AUTO command can’t be changed, since MultiDOS’s AUTO commands start with a flag
+            character that we haven’t worked out.</p>
 
             <h3 id="protect"><code>protect</code></h3>
             <div><pre><code>protect [on|off]</code></pre>
@@ -565,7 +581,8 @@ partition --delete [N|NAME] [--force]</code></pre>
                     <td>Also free the granules that the GAT marks used but no file claims. Granules on the boot cylinder
                         and locked-out ones are never freed. It’s refused on TRSDOS 2.7 / 2.8 disks, whose system files
                         aren’t in the directory, so that their granules look unclaimed. On NEWDOS/80 disks it never frees
-                        a granule that the GAT’s existence table says doesn’t exist.</td>
+                        a granule that the GAT’s existence table says doesn’t exist, and on MultiDOS disks it frees none,
+                        since some editions keep their resident outside any file.</td>
                 </tr>
                 <tr>
                     <td><code>--fix-program-sizes</code></td>
@@ -699,8 +716,9 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
                     LS-DOS (checked against the media block, where there is one) and DOSPLUS; the PDRIVE table
                     of a NEWDOS/80 system disk; or the fixed 35 cylinders of TRSDOS 2.x (or more, if the GAT
                     covers more) and 40 of TRSDOS 1.x. No file, directory, free space or boot sector pointer is on
-                    it. A disk whose DOS we can’t name, or that doesn’t record its size this way (CP/M, MultiDOS,
-                    NEWDOS 2.1 and others), has nothing dropped.</li>
+                    it. A disk whose DOS we can’t name, or that doesn’t record its size this way (CP/M, MultiDOS
+                    2.10 on, NEWDOS 2.1 and others), has nothing dropped, and neither does a MultiDOS 1.x or 2.00 disk,
+                    whose GAT bytes 0xCC and 0xCD count only when they describe the whole image.</li>
                 <li>Each of its tracks is an imager’s re-read of an earlier cylinder (every ID names that
                     cylinder and every sector reads the same as it) or is unformatted (no IDs). A track formatted
                     like the rest of the disk stays even when it holds only filler, and one formatted another way,

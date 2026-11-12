@@ -1,5 +1,6 @@
 import {assertNever} from "z80-base";
 import type {Trsdos} from "./Trsdos.js";
+import {multidosReservedDecs} from "./TrsdosMultidos.js";
 import {newdos80IsSystemDisk} from "./TrsdosNewdos80.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
 
@@ -74,6 +75,8 @@ function newdos80SystemFileDecs(trsdos: Trsdos): number[] {
  *   disk, which the GAT says with bit 7 of byte 0xCD.
  * - NEWDOS/80 2.x: DECs 0 and 1 on a data disk, and on a system disk all 32 DECs of entries 0 to 3 of
  *   the first eight directory sectors (the slots of BOOT/SYS, DIR/SYS and SYS0-SYS29).
+ * - MultiDOS 1.x and 2.00: entries 0 and 1 of the first 16 directory sectors, and entries 6 and 7 of the
+ *   last, on every disk (see {@link multidosReservedDecs}).
  * - TRSDOS 1.3: none, since its system files aren't in the directory (see "TRSDOS 1.3 system files").
  * - TRSDOS 2.7 and 2.8: none, since their system files aren't in the directory either (see "Which DOSes
  *   share a layout").
@@ -95,6 +98,9 @@ export function reservedDecs(trsdos: Trsdos, ruleSet: TrsdosRuleSet): Set<number
             // all the system file slots stay reserved even when a SYS file is absent, since the DOS's loader
             // would take a user file in one of them as the module.
             return newdos80IsSystemDisk(trsdos) ? new Set(newdos80SystemFileDecs(trsdos)) : new Set([0, 1]);
+
+        case TrsdosRuleSet.MULTIDOS:
+            return new Set(multidosReservedDecs(trsdos));
 
         case TrsdosRuleSet.TRSDOS_1_3:
         case TrsdosRuleSet.TRSDOS_2_7:

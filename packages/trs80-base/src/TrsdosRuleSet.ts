@@ -48,6 +48,12 @@ export enum TrsdosRuleSet {
      * dates, and a granule existence table in the GAT. See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
      */
     NEWDOS_80,
+
+    /**
+     * MultiDOS 1.0 through 2.00 (V. B. Hester, Cosmopolitan Electronics), on the TRSDOS 2.3 layout with
+     * cylinders or, on "P" density disks, NEWDOS/80-style lumps. See "Writing MultiDOS" in FLOPPY_FORMATS.md.
+     */
+    MULTIDOS,
 }
 
 /**
@@ -69,6 +75,8 @@ export function trsdosRuleSetToString(ruleSet: TrsdosRuleSet): string {
             return "TRSDOS 2.7 and 2.8";
         case TrsdosRuleSet.NEWDOS_80:
             return "NEWDOS/80 2.x";
+        case TrsdosRuleSet.MULTIDOS:
+            return "MultiDOS 1.x and 2.00";
         default:
             assertNever(ruleSet);
     }
@@ -94,6 +102,8 @@ export function trsdosRuleSetCliName(ruleSet: TrsdosRuleSet): string {
             return "trsdos-2.7";
         case TrsdosRuleSet.NEWDOS_80:
             return "newdos-80";
+        case TrsdosRuleSet.MULTIDOS:
+            return "multidos";
         default:
             assertNever(ruleSet);
     }
@@ -110,6 +120,7 @@ export const TRSDOS_RULE_SETS: readonly TrsdosRuleSet[] = [
     TrsdosRuleSet.DOSPLUS,
     TrsdosRuleSet.TRSDOS_2_7,
     TrsdosRuleSet.NEWDOS_80,
+    TrsdosRuleSet.MULTIDOS,
 ];
 
 /**
@@ -129,6 +140,8 @@ export function trsdosRuleSetAliases(ruleSet: TrsdosRuleSet): string[] {
             return ["trsdos-2.8"];
         case TrsdosRuleSet.NEWDOS_80:
             return ["newdos80", "newdos/80"];
+        case TrsdosRuleSet.MULTIDOS:
+            return [];
         default:
             assertNever(ruleSet);
     }
@@ -163,6 +176,7 @@ export function trsdosRuleSetLayout(ruleSet: TrsdosRuleSet): TrsdosVersion {
         case TrsdosRuleSet.TRSDOS_6:
         case TrsdosRuleSet.DOSPLUS:
         case TrsdosRuleSet.NEWDOS_80:
+        case TrsdosRuleSet.MULTIDOS:
             return TrsdosVersion.V2_3;
         case TrsdosRuleSet.TRSDOS_2_7:
             return TrsdosVersion.V2_7;
@@ -179,6 +193,9 @@ const TRSDOS_2_VERSIONS = ["2.0", "2.1", "2.2", "2.3", "2.0C", "2.1C", "2.2C", "
 // Tandy's 2.7DD, 2.7SD and 2.8.0 as their banners name them, and the data disks that only know
 // their layout.
 const TRSDOS_2_7_VERSIONS = ["2.7", "2.7DD", "2.7SD", "2.8", "2.8.0"];
+
+// MultiDOS 2.00 as its banner and Ira's table of FORMAT's GAT bytes name it.
+const MULTIDOS_2_00_VERSIONS = ["2.00", "2.0.0", "2.0"];
 
 /**
  * The rule set that one release of a family follows, or undefined if we have none. Among the
@@ -223,6 +240,14 @@ function ruleSetForVersion(family: DosFamily, version: DosVersion): TrsdosRuleSe
             // misnamed v1.0. Version 3.0 is a different release that we haven't studied.
             return version.major() === 2 ? TrsdosRuleSet.NEWDOS_80 : undefined;
 
+        case DosFamily.MULTIDOS:
+            // Every 1.x and 2.00, whose directory entries have the date in bytes 1 and 2 and the password
+            // hashes in bytes 16 to 19. From 2.10 the access password bytes can hold a time stamp, and from
+            // 4.01 bytes 1 and 2 hold the access password and bytes 16 to 19 the date and time, which we
+            // haven't confirmed well enough to write (see "Writing MultiDOS" in FLOPPY_FORMATS.md).
+            return version.major() === 1 || MULTIDOS_2_00_VERSIONS.some(text => version.is(text)) ?
+                TrsdosRuleSet.MULTIDOS : undefined;
+
         case DosFamily.UNKNOWN:
         case DosFamily.VTOS:
         case DosFamily.DOSPLUS_II:
@@ -234,7 +259,6 @@ function ruleSetForVersion(family: DosFamily, version: DosVersion): TrsdosRuleSe
         case DosFamily.G_DOS:
         case DosFamily.H_DOS:
         case DosFamily.DOUBLEDOS:
-        case DosFamily.MULTIDOS:
         case DosFamily.MULTIDOS_II:
         case DosFamily.ESOTERIC:
         case DosFamily.Z_DOS:
@@ -245,7 +269,8 @@ function ruleSetForVersion(family: DosFamily, version: DosVersion): TrsdosRuleSe
         case DosFamily.SUPER_UTILITY_PLUS:
         case DosFamily.BFLOADER:
             // DOSPLUS IV and II are other machines; SuperDOS, DOS500 and RAPIDOS, on the TRSDOS 1.3
-            // layout, have rules that haven't been checked; the rest we haven't written rules for.
+            // layout, have rules that haven't been checked; MultiDOS II is Cosmopolitan's other DOS, not
+            // a MultiDOS release; the rest we haven't written rules for.
             return undefined;
 
         default:
@@ -329,6 +354,7 @@ export function trsdosRuleSetBasicDialect(ruleSet: TrsdosRuleSet): BasicDialect 
         case TrsdosRuleSet.DOSPLUS:
         case TrsdosRuleSet.TRSDOS_2_7:
         case TrsdosRuleSet.NEWDOS_80:
+        case TrsdosRuleSet.MULTIDOS:
             return BasicDialect.MODEL_III;
         case TrsdosRuleSet.TRSDOS_6:
             return BasicDialect.MODEL_4;
