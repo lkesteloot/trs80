@@ -533,6 +533,35 @@ formats" in `FLOPPY_FORMATS.md` for what each holds and the results on the colle
 - [ ] **Filling the other direction:** `convert` makes floppy images only from floppy images. Putting
       files on a new disk is the `disk` command's job.
 
+## Copy protection signs
+
+`findProtectionSigns()` (`CopyProtection.ts`) does Ira's track signs and two of his four DOS-level
+signs (see "Copy protection signs" in `FLOPPY_FORMATS.md`). Left out, or left rough:
+
+- [ ] **Hidden directory entries:** an entry with a name but the in-use bit clear (attribute 8xh), which
+      Clone-III uses. Every KILL leaves one too, so it needs something that tells the two apart before
+      it's worth reporting, even as possible.
+- [ ] **Short extents:** extents holding fewer sectors than the entry's sector count (Stellar Escort,
+      Weerd), or more (S-002 Music Magic's BOOT/SYS). The 1.3 and 2.3 size rules differ (see `PageIt`
+      in "Disks worth remembering"), and damage looks the same, so it needs care to avoid flagging
+      damaged disks.
+- [ ] **Directory mismatch on NEWDOS/80-style lumps:** boot byte 2 is a lump there, not a cylinder, so
+      the sign is checked only where lumps are cylinders, and only on the 2.3 family.
+- [ ] **TRSDOS 1.1's backup count** is read from the boot word at 0xFC-0xFD, as Ira describes, but no 1.1
+      disk in the collection has a limited file to check it against.
+- [ ] **Leftovers past the GAT's end** still count as data tracks for the mixed-density and
+      other-cylinder signs, because the limit is the decoder's lump count, which follows the image. Using
+      the GAT's cylinder count (0xCC on the LDOS line) would drop `CLOAD Magazine Issue 58`'s cylinder 35,
+      but a wrong count would hide real signs, so it wants checking across the DOSes first.
+- [ ] **Re-read tails and 80-track reads** of 40-track disks are reported as IDs naming another cylinder
+      (possible). A sign of their own (the last tracks repeating an earlier cylinder; every even track
+      naming half its cylinder) would let trim (#47) tell them from protection.
+- [ ] **FA marks inside files** (`newdos80-SSSD-80T.dmk`'s EDTASM/CMD) are flagged as possible. Whether
+      some DOS or copier writes them there is unknown.
+- [ ] **Signs the readers can't see:** IDs with no data mark or inside other sectors' data that a reader
+      drops (see "IDs the HFE reader can't see" above), and raw size codes on JV3 and IMD, which can't
+      store them.
+
 ## Hard disks
 
 `HdvHardDisk` partitions that hold LDOS 5, LS-DOS 6 or DOSPLUS 3 file systems

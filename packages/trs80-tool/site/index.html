@@ -547,13 +547,35 @@ C CRC error (ID or data).
                         bad sectors are left out.</td>
                 </tr>
                 <tr>
+                    <td><code>--protection</code></td>
+                    <td>Instead of the table, list the signs of copy protection: sectors, tracks
+                        and directory structures that no DOS’s FORMAT or BACKUP writes and that
+                        protection schemes do, such as VTOS 3.0’s mini-sectors on cylinder 0, Tandy’s
+                        protection track on cylinder 40, renumbered sectors, duplicate sector numbers,
+                        both densities on one data track, and TRSDOS 1.x’s limited-backup count. Each
+                        sign says whether it means the disk is copy protected, DOS copy protected, or
+                        only possibly so, and names the schemes it has been seen with, by their
+                        numbers (such as S-101) in the trs-80.com archive’s register. Some lines say
+                        why an oddity is <em>not</em> protection, such as TRSDOS 1.1’s FORMAT output.
+                        Protection that lives in a program’s own code or timing leaves no such sign,
+                        so a clean report doesn’t prove a disk is unprotected.</td>
+                </tr>
+                <tr>
                     <td><code>--json</code></td>
                     <td>Print the sector information in JSON format, with a description of
                         each sector instead of the table. Combine with <code>--contents</code>
-                        to include each sector’s data in base64, and with <code>--bad</code>
-                        to include only the bad sectors.</td>
+                        to include each sector’s data in base64, with <code>--bad</code>
+                        to include only the bad sectors, and with <code>--protection</code> to
+                        add each floppy’s signs of copy protection as <code>protection</code>
+                        (<code>kind</code>, <code>verdict</code>, <code>schemes</code>,
+                        <code>scheme</code>, <code>message</code>, <code>tracks</code>,
+                        <code>sectors</code>).</td>
                 </tr>
             </table>
+            <div><pre><code>% trs80-tool sectors --protection vtos301.dmk
+vtos301.dmk: Floppy disk (DMK), VTOS 3.0.1
+    DOS copy protected, VTOS mini-sectors (seen with S-101): Cylinder 0 has IDs numbered 124, 126-127, VTOS 3.0's copy-protection mini-sectors.</code></pre>
+            </div>
 
             <h3 id="asm"><code>asm</code></h3>
 
@@ -792,7 +814,8 @@ C CRC error (ID or data).
                 <li><code>dir</code>, <code>info</code>, <code>sectors</code> — as
                     <a href="#dir"><code>dir --json</code></a>,
                     <a href="#info"><code>info --json</code></a>, and
-                    <a href="#sectors"><code>sectors --json</code></a>, for a list of files.</li>
+                    <a href="#sectors"><code>sectors --json</code></a>, for a list of files.
+                    <code>sectors</code> takes <code>protection</code> as <code>--protection</code>.</li>
                 <li><code>disk</code> — run <a href="disk.html">disk commands</a> on one image, as
                     <code>disk IMAGE --dry-run --json …</code> would. Nothing is saved, and
                     <code>extract</code> is refused, so this tool never changes a file.

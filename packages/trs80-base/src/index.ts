@@ -58,5 +58,6 @@ export {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 export * from "./TrackLayout.js";
 export * from "./DmkBuilder.js";
 export * from "./FloppyTrim.js";
+export * from "./CopyProtection.js";
 export * from "./FloppyConvert.js";
 export * from "./FloppyCompare.js";

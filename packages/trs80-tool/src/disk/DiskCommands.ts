@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import {
-    type TrsdosDiskInfo, type TrsdosDiskInfoChanges, type TrsdosFindingSeverity, trsdosFindingKindSeverity,
-    trsdosRuleSetCliName, trsdosRuleSetToString,
+    findProtectionSigns, FloppyDisk, type TrsdosDiskInfo, type TrsdosDiskInfoChanges, type TrsdosFindingSeverity,
+    trsdosFindingKindSeverity, trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {dirListingLines} from "../dir.js";
@@ -10,6 +10,7 @@ import {type ExtractedFile, extractInputFiles, extractOneInputFile} from "../ext
 import {floppyDetailLines, floppyGeometryToJson, osToJson} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
 import {fileToJson} from "../json.js";
+import {protectionSignsToLines, protectionSignToJson} from "../protection.js";
 import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
@@ -889,7 +890,8 @@ const CHECK_COMMAND: DiskCommand = {
     endsSession: false,
 
     /**
-     * Print the findings, grouped by severity, then whether the disk can be written and why not.
+     * Print the findings, grouped by severity, then a floppy's signs of copy protection (if it has any),
+     * then whether the disk can be written and why not.
      */
     run(session, command, globalOptions, out) {
         const {findings, readOnlyReason} = checkDisk(session);
@@ -907,6 +909,17 @@ const CHECK_COMMAND: DiskCommand = {
             out.line("  " + finding.message);
         }
 
+        // Protection is about the floppy's tracks, which a hard disk partition doesn't have.
+        const image = session.image;
+        const protectionSigns = image instanceof FloppyDisk ? findProtectionSigns(image, session.fileSystem) : undefined;
+        // Most disks have none, so say nothing then rather than add a line to every check.
+        if (protectionSigns !== undefined && protectionSigns.length > 0) {
+            out.line("Signs of copy protection:");
+            for (const line of protectionSignsToLines(protectionSigns)) {
+                out.line("  " + line);
+            }
+        }
+
         out.line(readOnlyReason === undefined ? "Safe to write." : "Read-only: " + readOnlyReason);
 
         const result: CheckResultJson = {
@@ -915,6 +928,9 @@ const CHECK_COMMAND: DiskCommand = {
         };
         if (readOnlyReason !== undefined) {
             result.readOnlyReason = readOnlyReason;
+        }
+        if (protectionSigns !== undefined) {
+            result.protection = protectionSigns.map(protectionSignToJson);
         }
         out.result(result);
     },

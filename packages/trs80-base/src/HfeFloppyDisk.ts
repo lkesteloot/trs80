@@ -265,9 +265,12 @@ export class HfeFloppyDisk extends FloppyDisk {
 
         // Where each sector physically is, which is what the geometry describes.
         const sectorInfos = this.tracks.flatMap(track =>
-            track.sectors.map(sector =>
-                new SectorInfo(new SectorPosition(track.trackPosition, sector.sectorNumber),
-                    sector.density, sector.getLength())));
+            track.sectors.map(sector => {
+                const sectorInfo = new SectorInfo(new SectorPosition(track.trackPosition, sector.sectorNumber),
+                    sector.density, sector.getLength());
+                sectorInfo.sizeCode = sector.sizeCode;
+                return sectorInfo;
+            }));
 
         this.geometry = FloppyDiskGeometry.make(cylinderCount, sideCount, sectorInfos);
 
@@ -449,6 +452,7 @@ export class HfeFloppyDisk extends FloppyDisk {
         sectorData.crcError = !sectorData.crc.valid();
         sectorData.deleted = isDeletedDataAddressMark(sector.dataMark);
         sectorData.dataAddressMark = sector.dataMark;
+        sectorData.sizeCode = sector.sizeCode;
         return sectorData;
     }
 }

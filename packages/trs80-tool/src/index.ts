@@ -264,13 +264,20 @@ async function main(): Promise<void> {
         })
         .option("--contents", "show the contents of the sectors")
         .option("--bad", "show only the bad sectors and their files")
+        .option("--protection", "list the signs of copy protection instead of the map")
         .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
+            const showProtection = options.protection ?? false;
             if (options.json) {
-                sectorsJson(expandInputPatterns(infiles), options.contents ?? false, options.bad ?? false);
+                sectorsJson(expandInputPatterns(infiles), options.contents ?? false, options.bad ?? false,
+                    showProtection);
             } else {
+                if (showProtection && (options.contents || options.bad)) {
+                    throw new ToolError("--protection lists the signs instead of the sectors, so it can't be " +
+                        "combined with --contents or --bad (except with --json)");
+                }
                 for (const infile of expandInputPatterns(infiles)) {
-                    sectors(infile, options.contents, options.bad);
+                    sectors(infile, options.contents ?? false, options.bad ?? false, showProtection);
                     await pagerYield();
                 }
             }

@@ -355,6 +355,7 @@ class DmkSector {
         sectorInfo.deleted = this.isDeleted();
         sectorInfo.dataAddressMark = this.getDam();
         sectorInfo.hasDataField = this.hasData();
+        sectorInfo.sizeCode = this.getByte(4);
     }
 
     /**

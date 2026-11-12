@@ -12,6 +12,7 @@ import {assertNever} from "z80-base";
 import type {GeometryInfoJson, OsInfoJson} from "../info.js";
 import {trsdosDirEntryJsonDate} from "../InputFile.js";
 import {type FileJson, type SectorPositionJson, sectorPositionToJson} from "../json.js";
+import type {ProtectionSignJson} from "../protection.js";
 
 // The types of the JSON that the "disk" command prints with --json, and the helpers that build it. The
 // comments on the interfaces are the documentation of the format, which follows the conventions of json.ts:
@@ -659,6 +660,12 @@ export interface CheckResultJson {
     writable: boolean;
     /** Why it can't be. Only when it's not writable. */
     readOnlyReason?: string;
+    /**
+     * The floppy's signs of copy protection, most selective first, as "sectors --protection --json" gives them.
+     * Empty if there are none, which doesn't prove that the disk is unprotected. Missing for hard disks. They
+     * don't change whether the disk is writable.
+     */
+    protection?: ProtectionSignJson[];
 }
 
 /**

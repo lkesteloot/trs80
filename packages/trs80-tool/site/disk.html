@@ -514,8 +514,11 @@ partition --delete [N|NAME] [--force]</code></pre>
             files that share granules, files in granules the GAT says are free,
             extents past the end of the disk, HIT bytes that don’t match names,
             and damaged files. It notes programs whose directory size ends before the
-            end of the program, which the DOS loads fine but which copy broken. It also says whether
-            the disk would be safe to write, and if not, why not.</p>
+            end of the program, which the DOS loads fine but which copy broken. On a floppy it lists the
+            signs of copy protection, if there are any, as
+            <a href="index.html#sectors"><code>sectors --protection</code></a> does (with
+            <code>--json</code>, always, as <code>protection</code>); they don’t change whether the disk
+            can be written. It also says whether the disk would be safe to write, and if not, why not.</p>
 
             <h3 id="repair"><code>repair</code></h3>
             <p>Fix the damage that <code>check</code> finds, where it can be fixed without guessing, in

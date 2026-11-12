@@ -3,6 +3,7 @@ import {
     decodeFloppyFileSystem,
     decodeTrs80File,
     Density,
+    findProtectionSigns,
     FloppyDiskGeometry,
     FloppyFileSystem,
     isFloppy,
@@ -17,6 +18,7 @@ import {toHexWord} from "z80-base";
 import {colors, type Style} from "./colors.js";
 import {hexdumpBinary} from "./hexdump.js";
 import {captureLogs, type InfileJson, infileErrorJson, printInfilesJson, toBase64} from "./json.js";
+import {type ProtectionSignJson, protectionSignsToLines, protectionSignToJson} from "./protection.js";
 import {hostFileError} from "./utils.js";
 
 const STYLE_FOR_LETTER: { [letter: string]: Style } = {
@@ -121,8 +123,11 @@ function filesBySector(fileSystem: FloppyFileSystem | undefined): Map<string, st
 
 /**
  * Handle the "sectors" command. With onlyShowBad, prints nothing for a floppy without bad sectors.
+ * With showProtection, prints the signs of copy protection instead of the map (the caller makes sure
+ * it isn't combined with the other options).
  */
-export function sectors(filename: string, showContents: boolean, onlyShowBad: boolean): void {
+export function sectors(filename: string, showContents: boolean, onlyShowBad: boolean,
+                        showProtection: boolean): void {
     // Read the file.
     let buffer;
     try {
@@ -150,6 +155,15 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
         title += ", unknown operating system";
     } else {
         title += ", " + fileSystem.nameAndVersion;
+    }
+
+    if (showProtection) {
+        console.log(title);
+        for (const line of protectionSignsToLines(findProtectionSigns(file, fileSystem))) {
+            console.log("    " + line);
+        }
+        console.log("");
+        return;
     }
 
     // The sectors to dump.
@@ -274,6 +288,11 @@ export interface SectorsInfileJson extends InfileJson {
     os?: string | null;
     /** The sectors, in cylinder, side, and sector order. With "--bad", only those that are missing or have a CRC error. */
     sectors: SectorJson[];
+    /**
+     * With "--protection", the signs of copy protection, most selective first. Empty if there are none, which
+     * doesn't prove that the disk is unprotected. Missing if the input had an error.
+     */
+    protection?: ProtectionSignJson[];
 }
 
 /**
@@ -315,7 +334,7 @@ function sectorToJson(visit: SectorVisit, filenames: string[], showContents: boo
  *
  * @return the JSON, or undefined if onlyShowBad is set and the floppy has no bad sectors.
  */
-function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: boolean):
+function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: boolean, showProtection: boolean):
     Omit<SectorsInfileJson, "warnings"> | undefined {
 
     let buffer;
@@ -343,21 +362,27 @@ function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: b
     }
 
     const filenamesAtSector = filesBySector(fileSystem);
-    return {
+    const json: Omit<SectorsInfileJson, "warnings"> = {
         infile: filename,
         description: file.getDescription(),
         os: fileSystem === undefined ? null : fileSystem.nameAndVersion,
         sectors: visits.map(visit =>
             sectorToJson(visit, filenamesAtSector.get(visit.position.key()) ?? [], showContents)),
     };
+    if (showProtection) {
+        json.protection = findProtectionSigns(file, fileSystem).map(protectionSignToJson);
+    }
+    return json;
 }
 
 /**
  * Handle the "sectors" command with "--json": print one JSON object for all the input files.
- * With onlyShowBad, floppies without bad sectors aren't in it.
+ * With onlyShowBad, floppies without bad sectors aren't in it. With showProtection, each floppy also
+ * has its signs of copy protection.
  */
-export function sectorsJson(filenames: string[], showContents: boolean, onlyShowBad: boolean): void {
-    printInfilesJson(sectorsJsonInfiles(filenames, showContents, onlyShowBad));
+export function sectorsJson(filenames: string[], showContents: boolean, onlyShowBad: boolean,
+                            showProtection: boolean): void {
+    printInfilesJson(sectorsJsonInfiles(filenames, showContents, onlyShowBad, showProtection));
 }
 
 /**
@@ -367,13 +392,15 @@ export function sectorsJson(filenames: string[], showContents: boolean, onlyShow
  * @param filenames the input files, with wildcards already expanded.
  * @param showContents whether to include each sector's contents, in base64.
  * @param onlyShowBad whether to include only the bad sectors.
+ * @param showProtection whether to include the signs of copy protection.
  */
 export function sectorsJsonInfiles(filenames: string[], showContents: boolean,
-                                   onlyShowBad: boolean): SectorsInfileJson[] {
+                                   onlyShowBad: boolean, showProtection: boolean): SectorsInfileJson[] {
 
     const infiles: SectorsInfileJson[] = [];
     for (const filename of filenames) {
-        const {result, warnings} = captureLogs(() => sectorsFileJson(filename, showContents, onlyShowBad));
+        const {result, warnings} = captureLogs(() =>
+            sectorsFileJson(filename, showContents, onlyShowBad, showProtection));
         if (result !== undefined) {
             infiles.push({ ...result, warnings });
         }
