@@ -2541,8 +2541,22 @@ NEWDOS/80 Version 2.0 manual, PDF pages 96-101, paraphrased.
   the layout we decoded, the I and J flags must be clear, and its lump count must be on the same side of 96 as the
   disk's. TC and the lump count may differ otherwise: the table describes the drive, which differs from the image on 21
   of about 150 disks. Where the table's SPT equals the layout's sectors per cylinder it also settles the number of
-  sides. Without a table, a disk of more than 96 lumps isn't written, since nothing confirms that GAT bytes 0x60 and
-  up are allocation.
+  sides.
+- **More than 96 lumps with no table.** Only system disks carry a PDRIVE table, so a big data disk (Ira's 190-lump
+  `ira/large_dmk` working disk) has nothing but its GAT to say that bytes 0x60 and up are allocation and not an
+  existence table, and the image could be a smaller disk imaged with extra cylinders. It's written only when the GAT
+  itself rules that out: (1) the GAT ends where the image does, with a free granule in the image's last lump and 0xFF
+  in every byte past it to 0xBF (a smaller disk's GAT shows its missing lumps as 0xFF, or its existence table runs
+  on past them); (2) no lump count N of 96 or fewer reads the GAT as FORMAT writes one, with 0xFF in allocation bytes
+  N to 0x5F and existence bytes 0x60+N to 0xBF and each lump's existence bits among its allocation bits (FORMAT
+  writes exactly that for every disk of up to 96 lumps, and allocation keeps it so); and (3) every sector of every
+  lump is on the image. `large_dmk` passes: lumps 24-189 are free (0xFC), and 0xBE-0xBF are 0xFF, which an existence
+  table would only allow if lumps 94 and 95 were used. A really big disk whose last lump is full, or whose lumps 0-95
+  happen to fit the existence pattern, is refused, which is safe. NEWDOS/80's DIRCHECK settles the same question from
+  the drive's PDRIVE entry instead: it assumes no existence table when the drive has more than 96 lumps or GAT byte
+  0x60 is 0xFF (NEWDOS/80 Version 2.0 manual, PDF page 117). On a copy of `large_dmk` written with files in lumps 97-124,
+  NEWDOS/80 v2.0 (drive 1 set to `TC=190,SPT=10,GPL=2`) listed the right files and free granules with DIR, found
+  nothing wrong with DIRCHECK, and LISTed the file past lump 96 to its end.
 - **System-file slots.** The DOS finds BOOT/SYS at DEC 0x00, DIR/SYS at 0x01, SYS0-SYS5 at 0x02-0x07, SYS6-SYS13 at
   0x20-0x27, SYS14-SYS21 at 0x40-0x47 and SYS22-SYS29 at 0x60-0x67. A data disk keeps only 0x00 and 0x01 free of user
   files, as NEWDOS/80 does (62 free entries on a two-granule directory). On a system disk (some SYS0-SYS29 entry is

@@ -620,13 +620,56 @@ describe("NEWDOS/80 granule existence table", () => {
 });
 
 describe("NEWDOS/80 disks with more than 96 lumps", () => {
-    it("refuses a disk with no PDRIVE table", () => {
-        const {trsdos} = makeDdFixture({cylinders: 60});
+    it("writes a data disk with no PDRIVE table whose GAT ends where the image does, into lumps past 96", () => {
+        const usedLumps = Array.from({length: 96}, (_, lump) => lump);
+        const {overlay, trsdos, makeWriter} = makeDdFixture({cylinders: 60, usedLumps: usedLumps.filter(lump => lump < 90)});
         expect(trsdos.lumpCount).to.equal(108);
-        const messages = layoutBlockers(trsdos);
-        expect(messages.length).to.equal(1);
-        expect(messages[0]).to.contain("no PDRIVE table");
-        expect(messages[0]).to.contain("108 lumps");
+        expect(layoutBlockers(trsdos)).to.eql([]);
+        expect(evaluateTrsdosWriteGate(trsdos).access).to.equal(TrsdosWriteAccess.WRITABLE);
+
+        // Fill lumps 90-95, so that the next file goes past 96.
+        const writer = makeWriter();
+        writer.addFile(name("FILL/DAT"), makeContents(6*2*5*256));
+        const contents = makeContents(3000, 2);
+        writer.addFile(name("HIGH/DAT"), contents);
+        const newTrsdos = writer.flush();
+        const dirEntry = getFile(newTrsdos, "HIGH/DAT");
+        const extent = [...newTrsdos.getFileExtents(dirEntry)][0];
+        expect(extent.cylinderNumber).to.equal(96);
+        expect(readBytes(overlay, newTrsdos.getGatPosition())[96]).to.equal(0xFF);
+        expect(newTrsdos.readFile(dirEntry)).to.eql(contents);
+        expect(problems(newTrsdos)).to.eql([]);
+    });
+
+    it("refuses a smaller disk imaged with extra cylinders, whose GAT doesn't end where the image does", () => {
+        // A 72-lump disk's GAT, as FORMAT writes it, on an image of 108 lumps: its existence table at 0x60 reads
+        // as free lumps 96-107, but bytes past those aren't 0xFF.
+        const {trsdos} = makeDdFixture({
+            cylinders: 60,
+            patch: gat => {
+                gat.fill(0xFF, 72, 0xC0);
+                gat.fill(0xFC, 0x60, 0x60 + 72);
+            },
+        });
+        expect(newdos80LayoutProblem(trsdos)).to.contain("doesn't end at lump 107");
+    });
+
+    it("refuses a GAT that also reads as a smaller disk's with an existence table", () => {
+        // A 12-lump disk's GAT on an image of 108 lumps: bytes 0x60-0x6B (its existence table) read as free lumps
+        // 96-107, and everything after is 0xFF, so only the existence-table reading tells it apart.
+        const {trsdos} = makeDdFixture({
+            cylinders: 60,
+            patch: gat => {
+                gat.fill(0xFF, 12, 0xC0);
+                gat.fill(0xFC, 0x60, 0x60 + 12);
+            },
+        });
+        expect(newdos80LayoutProblem(trsdos)).to.contain("reads as that of a 12-lump disk");
+    });
+
+    it("refuses a disk with no PDRIVE table whose last lump is full", () => {
+        const {trsdos} = makeDdFixture({cylinders: 60, usedLumps: [107]});
+        expect(newdos80LayoutProblem(trsdos)).to.contain("doesn't end at lump 107");
     });
 
     it("writes one with a matching PDRIVE table, into lumps past 96", () => {

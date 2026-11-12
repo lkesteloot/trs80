@@ -269,8 +269,12 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       - Version 1.x: v1 double-sided double-density disks use a different sector order, the decoder can't tell
         v1.0 from v1.1 data disks (GAT 0xCB = 0x80 for both), and two NEWDOS/86 utility disks are named v1.0.
       - Version 3.0 (its own Model III boot sector): a different release that we haven't studied.
-      - Disks of more than 96 lumps with no PDRIVE table, whose GAT bytes 0x60 and up we can't confirm are
-        allocation.
+      - Disks of more than 96 lumps with no PDRIVE table whose GAT doesn't prove its own size (see "More than 96
+        lumps with no table" in FLOPPY_FORMATS.md): a last lump that's full, or lumps 0-95 that also fit the
+        existence-table pattern. None in the collection.
+      - GATs whose existence table is all 0xFF while lumps are free (ten Infocom-style disks in `disks/peter/`). The
+        writer refuses them as inconsistent, but NEWDOS/80's DIRCHECK takes GAT byte 0x60 = 0xFF to mean there's no
+        existence table at all (manual PDF page 117), so they may well be writable. A decision for the user.
       - Creating and formatting NEWDOS/80 disks (`create`, `format`): we have no NEWDOS/80 boot sector to write.
       - The other NEWDOSes (NEWDOS/86, NEWDOS/90, NEWDOS+), and the German G-DOS and H-DOS.
 - [ ] **Protection level names on TRSDOS 1.3 and 2.7** are TRSDOS 6's (1

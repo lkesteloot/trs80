@@ -134,6 +134,92 @@ function pdriveProblem(trsdos: Trsdos): string | undefined {
 }
 
 /**
+ * Whether the GAT could be that of a disk of {@link lumpCount} lumps, at most 96, that has a granule
+ * existence table at 0x60, as NEWDOS/80's FORMAT writes it: every allocation byte from lump
+ * {@link lumpCount} to 0x5F is 0xFF (past the formatted lumps), so is every existence byte from
+ * 0x60 + {@link lumpCount} to 0xBF, and below that each lump's existence bits are among its allocation
+ * bits. See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
+ *
+ * @param gatBytes the raw bytes of the GAT sector.
+ * @param lumpCount the lump count to try, 0 to 96.
+ * @param granulesPerLump the granules per lump, whose bits the existence rule compares.
+ */
+function fitsExistenceTableGat(gatBytes: Uint8Array, lumpCount: number, granulesPerLump: number): boolean {
+    const mask = (1 << granulesPerLump) - 1;
+    for (let lump = 0; lump < NEWDOS80_MAX_LUMPS_WITH_EXISTENCE_TABLE; lump++) {
+        const allocation = gatBytes[lump] ?? 0;
+        const existence = gatBytes[GAT_EXISTENCE_OFFSET + lump] ?? 0;
+        if (lump < lumpCount) {
+            if ((existence & mask & ~allocation) !== 0) {
+                return false;
+            }
+        } else if (allocation !== 0xFF || existence !== 0xFF) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Why a disk of more than 96 lumps with no PDRIVE table can't be shown to have a GAT that runs through
+ * 0xBF, or undefined if it can. Only a system disk has a PDRIVE table, so this is how a NEWDOS/80 data
+ * disk that big is written. The image must not be a smaller disk imaged with extra cylinders, whose
+ * GAT bytes from 0x60 are its existence table, not the allocation of lumps 96 and up. So:
+ *
+ * - The GAT ends where the image does: the last lump has a free granule, and the bytes past it, to 0xBF,
+ *   are 0xFF. (A disk imaged with extra cylinders has 0xFF for its missing lumps.)
+ * - The GAT can't be read as one of 96 lumps or fewer with an existence table (see
+ *   {@link fitsExistenceTableGat}), for any lump count. NEWDOS/80's FORMAT writes such a GAT for every
+ *   disk of up to 96 lumps, and allocation keeps it so, since a non-existent granule is always marked used.
+ * - Every sector of every lump is on the image, so its cylinders are formatted in the layout.
+ *
+ * A disk that is really this big but fails (its last lump full, say) is refused, which is safe.
+ * See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
+ *
+ * @param trsdos the file system, of more than 96 lumps.
+ * @param gatBytes the raw bytes of the GAT sector.
+ */
+function unprovenExtendedGatMessage(trsdos: Trsdos, gatBytes: Uint8Array): string | undefined {
+    const lumpCount = trsdos.lumpCount;
+    const prefix = `This disk has ${lumpCount} lumps and no PDRIVE table`;
+    const mask = (1 << trsdos.granulesPerLump) - 1;
+
+    const lastLumpHasFreeGranule = ((gatBytes[lumpCount - 1] ?? 0xFF) & mask) !== mask;
+    let pastEndIsUsed = true;
+    for (let lump = lumpCount; lump < NEWDOS80_MAX_LUMPS; lump++) {
+        if (gatBytes[lump] !== 0xFF) {
+            pastEndIsUsed = false;
+        }
+    }
+    if (!lastLumpHasFreeGranule || !pastEndIsUsed) {
+        return `${prefix}, and its GAT doesn't end at lump ${lumpCount - 1}, so it may be a smaller disk ` +
+            "imaged with extra cylinders, and writing it isn't supported.";
+    }
+
+    for (let smallerCount = 0; smallerCount <= NEWDOS80_MAX_LUMPS_WITH_EXISTENCE_TABLE; smallerCount++) {
+        const fits = fitsExistenceTableGat(gatBytes, smallerCount, trsdos.granulesPerLump);
+        if (fits) {
+            return `${prefix}, and its GAT also reads as that of a ${smallerCount}-lump disk imaged with ` +
+                "extra cylinders, so writing it isn't supported.";
+        }
+    }
+
+    for (let lump = 0; lump < lumpCount; lump++) {
+        const positions = trsdos.getExtentSectorPositions([
+            {lump, granuleOffset: 0, granuleCount: trsdos.granulesPerLump},
+        ]);
+        for (const position of positions) {
+            const sectorData = trsdos.disk.readSector(position);
+            if (sectorData === undefined) {
+                return `${prefix}, and sector ${position.sectorNumber} of cylinder ${position.cylinderNumber}, ` +
+                    `side ${position.side} (in lump ${lump}) isn't on the image, so writing it isn't supported.`;
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
  * Why we won't write a disk under NEWDOS/80's rules, or undefined if we will. The checks are in
  * order and the first failure is reported. See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
  *
@@ -174,8 +260,10 @@ export function newdos80LayoutProblem(trsdos: Trsdos): string | undefined {
 
     const table = readPdriveTable(trsdos.disk);
     if (trsdos.lumpCount > NEWDOS80_MAX_LUMPS_WITH_EXISTENCE_TABLE && table === undefined) {
-        return `This disk has ${trsdos.lumpCount} lumps, so its GAT runs past 0x60, but there's no PDRIVE ` +
-            "table to confirm the lump count, so writing it isn't supported.";
+        const extendedGatMessage = unprovenExtendedGatMessage(trsdos, gat.data);
+        if (extendedGatMessage !== undefined) {
+            return extendedGatMessage;
+        }
     }
 
     if (trsdos.lumpCount <= NEWDOS80_MAX_LUMPS_WITH_EXISTENCE_TABLE) {
