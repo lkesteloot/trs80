@@ -1798,6 +1798,76 @@ of the banner as text beside it. All three keep it in the resident system file:
   banners: `Multidos, Super Disk Operating System, Version 1.0` (also on the disk
   labeled 1.1), `Multidos, Double-Density Disk Operating System, Version 1.2D`.
 
+### Writing MultiDOS
+
+What the writer (`TrsdosRuleSet.MULTIDOS`, `--dos multidos`) does, and why. The manuals aren't in our library, so
+the DOS's own rules here are Ira's reading of the MultiDOS manuals (1982, 1984, 2010) in issue #28, and the rest was
+measured on the 162 disks of the collection that are named MultiDOS (November 2026).
+
+- **Releases.** Only 1.x (every edition letter: D, S, P, K, a, c, d) and 2.00 are written. Their directory entries
+  have the date in bytes 1 and 2 and the password hashes in bytes 16 to 19. The later ones don't:
+  - **2.10**'s access password bytes (18-19) hold a big-endian time stamp in LDOS 5.3's form (hour, minute, year
+    since 1980): `00 05`, `00 06`, `00 07` on most of its files (Ira: FIXDATE in 2.1x).
+  - **4.01 on** keep the access password in bytes 1 and 2 (`96 42`, the blank hash, on nearly every user file, which
+    the decoder misreads as 08/06/1982) and the date and time in bytes 16 to 19 (Ira: FIXDATE in 3.xx, which
+    moves the access password to the old date bytes).
+  - A **MultiDOS with no version**, **MultiDOS II** (Cosmopolitan's other DOS) and the **"MultiDOS or Esoteric"**
+    disks aren't written either.
+
+  A file that a later release wrote can be on a 1.x disk and looks like a 1.x entry, so `attrib` sets neither
+  passwords nor dates, and a file that replaces another keeps the old one's bytes 1, 2 and 16-19.
+- **New entries.** On the 1.x and 2.00 disks, byte 1's high nibble is 0 on 1,389 of 1,412 user files (0x20 on 14,
+  0x40 on 7, 0x80 on 2), so a new file gets the month alone there and the day and year since 1980 in byte 2, as in
+  the LDOS line, or zeros for no date. The years are 1980 to 1987. Passwords are the blank hash `96 42`, as on 480
+  of those files (685 have update hash `FF FF`).
+- **KILL** clears only the in-use bit, and RESTOR sets it back; CDIR zeroes unused entries (Ira, 2010 manual). The
+  writer clears bit 4 and the HIT byte and frees the granules.
+- **Extended entries** aren't written: the 1.x and 2.00 disks have one between them (`90`, then zeros).
+- **FORMAT's marker.** 1.x's FORMAT writes `NoDOS/Ind` (mixed case, attribute 0x5F, hash 0x94) where other DOSes put
+  BOOT/SYS; six disks of ours have it, at DEC 1 after DIR/SYS at DEC 0, with passwords `01 23 45 67` or `FF FF FF FF`
+  (Ira's bare 1.0 disks have `12 34 56 78`, at DEC 0 before DIR/SYS). It's FORMAT output, not a file, so the writer
+  won't kill, rename, replace or change it.
+- **System files' slots.** They aren't the 2.3 family's:
+  - 1.0-1.6 (DOS/SYS, DIR/SYS, DOS0-DOS9/SYS, EDIT, RENUM, CREF and ERROR/SYS) take the first 16 slots in DEC
+    order: entry 0 of directory sectors 0-15 on a 16-sector directory, or entries 0 then 1 of sectors 0-7 on an 8-sector
+    one; PACK/SYS follows at DEC 0x20. DIR/SYS is at DEC 0 on the Model III releases and 1 on the Model I ones, after
+    DOS/SYS.
+  - 1.7 and 2.00 put Command/DOL, Allocate/DOL and the rest in entries 0 and 1 of sectors 0-11, and DIR/SYS and
+    SYSRES/SYS (1.7: RESIDENT/SYS) in entries 6 and 7 of the **last** directory sector (DEC 0xCF and 0xEF on a
+    16-sector directory, 0xC7 and 0xE7 on an 8-sector one). A 1.7 data disk has DIR/SYS at 0 and `NoDOS/Ind` at 1.
+
+  Which release copied a system to a disk can't always be told, so the writer keeps entries 0 and 1 of the first 16
+  directory sectors and entries 6 and 7 of the last free of new files on every disk.
+- **GAT bytes 0xCC and 0xCD** come in two forms. 1.x writes the number of lumps and of physical cylinders (`28 28`,
+  `23 23`), and so does every release on a "P" density disk (`46 28`: 70 lumps, 40 cylinders; `3D 23`; `8E 50`).
+  From 2.0 they're LDOS's (`05 42`, `05 65`), except that one 2.0 disk (`Bright-412`) gives granules per cylinder
+  rather than per track. Ira adds that MultiDOS's `CAT (X)` writes the counts form into NEWDOS/80 disks, whose
+  writer doesn't read these bytes. The writer needs one form to describe the image exactly: the image's cylinders,
+  and in the counts form the decoded lump count, in the LDOS form the density, sides and granules. That fails on 10
+  of the 1.x and 2.00 disks: three 1.7 disks imaged with 41 cylinders, two 1.71 disks whose GAT says 40 cylinders on
+  a 35-cylinder image, a 1.3P disk whose GAT says 70 lumps on 35 cylinders, two 1.5K disks with `DD DD`, a 1.3a
+  disk with `28 45`, and a 1.6 disk with `12 12` on 40 cylinders. The disk size (`trim`) comes from the same form,
+  so it never differs from the image's.
+- **Lockout table.** 0x60-0xBF is LDOS's lockout table, by granule (FORMAT locks out flawed granules), except on
+  "P" density disks and hard disks, which have none (FORMAT leaves 0xFF). The granule map already ignores it where
+  lumps aren't cylinders, which covers "P" density.
+- **Two sides.** MultiDOS makes disks with a volume on each side (`SI=2`) as well as one volume over both. None is
+  in the collection: on all 12 two-sided MultiDOS images every sector of side 1 says side 1, and all but one
+  allocate both sides. The writer refuses a two-sided image that allocates one side (`MultiDOS 1.5K`'s
+  `Teasers by Tobbs`), and one whose side-1 IDs say side 0, as a disk formatted as two single-sided volumes would.
+- **Repair** frees no unclaimed granule, since the single-density editions (1.4S, 1.5S, 1.5SK) keep their resident
+  on the cylinder below the directory and the "P" editions on the boot track, outside any file.
+- **The GAT's information.** Names are mixed case (`Multidos`), so `label` keeps the case. The AUTO field holds
+  FORMAT's `MULTIDOS format.(c) '85 C. E. C.` until changed, and the commands on our disks start with a flag
+  character (`#DIR`, `#BASIC RUN"LOGO"`, `!.CC/CMD`), so `label` won't change it. MultiDOS 1.6 keeps its retry count
+  in GAT byte 0xC4, which the writer never touches.
+- **Checked under the real DOS** (in trs80-tool's emulator) after add, kill, rename and attrib on copies: MultiDOS 1.7
+  (Model III, double density), 1.7P (Model I, "P" density, a 16-granule file across track boundaries) and 1.0
+  (Model I, single density). DIR lists the right files and free granules, COPY reads the added files into memory
+  byte for byte, and new files that the DOS writes afterwards take the free space we left.
+- **Not written:** create and format (Ira gives FORMAT's track layout in #28, but we have no MultiDOS boot sector to
+  write), and the releases above.
+
 ## The lump model
 
 One model covers the TRSDOS family, NEWDOS/80 and MultiDOS. The DOS sees the

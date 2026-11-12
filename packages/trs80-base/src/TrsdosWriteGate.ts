@@ -11,6 +11,7 @@ import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
 import {newdos80DirectorySizeRecorded, newdos80LayoutProblem} from "./TrsdosNewdos80.js";
+import {multidosLayoutProblem, namesMultidos} from "./TrsdosMultidos.js";
 import {readPdriveTable} from "./Pdrive.js";
 import {type DosName, dosNameToString, isUnknownDosName} from "./DosName.js";
 import {
@@ -80,9 +81,10 @@ export function trsdosWriteAccessToString(access: TrsdosWriteAccess): string {
 export enum TrsdosWriteBlockerKind {
     /**
      * We have no writer for this layout: lumps that aren't cylinders (except under the NEWDOS/80 rules,
-     * which also refuse a NEWDOS/80 disk that disagrees with itself or isn't version 2), a hard disk
-     * partition of a DOS other than LDOS 5 and TRSDOS 6, or a volume that is neither
-     * a floppy nor a hard disk partition.
+     * which also refuse a NEWDOS/80 disk that disagrees with itself or isn't version 2, and the MultiDOS
+     * rules, for "P" density), a MultiDOS disk that disagrees with itself, isn't a release we write, or
+     * is written under another DOS's rules, a hard disk partition of a DOS other than LDOS 5 and TRSDOS 6,
+     * or a volume that is neither a floppy nor a hard disk partition.
      */
     UNSUPPORTED_LAYOUT,
 
@@ -261,7 +263,10 @@ export function trsdosWriteAccessForBlockerKinds(kinds: TrsdosWriteBlockerKind[]
  *
  * @param trsdos the decoded file system.
  * @param ruleSet the rules the disk would be written under, if any. Under NEWDOS/80's, lumps that aren't
- * cylinders are fine, and the disk must pass {@link newdos80LayoutProblem}.
+ * cylinders are fine, and the disk must pass {@link newdos80LayoutProblem}. Under MultiDOS's, the disk must
+ * pass {@link multidosLayoutProblem}, which allows the lumps of "P" density. A disk that names MultiDOS (or
+ * MultiDOS II) is written under MultiDOS's rules or not at all, since its slots, dates and lockout table
+ * differ from the other DOSes'.
  */
 export function unsupportedLayoutMessage(trsdos: Trsdos, ruleSet: TrsdosRuleSet | undefined): string | undefined {
     const volume = volumeOf(trsdos);
@@ -282,6 +287,13 @@ export function unsupportedLayoutMessage(trsdos: Trsdos, ruleSet: TrsdosRuleSet 
     }
     if (ruleSet === TrsdosRuleSet.NEWDOS_80) {
         return newdos80LayoutProblem(trsdos);
+    }
+    if (ruleSet === TrsdosRuleSet.MULTIDOS) {
+        return multidosLayoutProblem(trsdos, volume);
+    }
+    if (ruleSet !== undefined && namesMultidos(trsdos.dosName)) {
+        return `This disk says it's ${dosNameToString(trsdos.dosName)}, which is written only under ` +
+            `MultiDOS's rules (--dos multidos), not under --dos ${trsdosRuleSetCliName(ruleSet)}.`;
     }
     if (!trsdos.lumpsAreCylinders) {
         return "This disk allocates space in lumps that aren't whole cylinders (as NEWDOS/80 does), " +
@@ -429,6 +441,11 @@ export function gatProvesSides(trsdos: Trsdos): boolean {
             const table = readPdriveTable(trsdos.disk);
             return table !== undefined && table.sectorsPerTrack === trsdos.sectorsPerCylinder;
         }
+        case TrsdosRuleSet.MULTIDOS:
+            // MultiDOS 1.x's GAT doesn't record the sides, and multidosLayoutProblem() refuses a two-sided
+            // image that allocates one side, which is the only case this is asked about.
+            gatIsReliable = false;
+            break;
         case TrsdosRuleSet.LDOS_5:
         case TrsdosRuleSet.TRSDOS_6:
             gatIsReliable = true;
