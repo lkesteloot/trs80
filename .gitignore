@@ -6,3 +6,12 @@ dist
 # deploy/my-trs-80/assemble output, and wrangler's local cache.
 deploy/my-trs-80/site
 .wrangler
+
+# Disk images, in either case. The DOS templates are gzipped (.dmk.gz), so these don't match them.
+*.[dD][mM][kK]
+*.[dD][sS][kK]
+*.[jJ][vV]1
+*.[jJ][vV]3
+*.[sS][cC][pP]
+*.[iI][mM][dD]
+*.[hH][dD][vV]
