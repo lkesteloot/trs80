@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import {
-    findProtectionSigns, FloppyDisk, type TrsdosDiskInfo, type TrsdosDiskInfoChanges, type TrsdosFindingSeverity,
+    findImagingArtifacts, findProtectionSigns, FloppyDisk, type TrsdosDiskInfo, type TrsdosDiskInfoChanges, type TrsdosFindingSeverity,
     trsdosFindingKindSeverity, trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
 import {assertNever} from "z80-base";
@@ -10,6 +10,7 @@ import {type ExtractedFile, extractInputFiles, extractOneInputFile} from "../ext
 import {floppyDetailLines, floppyGeometryToJson, osToJson} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
 import {fileToJson} from "../json.js";
+import {imagingArtifactsToLines, imagingArtifactToJson} from "../artifacts.js";
 import {protectionSignsToLines, protectionSignToJson} from "../protection.js";
 import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
@@ -890,8 +891,8 @@ const CHECK_COMMAND: DiskCommand = {
     endsSession: false,
 
     /**
-     * Print the findings, grouped by severity, then a floppy's signs of copy protection (if it has any),
-     * then whether the disk can be written and why not.
+     * Print the findings, grouped by severity, then a floppy's signs of copy protection and its imaging
+     * artifacts (if it has any), then whether the disk can be written and why not.
      */
     run(session, command, globalOptions, out) {
         const {findings, readOnlyReason} = checkDisk(session);
@@ -920,6 +921,16 @@ const CHECK_COMMAND: DiskCommand = {
             }
         }
 
+        // Sectors that the imager lost or cut short, and CRCs that a converter made up. They're still damage
+        // to the image, so they don't change whether it's writable.
+        const artifacts = image instanceof FloppyDisk ? findImagingArtifacts(image) : undefined;
+        if (artifacts !== undefined && artifacts.length > 0) {
+            out.line("Imaging artifacts, which the imager or a converter left in the image:");
+            for (const line of imagingArtifactsToLines(artifacts)) {
+                out.line("  " + line);
+            }
+        }
+
         out.line(readOnlyReason === undefined ? "Safe to write." : "Read-only: " + readOnlyReason);
 
         const result: CheckResultJson = {
@@ -931,6 +942,9 @@ const CHECK_COMMAND: DiskCommand = {
         }
         if (protectionSigns !== undefined) {
             result.protection = protectionSigns.map(protectionSignToJson);
+        }
+        if (artifacts !== undefined) {
+            result.imagingArtifacts = artifacts.map(imagingArtifactToJson);
         }
         out.result(result);
     },

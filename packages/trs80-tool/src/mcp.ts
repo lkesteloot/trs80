@@ -1519,8 +1519,10 @@ TOOLS["info"] = {
 
 TOOLS["sectors"] = {
     description: "List the sectors of floppy images, as \"trs80-tool sectors --json\" prints it: " +
-        "{infiles: [{infile, sectors: [...], warnings}]}, each sector with its position, density, CRC " +
-        "status and the files that use it. That's thousands of entries for a whole disk, so consider " +
+        "{infiles: [{infile, sectors: [...], imagingArtifacts: [...], warnings}]}, each sector with its " +
+        "position, density, CRC status and the files that use it, and the bad ones that an imaging " +
+        "artifact explains (a read that began late or stopped after one revolution, or a converter's CRC " +
+        "marker) with its imagingArtifact. That's thousands of entries for a whole disk, so consider " +
         "bad. " + PATH_NOTE,
     inputSchema: {
         type: "object",
