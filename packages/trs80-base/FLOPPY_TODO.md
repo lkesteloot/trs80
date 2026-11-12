@@ -197,10 +197,8 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       5.3.0 can't be told from a 5.3.1 disk with 5.3.0's passwords, and the third
       digit names the formatter, not the system later used; TRSDOS 6.02.00 and
       6.02.01 write the same data disk, as NEWDOS/80 2.0, 2.5 and 2.74 do; 0x80
-      is "NEWDOS/80 v1.0" though Ira hasn't measured whether 1.1 also writes it
-      (our two 1.1 system disks have 0x80 and 1.0's boot sector, `00 FE xx F3 31
-      04 42`, which Ira takes as 1.0, so on a data disk "v1.0 or v1.1" may be
-      right);
+      is "NEWDOS/80 v1.0", and there was no 1.1 (Ira on #27: the two disks whose
+      banner says "Version 1.1" are 1.0 with DoubleZap 1.1, so they're named v1.0);
       Super Utility+'s data disks are named by its version, not a DOS (see
       "Super Utility+" in `FLOPPY_FORMATS.md`); and Kim Watt's 0x50 and the
       Planet Makruk disks are "Unknown DOS". NEWDOS/80 v2's banner gives "2.X"
@@ -266,8 +264,9 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       one. A disk made by the DOS with a fragmented big file would settle it.
 - [ ] **Writing NEWDOS/80: what's left.** The writer covers version 2 disks (see "Writing NEWDOS/80" in
       FLOPPY_FORMATS.md). Not written:
-      - Version 1.x: v1 double-sided double-density disks use a different sector order, the decoder can't tell
-        v1.0 from v1.1 data disks (GAT 0xCB = 0x80 for both), and two NEWDOS/86 utility disks are named v1.0.
+      - Version 1.x: v1 double-sided double-density disks use a different sector order, and two NEWDOS/86 utility
+        disks are named v1.0. Ira's v1.0 write disks (see "Version 1.0's own writes" in FLOPPY_FORMATS.md) show
+        that a v1.0 writer would differ from the v2 one only in byte 1 of a new entry (0, not 0x20).
       - Version 3.0 (its own Model III boot sector): a different release that we haven't studied.
       - Disks of more than 96 lumps with no PDRIVE table whose GAT doesn't prove its own size (see "More than 96
         lumps with no table" in FLOPPY_FORMATS.md): a last lump that's full, or lumps 0-95 that also fit the

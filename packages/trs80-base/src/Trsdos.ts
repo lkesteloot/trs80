@@ -107,7 +107,10 @@ const SYSTEM_BANNERS: readonly SystemFileBanner[] = [
     // W. S. and D. S. Sands's extensions of NEWDOS/80 v2.0, which keep its disk format, so only
     // their system disks can be told apart. Must come before NEWDOS/80's banners, which they keep.
     {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => makeDosName(m[1] === "86" ? DosFamily.NEWDOS_86 : DosFamily.NEWDOS_90)},
-    {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => makeDosName(DosFamily.NEWDOS_80, m[1])},
+    // There was no NEWDOS/80 1.1: a banner that says "Version 1.1" is 1.0 with DoubleZap 1.1 installed, though
+    // nothing else on the disk names DoubleZap (see "Identifying the DOS" in FLOPPY_FORMATS.md).
+    {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i,
+        name: m => makeDosName(DosFamily.NEWDOS_80, m[1] === "1.1" ? "1.0" : m[1])},
     // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text. Some zap
     // levels shorten "VERSION 2.0" to "VER 2.1 Z38", "Vr2.0 Zap 82" or "V 2.0  Z 85", and the
     // German edition says "Apparat Inc." and "Vers. 2.052".

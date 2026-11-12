@@ -1268,8 +1268,11 @@ Strongest first. Measured on all 274 images.
    version: `L D O S - The Logical Disk Operating System - Ver 5.1.4`,
    `TRSDOS 06.02.00 - Copyright 1984 Logical Systems Inc.`,
    `LS-DOS 06.03.00 - Copyright 1986 Logical Systems Inc.`,
-   `NEWDOS80, APPARAT'S DISK OPERATING SYSTEM, VERSION 1.0` (v1.1 words it
-   differently), Micro-Systems Software for DOSPLUS, `COPYRIGHT (c) 1979 BY
+   `NEWDOS80, APPARAT'S DISK OPERATING SYSTEM, VERSION 1.0` (and a banner that says
+   `NEWDOS80 - Disk Operating System - Version 1.1`, which is still 1.0: Ira says on #27
+   that there was no NEWDOS/80 1.1, only 1.0 with DoubleZap 1.1 installed; nothing else on
+   those two disks names DoubleZap, whose 2.10 keeps Apparat's banner and adds its own line,
+   so they're named "NEWDOS/80 v1.0"), Micro-Systems Software for DOSPLUS, `COPYRIGHT (c) 1979 BY
    TANDY CORPORATION` for TRSDOS 2.x, and `(C) 1981 BY LOBO DRIVES
    INTERNATIONAL` for the Lobo edition of LDOS. Some are unreadable (the
    "TRS-80 Format" disks' SYS0). **TRSDOS 2.x's version banner is stored
@@ -1728,7 +1731,7 @@ Releases whose data disks are byte-identical, so that no rule can tell them apar
 | MultiDOS, Esoteric | 5.10, 6.20, Esoteric 2.12, Esoteric 3.20 | DIR/SYS's passwords |
 | VTOS | 3.0, 3.0.0, 3.0.1; 4.0, 4.0.1, 4.0.2 | the system files (3.0.0 against 3.0.1; 4.0.x unmeasured) |
 
-NEWDOS/80 1.0's FORMAT writes 0x80 (1.1 unmeasured). NEWDOS/80 3.0's FORMAT writes
+NEWDOS/80 1.0's FORMAT writes 0x80 (there was no 1.1; see "Identifying the DOS"). NEWDOS/80 3.0's FORMAT writes
 Apparat's passwords `56 78 12 34` on BOOT/SYS and DIR/SYS, and 2.x's TRSDOS's `60 7F 1F B2`
 and `A7 1D F9 E5`, so `56 78 12 34` on a 2.x disk came with the system. TRSDOS 3.0's FORMAT
 writes 0xFC at 0xCB or `FF FF FF FF` as BOOT/SYS's passwords; TRSDOS 2.0's writes 0x20.
@@ -2573,7 +2576,12 @@ NEWDOS/80 Version 2.0 manual, PDF pages 96-101, paraphrased.
   the drive's PDRIVE entry instead: it assumes no existence table when the drive has more than 96 lumps or GAT byte
   0x60 is 0xFF (NEWDOS/80 Version 2.0 manual, PDF page 117). On a copy of `large_dmk` written with files in lumps 97-124,
   NEWDOS/80 v2.0 (drive 1 set to `TC=190,SPT=10,GPL=2`) listed the right files and free granules with DIR, found
-  nothing wrong with DIRCHECK, and LISTed the file past lump 96 to its end.
+  nothing wrong with DIRCHECK, and LISTed the file past lump 96 to its end. Ira's own system disk for that drive
+  (`ira/large_dmk/nd80190.dmk`, a double-density, double-sided Percom-doubler disk whose table is on cylinder 1)
+  confirms the 190 lumps: its slots 1-3 are `TI=A,TD=A,TC=190,SPT=10,TSR=3,GPL=2,DDSL=17,DDGA=2` with 190 in the
+  lump-count byte. Booted in trs80gp (`-m1 -ddp`; trs80-tool's emulator stops at "NO SYS" on Percom-doubler NEWDOS/80
+  disks) with the written copy in drive 1 and no PDRIVE command, it gave the same DIR (190 tracks, 130 free
+  granules), DIRCHECK found nothing, and the LIST ran to the end.
 - **System-file slots.** The DOS finds BOOT/SYS at DEC 0x00, DIR/SYS at 0x01, SYS0-SYS5 at 0x02-0x07, SYS6-SYS13 at
   0x20-0x27, SYS14-SYS21 at 0x40-0x47 and SYS22-SYS29 at 0x60-0x67. A data disk keeps only 0x00 and 0x01 free of user
   files, as NEWDOS/80 does (62 free entries on a two-granule directory). On a system disk (some SYS0-SYS29 entry is
@@ -2582,6 +2590,18 @@ NEWDOS/80 Version 2.0 manual, PDF pages 96-101, paraphrased.
 - **DIR/SYS's hash.** Old Model I disks have 0x2C in HIT byte 1 instead of the hash 0xC4; the writer leaves it alone.
 - **The GAT's information.** The AUTO field after its 0x0D is 0xFF, as TRSDOS 2.x leaves it. The PDRIVE table is in
   cylinder 0, sector 2, which `label` never touches, and the boot sector holds no disk name.
+- **Version 1.0's own writes** (Ira's `ira/newdos80-v1.0-writes`: one data disk freshly formatted, after saving three
+  888-byte files, after killing one, and after renaming one). FORMAT writes the same GAT as version 2 apart from 0xCB
+  = 0x80: 0xFD for the boot lump, 0xFF for the directory's, 0xFC elsewhere, the existence table 0xFC per lump and 0xFF
+  past them, the password E0 42, the AUTO field 0x0D then 0xFF, and DIR/SYS's correct hash 0xC4 in HIT byte 1. A saved
+  file's entry is byte 0 = 0x10, **byte 1 = 0 (version 2 writes 0x20)**, byte 2 = 0, the 2.3 family's size, blank
+  passwords and 0xFF past its extent; files take the first free granule, including the boot lump's second. KILL
+  changes exactly three bytes (byte 0 0x10 to 0x00, the HIT byte, the GAT bit), and RENAME exactly the name and the
+  HIT byte, keeping the slot. Each new file went in directory sector (hash mod 8), entry 0, or the next free entry
+  there: FILE1, FILE2 and FILE3 in DECs 0x05, 0x04 and 0x24. Version 2 places files the same way (1,120 of 2,544
+  user entries on its disks sit in the sector their hash picks, and the rest overflow, as do 291 of 423 on version
+  1 disks). The writer takes the lowest free DEC instead, which is harmless, since the DOS finds a file by its HIT
+  byte wherever it is.
 - **Not written:** create and format (there's no NEWDOS/80 boot sector to write), NEWDOS/80 version 1 and 3.0,
   and the other NEWDOSes.
 

@@ -625,6 +625,18 @@ describe("Trsdos DOS name from the boot sector", () => {
         expect(nameOf(NEWDOS_80_3_BOOT, 0x82)).to.eql("NEWDOS/80 v3.0");
     });
 
+    it("names a NEWDOS/80 banner that says version 1.1 as 1.0, since there was no 1.1", () => {
+        // In BOOT/SYS, on the boot track, whose text is searched for banners.
+        const banner = (text: string) => (binary: Uint8Array) =>
+            binary.set([...text].map(c => c.charCodeAt(0)), 256 + 0x10);
+        const v1Boot = [0x00, 0xFE, 0x11, 0xF3, 0x31, 0x04, 0x42];
+        // GAT byte 0x82 would make it a version 2 data disk, so this is the banner's doing.
+        expect(nameOf(v1Boot, 0x82, 0, banner("NEWDOS80 - Disk Operating System - Version 1.1")))
+            .to.eql("NEWDOS/80 v1.0");
+        expect(nameOf(v1Boot, 0x80, 0, banner("NEWDOS80, APPARAT'S DISK OPERATING SYSTEM, VERSION 1.0")))
+            .to.eql("NEWDOS/80 v1.0");
+    });
+
     it("names Big Five's loader, which isn't a DOS", () => {
         expect(nameOf(BFLOADER_BOOT, 0x21)).to.eql("Big Five BFLOADER");
     });
