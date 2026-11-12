@@ -643,7 +643,7 @@ const LABEL_COMMAND: DiskCommand = {
             const info = readDiskInfo(session);
             out.line("Name: " + info.name);
             out.line("Date: " + (info.date === "" ? "none" : info.date));
-            out.line("Master password: " + describeMasterPassword(info.passwordHash));
+            out.line("Master password: " + describeMasterPassword(info.passwordHash, info.version));
             out.line("AUTO command: " + describeAutoCommand(info.autoCommand));
             out.result(labelResultToJson(session, info));
             return;

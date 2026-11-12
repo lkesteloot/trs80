@@ -261,6 +261,30 @@ export interface TrsdosFileJson {
     protection: string;
     /** The runs of granules, including those in the file's extended directory entries. */
     extents: GranuleExtentJson[];
+    /**
+     * The hash of the update password, from directory entry bytes 0x10-0x11, by the hash of the disk's layout
+     * (TRSDOS 1.3 has its own). Missing for TRSDOS 1.3's system files, which have no directory entries.
+     */
+    updatePasswordHash?: number;
+    /**
+     * The hash of the access password, from bytes 0x12-0x13. Missing where those bytes hold a time stamp (see
+     * timeStampsReplaceAccessPassword), and for TRSDOS 1.3's system files.
+     */
+    accessPasswordHash?: number;
+    /**
+     * The update password, if its hash is one we can name: "" for none, or "PASSWORD". Missing if it's
+     * another password, which only its hash tells of.
+     */
+    updatePassword?: string;
+    /** The access password, if its hash is one we can name, as for updatePassword. */
+    accessPassword?: string;
+    /**
+     * Whether the disk's directory entries keep a time stamp in bytes 0x12-0x13, where the access password
+     * would go (LDOS 5.3 and LS-DOS 6.3). If so, the access password can't be set ("disk attrib
+     * --access-password" refuses), and accessPasswordHash is missing from the entries that hold one. The
+     * same for every file on the disk.
+     */
+    timeStampsReplaceAccessPassword: boolean;
 }
 
 /**

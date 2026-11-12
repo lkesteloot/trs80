@@ -8,6 +8,7 @@ import {parseTrsdosFilename} from "./TrsdosFilename.js";
 import {
     formatTrsdosDataDisk,
     hashTrsdos13Password,
+    knownTrsdosPassword,
     parseTrsdosFormatDos,
     TRSDOS_FORMAT_DOSES,
     trsdosFormatDosCliName,
@@ -391,6 +392,24 @@ describe("formatTrsdosDataDisk", () => {
             expect(trsdosFormatDosToString(dos)).not.to.eql("");
         }
         expect(parseTrsdosFormatDos("newdos")).to.be.undefined;
+    });
+});
+
+describe("knownTrsdosPassword", () => {
+    it("names the blank and default passwords by each layout's own hash", () => {
+        expect(knownTrsdosPassword(0x4296, TrsdosVersion.V2_3)).to.equal("");
+        expect(knownTrsdosPassword(0x42E0, TrsdosVersion.V2_3)).to.equal("PASSWORD");
+        expect(knownTrsdosPassword(0x42E0, TrsdosVersion.V2_7)).to.equal("PASSWORD");
+        expect(knownTrsdosPassword(0x5CEF, TrsdosVersion.V1_3)).to.equal("");
+        expect(knownTrsdosPassword(0x8FD3, TrsdosVersion.V1_3)).to.equal("PASSWORD");
+        // Not the other layout's.
+        expect(knownTrsdosPassword(0x42E0, TrsdosVersion.V1_3)).to.equal(undefined);
+        expect(knownTrsdosPassword(0x8FD3, TrsdosVersion.V2_3)).to.equal(undefined);
+    });
+
+    it("can't name other passwords, or none", () => {
+        expect(knownTrsdosPassword(hashTrsdosPassword("SECRET"), TrsdosVersion.V2_3)).to.equal(undefined);
+        expect(knownTrsdosPassword(undefined, TrsdosVersion.V2_3)).to.equal(undefined);
     });
 });
 

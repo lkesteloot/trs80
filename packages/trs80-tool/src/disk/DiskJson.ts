@@ -1,11 +1,11 @@
 import {
-    parseTrsdosGatDate, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
+    knownTrsdosPassword, parseTrsdosGatDate, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
     trsdosFindingKindSeverity, TrsdosFindingSeverity,
     type TrsdosDirEntry, type TrsdosDiskInfo, type TrsdosProtectionLevel, type TrsdosProtectionNames,
-    trsdosProtectionLevelToString, type TrsdosRuleSet,
+    trsdosProtectionLevelToString, type TrsdosRuleSet, type TrsdosVersion,
 } from "trs80-base";
 import {
-    type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind,
+    type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind, trsdosPasswordIsSet,
     TrimCylindersReason, type TrimDoneResult, TrimNothingReason,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
@@ -951,23 +951,24 @@ export function attribFileToJson(dirEntry: TrsdosDirEntry, names: TrsdosProtecti
         protection: protectionToJson(dirEntry.getProtectionLevel(), names),
         invisible: dirEntry.isHidden(),
         system: dirEntry.isSystemFile(),
-        updatePassword: dirEntry.updatePassword !== undefined && dirEntry.updatePassword !== TRSDOS_BLANK_PASSWORD_HASH,
-        accessPassword: dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH,
+        updatePassword: trsdosPasswordIsSet(dirEntry.updatePassword, dirEntry.version),
+        accessPassword: trsdosPasswordIsSet(dirEntry.accessPassword, dirEntry.version),
         date: trsdosDirEntryJsonDate(dirEntry) ?? null,
     };
 }
 
 /**
  * What we know of a master password from its hash.
+ *
+ * @param passwordHash the hash.
+ * @param version the disk's layout, whose hash it is (TRSDOS 1.3 has its own).
  */
-export function masterPasswordToJson(passwordHash: number): "PASSWORD" | "blank" | "other" {
-    if (passwordHash === TRSDOS_DEFAULT_PASSWORD_HASH) {
-        return "PASSWORD";
-    } else if (passwordHash === TRSDOS_BLANK_PASSWORD_HASH) {
-        return "blank";
-    } else {
+export function masterPasswordToJson(passwordHash: number, version: TrsdosVersion): "PASSWORD" | "blank" | "other" {
+    const password = knownTrsdosPassword(passwordHash, version);
+    if (password === undefined) {
         return "other";
     }
+    return password === "" ? "blank" : "PASSWORD";
 }
 
 /**
@@ -983,7 +984,7 @@ export function diskInfoToJson(info: TrsdosDiskInfo, ruleSet: TrsdosRuleSet | un
         name: info.name,
         date,
         storedDate: info.date === "" ? null : info.date,
-        masterPassword: masterPasswordToJson(info.passwordHash),
+        masterPassword: masterPasswordToJson(info.passwordHash, info.version),
         masterPasswordHash: info.passwordHash,
         autoCommand: info.autoCommand ?? null,
     };

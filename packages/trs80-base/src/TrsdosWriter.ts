@@ -4,7 +4,7 @@ import {HardDiskPartition} from "./HardDiskPartition.js";
 import {SectorOverlay} from "./SectorOverlay.js";
 import {
     decodeDirEntry, decodeTrsdos, decodeTrsdosHardDiskPartition, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
-    hashForFilename, hashTrsdosPassword, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_13_EXTENTS_PER_ENTRY,
+    hashForFilename, TRSDOS_13_EXTENTS_PER_ENTRY,
     TRSDOS_BLANK_PASSWORD_HASH, type Trsdos, type Trsdos23TimeStamp, trsdos23TimeStampToWord,
     type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
@@ -15,7 +15,7 @@ import {
 } from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
-import {hashTrsdos13Password} from "./TrsdosFormat.js";
+import {hashTrsdosPasswordForVersion, trsdosBlankPasswordHash} from "./TrsdosFormat.js";
 import {type TrsdosGranule, TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {
     formatTrsdosGatDate, GAT_AUTO_OFFSET, GAT_DATE_OFFSET, GAT_NAME_OFFSET, GAT_PASSWORD_OFFSET, GAT_TEXT_LENGTH,
@@ -146,6 +146,13 @@ export enum TrsdosWriteErrorKind {
 }
 
 /**
+ * Whether the disk's directory entries keep a time stamp where the access password would go (LDOS 5.3 and
+ * LS-DOS 6.3), in which case {@link TrsdosWriter.setAttributes} refuses to set an access password. See "Time
+ * stamps (LDOS 5.3 and LS-DOS 6.3)" in FLOPPY_FORMATS.md.
+ */
+export function trsdosAccessPasswordHoldsTimeStamp(trsdos: Trsdos): boolean {
+    return trsdos.hasTimeStamps;
+}
 
 /**
  * What to do differently when adding a file.
@@ -886,17 +893,7 @@ export class TrsdosWriter {
      * hashes with its own algorithm. See "Password hashes" in FLOPPY_FORMATS.md.
      */
     private blankPasswordHash(): number {
-        switch (this.trsdos.version) {
-            case TrsdosVersion.V2_3:
-            case TrsdosVersion.V2_7:
-                return TRSDOS_BLANK_PASSWORD_HASH;
-
-            case TrsdosVersion.V1_3:
-                return TRSDOS_13_BLANK_PASSWORD_HASH;
-
-            default:
-                assertNever(this.trsdos.version);
-        }
+        return trsdosBlankPasswordHash(this.trsdos.version);
     }
 
     /**
@@ -1663,7 +1660,8 @@ export class TrsdosWriter {
         }
         expected.updatePassword = word(bytes[17], bytes[16]);
         if (changes.accessPassword !== undefined) {
-            if (trsdos.hasTimeStamps) {
+            const holdsTimeStamp = trsdosAccessPasswordHoldsTimeStamp(trsdos);
+            if (holdsTimeStamp) {
                 throw new TrsdosWriteError(`Can't set the access password of ${name}: entries on this disk keep ` +
                     `a time stamp where the access password would go`);
             }
@@ -1982,7 +1980,7 @@ export class TrsdosWriter {
      */
     private hashPassword(password: string): number {
         try {
-            return this.trsdos.version === TrsdosVersion.V1_3 ? hashTrsdos13Password(password) : hashTrsdosPassword(password);
+            return hashTrsdosPasswordForVersion(password, this.trsdos.version);
         } catch (e) {
             throw new TrsdosWriteError(e instanceof Error ? e.message : String(e));
         }

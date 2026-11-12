@@ -1,6 +1,6 @@
 import {assertNever} from "z80-base";
 import {BYTES_PER_SECTOR, SectorPosition} from "./FloppyDisk.js";
-import {decodeAutoCommand, type Trsdos} from "./Trsdos.js";
+import {decodeAutoCommand, type Trsdos, type TrsdosVersion} from "./Trsdos.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
 
 /**
@@ -191,9 +191,14 @@ export interface TrsdosDiskInfo {
     date: string;
 
     /**
-     * The hash of the master password.
+     * The hash of the master password, by the hash of {@link version}'s layout.
      */
     passwordHash: number;
+
+    /**
+     * The disk's layout, which says how its passwords are hashed: TRSDOS 1.3 has its own hash.
+     */
+    version: TrsdosVersion;
 
     /**
      * The AUTO command, empty for none, or undefined if the disk should have one in the system
@@ -228,5 +233,5 @@ export function readTrsdosDiskInfo(trsdos: Trsdos, ruleSet: TrsdosRuleSet | unde
         }
     }
 
-    return {name: gatInfo.name, date: gatInfo.date, passwordHash: gatInfo.password, autoCommand};
+    return {name: gatInfo.name, date: gatInfo.date, passwordHash: gatInfo.password, version: trsdos.version, autoCommand};
 }

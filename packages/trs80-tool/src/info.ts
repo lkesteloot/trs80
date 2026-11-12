@@ -6,7 +6,7 @@ import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
     Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findLdosPartitions, getFloppyDetails, isFloppy,
-    isHardDisk, MicroDos,
+    isHardDisk, knownTrsdosPassword, MicroDos,
     modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
     UcsdPascal, XenixTar} from "trs80-base";
 import {assertNever} from "z80-base";
@@ -180,8 +180,16 @@ export interface TrsdosInfoJson {
     diskDate?: string;
     /** The command that runs at boot. Empty if none. Missing if the table couldn't be read. */
     autoCommand?: string;
-    /** The hash of the master password; 17120 (0x42E0) is "PASSWORD", the default. Missing if the table couldn't be read. */
+    /**
+     * The hash of the master password, by the hash of the disk's layout: "PASSWORD", the default, is 17120
+     * (0x42E0), except on TRSDOS 1.3, which has its own hash (36819, 0x8FD3). Missing if the table couldn't be read.
+     */
     gatPassword?: number;
+    /**
+     * The master password, if its hash is one we can name: "" for none, or "PASSWORD". Missing if it's another
+     * password, or the table couldn't be read.
+     */
+    gatPasswordText?: string;
     /** What's wrong with the allocation table, if it couldn't be read. */
     gatError?: string;
     /** Number of sides that the file system uses; less than the floppy's if it only uses side 0. */
@@ -423,6 +431,10 @@ function fileSystemDetailsToJson(fileSystem: KnownFloppyFileSystem):
             trsdos.diskDate = gatInfo.date;
             trsdos.autoCommand = gatInfo.autoCommand;
             trsdos.gatPassword = gatInfo.password;
+            const gatPasswordText = knownTrsdosPassword(gatInfo.password, fileSystem.version);
+            if (gatPasswordText !== undefined) {
+                trsdos.gatPasswordText = gatPasswordText;
+            }
         }
         const pdriveSettings = fileSystem.getPdriveSettings();
         if (pdriveSettings !== undefined) {

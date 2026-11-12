@@ -4,7 +4,7 @@ import path from "path";
 import {Readable} from "stream";
 import {
     makeLdosTestHardDiskBinary, makeTrsdos23TestDisk, type LdosTestPartition, type TestDiskOptions, type TestFile,
-    type TrsdosDiskInfo, TrsdosRuleSet,
+    TRSDOS_13_BLANK_PASSWORD_HASH, type TrsdosDiskInfo, TrsdosRuleSet, TrsdosVersion,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {setColorLevel} from "../colors.js";
@@ -288,6 +288,28 @@ describe("disk --json", () => {
         expect(full.commands[1].error).to.contain("not enough room");
         expect(full.commands[1].errorCode).to.equal(7);
         expect(process.exitCode).to.equal(7);
+    });
+
+    it("names the master and file passwords by the layout's own hash", async () => {
+        // TRSDOS 1.3 hashes passwords differently from the rest of the 2.3 family.
+        const run = await runJson("create", "trsdos-1.3", ":", "add", hostPathname, ":", "label", ":", "dir");
+        const label = commandAt<LabelResultJson>(run, 2, "label").result;
+        expect(label.masterPassword).to.equal("PASSWORD");
+        const dirResult = commandAt<DirResultJson>(run, 3, "dir").result;
+        const trsdos = dirResult.files[0].trsdos!;
+        expect(trsdos.updatePassword).to.equal("");
+        expect(trsdos.accessPassword).to.equal("");
+        expect(trsdos.updatePasswordHash).to.equal(TRSDOS_13_BLANK_PASSWORD_HASH);
+        expect(trsdos.timeStampsReplaceAccessPassword).to.equal(false);
+    });
+
+    it("says when time stamps take the access password's place", async () => {
+        const run = await runJson("create", "ldos-5.3", ":", "add", hostPathname, "--date", "2005-03-04", ":", "dir");
+        const trsdos = commandAt<DirResultJson>(run, 2, "dir").result.files[0].trsdos!;
+        expect(trsdos.timeStampsReplaceAccessPassword).to.equal(true);
+        expect(trsdos.updatePassword).to.equal("");
+        expect(trsdos.accessPasswordHash).to.equal(undefined);
+        expect(trsdos.accessPassword).to.equal(undefined);
     });
 
     it("shows a file's contents in base64, with the listing", async () => {
@@ -603,7 +625,7 @@ describe("trsdosNameToJson", () => {
 describe("diskInfoToJson", () => {
     /** A disk's information with the given stored date. */
     function infoWithDate(date: string): TrsdosDiskInfo {
-        return {name: "DATADISK", date, passwordHash: 0, autoCommand: undefined};
+        return {name: "DATADISK", date, passwordHash: 0, version: TrsdosVersion.V2_3, autoCommand: undefined};
     }
 
     it("gives the stored date as it is and the date in full", () => {

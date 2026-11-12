@@ -1,6 +1,6 @@
 import {
-    type BasicDialect, parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo, TRSDOS_BLANK_PASSWORD_HASH,
-    TRSDOS_DEFAULT_PASSWORD_HASH, Trsdos, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
+    type BasicDialect, knownTrsdosPassword, parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo,
+    Trsdos, trsdosBlankPasswordHash, type TrsdosVersion, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
     type TrsdosAddResult, type TrsdosDiskInfoChanges, type TrsdosFilename, trsdosFilenameFromHost,
     trsdosFilenameToString, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString,
     type TrsdosProtectionNames,
@@ -181,10 +181,10 @@ export function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtec
     if (dirEntry.isSystemFile()) {
         parts.push("system");
     }
-    if (dirEntry.updatePassword !== undefined && dirEntry.updatePassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+    if (trsdosPasswordIsSet(dirEntry.updatePassword, dirEntry.version)) {
         parts.push("update password");
     }
-    if (dirEntry.accessPassword !== undefined && dirEntry.accessPassword !== TRSDOS_BLANK_PASSWORD_HASH) {
+    if (trsdosPasswordIsSet(dirEntry.accessPassword, dirEntry.version)) {
         parts.push("access password");
     }
     if (dirEntry.hasDate()) {
@@ -299,15 +299,25 @@ export function listAttributes(session: DiskSession, patterns: string[]): Attrib
  * password is only known if it's one of the two common ones.
  *
  * @param passwordHash the hash of the password.
+ * @param version the disk's layout, whose hash it is (TRSDOS 1.3 has its own).
  */
-export function describeMasterPassword(passwordHash: number): string {
-    if (passwordHash === TRSDOS_DEFAULT_PASSWORD_HASH) {
-        return "PASSWORD";
-    } else if (passwordHash === TRSDOS_BLANK_PASSWORD_HASH) {
-        return "blank";
-    } else {
+export function describeMasterPassword(passwordHash: number, version: TrsdosVersion): string {
+    const password = knownTrsdosPassword(passwordHash, version);
+    if (password === undefined) {
         return "set (hash 0x" + passwordHash.toString(16).toUpperCase().padStart(4, "0") + ")";
     }
+    return password === "" ? "blank" : password;
+}
+
+/**
+ * Whether a directory entry's password hash is that of a real password, not the blank one.
+ *
+ * @param hash the hash, or undefined if the entry has none (an access password whose bytes hold a time stamp,
+ * or a TRSDOS 1.3 system file).
+ * @param version the disk's layout, whose blank hash differs on TRSDOS 1.3.
+ */
+export function trsdosPasswordIsSet(hash: number | undefined, version: TrsdosVersion): boolean {
+    return hash !== undefined && hash !== trsdosBlankPasswordHash(version);
 }
 
 /**
