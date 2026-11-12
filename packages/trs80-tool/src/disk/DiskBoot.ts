@@ -91,6 +91,7 @@ function modelOfDos(dosName: DosName): BootModel | undefined {
         case DosFamily.H_DOS:
         case DosFamily.DOUBLEDOS:
         case DosFamily.MULTIDOS:
+        case DosFamily.MULTIDOS_II:
         case DosFamily.ESOTERIC:
         case DosFamily.Z_DOS:
         case DosFamily.ULTRADOS:

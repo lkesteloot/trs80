@@ -167,6 +167,7 @@ function writesPartialLumps(family: DosFamily): boolean {
         case DosFamily.NEWDOS_86:
         case DosFamily.NEWDOS_90:
         case DosFamily.MULTIDOS:
+        case DosFamily.MULTIDOS_II:
         case DosFamily.Z_DOS:
         case DosFamily.ESOTERIC:
         case DosFamily.DOUBLEDOS:
@@ -3379,6 +3380,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
             osVersion = systemSectorVersion;
         }
+        const gat = this.disk.readSector(this.getGatPosition())?.data;
         const bootSys = this.getSystemDirEntryBytes("BOOT    SYS");
         const dirSys = this.getSystemDirEntryBytes("DIR     SYS");
         switch (osVersion) {
@@ -3419,7 +3421,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                     // Could be 3.4a or the Model I and III's 4.0.
                     return makeDosName(DosFamily.DOSPLUS);
                 }
-                return bootTrack.includes("DOSPLUS") ? makeDosName(DosFamily.DOSPLUS) : UNKNOWN_DOS_NAME;
+                // DOSPLUS's FORMAT gives the master password no password (96 42), where the other
+                // DOSes that write 0x40 give it PASSWORD (E0 42) (Ira).
+                return bootTrack.includes("DOSPLUS") || hexBytesAt(gat, 0xCE, "96 42") ? makeDosName(DosFamily.DOSPLUS) :
+                    UNKNOWN_DOS_NAME;
             case 0x50:
                 // Kim Watt's utility disks also write 0x50, with neither of these.
                 if (bootSectorDos === BootSectorDos.LDOS || systemSectorVersion === 0x50) {
@@ -3601,6 +3606,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 const dirSys = this.getSystemDirEntryBytes("DIR     SYS");
                 return MULTIDOS_DIR_SYS_PASSWORDS.find(({passwords}) => hexBytesAt(dirSys, 0x10, passwords))?.name;
             }
+
+            case BootSectorDos.MULTIDOS_II:
+                // A DOS of its own, whose version no disk of ours records outside its banner.
+                return makeDosName(DosFamily.MULTIDOS_II);
 
             default:
                 // We have no disks to check Ira's rules for the others against.

@@ -31,6 +31,9 @@ export enum DosFamily {
     H_DOS,
     DOUBLEDOS,
     MULTIDOS,
+    // Cosmopolitan's MultiDOS II, a different DOS: its directory has mixed-case names and no
+    // BOOT/SYS or DIR/SYS.
+    MULTIDOS_II,
     ESOTERIC,
     Z_DOS,
     ULTRADOS,
@@ -83,6 +86,8 @@ export function dosFamilyToString(family: DosFamily): string {
             return "DoubleDOS";
         case DosFamily.MULTIDOS:
             return "MultiDOS";
+        case DosFamily.MULTIDOS_II:
+            return "MultiDOS II";
         case DosFamily.ESOTERIC:
             return "Esoteric";
         case DosFamily.Z_DOS:
@@ -233,6 +238,7 @@ export function dosNameToString(name: DosName): string {
         case DosFamily.H_DOS:
         case DosFamily.DOUBLEDOS:
         case DosFamily.MULTIDOS:
+        case DosFamily.MULTIDOS_II:
         case DosFamily.ESOTERIC:
         case DosFamily.Z_DOS:
         case DosFamily.ULTRADOS:
@@ -286,6 +292,7 @@ export function isUnknownDosName(name: DosName): boolean {
         case DosFamily.H_DOS:
         case DosFamily.DOUBLEDOS:
         case DosFamily.MULTIDOS:
+        case DosFamily.MULTIDOS_II:
         case DosFamily.ESOTERIC:
         case DosFamily.Z_DOS:
         case DosFamily.ULTRADOS:
@@ -330,6 +337,7 @@ export function isTrsdos6Line(name: DosName): boolean {
         case DosFamily.H_DOS:
         case DosFamily.DOUBLEDOS:
         case DosFamily.MULTIDOS:
+        case DosFamily.MULTIDOS_II:
         case DosFamily.ESOTERIC:
         case DosFamily.Z_DOS:
         case DosFamily.ULTRADOS:

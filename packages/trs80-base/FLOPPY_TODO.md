@@ -207,6 +207,14 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       suggests matching their system files' CRC-32s against the File Manifests
       of each NEWDOS/80 release group (2.0 and 2.5 differ in SYS0, SYS3, SYS16,
       SYS17, SYS21 and the utilities).
+- [ ] **What #53 left out of the names.** Done there: TRSDOS 1.x releases from the GAT
+      and HIT, TRSDOS 2.7 and 2.8 from the boot sector, UltraDOS, VTOS 3.0, DoubleDOS,
+      RAPIDOS and MultiDOS II. Left, each with its reason in "Boot sector code by DOS" in
+      `FLOPPY_FORMATS.md`: G-DOS's and H-DOS's versions (2.1b and 2.3c by Ira; not in our
+      G-DOS disk's files), NEWDOS/80 2.1b by the directory cylinder, HIT 0-1 `A2 C4` as
+      TRSDOS 1.5, and MultiDOS by HIT bytes. Declined: naming the formatter and the system
+      separately, and the "(bare data disk)" and model qualifiers. Percom OS-80 III needs
+      a directory decoder first (see "Percom disks with no directory").
 - [ ] **Ira's naming rules that no disk of ours exercises** (see "What each
       FORMAT writes, from Ira's bare disks" in `FLOPPY_FORMATS.md`): MultiDOS
       1.0's Model I boot sector (1.0 or 1.2D by the GAT's data mark), the 1.0-1.4
@@ -215,7 +223,10 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       ours has, the TRSDOS 6.01.01 stub, DOSPLUS's fill byte by version, and
       HIT byte 1 = 0xC4 with 0x21 (NEWDOS+ 2.2 or 3.0, but see "What didn't hold
       up"), and TRSDOS 1.4's 0xFF at HIT byte 0xC0 and GRL 1.5's `F2 92` master
-      password (both in the code, from Ira's bytes). Add them when disks turn up.
+      password, TRSDOS 2.7's and 2.8's data-disk stub, UltraDOS 4.2's data-disk boot
+      sector, DoubleDOS's FORMAT stub, RAPIDOS's Model III stub and "1.3 or 1.5" from 0x60,
+      and DOSPLUS from 0x40 with `96 42` (all in the code, from Ira's bytes). Add disks when
+      they turn up.
 - [ ] **Our TRSDOS 2.3 data disks have the system disk's boot sector.** The
       formatter's template is TRSDOS 2.3's system boot sector, with 0xE1 at 0x7D,
       but 2.3's FORMAT writes 0xB6 there (Ira, and `issue-1/m1-trsdos-blank.dmk`),

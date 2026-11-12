@@ -1318,6 +1318,14 @@ boot track text and GAT 0xCB, as above):
   0x30 at byte 0x4F and "4.24" with 0x31 (4.2 and 4.23 make byte-identical data disks). Ira
   spells the first "4.20"; we use "4.2", as its banner does. All 14 of our DoubleDOS disks
   are named by their banners, which these agree with.
+- **MultiDOS II**, Cosmopolitan's other DOS, by its boot sector (`00 FE xx ED 56 3A 00 42 B7
+  20 6F`), as a family of its own with no version (Ira): its directory has mixed-case
+  names ("Index", "Resident sys") and no BOOT/SYS or DIR/SYS. That names the MultiDOS II
+  disk and Cosmopolitan's Zeus Editor Assembler, which were "MultiDOS".
+- **DOSPLUS from 0x40 and its master password** where neither the banner nor the boot
+  sector names a DOS: DOSPLUS's FORMAT writes `96 42` (no password) at GAT 0xCE-0xCF,
+  where the others that write 0x40 write `E0 42` (Ira). It names "DOSPLUS" with no
+  version, since 0x40 is 3.4a, 3.4D or the Model I and III's 4.0. No disk of ours needs it.
 - **RAPIDOS** (Rapidynamic's RapidDOS) by its banner, then its boot sector (Ira). The
   Model III's, on the TRSDOS 1.3 layout, is 1.3. The Model 4's writes TRSDOS 6's GAT, with
   0x62 from 2.0's FORMAT and 0x60 from 1.3's and 1.5's, so its data disks are "RAPIDOS 2.0"
@@ -1332,6 +1340,15 @@ boot track text and GAT 0xCB, as above):
   the GAT for the reason DOSPLUS's banner does (above): one of our disks has 4.2's system
   and banner on a 4.1 FORMAT's GAT.
 - **TRSDOS 3.0** writes 0xFC at 0xCB (its system disks are already named by banner).
+
+Ira's directory-only markers for a boot sector we don't recognize (#53) mostly repeat what
+0xCB already says (0x5x LDOS, 0x6x TRSDOS 6, 0x80 and 0x82 NEWDOS/80, 0x20 and 0x21 TRSDOS
+2.x), and none names any of our 27 "Unknown DOS" disks. We use UltraDOS's "U4x" and
+DOSPLUS's 0x40 with `96 42` (above), but not MultiDOS's HIT bytes (`C4 94`, `94 C4`, `32
+BA`), which are file-name hashes that other DOSes' disks can have too. "MULTIDOS" in the GAT
+is already caught by the banner search, since DIR/SYS covers the GAT. The model from
+MultiDOS stub C, and Ira's wording of results ("Formatted by ... ; system ...", "(bare data
+disk)", "Model I, single density"), aren't in the names.
 
 What didn't hold up on used disks:
 
