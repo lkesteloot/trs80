@@ -450,6 +450,27 @@ Banners can straddle a load record's header, which reading the resident as a
 load module removes ("TRSDOS versi" header "on 1.3I"). Data disks have only the
 boot track's "version 1.3" (see "Identifying the DOS").
 
+Data disks without that text are named by FORMAT's bytes (Ira's bare disks,
+#53). Tandy's boot sector holds the release in BCD at 0xFE, with 0x28 at 0xFF:
+0x11, 0x12 and 0x14 name 1.1, 1.2 and 1.4 (0x14 only on system disks). 0x13 is
+written by the FORMATs of 1.3, 1.3.2, 1.3I, 1.4 and GRL's 1.5, which the
+directory then tells apart:
+
+- **GRL's 1.5** writes `F2 92` at GAT 0xCE-0xCF and adds BOOT/SYS, the only 1.x
+  FORMAT that does, with the passwords `87 55 EF 5C` (both GRL disks of ours
+  that have BOOT/SYS have them).
+- **1.4** writes 0xFF at HIT byte 0xC0 (no disk of ours has it).
+- **1.3.2, 1.3I and 1.4** write `EF 5C` (the blank password under 1.3's hash) as
+  the master password, which 1.1 also writes. 1.2 and 1.3 write `D3 8F`
+  (PASSWORD), as on telanoc's 1.3 data disk and trs80gp's TRSDOS 1.3 system disk.
+  `m3-trsdos-blank.dmk` has `EF 5C`, so it wasn't made by 1.3's FORMAT with
+  its default password; which release made it isn't recorded.
+
+Ira also takes HIT bytes 0-1 = `A2 C4` (BOOT/SYS and DIR/SYS in the first two
+slots) as 1.5, but two 1983 Graphics-90 disks of ours have them with 1.3's
+passwords on non-system BOOT/SYS and DIR/SYS entries, so we don't: a BOOT/SYS
+entry without GRL's passwords leaves the disk "TRSDOS 1.x".
+
 ## Tandy's protection track
 
 Many Tandy originals for the Model III have a 41st track, cylinder 40, that

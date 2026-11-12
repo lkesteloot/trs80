@@ -5,7 +5,9 @@ import {
     Trsdos, TrsdosProtectionLevel, TrsdosProtectionNames, trsdosProtectionLevels, trsdosProtectionLevelToString,
     trsdosProtectionNamesFor, TrsdosVersion, type Trsdos13DirEntryFields, type Trsdos23DirEntryFields,
 } from "./Trsdos.js";
-import {hashTrsdos13Password} from "./TrsdosFormat.js";
+import {formatTrsdosDataDisk, hashTrsdos13Password, TrsdosFormatDos} from "./TrsdosFormat.js";
+import {Density, SectorData, type SectorPosition} from "./FloppyDisk.js";
+import type {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {makeTrsdos23TestDisk} from "./TrsdosTestDisk.js";
 import {DosFamily, isUnknownDosName, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
 
@@ -653,5 +655,66 @@ describe("Trsdos DOS name from the boot sector", () => {
     it("names DOSPLUS from BOOT/SYS's passwords when the GAT doesn't", () => {
         expect(nameOf(TRSDOS_2_BOOT, 0x50, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0x27, 0x0B, 0x82, 0x2A])))
             .to.eql("DOSPLUS 3.2.1, 3.3 or 3.4");
+    });
+});
+
+describe("Trsdos DOS name of Model III TRSDOS data disks", () => {
+    // Tandy's boot sector, as 1.2 through 1.5 write it.
+    const TRSDOS_1_BOOT = [0xFE, 0x11, 0x3E, 0xD0, 0xD3, 0xF0, 0x21, 0x02, 0x00, 0x22, 0xEA, 0x43];
+
+    /**
+     * Change bytes of a sector of the disk, in place.
+     */
+    function patchSector(disk: DmkFloppyDisk, position: SectorPosition, offset: number, bytes: number[]): void {
+        const data = disk.readSector(position)!.data.slice();
+        data.set(bytes, offset);
+        disk.writeSector(position, new SectorData(data, position, Density.DOUBLE));
+    }
+
+    /**
+     * Name the DOS of a freshly formatted 1.3-layout data disk, given Tandy's boot sector with this
+     * release byte at 0xFE (and 0x28 at 0xFF), after the patch changes anything else.
+     */
+    function nameOf(release: number, patch?: (disk: DmkFloppyDisk, trsdos: Trsdos) => void): string {
+        const disk = formatTrsdosDataDisk({dos: TrsdosFormatDos.TRSDOS_1_3, cylinders: 40, sides: 1});
+        if (typeof disk === "string") {
+            throw new Error(disk);
+        }
+        const formatted = decodeTrsdos(disk)!;
+        const boot = new Array<number>(256).fill(0);
+        boot.splice(0, TRSDOS_1_BOOT.length, ...TRSDOS_1_BOOT);
+        boot[0xFE] = release;
+        boot[0xFF] = 0x28;
+        patchSector(disk, formatted.geometry.bootTrack!.firstSectorPosition(), 0, boot);
+        patch?.(disk, formatted);
+        return decodeTrsdos(disk)!.nameAndVersion;
+    }
+
+    it("names the release that the boot sector's byte gives, other than 1.3's", () => {
+        expect(nameOf(0x11)).to.eql("TRSDOS 1.1");
+        expect(nameOf(0x12)).to.eql("TRSDOS 1.2");
+        expect(nameOf(0x14)).to.eql("TRSDOS 1.4");
+    });
+
+    it("names 1.3 when its FORMAT's PASSWORD is the master password", () => {
+        expect(nameOf(0x13, (disk, trsdos) => patchSector(disk, trsdos.getGatPosition(), 0xCE, [0xD3, 0x8F])))
+            .to.eql("TRSDOS 1.3");
+    });
+
+    it("lists 1.3.2, 1.3I and 1.4 for a blank master password", () => {
+        expect(nameOf(0x13, (disk, trsdos) => patchSector(disk, trsdos.getGatPosition(), 0xCE, [0xEF, 0x5C])))
+            .to.eql("TRSDOS 1.3.2, 1.3I or 1.4");
+    });
+
+    it("names 1.4 by 0xFF at HIT byte 0xC0", () => {
+        expect(nameOf(0x13, (disk, trsdos) => {
+            patchSector(disk, trsdos.getGatPosition(), 0xCE, [0xEF, 0x5C]);
+            patchSector(disk, trsdos.getHitPosition(), 0xC0, [0xFF]);
+        })).to.eql("TRSDOS 1.4");
+    });
+
+    it("names GRL's 1.5 by its FORMAT's master password hash", () => {
+        expect(nameOf(0x13, (disk, trsdos) => patchSector(disk, trsdos.getGatPosition(), 0xCE, [0xF2, 0x92])))
+            .to.eql("TRSDOS 1.5");
     });
 });

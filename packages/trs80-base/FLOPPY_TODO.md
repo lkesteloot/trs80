@@ -211,7 +211,8 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       passwords (`A8 00 00 00`), the MultiDOS DIR/SYS passwords that no disk of
       ours has, the TRSDOS 6.01.01 stub, DOSPLUS's fill byte by version, and
       HIT byte 1 = 0xC4 with 0x21 (NEWDOS+ 2.2 or 3.0, but see "What didn't hold
-      up"). Add them when disks turn up.
+      up"), and TRSDOS 1.4's 0xFF at HIT byte 0xC0 and GRL 1.5's `F2 92` master
+      password (both in the code, from Ira's bytes). Add them when disks turn up.
 - [ ] **Our TRSDOS 2.3 data disks have the system disk's boot sector.** The
       formatter's template is TRSDOS 2.3's system boot sector, with 0xE1 at 0x7D,
       but 2.3's FORMAT writes 0xB6 there (Ira, and `issue-1/m1-trsdos-blank.dmk`),

@@ -3200,15 +3200,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 if (match !== null) {
                     return makeDosName(DosFamily.TRSDOS, match[1]);
                 }
-                // Tandy's boot sector keeps the version in BCD at 0xFE, with 0x28 at 0xFF. GRL's
-                // TRSDOS 1.5 keeps 1.3's, but its FORMAT adds a BOOT/SYS entry, which 1.1-1.4 don't.
-                const hasBootSys = this.findFile("BOOT/SYS") !== undefined;
-                if (bootSectorDos === BootSectorDos.TRSDOS_1 && bootSector !== undefined && !hasBootSys &&
-                    bootSector.data[0xFF] === 0x28 && bootSector.data[0xFE] >= 0x10 && bootSector.data[0xFE] <= 0x19) {
-
-                    return makeDosName(DosFamily.TRSDOS, `1.${bootSector.data[0xFE] & 0x0F}`);
-                }
-                return makeDosName(DosFamily.TRSDOS, "1.x");
+                return this.decodeTrsdos1Release(bootSector);
             }
 
             case TrsdosVersion.V2_7: {
@@ -3391,6 +3383,54 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 // whose boot sector isn't Super Utility+'s), and 0x55 (UltraDOS's "U").
                 return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS_NAME;
         }
+    }
+
+    /**
+     * The release of Model III TRSDOS that formatted a disk with no banner, from the release byte
+     * in Tandy's boot sector, and for 1.3's byte, the GAT, the HIT and BOOT/SYS. "TRSDOS 1.x" if
+     * they don't say. See "The TRSDOS 1.3 layout's DOSes" in FLOPPY_FORMATS.md.
+     *
+     * @param bootSector the boot sector, if we recognize it.
+     */
+    private decodeTrsdos1Release(bootSector: {dos: BootSectorDos, data: Uint8Array} | undefined): DosName {
+        const unknown = makeDosName(DosFamily.TRSDOS, "1.x");
+
+        // Tandy's boot sector keeps the release in BCD at 0xFE, with 0x28 at 0xFF.
+        if (bootSector === undefined || bootSector.dos !== BootSectorDos.TRSDOS_1 || bootSector.data[0xFF] !== 0x28) {
+            return unknown;
+        }
+        const release = bootSector.data[0xFE];
+        if (release < 0x10 || release > 0x19) {
+            return unknown;
+        }
+
+        // Only GRL's 1.5 FORMAT adds a BOOT/SYS entry, so one on another disk means something
+        // else formatted it.
+        const hasBootSys = this.findFile("BOOT/SYS") !== undefined;
+        if (release !== 0x13) {
+            return hasBootSys ? unknown : makeDosName(DosFamily.TRSDOS, `1.${release & 0x0F}`);
+        }
+
+        // 1.3.2, 1.3I, 1.4's FORMAT and GRL's 1.5 also write 1.3's byte. GRL's FORMAT writes its
+        // own master password hash and BOOT/SYS passwords.
+        const gat = this.disk.readSector(this.getGatPosition())?.data;
+        const bootSys = this.getSystemDirEntryBytes("BOOT    SYS");
+        if (hexBytesAt(gat, 0xCE, "F2 92") || hexBytesAt(bootSys, 0x10, "87 55 EF 5C")) {
+            return makeDosName(DosFamily.TRSDOS, "1.5");
+        }
+        if (hasBootSys) {
+            return unknown;
+        }
+        // 1.4's FORMAT also writes 0xFF at HIT byte 0xC0, and 1.3.2's, 1.3I's and 1.4's the blank
+        // master password (1.3's is PASSWORD).
+        const hit = this.disk.readSector(this.getHitPosition())?.data;
+        if (hit?.[0xC0] === 0xFF) {
+            return makeDosName(DosFamily.TRSDOS, "1.4");
+        }
+        if (hexBytesAt(gat, 0xCE, "EF 5C")) {
+            return makeDosName(DosFamily.TRSDOS, "1.3.2", "1.3I", "1.4");
+        }
+        return makeDosName(DosFamily.TRSDOS, "1.3");
     }
 
     /**
