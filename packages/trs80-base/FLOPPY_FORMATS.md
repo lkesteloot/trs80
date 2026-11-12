@@ -675,7 +675,8 @@ tail cylinder can go only if all of these hold:
    GAT byte 0xCC on the LDOS line, trusted as described in "GAT bytes
    0xCB-0xCD" and checked against the media block where there is one; 0xCC on
    DOSPLUS 3.x and 4.0; TC in slot 0 of a NEWDOS/80 system disk's PDRIVE table
-   (plus the opposite-density cylinder 0 that TC doesn't count), checked
+   (`readPdriveTable()`, which looks on cylinder 1 when cylinder 0's sector 2
+   is blank; plus the opposite-density cylinder 0 that TC doesn't count), checked
    against the decoded SPT, GPL and lump count; and the fixed 35 cylinders of
    TRSDOS 2.x (or the GAT's, if it covers more, as on a ZAPped disk) and 40 of
    TRSDOS 1.x (whose GAT is zero past its end, so free bits there mean
@@ -704,22 +705,26 @@ cylinder when every track with them is a re-read past the proven end.
 **What the collection showed** (November 2026, all 1,745 floppy images in the
 regression suite):
 
-- A plain `trim` used to change 119 of them and now changes 3: `XR-1 Control
+- A plain `trim` used to change 119 of them and now changes 4: `XR-1 Control
   Software` (cylinder 41, unformatted, after a Tandy protection track that
   stays), `Xenos [Set 3]` (cylinder 42, a re-read of 40; 40-41 are another
-  format and stay), and `BFBDEM ... [Original]` (36-39, unformatted; 35 is
-  formatted like the disk and stays).
-- 16 of the 119 lost cylinders that were inside the disk. The VS-100 and
+  format and stay), `BFBDEM ... [Original]` (36-39, unformatted; 35 is
+  formatted like the disk and stays), and `NEWDOS-80 v2.5 ... [DD][Set 3]`
+  (cylinder 41, unformatted, past the 41 that its PDRIVE table on cylinder 1
+  gives).
+- 18 of the 119 lost cylinders that were inside the disk. The VS-100 and
   Talker disks (TRSDOS 2.x, 35 cylinders) went to 18, because their GAT marks
   18-34 used with no file owning them; three `LOAD-80` DOSPLUS 3.3 disks (0xCC
   says 35) went to 28 or 30; `Macro-Mon` (DOSPLUS 3.3) to 23; `SuperCop`
-  (NEWDOS/80, PDRIVE TC=40) to 35; and four Infocom NEWDOS/80 disks, whose
-  PDRIVE tables give 41 cylinders, to 40.
-- Of the other 101, 35 keep their tail (24 because it's formatted like the
+  (NEWDOS/80, PDRIVE TC=40) to 35; four Infocom NEWDOS/80 disks, whose
+  PDRIVE tables give 41 cylinders, to 40; and two NEWDOS/80 disks whose
+  tables are on cylinder 1 (`qb-games2-flippy-games1.dmk` and `Col 3 - 035`)
+  to 40.
+- Of the other 98, 35 keep their tail (24 because it's formatted like the
   disk; the rest for another format, IDs naming another cylinder, a tail of
-  17 cylinders, or a protection track), and 66 have no proven size (20 name
-  no DOS; 14 NEWDOS/80 disks have no PDRIVE table or one that describes
-  another layout; NEWDOS 2.1-3.0, MultiDOS, BFLOADER, DoubleDOS, UltraDOS and
+  17 cylinders, or a protection track), and 63 have no proven size (20 name
+  no DOS; 11 NEWDOS/80 disks have no PDRIVE table that we can read, or one
+  that describes another layout; NEWDOS 2.1-3.0, MultiDOS, BFLOADER, DoubleDOS, UltraDOS and
   others record none that we know of).
 - `TRSDOS v6.02.01-AR ... [Original][Set 5]` has a cylinder 40 whose IDs name
   cylinder 42 and whose data matches neither 38 nor 39, so it isn't a re-read

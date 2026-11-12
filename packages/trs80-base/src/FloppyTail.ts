@@ -12,6 +12,7 @@ import {
     findProtectionSigns, isProtectionSign, ProtectionSign, ProtectionSignKind, protectionSignKindToString,
 } from "./CopyProtection.js";
 import {DosFamily, dosNameToString, isUnknownDosName} from "./DosName.js";
+import {readPdriveTable} from "./Pdrive.js";
 import {FloppyDisk, SectorData, SectorInfo, SectorPosition, TrackPosition} from "./FloppyDisk.js";
 import type {FloppyFileSystem} from "./FloppyFileSystem.js";
 import {Trsdos, TrsdosVersion} from "./Trsdos.js";
@@ -179,24 +180,21 @@ function dosplusDiskSize(trsdos: Trsdos): DosDiskSize | string {
 }
 
 /**
- * The size of a NEWDOS/80 disk, from TC in the first slot of the PDRIVE table that system disks carry at
- * cylinder 0, sector 2 (see "PDRIVE" in FLOPPY_FORMATS.md). The slot describes the drive, not
+ * The size of a NEWDOS/80 disk, from TC in the first slot of the PDRIVE table that system disks carry
+ * (see readPdriveTable() and "PDRIVE" in FLOPPY_FORMATS.md). The slot describes the drive, not
  * necessarily the disk, so it counts only if its sectors per track, granules per lump and lump count
  * match the layout we decoded. TC doesn't count an opposite-density cylinder 0.
  */
 function newdos80DiskSize(trsdos: Trsdos, floppy: FloppyDisk): DosDiskSize | string {
-    const slot = floppy.readSector(SectorPosition.make(0, 0, 2))?.data;
-    if (slot === undefined || slot.length < 16 || slot.subarray(0, 16).every(value => value === slot[0])) {
-        return "NEWDOS/80 records its size only in a system disk's PDRIVE table, and this disk has none";
+    const table = readPdriveTable(floppy);
+    if (table === undefined) {
+        return "NEWDOS/80 records its size only in a system disk's PDRIVE table, and this disk has none that we can read";
     }
-    const lumpCount = slot[1];
-    const trackCount = slot[3];
-    const sectorsPerTrack = slot[4];
-    const granulesPerLump = slot[5];
-    if (trackCount === 0 || sectorsPerTrack !== trsdos.sectorsPerCylinder || granulesPerLump !== trsdos.granulesPerLump ||
+    const {trackCount, sectorsPerTrack, granulesPerLump, lumpCount} = table;
+    if (sectorsPerTrack !== trsdos.sectorsPerCylinder || granulesPerLump !== trsdos.granulesPerLump ||
         lumpCount !== Math.floor(trackCount*sectorsPerTrack/(trsdos.sectorsPerGranule*granulesPerLump))) {
 
-        return "the PDRIVE table on cylinder 0 doesn't describe this disk's layout";
+        return "the PDRIVE table on cylinder " + (table.tableCylinder ?? 0) + " doesn't describe this disk's layout";
     }
     return {cylinderCount: trackCount + trsdos.firstDataCylinder, source: "PDRIVE's TC=" + trackCount};
 }
