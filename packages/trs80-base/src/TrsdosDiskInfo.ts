@@ -74,6 +74,7 @@ export function trsdosGatDateYearRange(ruleSet: TrsdosRuleSet, hasTimeStamps: bo
         case TrsdosRuleSet.LDOS_5:
         case TrsdosRuleSet.TRSDOS_6:
         case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.TRSDOS_2_7:
             return {first: 1980, last};
         default:
             assertNever(ruleSet);
@@ -141,6 +142,7 @@ export function trsdosKeepsAutoInSystemInformation(ruleSet: TrsdosRuleSet | unde
         case TrsdosRuleSet.TRSDOS_1_3:
         case TrsdosRuleSet.LDOS_5:
         case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.TRSDOS_2_7:
             return false;
         default:
             assertNever(ruleSet);

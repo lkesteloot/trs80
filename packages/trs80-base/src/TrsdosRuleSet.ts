@@ -36,6 +36,11 @@ export enum TrsdosRuleSet {
      * DOSPLUS 3.x, the Model I and III one.
      */
     DOSPLUS,
+
+    /**
+     * Tandy's Model I TRSDOS 2.7DD, 2.7SD and 2.8, on their own layout.
+     */
+    TRSDOS_2_7,
 }
 
 /**
@@ -53,6 +58,8 @@ export function trsdosRuleSetToString(ruleSet: TrsdosRuleSet): string {
             return "TRSDOS 6 and LS-DOS 6";
         case TrsdosRuleSet.DOSPLUS:
             return "DOSPLUS 3";
+        case TrsdosRuleSet.TRSDOS_2_7:
+            return "TRSDOS 2.7 and 2.8";
         default:
             assertNever(ruleSet);
     }
@@ -74,6 +81,8 @@ export function trsdosRuleSetCliName(ruleSet: TrsdosRuleSet): string {
             return "trsdos-6";
         case TrsdosRuleSet.DOSPLUS:
             return "dosplus";
+        case TrsdosRuleSet.TRSDOS_2_7:
+            return "trsdos-2.7";
         default:
             assertNever(ruleSet);
     }
@@ -88,11 +97,12 @@ export const TRSDOS_RULE_SETS: readonly TrsdosRuleSet[] = [
     TrsdosRuleSet.LDOS_5,
     TrsdosRuleSet.TRSDOS_6,
     TrsdosRuleSet.DOSPLUS,
+    TrsdosRuleSet.TRSDOS_2_7,
 ];
 
 /**
  * Other names that parseTrsdosRuleSet() accepts for a rule set, besides its CLI name. LDOS 6 and
- * LS-DOS 6 are what some people call TRSDOS 6.
+ * LS-DOS 6 are what some people call TRSDOS 6, and TRSDOS 2.8 follows 2.7's rules.
  */
 export function trsdosRuleSetAliases(ruleSet: TrsdosRuleSet): string[] {
     switch (ruleSet) {
@@ -103,6 +113,8 @@ export function trsdosRuleSetAliases(ruleSet: TrsdosRuleSet): string[] {
             return [];
         case TrsdosRuleSet.TRSDOS_6:
             return ["ldos-6", "ls-dos-6"];
+        case TrsdosRuleSet.TRSDOS_2_7:
+            return ["trsdos-2.8"];
         default:
             assertNever(ruleSet);
     }
@@ -137,6 +149,8 @@ export function trsdosRuleSetLayout(ruleSet: TrsdosRuleSet): TrsdosVersion {
         case TrsdosRuleSet.TRSDOS_6:
         case TrsdosRuleSet.DOSPLUS:
             return TrsdosVersion.V2_3;
+        case TrsdosRuleSet.TRSDOS_2_7:
+            return TrsdosVersion.V2_7;
         default:
             assertNever(ruleSet);
     }
@@ -162,7 +176,7 @@ interface DosNameRule {
  * includes these on purpose:
  *
  * - TRSDOS 2.3B, which differs from 2.3 (see "TRSDOS 2.3B" in FLOPPY_FORMATS.md).
- * - TRSDOS 2.7, 2.8 and 3.0, which are other layouts or later rewrites.
+ * - TRSDOS 3.0, a later rewrite.
  * - SuperDOS and the other DOSes on the TRSDOS 1.3 layout, whose rules haven't been checked.
  * - DOSPLUS 4.0, DOSPLUS IV and DOSPLUS II, which are other machines or other rules.
  * - The DOS "DOSPLUS" with no version, which is DOSPLUS 4.0 or 3.4a.
@@ -182,6 +196,8 @@ const DOS_NAME_RULES: readonly DosNameRule[] = [
     {pattern: TRSDOS_6_DOS_NAME, ruleSet: TrsdosRuleSet.TRSDOS_6},
     // A single version, not a range, which only passwords give (see above).
     {pattern: /^DOSPLUS 3\.[^-]+$/, ruleSet: TrsdosRuleSet.DOSPLUS},
+    // 2.7DD, 2.7SD and 2.8.0 as their banners name them, and the data disks that only know their layout.
+    {pattern: /^TRSDOS 2\.(?:7(?:DD|SD)?|8(?:\.0)?)$/, ruleSet: TrsdosRuleSet.TRSDOS_2_7},
 ];
 
 /**
@@ -237,6 +253,7 @@ export function trsdosRuleSetBasicDialect(ruleSet: TrsdosRuleSet): BasicDialect 
         case TrsdosRuleSet.TRSDOS_1_3:
         case TrsdosRuleSet.LDOS_5:
         case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.TRSDOS_2_7:
             return BasicDialect.MODEL_III;
         case TrsdosRuleSet.TRSDOS_6:
             return BasicDialect.MODEL_4;

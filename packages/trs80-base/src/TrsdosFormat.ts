@@ -21,7 +21,8 @@ import {
 } from "./TrackLayout.js";
 import {DATA_ADDRESS_MARK, DELETED_DATA_ADDRESS_MARK} from "./TrackBytes.js";
 import {
-    hashTrsdosPassword, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TrsdosVersion,
+    hashTrsdosPassword, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_27_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH,
+    TrsdosVersion,
 } from "./Trsdos.js";
 
 /**
@@ -339,8 +340,37 @@ export function hashTrsdos13Password(password: string): number {
 }
 
 /**
- * Hash a password with the hash of a layout: TRSDOS 1.3 has its own ({@link hashTrsdos13Password}), and
- * the rest of the 2.3 family, 2.7 included, use {@link hashTrsdosPassword}.
+ * Hash a password the way TRSDOS 2.7 and 2.8 do, which is TRSDOS 1.3's hash (see {@link hashTrsdos13Password})
+ * with one more addition in each step, and a hash of zero turned into one. The algorithm is in "Password
+ * hashes" in FLOPPY_FORMATS.md. "PASSWORD" hashes to 0xCC13 and no password to 0x40CD.
+ *
+ * @param password one to eight letters and digits, starting with a letter, in any case; or empty for none.
+ * @return the 16-bit hash.
+ * @throws Error if the DOS wouldn't accept the password.
+ */
+export function hashTrsdos27Password(password: string): number {
+    const padded = normalizePassword(password);
+
+    let hi = 0xFF;
+    let lo = 0xFF;
+    for (let i = padded.length - 1; i >= 0; i--) {
+        const c = padded.charCodeAt(i);
+        const t = lo ^ ((lo & 7) << 5);
+        const x = ((t - ((c << 8) | hi))*4) & 0xFFFF;
+        const newHi = (t ^ (x >> 8) ^ c) & 0xFF;
+        const sum = (((x*2) & 0xFFFF) + ((newHi << 8) | hi)) & 0xFFFF;
+        const newLo = ((x & 0xFF) ^ (sum >> 8) ^ hi) & 0xFF;
+        hi = newHi;
+        lo = newLo;
+    }
+
+    const hash = (hi << 8) | lo;
+    return hash === 0 ? 1 : hash;
+}
+
+/**
+ * Hash a password with the hash of a layout: TRSDOS 1.3 ({@link hashTrsdos13Password}) and TRSDOS 2.7
+ * ({@link hashTrsdos27Password}) have their own, and the rest of the 2.3 family use {@link hashTrsdosPassword}.
  *
  * @param password one to eight letters and digits, starting with a letter, in any case; or empty for none.
  * @param version the disk's layout.
@@ -350,11 +380,13 @@ export function hashTrsdos13Password(password: string): number {
 export function hashTrsdosPasswordForVersion(password: string, version: TrsdosVersion): number {
     switch (version) {
         case TrsdosVersion.V2_3:
-        case TrsdosVersion.V2_7:
             return hashTrsdosPassword(password);
 
         case TrsdosVersion.V1_3:
             return hashTrsdos13Password(password);
+
+        case TrsdosVersion.V2_7:
+            return hashTrsdos27Password(password);
 
         default:
             assertNever(version);
@@ -367,11 +399,13 @@ export function hashTrsdosPasswordForVersion(password: string, version: TrsdosVe
 export function trsdosBlankPasswordHash(version: TrsdosVersion): number {
     switch (version) {
         case TrsdosVersion.V2_3:
-        case TrsdosVersion.V2_7:
             return TRSDOS_BLANK_PASSWORD_HASH;
 
         case TrsdosVersion.V1_3:
             return TRSDOS_13_BLANK_PASSWORD_HASH;
+
+        case TrsdosVersion.V2_7:
+            return TRSDOS_27_BLANK_PASSWORD_HASH;
 
         default:
             assertNever(version);

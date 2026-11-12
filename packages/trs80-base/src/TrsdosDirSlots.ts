@@ -53,6 +53,8 @@ function systemFileDecs(trsdos: Trsdos): number[] {
  * - TRSDOS 6: those 16 on a system disk, but only DECs 0 and 1 (BOOT/SYS and DIR/SYS) on a data
  *   disk, which the GAT says with bit 7 of byte 0xCD.
  * - TRSDOS 1.3: none, since its system files aren't in the directory (see "TRSDOS 1.3 system files").
+ * - TRSDOS 2.7 and 2.8: none, since their system files aren't in the directory either (see "Which DOSes
+ *   share a layout").
  */
 export function reservedDecs(trsdos: Trsdos, ruleSet: TrsdosRuleSet): Set<number> {
     switch (ruleSet) {
@@ -67,6 +69,7 @@ export function reservedDecs(trsdos: Trsdos, ruleSet: TrsdosRuleSet): Set<number
         }
 
         case TrsdosRuleSet.TRSDOS_1_3:
+        case TrsdosRuleSet.TRSDOS_2_7:
             return new Set();
 
         default:

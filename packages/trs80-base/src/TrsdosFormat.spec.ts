@@ -8,6 +8,7 @@ import {parseTrsdosFilename} from "./TrsdosFilename.js";
 import {
     formatTrsdosDataDisk,
     hashTrsdos13Password,
+    hashTrsdos27Password,
     knownTrsdosPassword,
     parseTrsdosFormatDos,
     TRSDOS_FORMAT_DOSES,
@@ -399,17 +400,55 @@ describe("knownTrsdosPassword", () => {
     it("names the blank and default passwords by each layout's own hash", () => {
         expect(knownTrsdosPassword(0x4296, TrsdosVersion.V2_3)).to.equal("");
         expect(knownTrsdosPassword(0x42E0, TrsdosVersion.V2_3)).to.equal("PASSWORD");
-        expect(knownTrsdosPassword(0x42E0, TrsdosVersion.V2_7)).to.equal("PASSWORD");
+        expect(knownTrsdosPassword(0x40CD, TrsdosVersion.V2_7)).to.equal("");
+        expect(knownTrsdosPassword(0xCC13, TrsdosVersion.V2_7)).to.equal("PASSWORD");
         expect(knownTrsdosPassword(0x5CEF, TrsdosVersion.V1_3)).to.equal("");
         expect(knownTrsdosPassword(0x8FD3, TrsdosVersion.V1_3)).to.equal("PASSWORD");
         // Not the other layout's.
         expect(knownTrsdosPassword(0x42E0, TrsdosVersion.V1_3)).to.equal(undefined);
         expect(knownTrsdosPassword(0x8FD3, TrsdosVersion.V2_3)).to.equal(undefined);
+        expect(knownTrsdosPassword(0x42E0, TrsdosVersion.V2_7)).to.equal(undefined);
     });
 
     it("can't name other passwords, or none", () => {
         expect(knownTrsdosPassword(hashTrsdosPassword("SECRET"), TrsdosVersion.V2_3)).to.equal(undefined);
         expect(knownTrsdosPassword(undefined, TrsdosVersion.V2_3)).to.equal(undefined);
+    });
+});
+
+/**
+ * Passwords and their hashes under TRSDOS 2.7's routine, from running the DOS's own Z80 code (the bytes in
+ * "Password hashes" in FLOPPY_FORMATS.md) in our emulator.
+ */
+const Z80_HASHES_27: [string, number][] = [
+    ["A", 0x5DD0],
+    ["SECRET", 0xD13C],
+    ["ZZZZZZZZ", 0x939A],
+    ["A1B2C3D4", 0x7A6E],
+    ["TRSDOS", 0xCF6D],
+    ["Q9", 0xAEA5],
+    ["BASIC", 0x491C],
+    ["M", 0x6174],
+];
+
+describe("hashTrsdos27Password", () => {
+    it("matches the hashes that real TRSDOS 2.7 and 2.8 disks hold", () => {
+        expect(hashTrsdos27Password("PASSWORD")).to.eql(0xCC13);
+        expect(hashTrsdos27Password("")).to.eql(0x40CD);
+        expect(hashTrsdos27Password("password")).to.eql(0xCC13);
+    });
+
+    it("matches a transcription of the DOS's Z80 routine", () => {
+        // Some passwords, with the hashes that the routine (see "Password hashes" in FLOPPY_FORMATS.md) gives
+        // when run in the emulator.
+        for (const [password, hash] of Z80_HASHES_27) {
+            expect(hashTrsdos27Password(password), password).to.eql(hash);
+        }
+    });
+
+    it("rejects what the DOS would", () => {
+        expect(() => hashTrsdos27Password("1ABC")).to.throw();
+        expect(() => hashTrsdos27Password("TOOLONGPASSWORD")).to.throw();
     });
 });
 

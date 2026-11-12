@@ -1652,8 +1652,27 @@ Where they differ:
   the HIT. `decodeDirEntry()` clears the bit when the entry's own non-blank name
   matches its HIT byte; no FXDE elsewhere in the collection matches that way.
 - **Deleting a file** clears bit 4 of byte 0 and the HIT byte and frees the
-  granules, leaving the rest of the entry intact. A HIT byte of 0 means a free
-  slot in every one of these DOSes.
+  granules, leaving the rest of the entry intact, on LDOS, TRSDOS 6, DOSPLUS 3.5,
+  NEWDOS/80 and MultiDOS. A HIT byte of 0 means a free slot in every one of these
+  DOSes. Two DOSes differ in the rest of the entry:
+  - **TRSDOS 2.2 and 2.3's KILL zeroes all 32 bytes.** Its SYS3/SYS frees each
+    extent, then at 5005H-5020H zeroes the entry with `LD (HL),00H` and
+    `LD BC,001FH / LDIR`, zeroes the HIT byte, and follows an FEh link to the next
+    entry. Killing GETDISK/BAS on a TRSDOS 2.3 system disk changed exactly three
+    sectors: the entry all 00, the HIT byte 0, and the file's GAT bits (Ira
+    Goldklang, issue #29; his disk format reference, "Item 14"). TRSDOS 1.3 also
+    zeroes its 48-byte entry.
+  - **TRSDOS 2.7 and 2.8's KILL changes three bytes**: bit 4 of byte 0 (18h
+    becomes 08h), the HIT byte, and the GAT bits, following FEh links. The rest of
+    the entry and the file's sectors stay, which UNKILL needs: KILL then UNKILL
+    gives back every sector as it was. UNKILL refuses if a live file has the name or
+    any of the file's granules has been allocated since. ERASE does what KILL does
+    and also zeroes the entry and fills each of the file's sectors with 240 E5s and
+    `Copr. 1982 Tandy`, where FORMAT's filler ends `(c) 1982 Tandy  `. All this is
+    from Tandy's 2.7/2.8 source (`SYS3.SRC` KILLF, `SYS23.SRC`), checked byte for
+    byte on 2.8 disks (Ira Goldklang, issue #29).
+
+  The writer's delete does what each DOS's KILL does, by its rule set.
 
 ### Protection level names
 
@@ -1834,7 +1853,27 @@ random passwords:
     hash = (hi << 8) | lo
 
 "PASSWORD" hashes to 0x8FD3 and blank to 0x5CEF, so the 1.3 disks' master
-passwords are the same defaults as the 2.3 family's. Being 16 bits, a hash has thousands of short passwords that match,
+passwords are the same defaults as the 2.3 family's.
+
+**TRSDOS 2.7 and 2.8 hash differently again.** Their routine (49 bytes, on every
+2.7DD, 2.7SD and 2.8 disk; Ira Goldklang's disk format reference, "Item 4", gives
+where) is `21 FF FF 06 08 7B C6 07 5F 30 01 14 1A D5 57 5C 7D E6 07 0F 0F 0F AD 6F
+26 00 ED 52 29 29 AC AA 57 7D 29 19 AC AB 5F EB D1 1B 10 E0 7C B5 C0 2C C9`, called
+with DE pointing at the padded password. It's 1.3's with one more `ADD HL,DE`
+before the low byte's XOR, and it turns a hash of 0 into 1. Restated, and checked
+against that code run in our Z80 emulator on 20,000 random passwords:
+
+    hi = lo = 0xFF
+    for each byte c, last to first:
+        t  = lo ^ ((lo & 7) << 5)
+        x  = ((t - ((c << 8) | hi)) * 4) & 0xFFFF
+        hi, lo = t ^ (x >> 8) ^ c, (x & 0xFF) ^ ((((x * 2) & 0xFFFF) + ((t ^ (x >> 8) ^ c) << 8 | hi)) & 0xFFFF) >> 8 ^ hi
+    hash = (hi << 8) | lo, or 1 if that's 0
+
+Blank hashes to 0x40CD and "PASSWORD" to 0xCC13, and the 24 2.7-layout disks in
+the suite hold exactly those: `CD 40` in the entries of files with no password, and
+`13 CC` at GAT 0xCE-0xCF. (BASIC/CMD's and ULC's update hash of 0000 is one that no
+password gives.) Being 16 bits, a hash has thousands of short passwords that match,
 so it can't be reversed to *the* password, only to *a* password.
 
 ## File sizes

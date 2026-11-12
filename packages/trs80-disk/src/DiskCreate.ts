@@ -466,6 +466,7 @@ export function getSessionFormatDos(session: DiskSession): TrsdosFormatDos | und
             // TRSDOS 6 and LS-DOS 6 share their rules, so go by the name.
             return session.fileSystem?.nameAndVersion.startsWith("LS-DOS") ? TrsdosFormatDos.LSDOS_6_3 : TrsdosFormatDos.TRSDOS_6_2;
         case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.TRSDOS_2_7:
             return undefined;
         default:
             assertNever(ruleSet);

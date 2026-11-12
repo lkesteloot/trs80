@@ -92,8 +92,11 @@ describe("ruleSetForDosName", () => {
         }
     });
 
-    it("maps nothing on the 2.7 layout", () => {
-        for (const name of ["TRSDOS 2.7DD", "TRSDOS 2.7SD", "TRSDOS 2.8.0", "TRSDOS 2.7"]) {
+    it("maps TRSDOS 2.7 and 2.8 on the 2.7 layout, and nothing else", () => {
+        for (const name of ["TRSDOS 2.7DD", "TRSDOS 2.7SD", "TRSDOS 2.8.0", "TRSDOS 2.8", "TRSDOS 2.7"]) {
+            expect(ruleSetForDosName(name, TrsdosVersion.V2_7), name).to.equal(TrsdosRuleSet.TRSDOS_2_7);
+        }
+        for (const name of ["TRSDOS 2.77D", "TRSDOS 2.3", "TRSDOS 2.x", "LDOS 5.3"]) {
             expect(ruleSetForDosName(name, TrsdosVersion.V2_7), name).to.be.undefined;
         }
     });
@@ -103,6 +106,8 @@ describe("ruleSetForDosName", () => {
         expect(ruleSetForDosName("TRSDOS 2.3", TrsdosVersion.V1_3)).to.be.undefined;
         expect(ruleSetForDosName("TRSDOS 1.3", TrsdosVersion.V2_3)).to.be.undefined;
         expect(ruleSetForDosName("TRSDOS 6.2.0", TrsdosVersion.V2_7)).to.be.undefined;
+        expect(ruleSetForDosName("TRSDOS 2.8.0", TrsdosVersion.V2_3)).to.be.undefined;
+        expect(ruleSetForDosName("TRSDOS 2.7DD", TrsdosVersion.V1_3)).to.be.undefined;
     });
 });
 
@@ -153,9 +158,11 @@ describe("rule set names", () => {
         expect(trsdosRuleSetCliName(TrsdosRuleSet.TRSDOS_1_3)).to.equal("trsdos-1.3");
     });
 
-    it("accepts the aliases for TRSDOS 6", () => {
+    it("accepts the aliases for TRSDOS 6 and TRSDOS 2.8", () => {
         expect(parseTrsdosRuleSet("ldos-6")).to.equal(TrsdosRuleSet.TRSDOS_6);
         expect(parseTrsdosRuleSet("LS-DOS-6")).to.equal(TrsdosRuleSet.TRSDOS_6);
+        expect(parseTrsdosRuleSet("trsdos-2.7")).to.equal(TrsdosRuleSet.TRSDOS_2_7);
+        expect(parseTrsdosRuleSet("TRSDOS-2.8")).to.equal(TrsdosRuleSet.TRSDOS_2_7);
     });
 
     it("rejects other names", () => {
@@ -166,9 +173,10 @@ describe("rule set names", () => {
 });
 
 describe("trsdosRuleSetLayout", () => {
-    it("gives TRSDOS 1.3 its own layout and the rest the 2.3 layout", () => {
+    it("gives TRSDOS 1.3 and 2.7 their own layouts and the rest the 2.3 layout", () => {
         for (const ruleSet of TRSDOS_RULE_SETS) {
-            const expected = ruleSet === TrsdosRuleSet.TRSDOS_1_3 ? TrsdosVersion.V1_3 : TrsdosVersion.V2_3;
+            const expected = ruleSet === TrsdosRuleSet.TRSDOS_1_3 ? TrsdosVersion.V1_3 :
+                ruleSet === TrsdosRuleSet.TRSDOS_2_7 ? TrsdosVersion.V2_7 : TrsdosVersion.V2_3;
             expect(trsdosRuleSetLayout(ruleSet)).to.equal(expected);
         }
     });

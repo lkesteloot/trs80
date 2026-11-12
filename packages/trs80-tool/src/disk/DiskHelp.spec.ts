@@ -217,6 +217,7 @@ describe("help dos", () => {
             "  ldos-5      LDOS 5",
             "  trsdos-6    TRSDOS 6 and LS-DOS 6 (also ldos-6, ls-dos-6)",
             "  dosplus     DOSPLUS 3",
+            "  trsdos-2.7  TRSDOS 2.7 and 2.8 (also trsdos-2.8)",
         ]);
     });
 
@@ -254,6 +255,6 @@ describe("parseDosName", () => {
 
     it("rejects an unknown name and lists the choices", () => {
         expect(() => parseDosName("bogus")).to.throw(ToolError,
-            "Unknown DOS \"bogus\" for --dos. The choices are trsdos-2, trsdos-1.3, ldos-5, trsdos-6, dosplus");
+            "Unknown DOS \"bogus\" for --dos. The choices are trsdos-2, trsdos-1.3, ldos-5, trsdos-6, dosplus, trsdos-2.7");
     });
 });

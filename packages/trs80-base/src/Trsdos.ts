@@ -1807,12 +1807,13 @@ export interface Trsdos23DirEntryFields {
     flags: number;
 
     /**
-     * Byte 1: on the LDOS line the date flags and the month; zero elsewhere.
+     * Byte 1: on the LDOS line the date flags and the month; on TRSDOS 2.7 the month; zero elsewhere.
      */
     byte1: number;
 
     /**
-     * Byte 2: on the LDOS line the day and the low three bits of the year; zero elsewhere.
+     * Byte 2: on the LDOS line the day and the low three bits of the year; on TRSDOS 2.7 the year minus 1900;
+     * zero elsewhere.
      */
     byte2: number;
 
@@ -1860,6 +1861,12 @@ export interface Trsdos23DirEntryFields {
      * Bytes 30-31: the DEC of the extended entry that continues the file, or undefined for none.
      */
     nextDec: number | undefined;
+
+    /**
+     * What an extent's granule count is stored less: 1 in the 2.3 family (the default), and 0 on TRSDOS 2.7's
+     * layout, which uses this entry with the count stored as it is.
+     */
+    granuleCountBasis?: 0 | 1 | undefined;
 }
 
 /**
@@ -1867,18 +1874,20 @@ export interface Trsdos23DirEntryFields {
  *
  * @param binary the entry's 32 bytes.
  * @param extents the extents, at most four.
+ * @param granuleCountBasis what each granule count is stored less (see {@link Trsdos23DirEntryFields}).
  * @throws Error if an extent doesn't fit its two bytes.
  */
-function writeTrsdos23Extents(binary: Uint8Array, extents: AllocatedExtent[]): void {
+function writeTrsdos23Extents(binary: Uint8Array, extents: AllocatedExtent[], granuleCountBasis: 0 | 1): void {
     extents.forEach((extent, i) => {
-        if (extent.granuleCount < 1 || extent.granuleCount > 32 || extent.granuleOffset < 0 ||
+        const storedCount = extent.granuleCount - granuleCountBasis;
+        if (extent.granuleCount < 1 || storedCount > 0x1F || extent.granuleOffset < 0 ||
             extent.granuleOffset > 7 || extent.lump < 0 || extent.lump > 0xFD) {
 
             throw new Error(`Extent ${i} (lump ${extent.lump}, granule ${extent.granuleOffset}, ` +
                 `count ${extent.granuleCount}) doesn't fit in a directory entry`);
         }
         binary[22 + 2*i] = extent.lump;
-        binary[23 + 2*i] = (extent.granuleOffset << 5) | (extent.granuleCount - 1);
+        binary[23 + 2*i] = (extent.granuleOffset << 5) | storedCount;
     });
 }
 
@@ -1935,7 +1944,7 @@ export function encodeTrsdos23DirEntry(fields: Trsdos23DirEntryFields): Uint8Arr
     binary[21] = fields.sectorCount >> 8;
 
     binary.fill(0xFF, 22, 32);
-    writeTrsdos23Extents(binary, fields.extents);
+    writeTrsdos23Extents(binary, fields.extents, fields.granuleCountBasis ?? 1);
     if (fields.nextDec !== undefined) {
         binary[30] = 0xFE;
         binary[31] = fields.nextDec;
@@ -1996,7 +2005,7 @@ export function encodeTrsdos23ExtendedDirEntry(fields: Trsdos23ExtendedDirEntryF
     binary[1] = fields.prevDec;
 
     binary.fill(0xFF, 22, 32);
-    writeTrsdos23Extents(binary, fields.extents);
+    writeTrsdos23Extents(binary, fields.extents, 1);
     if (fields.nextDec !== undefined) {
         binary[30] = 0xFE;
         binary[31] = fields.nextDec;
@@ -2017,6 +2026,12 @@ export const TRSDOS_13_EXTENTS_PER_ENTRY = 13;
  * hashes" in FLOPPY_FORMATS.md.
  */
 export const TRSDOS_13_BLANK_PASSWORD_HASH = 0x5CEF;
+
+/**
+ * The 16-bit hash of a blank password under TRSDOS 2.7 and 2.8's own hash, which is what their directory
+ * entries hold when the file has no password (stored CD 40). See "Password hashes" in FLOPPY_FORMATS.md.
+ */
+export const TRSDOS_27_BLANK_PASSWORD_HASH = 0x40CD;
 
 /**
  * The fields of a TRSDOS 1.3 directory entry, as {@link encodeTrsdos13DirEntry} writes them. Each is

@@ -278,9 +278,6 @@ export function unsupportedLayoutMessage(trsdos: Trsdos): string | undefined {
         return "This disk allocates space in lumps that aren't whole cylinders (as NEWDOS/80 does), " +
             "and writing that layout isn't supported yet.";
     }
-    if (trsdos.version === TrsdosVersion.V2_7) {
-        return "Writing the TRSDOS 2.7 layout isn't supported yet.";
-    }
     return undefined;
 }
 
@@ -414,6 +411,7 @@ export function gatProvesSides(trsdos: Trsdos): boolean {
         case TrsdosRuleSet.TRSDOS_2:
         case TrsdosRuleSet.TRSDOS_1_3:
         case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.TRSDOS_2_7:
             gatIsReliable = false;
             break;
         case TrsdosRuleSet.LDOS_5:

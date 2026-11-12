@@ -312,9 +312,9 @@ describe("unsupportedLayoutMessage", () => {
         expect(unsupportedLayoutMessage(decode())).to.be.undefined;
     });
 
-    it("rejects the TRSDOS 2.7 layout", () => {
+    it("accepts the TRSDOS 2.7 layout", () => {
         const trsdos = reinterpret(decode(), TrsdosVersion.V2_7, 2, 2);
-        expect(unsupportedLayoutMessage(trsdos)).to.contain("2.7");
+        expect(unsupportedLayoutMessage(trsdos)).to.be.undefined;
     });
 
     it("rejects lumps that aren't cylinders", () => {

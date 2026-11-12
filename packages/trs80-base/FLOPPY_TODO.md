@@ -234,6 +234,20 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       The reservations also differ by DOS (16 DECs in LDOS, 16 or 2 in TRSDOS 6,
       2 in NEWDOS/80, which puts SYS14-29 in entries 2 and 3) and cover only the
       first eight directory sectors; see the table in "The HIT".
+- [ ] **TRSDOS 2.7's system-file table** (HIT 0xD0-0xFF, 24 two-byte slots:
+      cylinder in byte 1, starting granule in bits 7-5 of byte 0 and a count of
+      *sectors* in bits 4-0; Ira Goldklang's disk format reference, "Item 23") isn't
+      decoded, so the DOS's own system files look like used but unclaimed granules.
+      Because of that the writer refuses `repair --free-unclaimed` on 2.7 disks
+      (it would free them). Decoding the table as 1.3's is decoded
+      (`getTrsdos13SystemFiles()`) would let that work, and would list the files.
+      Note that one count on 2.7SD is wrong (slot 9 runs 7 sectors into slot 11).
+- [ ] **TRSDOS 2.7's extended directory entries.** The entries have the 2.3
+      family's FE link at bytes 30-31, and the DOS's KILL follows it, but none of
+      the 24 2.7-layout disks has a file with more than one extent, let alone an
+      FXDE, so we don't know what 2.7 writes in one. The writer refuses a file
+      that would need one (more than four extents) and won't rename or repair
+      one. A disk made by the DOS with a fragmented big file would settle it.
 - [ ] **Protection level names on TRSDOS 1.3 and 2.7** are TRSDOS 6's (1
       remove, 3 write, 4 update), which comes from 1.3 being Model II
       TRSDOS's descendant, not from a manual: the TRSDOS 1.3 Reference Guide

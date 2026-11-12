@@ -129,11 +129,10 @@ describe("TrsdosWriter", () => {
         expectedHit[helloSlot.hitIndex] = 0;
         expect(newHit).to.eql(expectedHit);
 
-        // The entry's in-use bit is cleared, and nothing else in the sector.
+        // TRSDOS 2.3's KILL zeroes the whole entry, and nothing else in the sector changes.
         const newDirSector = readBytes(overlay, location.sectorPosition);
-        expect(newDirSector[location.offset] & 0x10).to.eql(0);
         const expectedDirSector = oldDirSector.slice();
-        expectedDirSector[location.offset] &= ~0x10;
+        expectedDirSector.fill(0, location.offset, location.offset + 32);
         expect(newDirSector).to.eql(expectedDirSector);
 
         // Lump 3's two granules are free, and no other GAT byte changed.
@@ -151,6 +150,24 @@ describe("TrsdosWriter", () => {
         overlay.commit();
         expect(readBytes(disk, gatPosition)).to.eql(expectedGat);
         expect(readBytes(disk, location.sectorPosition)).to.eql(expectedDirSector);
+    });
+
+    it("deletes a file under LDOS rules by clearing only the entry's in-use bit, as LDOS's KILL does", () => {
+        const {overlay, trsdos, writer} = makeFixture([HELLO, WORLD], {}, TrsdosRuleSet.LDOS_5);
+        const helloSlot = trsdos.getDirectory().slots.find(slot => slot.dirEntry.getFilename("/") === "HELLO/BAS");
+        if (helloSlot === undefined) {
+            throw new Error("No slot");
+        }
+        const location = trsdos.getDirEntryLocation(helloSlot.hitIndex);
+        const oldDirSector = readBytes(overlay, location.sectorPosition).slice();
+
+        writer.deleteFile(writerFile(writer, "HELLO/BAS"));
+        writer.flush();
+
+        const expectedDirSector = oldDirSector.slice();
+        expectedDirSector[location.offset] &= ~0x10;
+        expect(readBytes(overlay, location.sectorPosition)).to.eql(expectedDirSector);
+        expect(readBytes(overlay, trsdos.getHitPosition())[helloSlot.hitIndex]).to.eql(0);
     });
 
     it("deletes a file with extended entries", () => {
