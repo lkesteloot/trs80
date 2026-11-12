@@ -814,6 +814,33 @@ C CRC error (ID or data).
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+            <h3 id="2026-11-11">November 11, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v5.1.0:
+                    <ul>
+                        <li><a href="disk.html#create"><code>disk create</code></a> makes HDV hard
+                            disks, blank or with LDOS 5.3 or LS-DOS 6.3 partitions, and
+                            <code>disk partition</code> adds and deletes partitions.</li>
+                        <li><a href="disk.html#json"><code>disk --json</code></a> describes the whole
+                            run as JSON, for programs.</li>
+                        <li>New <a href="#exit-status">exit statuses</a> say why a command failed:
+                            not found, read-only, write-protected, damaged, or disk full.</li>
+                        <li>In <code>dir --json</code>, TRSDOS files have their password hashes,
+                            the passwords when they’re blank or <code>PASSWORD</code>, whether the
+                            disk keeps time stamps where the access password goes, and their raw
+                            directory attribute bytes. <code>info --json --verbose</code> names the
+                            master password.</li>
+                        <li><code>disk label</code> and <code>disk attrib</code> recognize TRSDOS
+                            1.3’s blank and default passwords, which hash differently.</li>
+                        <li><a href="disk.html#add"><code>disk add --text</code></a> converts the
+                            line endings of any file, whatever its extension.</li>
+                        <li><a href="#disasm"><code>disasm</code></a> handles a boot sector saved
+                            as a file, and its <code>--org</code>.</li>
+                        <li>Files whose directory entry has a month of 0 are shown with no date.</li>
+                    </ul>
+                </li>
+            </ul>
+
             <h3 id="2026-11-07">November 7, 2026</h3>
             <ul>
                 <li><code>trs80-tool</code> v5.0.0:
