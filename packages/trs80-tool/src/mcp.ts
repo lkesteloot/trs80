@@ -1531,12 +1531,15 @@ TOOLS["sectors"] = {
             contents: {type: "boolean",
                 description: "Include each sector's bytes in base64, which makes the output larger than " +
                     "the image, defaults to false"},
+            protection: {type: "boolean",
+                description: "Also list each image's signs of copy protection (\"protection\": [{kind, verdict, " +
+                    "schemes, scheme, message, tracks, sectors}]), defaults to false"},
         },
         required: ["images"],
     },
     annotations: READ_ONLY_TOOL,
     run: args => infilesOutput(sectorsJsonInfiles(expandInputPatterns(stringArrayArg(args, "images")),
-        booleanArg(args, "contents"), booleanArg(args, "bad"))),
+        booleanArg(args, "contents"), booleanArg(args, "bad"), booleanArg(args, "protection"))),
 };
 
 TOOLS["disk"] = {

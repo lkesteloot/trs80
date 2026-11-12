@@ -325,6 +325,13 @@ export class SectorInfo {
      */
     public hasDataField = true;
 
+    /**
+     * The size code exactly as the ID field gives it (its fourth byte), if the format records it.
+     * The 179x controllers use only its low two bits, which sectorSize reflects, so a value above
+     * 3 is a deliberate oddity (see "Copy protection signs" in FLOPPY_FORMATS.md).
+     */
+    public sizeCode: number | undefined = undefined;
+
     constructor(sectorPosition: SectorPosition, density: Density, sectorSize: number) {
         this.sectorPosition = sectorPosition;
         this.density = density;

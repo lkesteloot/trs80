@@ -101,9 +101,14 @@ as boot sector byte 0x22 says. BACKUP decrements the count, and when it reaches
 zero deletes every such file; 0xFF means unlimited. In 1.3's boot sector the
 byte follows the loader's `JP (HL)`, and it's 0xFF on 52 of the 97 1.3-layout
 disks. TRSDOS 1.1's loader is one byte longer, so its 0x22 is that `JP (HL)`
-(0xE9, on nine disks) and it has no count there; 1.2's holds 0x00; and other
-publishers' disks have their own boot code. Only one entry in the collection
-has the bit (`SPELLING` on Spelling Demons, whose count is 0xFF).
+(0xE9, on nine disks) and it has no count there; Ira says 1.1 keeps it in the
+word at 0xFC-0xFD instead (unverified here: no 1.1 disk in the collection has
+a file with the bit). 1.2's usually holds 0x00; and other publishers' disks
+have their own boot code. Four disks have files with the bit: `SPELLING` on
+Spelling Demons, whose count is 0xFF (so nothing is limited); VC/CMD on `TRSDOS
+v1.2 ... [Set 3][Something is Wrong Here]` (count 2); three files on `Monty
+Plays Monopoly ... [Set 5]` and BLANK1 on `Abacux X` (count 0, so the next
+BACKUP drops them). See "Copy protection signs".
 
 **NEWDOS/80** keeps the 2.3-family structures but allocates in *lumps*; see below.
 MultiDOS uses either allocation depending on the disk, and several other sources
@@ -500,6 +505,74 @@ The track is numbered apart from the rest of the disk, so
 `FloppyDiskGeometry` puts it in a sector-number group of its own (129-146)
 rather than merging it with the disk's (1-18), which used to report sectors
 19-128 as missing. The `sectors` map shows it as a table of its own.
+
+## Copy protection signs
+
+`CopyProtection.ts` (`findProtectionSigns()`) reports the signs that a floppy
+was copy protected. The rules are Ira Goldklang's, from his classification of
+the trs-80.com archive (GitHub issue #50), whose register numbers the schemes
+S-nnn; each sign lists the scheme numbers it has been seen with. A sign is
+evidence, not proof, and protection in a program's own code or timing leaves
+none, so a clean report proves nothing. Most selective first:
+
+| Sign | Verdict | Notes |
+|---|---|---|
+| Cylinder 0 has IDs 124-127 (0x7C-0x7F) | DOS protected (VTOS 3.0, S-101) | VTOS 3.0's mini-sectors, with deliberate CRC errors. A single good sector 124 of 0xE5 is VTOS 4.0's FORMAT output, not protection |
+| Cylinder 40 numbered 129-146 (see "Tandy's protection track") | code in 144-146: DOS protected (S-005); data in 129-143: protected (S-006); filler only: not protection | |
+| TRSDOS 1.x limited-backup count set, and files with entry bit 5 | DOS protected (S-102) | Either alone is no protection |
+| A track of 5 or more sectors, all numbered outside 0-18 | protected | |
+| A full track (8 or more) with 1-3 sectors numbered outside 0-18 | protected | Cylinder 0 included |
+| The same number twice in the same density, on 2 or more tracks | protected | One track alone is damage |
+| Both densities on a track other than cylinder 0 | protected | No 179x DOS formatter writes it |
+| An ID with a size code above 3 | protected | The 179x uses the low two bits |
+| 30 or more 256-byte double-density IDs on a track | protected (S-031) | Hidden in other sectors' data |
+| IDs naming another cylinder on half or more of a track's sectors | possible | |
+| Single-density 0xF9 marks | possible | Only the Model I's 1771 writes them; in MFM they're misreads |
+| Single-density 0xFA marks outside cylinder 0 and the directory cylinder | possible | 0xFA is normal on 2.x-era directories and VTOS's cylinder 0 |
+| The boot sector (2.3 family) or DIR/SYS puts the directory elsewhere | possible | A moved directory with a decoy, or a density variant |
+
+"0-18" widens to the end of the disk's most common sector numbering where that
+goes further, as on an 8" disk. What the sectors and data marks are comes from
+the reader, so JV1's synthesized deleted marks (see "Deleted address marks")
+never count, and only DMK and HFE record the raw size code (`SectorInfo.sizeCode`).
+
+**What the collection showed** (October-November 2026, all 1,745 floppy images
+in the regression suite; 98 flagged, none of them by an error):
+
+- Every VTOS 3.0 disk (25, including its data disks) has the mini-sectors, as
+  do two others (`ORGADV1M.DMK`, and side 1 of `Small C v2.1 ... [Disk 2 of 4]`).
+  Every VTOS 4.0 disk (10) has only the FORMAT sector.
+- Renumbered sectors: one per disk, 255 on cylinder 39 of the three Cdex
+  `TRSDOS Training Course` disks, 235 on cylinder 0 of all five `Talking
+  Adventure I` sets, and one on cylinder 0 of `Purge Master` and `Tic-Toc-80`.
+  Hidden sectors: only `Vivace! Compiler v3.0` (cylinders 37-39).
+- Mixed density: the Big Five BFLOADER disks (cylinder 17), and Super Utility.
+- The 13 Tandy-track disks with code, the two Snapp disks with overlays, and the
+  two FORMAT-only tracks of "Tandy's protection track" are all found and told apart.
+- Model II 8" disks broke two rules as first written: cylinder 0 is the IBM
+  single-density format, 26 sectors numbered 1-26 (so "renumbered" is limited to
+  a few odd numbers), and LS-DOS and DOSPLUS II format 30 256-byte sectors per
+  track (so "hidden sectors" also needs 1.5 times the disk's usual count).
+- **Leftovers and imaging artifacts make most of the false positives.** Past
+  the file system there are tracks left from an earlier format (the side 1 of
+  single-sided disks once formatted in an 80-track drive, whose IDs say
+  cylinder 2*n*, as on `Teasers by Tobbs` and `SuperCop`), and reads past the
+  end of the disk that repeat an earlier cylinder. So the mixed-density and
+  other-cylinder signs count only tracks that a TRSDOS-family file system can
+  allocate: its lumps' cylinders, on its allocation sides. That limit is the
+  decoder's lump count, which follows the image, not the GAT's cylinder count,
+  so leftovers past the GAT's end but inside the image still count: `CLOAD
+  Magazine Issue 58 [Set 3]`, an LDOS disk of 35 cylinders whose cylinder 35
+  mixes densities (see "Leftovers from earlier formats"), and re-read tails
+  (TRSDOS 6.2.1 and CP/M Plus originals, cylinder 40; `Xenos [Set 3]`, cylinder
+  42; `RemDisk 1`, 34-39), as do 80-track reads of 40-track disks (`Make-80 ...
+  [Set 2]`). The other-cylinder ones are reported only as possible, and are what
+  trim (#47) needs to know about.
+- A dual-boot disk's boot sector belongs to the other DOS (`Moon Rover`'s says
+  directory cylinder 0), so a boot byte of 0 doesn't count against the directory.
+- `newdos80-SSSD-80T.dmk` and its double-sided twin are flagged for 18 0xFA
+  sectors in the middle of EDTASM/CMD. Nothing marks them as protection; the
+  sign is left as possible.
 
 ## Leftovers from earlier formats
 
