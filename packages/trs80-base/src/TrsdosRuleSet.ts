@@ -166,6 +166,8 @@ interface DosNameRule {
  * - SuperDOS and the other DOSes on the TRSDOS 1.3 layout, whose rules haven't been checked.
  * - DOSPLUS 4.0, DOSPLUS IV and DOSPLUS II, which are other machines or other rules.
  * - The DOS "DOSPLUS" with no version, which is DOSPLUS 4.0 or 3.4a.
+ * - DOSPLUS's version ranges ("DOSPLUS 3.2.1-3.4"), which only BOOT/SYS's passwords name, on disks
+ *   whose GAT byte 0xCB isn't DOSPLUS's, so something other than DOSPLUS wrote that GAT.
  *
  * The patterns are anchored, so that a longer name (such as "TRSDOS 2.3B") doesn't match a
  * shorter one's row.
@@ -178,7 +180,8 @@ const DOS_NAME_RULES: readonly DosNameRule[] = [
     {pattern: /^TRSDOS 1\./, ruleSet: TrsdosRuleSet.TRSDOS_1_3},
     {pattern: /^LDOS 5\./, ruleSet: TrsdosRuleSet.LDOS_5},
     {pattern: TRSDOS_6_DOS_NAME, ruleSet: TrsdosRuleSet.TRSDOS_6},
-    {pattern: /^DOSPLUS 3\./, ruleSet: TrsdosRuleSet.DOSPLUS},
+    // A single version, not a range, which only passwords give (see above).
+    {pattern: /^DOSPLUS 3\.[^-]+$/, ruleSet: TrsdosRuleSet.DOSPLUS},
 ];
 
 /**

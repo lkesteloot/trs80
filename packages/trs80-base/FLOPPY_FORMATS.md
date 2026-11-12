@@ -1266,6 +1266,8 @@ boot track text and GAT 0xCB, as above):
 - **DOSPLUS from BOOT/SYS's passwords**, where 0xCB names nothing: `7E B2 82 2A` is
   "DOSPLUS 3.1-3.2" and `27 0B 82 2A` "DOSPLUS 3.2.1-3.4" (Ira's FORMAT table below; on our
   disks they're only on DOSPLUS). That names three `lanhawk` disks with 0x50 at 0xCB.
+  These ranges are read-only: something other than DOSPLUS wrote the GAT, so the
+  DOSPLUS rules for writing aren't proven on them.
 - **DOSPLUS IV** also by BOOT/SYS's update password `DD 23` with 0x60, which TRSDOS 6
   never writes (DOSPLUS 3.5 writes it too).
 - **G-DOS and H-DOS**, German NEWDOS/80 2.1b builds, rename BOOT/SYS to GDOS/SYS or

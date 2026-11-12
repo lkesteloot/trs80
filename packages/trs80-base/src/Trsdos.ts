@@ -3385,7 +3385,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     /**
      * "DOSPLUS" and the range of versions whose FORMAT gives BOOT/SYS the passwords that this one
      * has, or undefined if they aren't DOSPLUS's. For disks whose GAT byte 0xCB names no DOS. See
-     * "Boot sector code by DOS" in FLOPPY_FORMATS.md.
+     * "Boot sector code by DOS" in FLOPPY_FORMATS.md. Always a range, which `DOS_NAME_RULES` in
+     * TrsdosRuleSet.ts gives no rule set, since something other than DOSPLUS wrote the GAT.
      *
      * @param bootSys BOOT/SYS's directory entry, if the disk has one.
      */

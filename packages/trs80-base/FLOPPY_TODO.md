@@ -338,7 +338,7 @@ more.
   whole tracks past the header's count.
 - `lanhawk/Archive2a/ARCH067.DSK`, `ARCH146.DSK`, `ARCH158.DSK`: 0xCB is 0x50, but
   BOOT/SYS has the DOSPLUS 3.2.1-3.4 FORMAT's passwords, so they're "DOSPLUS 3.2.1-3.4"
-  (November 2026). Their boot sector is byte for byte the `F3 FE` one of eight DOSPLUS 3.3
+  (November 2026), which we don't write to, since something else wrote the GAT. Their boot sector is byte for byte the `F3 FE` one of eight DOSPLUS 3.3
   disks (including `ARCH121` and `ARCH151` of the same set), and nothing else of ours, so
   they're probably 3.3. Ira's fill test would settle it (3.3 fills never-written sectors
   with 0xE5, 3.4 with 0x00). Something rewrote 0xCB along with the name and date (all
