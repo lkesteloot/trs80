@@ -5,8 +5,8 @@ import {
     trsdosFilenameToString, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString,
     type TrsdosProtectionNames,
 } from "trs80-base";
-import {importHostFile, stemOf} from "./DiskImport.js";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
+import {checkImportOptions, importHostFile, stemOf} from "./DiskImport.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {selectByPatterns, systemWildcardHint} from "./Patterns.js";
 import {pluralizeWithCount} from "./Plural.js";
@@ -391,6 +391,8 @@ export interface AddOptions {
     ascii: boolean;
     /** Copy every file exactly as it is (--binary). */
     binary: boolean;
+    /** Treat every file as text, converting only its line endings (--text). */
+    text: boolean;
     /** The BASIC to tokenize for (--basic, or the disk's). */
     basic: BasicDialect;
     /** Make the files system files (--system). */
@@ -456,14 +458,12 @@ function checkAddAsCount(as: string | undefined, fileCount: number): void {
  * @param session the open disk.
  * @param sources the host files, in order.
  * @param options how to add them.
- * @throws DiskError for a problem with the whole request: --as with other than one file, or both
- * --ascii and --binary.
+ * @throws DiskError for a problem with the whole request: --as with other than one file, or --binary with
+ * --ascii or --text.
  */
 export function planAdd(session: DiskSession, sources: AddFileSource[], options: AddOptions): AddPlanItem[] {
     checkAddAsCount(options.as, sources.length);
-    if (options.ascii && options.binary) {
-        throw new DiskError("Use either --ascii or --binary, not both");
-    }
+    checkImportOptions(options);
 
     const trsdos = session.fileSystem;
     const existingEntries = trsdos instanceof Trsdos ? trsdos.getDirEntries(true) : [];
@@ -488,6 +488,7 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
             imported = importHostFile(source.name, source.bytes, {
                 ascii: options.ascii,
                 binary: options.binary,
+                text: options.text,
                 basic: options.basic,
             });
         } catch (e) {

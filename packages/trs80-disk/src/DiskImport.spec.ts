@@ -6,7 +6,7 @@ import {describe, expect, it} from "vitest";
 import {DiskError} from "./DiskError.js";
 import {importHostFile, type ImportOptions} from "./DiskImport.js";
 
-const DEFAULT_OPTIONS: ImportOptions = {ascii: false, binary: false, basic: BasicDialect.MODEL_III};
+const DEFAULT_OPTIONS: ImportOptions = {ascii: false, binary: false, text: false, basic: BasicDialect.MODEL_III};
 
 /**
  * Make the bytes of text.
@@ -70,14 +70,14 @@ describe("importHostFile", () => {
 
     it("keeps BASIC text as text with CR line endings with --ascii", () => {
         const result = importHostFile("hello.bas", bytesOf("10 PRINT 1\r\n20 GOTO 10"),
-            {ascii: true, binary: false, basic: BasicDialect.MODEL_III});
+            {ascii: true, binary: false, text: false, basic: BasicDialect.MODEL_III});
         expect(textOf(result.contents)).to.equal("10 PRINT 1\r20 GOTO 10\r");
         expect(result.messages).to.eql([]);
     });
 
     it("turns tokenized BASIC into text with --ascii", () => {
         const tokenized = parseBasicText(listing) as Uint8Array;
-        const result = importHostFile("hello.bas", tokenized, {ascii: true, binary: false, basic: BasicDialect.MODEL_III});
+        const result = importHostFile("hello.bas", tokenized, {ascii: true, binary: false, text: false, basic: BasicDialect.MODEL_III});
         expect(textOf(result.contents)).to.equal("10 PRINT \"HELLO\"\r20 GOTO 10\r");
         expect(result.messages).to.eql(["Converted hello.bas to text."]);
     });
@@ -155,7 +155,7 @@ describe("importHostFile", () => {
     });
 
     it("copies every file exactly with --binary", () => {
-        const options = {ascii: false, binary: true, basic: BasicDialect.MODEL_III};
+        const options = {ascii: false, binary: true, text: false, basic: BasicDialect.MODEL_III};
         for (const [name, bytes] of [
             ["hello.bas", bytesOf(listing)], ["game.3bn", makeSystemProgram()], ["notes.txt", bytesOf("a\nb\n")],
         ] as [string, Uint8Array][]) {
@@ -175,7 +175,25 @@ describe("importHostFile", () => {
         }
     });
 
+    it("converts only the line endings of every file with --text", () => {
+        const options = {...DEFAULT_OPTIONS, text: true};
+        for (const name of ["data.dat", "noextension", "notes.txt"]) {
+            const result = importHostFile(name, bytesOf("a\nb\r\n"), options);
+            expect(textOf(result.contents)).to.equal("a\rb\r");
+            expect(result.extension).to.equal(undefined);
+            expect(result.messages).to.eql(["Converted line endings of " + name + "."]);
+        }
+        // BASIC text stays text, line endings aside, rather than being tokenized.
+        const result = importHostFile("hello.bas", bytesOf("10 PRINT\n"), options);
+        expect(textOf(result.contents)).to.equal("10 PRINT\r");
+    });
+
+    it("refuses --text together with --binary", () => {
+        expect(() => importHostFile("a.dat", bytesOf("x"), {...DEFAULT_OPTIONS, binary: true, text: true}))
+            .to.throw(DiskError, "not both");
+    });
+
     it("refuses --ascii together with --binary", () => {
-        expect(() => importHostFile("a.txt", bytesOf("x"), {ascii: true, binary: true, basic: BasicDialect.MODEL_III})).to.throw(DiskError, "not both");
+        expect(() => importHostFile("a.txt", bytesOf("x"), {ascii: true, binary: true, text: false, basic: BasicDialect.MODEL_III})).to.throw(DiskError, "not both");
     });
 });

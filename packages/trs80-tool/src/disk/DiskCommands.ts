@@ -458,6 +458,12 @@ const ADD_COMMAND: DiskCommand = {
                 description: "copy every file exactly as it is, with no conversion",
             },
             {
+                name: "--text",
+                valueName: undefined,
+                description: "treat every file as text, whatever its extension: convert its line endings " +
+                    "to CR, and nothing else",
+            },
+            {
                 name: "--basic",
                 valueName: "3|4",
                 description: "tokenize BASIC for Model III or Model 4 BASIC (default: the disk's DOS's)",
@@ -506,6 +512,7 @@ const ADD_COMMAND: DiskCommand = {
             as: asText,
             ascii: command.options.has("--ascii"),
             binary: command.options.has("--binary"),
+            text: command.options.has("--text"),
             basic: basicText === undefined ? session.getBasicDialect() : parseBasicName(basicText),
             system: command.options.has("--system"),
             invisible: command.options.has("--invisible"),

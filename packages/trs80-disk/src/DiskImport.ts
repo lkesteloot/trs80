@@ -45,6 +45,8 @@ export interface ImportOptions {
     ascii: boolean;
     /** Copy every file exactly as it is, with no conversion. */
     binary: boolean;
+    /** Treat every file as text, whatever its extension: convert its line endings to CR, and nothing else. */
+    text: boolean;
     /**
      * The BASIC that the disk's programs are for: BASIC text is tokenized for it, and a tokenized program that
      * is clearly for the other one is converted. It's also the one that a tokenized program's tokens are read as
@@ -82,12 +84,13 @@ export interface ImportResult {
  * @throws DiskError if the file can't be converted, or the options contradict each other.
  */
 export function importHostFile(hostName: string, bytes: Uint8Array, options: ImportOptions): ImportResult {
-    if (options.ascii && options.binary) {
-        throw new DiskError("Use either --ascii or --binary, not both");
-    }
+    checkImportOptions(options);
 
     if (options.binary) {
         return {contents: bytes, extension: undefined, messages: []};
+    }
+    if (options.text) {
+        return importTextFile(hostName, bytes);
     }
 
     const hostExtension = extensionOf(hostName).toLowerCase();
@@ -102,6 +105,21 @@ export function importHostFile(hostName: string, bytes: Uint8Array, options: Imp
         return importTextFile(hostName, bytes);
     } else {
         return {contents: bytes, extension: undefined, messages: []};
+    }
+}
+
+/**
+ * Check that the conversion options don't contradict each other: --binary turns off every conversion, which
+ * --ascii and --text ask for.
+ *
+ * @throws DiskError if they do.
+ */
+export function checkImportOptions(options: Pick<ImportOptions, "ascii" | "binary" | "text">): void {
+    if (options.binary && options.ascii) {
+        throw new DiskError("Use either --ascii or --binary, not both");
+    }
+    if (options.binary && options.text) {
+        throw new DiskError("Use either --text or --binary, not both");
     }
 }
 

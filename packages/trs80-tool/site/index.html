@@ -601,15 +601,16 @@ C CRC error (ID or data).
             </div>
 
             <p>If the program is a <code>.CMD</code>, <code>.SYS</code>, or <code>.3BN</code> file, it is loaded into the correct place
-            in memory. If it’s a <code>.ROM</code> or <code>.BIN</code> file, it is loaded at 0x0000.</p>
+            in memory. If it’s a <code>.ROM</code> or <code>.BIN</code> file, it is loaded at 0x0000. A boot sector, even one
+            saved as a <code>.BIN</code> file, is loaded at 0x4200.</p>
             <p>The disassembler tries to guess which bytes are code and which are data by
             following the path of the program, starting with its main entry point.</p>
 
             <table class="flags">
                 <tr>
                     <td><code>--org ADDRESS</code></td>
-                    <td>Load a <code>.ROM</code> or <code>.BIN</code> file at this address
-                        rather than 0x0000.</td>
+                    <td>Load a <code>.ROM</code> or <code>.BIN</code> file, or a boot sector, at this address
+                        rather than 0x0000 (0x4200 for a boot sector).</td>
                 </tr>
                 <tr>
                     <td><code>--entry ADDRESSES</code></td>

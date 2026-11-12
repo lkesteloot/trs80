@@ -232,6 +232,12 @@
                     <td>Copy every file byte for byte, with no conversion at all.</td>
                 </tr>
                 <tr>
+                    <td><code>--text</code></td>
+                    <td>Treat every file as text, whatever its extension (a <code>.dat</code> file, say): convert its
+                        LF and CRLF line endings to CR, and do nothing else, so BASIC isn’t tokenized. It’s the
+                        opposite of <code>--binary</code>, and can’t be used with it.</td>
+                </tr>
+                <tr>
                     <td><code>--basic 3|4</code></td>
                     <td>Tokenize BASIC text for Model III or Model 4 BASIC, instead of for the disk’s DOS.</td>
                 </tr>
