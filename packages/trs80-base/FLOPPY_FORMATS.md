@@ -660,6 +660,78 @@ none anywhere else in the collection. Now a track joins a sector-number group
 only if its numbering fits inside the group's (as a damaged track's does), so
 these tracks get a group, and a table in the map, of their own.
 
+## Tails past the disk's end
+
+Many images have cylinders past the end of the disk: an imager that read a
+fixed number of tracks, a drive that kept reading after its last cylinder, or
+the leftovers above. `FloppyTail.ts` (`analyzeFloppyTail()`) decides which of
+them provably aren't part of the disk, and `trim` drops only those. The rules
+are Ira Goldklang's (GitHub issue #47), whose governing rule is to err on the
+side of leaving an image alone, and never turn a good image into a bad one. A
+tail cylinder can go only if all of these hold:
+
+1. **The DOS's own records put it past the end** (`findDosDiskSize()`), and no
+   file, directory, free granule or boot sector pointer is on it. The records:
+   GAT byte 0xCC on the LDOS line, trusted as described in "GAT bytes
+   0xCB-0xCD" and checked against the media block where there is one; 0xCC on
+   DOSPLUS 3.x and 4.0; TC in slot 0 of a NEWDOS/80 system disk's PDRIVE table
+   (plus the opposite-density cylinder 0 that TC doesn't count), checked
+   against the decoded SPT, GPL and lump count; and the fixed 35 cylinders of
+   TRSDOS 2.x (or the GAT's, if it covers more, as on a ZAPped disk) and 40 of
+   TRSDOS 1.x (whose GAT is zero past its end, so free bits there mean
+   nothing). The GAT must not use a cylinder past that end. Every other DOS,
+   CP/M, and a disk that names no DOS has no proven size, so nothing goes.
+2. **Each track is a re-read or unformatted.** A re-read's readable IDs all
+   name the same earlier cylinder, which is in the image on the same side with
+   its own IDs, and every sector reads the same as that cylinder's (data, CRC
+   state and data mark). Unformatted means no ID with a good CRC. A tail
+   formatted like the disk's last cylinder stays even when it holds only
+   filler (Ira's decision); one formatted another way stays for review, since
+   an earlier format may have left data there; and one whose IDs name another
+   cylinder without matching it (an 80-track read, say) stays too.
+3. **It's part of an unbroken run to the end of the image.**
+4. **No sign of copy protection** (see "Copy protection signs") on its tracks,
+   counting Tandy's protection track even as TRSDOS 1.1's FORMAT writes it,
+   and none on the disk that isn't about tracks (a directory mismatch, limited
+   backups). IDs naming another cylinder don't count on a re-read. A tail of 7
+   or more cylinders goes to a person instead.
+5. **On a double-sided image, both sides qualify.**
+
+`repair` uses the same screen for the whole disk (`findBlockingProtectionSigns()`):
+any sign that counts as protection refuses it, except IDs naming another
+cylinder when every track with them is a re-read past the proven end.
+
+**What the collection showed** (November 2026, all 1,745 floppy images in the
+regression suite):
+
+- A plain `trim` used to change 119 of them and now changes 3: `XR-1 Control
+  Software` (cylinder 41, unformatted, after a Tandy protection track that
+  stays), `Xenos [Set 3]` (cylinder 42, a re-read of 40; 40-41 are another
+  format and stay), and `BFBDEM ... [Original]` (36-39, unformatted; 35 is
+  formatted like the disk and stays).
+- 16 of the 119 lost cylinders that were inside the disk. The VS-100 and
+  Talker disks (TRSDOS 2.x, 35 cylinders) went to 18, because their GAT marks
+  18-34 used with no file owning them; three `LOAD-80` DOSPLUS 3.3 disks (0xCC
+  says 35) went to 28 or 30; `Macro-Mon` (DOSPLUS 3.3) to 23; `SuperCop`
+  (NEWDOS/80, PDRIVE TC=40) to 35; and four Infocom NEWDOS/80 disks, whose
+  PDRIVE tables give 41 cylinders, to 40.
+- Of the other 101, 35 keep their tail (24 because it's formatted like the
+  disk; the rest for another format, IDs naming another cylinder, a tail of
+  17 cylinders, or a protection track), and 66 have no proven size (20 name
+  no DOS; 14 NEWDOS/80 disks have no PDRIVE table or one that describes
+  another layout; NEWDOS 2.1-3.0, MultiDOS, BFLOADER, DoubleDOS, UltraDOS and
+  others record none that we know of).
+- `TRSDOS v6.02.01-AR ... [Original][Set 5]` has a cylinder 40 whose IDs name
+  cylinder 42 and whose data matches neither 38 nor 39, so it isn't a re-read
+  by rule 2 and stays, though Ira's list counts it as one.
+- 85 floppies have signs that refuse a repair. On 62 of them the disk was
+  already read-only for other reasons; the other 23 (13 with the Tandy
+  protection code, 3 with TRSDOS limited backups, and one or two each of
+  Tandy overlays, renumbered sectors, hidden sectors, mixed density, FA marks,
+  a directory mismatch and IDs naming another cylinder) were writable or
+  repair-only, and a repair could have changed them. Which disks `check`
+  calls writable is unchanged (705).
+
 ## Damage and imaging artifacts in Ira's sectors run
 
 The rest of `ira/odderrors-420/`:

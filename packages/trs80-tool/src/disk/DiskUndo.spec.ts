@@ -2,7 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
-    type DmkFloppyDisk, formatTrsdosDataDisk, makeBlankFloppy, makeTrsdos23TestDisk, type TestFile,
+    appendDmkTestTracks, type DmkFloppyDisk, formatTrsdosDataDisk, makeTrsdos23TestDisk, type TestFile,
     TRSDOS_23_TRACK_LAYOUT, TrsdosFormatDos,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
@@ -14,9 +14,6 @@ import {openDiskSession, saveDiskSession, sessionInputFiles} from "./DiskFiles.j
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
 const WORLD: TestFile = {name: "WORLD/BAS", extents: [{lump: 5, granuleOffset: 0, granuleCount: 1}], size: 300};
-
-/** The size of a DMK file's header. */
-const DMK_HEADER_SIZE = 16;
 
 describe("disk undo, redo and revert", () => {
     let dir = "";
@@ -238,17 +235,14 @@ describe("disk undo, redo and revert", () => {
         if (typeof formatted === "string") {
             throw new Error(formatted);
         }
-        const blank = makeBlankFloppy(TRSDOS_23_TRACK_LAYOUT, 80, 1);
-        if (blank === undefined) {
-            throw new Error("Couldn't make the blank disk");
-        }
-        const binary = blank.binary.slice();
-        binary.set(formatted.binary.subarray(DMK_HEADER_SIZE), DMK_HEADER_SIZE);
+        // The last cylinder read twice more, which trim drops.
+        const binary = appendDmkTestTracks(formatted, [[{kind: "reRead", cylinder: 39}], [{kind: "reRead", cylinder: 39}]],
+            TRSDOS_23_TRACK_LAYOUT).binary;
         const pathname = path.join(dir, "big.dmk");
         fs.writeFileSync(pathname, binary);
 
         const session = openDiskSession(pathname);
-        expect(session.floppy.getGeometry().cylinderCount).to.equal(80);
+        expect(session.floppy.getGeometry().cylinderCount).to.equal(42);
 
         await run(session, "trim");
         expect(session.floppy.getGeometry().cylinderCount).to.equal(40);
@@ -256,7 +250,7 @@ describe("disk undo, redo and revert", () => {
 
         await run(session, "undo");
         expect(session.floppy.className).to.equal("DmkFloppyDisk");
-        expect(session.floppy.getGeometry().cylinderCount).to.equal(80);
+        expect(session.floppy.getGeometry().cylinderCount).to.equal(42);
         expect(session.floppy.binary).to.eql(binary);
         expect(session.hasChanges()).to.equal(false);
     });

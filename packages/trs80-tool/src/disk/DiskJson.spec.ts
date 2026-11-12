@@ -536,15 +536,15 @@ describe("disk --json", () => {
 
     it("gives trim's counts before and after", () => {
         expect(trimDoneToJson({
-            trimmed: true, removed: ["Removed cylinders 40-79 (the file system uses 0-39)."],
-            cylindersReason: TrimCylindersReason.FILE_SYSTEM_END, oldCylinderCount: 80, newCylinderCount: 40,
+            trimmed: true, removed: ["Removed cylinders 40-41 (past the disk's 40 cylinders, from GAT byte 0xCC; unformatted)."],
+            kept: [], cylindersReason: TrimCylindersReason.PAST_DISK_END, oldCylinderCount: 42, newCylinderCount: 40,
             oldSideCount: 2, newSideCount: 2, oldSize: 409600, newSize: 204800,
         })).to.eql({
-            trimmed: true, cylinders: {before: 80, after: 40}, cylindersReason: "fileSystemEnd",
-            sides: {before: 2, after: 2}, size: {before: 409600, after: 204800},
+            trimmed: true, cylinders: {before: 42, after: 40}, cylindersReason: "pastDiskEnd",
+            sides: {before: 2, after: 2}, size: {before: 409600, after: 204800}, kept: [],
         });
         expect(trimDoneToJson({
-            trimmed: true, removed: ["Removed side 1."], cylindersReason: undefined, oldCylinderCount: 40,
+            trimmed: true, removed: ["Removed side 1."], kept: [], cylindersReason: undefined, oldCylinderCount: 40,
             newCylinderCount: 40, oldSideCount: 2, newSideCount: 1, oldSize: 204800, newSize: 102400,
         })).to.not.have.property("cylindersReason");
     });

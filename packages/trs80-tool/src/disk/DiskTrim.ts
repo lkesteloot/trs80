@@ -2,7 +2,7 @@ import {assertNever} from "z80-base";
 import {pluralizeWithCount, ToolError} from "../utils.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {parseCountOption} from "./DiskCommandParser.js";
-import {trimDoneToJson, trimNothingReasonToJson} from "./DiskJson.js";
+import {trimDoneToJson, trimNothingToJson} from "./DiskJson.js";
 import {TrimNothingReason, trimDisk} from "trs80-disk";
 
 /**
@@ -18,8 +18,8 @@ export const TRIM_COMMAND: DiskCommand = {
             {
                 name: "--cylinders",
                 valueName: "N",
-                description: "keep cylinders 0 to N-1 (default: drop those past the file system's, " +
-                    "and unreadable ones at the end)",
+                description: "keep cylinders 0 to N-1 (default: drop only cylinders at the end that the DOS's " +
+                    "records put past the disk's end and that are re-reads or unformatted)",
             },
             {
                 name: "--side",
@@ -29,7 +29,8 @@ export const TRIM_COMMAND: DiskCommand = {
             {
                 name: "--force",
                 valueName: undefined,
-                description: "drop tracks that hold data we can't prove is unused, or trim a write-protected image",
+                description: "drop tracks that hold data we can't prove is unused, or trim a write-protected image " +
+                    "(never tracks with signs of copy protection)",
             },
         ],
     },
@@ -39,11 +40,12 @@ export const TRIM_COMMAND: DiskCommand = {
 
     /**
      * Rebuild the image without the tracks that nothing needs, and replace the session's disk with it, so that
-     * the change is saved like any other (and --dry-run and -o apply). With no options, drops the cylinders past the
-     * ones the file system uses, and unreadable ones at the end. With --cylinders N or --side 0, drops what was asked
-     * for, but refuses if a file (or, on TRSDOS, the file system's own space) is there, or, where we can't tell,
-     * if the tracks hold data that isn't filler (unless --force). The result must decode as the same file system with
-     * the same files, or nothing changes. Works on DMK, JV1 and JV3 images.
+     * the change is saved like any other (and --dry-run and -o apply). With no options, drops only the cylinders at
+     * the end that the DOS's records put past the disk's end and that are re-reads or unformatted, and says why it
+     * kept the others. With --cylinders N or --side 0, drops what was asked for, but refuses if a file (or, on
+     * TRSDOS, the file system's own space) is there, or, where we can't tell, if the tracks hold data that isn't
+     * filler (unless --force). It never drops tracks with signs of copy protection. The result must decode as the
+     * same file system with the same files, or nothing changes. Works on DMK, JV1 and JV3 images.
      */
     run(session, command, globalOptions, out) {
         const options = command.options;
@@ -65,16 +67,32 @@ export const TRIM_COMMAND: DiskCommand = {
                     out.line("Nothing to trim: the image has only " + pluralizeWithCount(result.cylinderCount, "cylinder") + ".");
                     break;
                 case TrimNothingReason.UNUSED:
-                    out.line("Nothing to trim: the image has no cylinders at the end that the disk doesn't use.");
+                    out.line("Nothing to trim: the image has no cylinders past the disk's " +
+                        pluralizeWithCount(result.diskCylinderCount ?? 0, "cylinder") +
+                        " (from " + result.diskSizeSource + ").");
+                    break;
+                case TrimNothingReason.KEPT:
+                    out.line("Nothing to trim: no cylinder past the disk's " +
+                        pluralizeWithCount(result.diskCylinderCount ?? 0, "cylinder") + " (from " + result.diskSizeSource +
+                        ") is provably outside the disk.");
+                    break;
+                case TrimNothingReason.SIZE_UNPROVEN:
+                    out.line("Nothing to trim: the DOS's records don't prove where the disk ends (" + result.unproven + ").");
                     break;
                 default:
                     assertNever(result.reason);
             }
-            out.result({trimmed: false, reason: trimNothingReasonToJson(result.reason)});
+            for (const message of result.kept) {
+                out.line(message);
+            }
+            out.result(trimNothingToJson(result));
             return;
         }
 
         for (const message of result.removed) {
+            out.line(message);
+        }
+        for (const message of result.kept) {
             out.line(message);
         }
         out.line("The image is now " + pluralizeWithCount(result.newSize, "byte") + ", from " +

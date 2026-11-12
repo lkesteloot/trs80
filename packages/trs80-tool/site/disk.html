@@ -668,31 +668,52 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
             other tools: an 80-cylinder image of a 40-cylinder disk, or a blank second side. It works on
             DMK, JV1 and JV3 images, rebuilding the image without those tracks, and checks that the result
             decodes as the same file system with every file reading the same; if not, nothing changes.
-            With no options it drops the cylinders past the ones the file system uses (the ones that the
-            GAT marks as beyond the disk’s end), and any cylinders at the end with no readable sectors,
-            and says what it dropped. Some DOSes, such as TRSDOS 1.3, don’t mark their end, so only the
-            unreadable cylinders go. If there’s nothing to drop it says so and changes nothing.</p>
+            With no options it errs on the side of leaving the image alone, and drops a cylinder only
+            when it can prove the cylinder is outside the disk:</p>
+
+            <ul>
+                <li>The DOS’s own records put it past the disk’s end: GAT byte 0xCC on LDOS, TRSDOS 6 and
+                    LS-DOS (checked against the media block, where there is one) and DOSPLUS; the PDRIVE table
+                    of a NEWDOS/80 system disk; or the fixed 35 cylinders of TRSDOS 2.x (or more, if the GAT
+                    covers more) and 40 of TRSDOS 1.x. No file, directory, free space or boot sector pointer is on
+                    it. A disk whose DOS we can’t name, or that doesn’t record its size this way (CP/M, MultiDOS,
+                    NEWDOS 2.1 and others), has nothing dropped.</li>
+                <li>Each of its tracks is an imager’s re-read of an earlier cylinder (every ID names that
+                    cylinder and every sector reads the same as it) or is unformatted (no IDs). A track formatted
+                    like the rest of the disk stays even when it holds only filler, and one formatted another way,
+                    perhaps by an earlier format, stays too, since it may hold that format’s data.</li>
+                <li>Every cylinder after it is dropped too: only an unbroken run to the end of the image goes.</li>
+                <li>It shows no sign of copy protection (see <a href="#check"><code>check</code></a>), and isn’t
+                    Tandy’s protection track even as FORMAT writes it; the disk shows no sign that isn’t about
+                    particular tracks; and there are at most 6 cylinders past the disk’s end, since more wants a
+                    person to look at them.</li>
+                <li>On a double-sided image, both of its tracks qualify.</li>
+            </ul>
+
+            <p>It says what it dropped, and why it kept each cylinder past the disk’s end that it kept. If
+            there’s nothing to drop it says so and changes nothing.</p>
 
             <table class="flags">
                 <tr>
                     <td><code>--cylinders N</code></td>
-                    <td>Keep cylinders 0 to N-1. It refuses if a file or the directory
+                    <td>Keep cylinders 0 to N-1, whatever the DOS’s records say. It refuses if a file or the directory
                         has data on a dropped cylinder (naming them and the cylinders the file system covers), or if
                         the dropped cylinders are free space that the file system expects to have, unless you give
                         <code>--force</code>. On a disk with no file system, it refuses if a dropped track holds data
                         that isn’t filler (each sector the same byte, or the same two bytes alternating), unless
-                        <code>--force</code>.</td>
+                        <code>--force</code>. It always refuses to drop a track with a sign of copy protection.</td>
                 </tr>
                 <tr>
                     <td><code>--side 0</code></td>
                     <td>Drop side 1. It refuses if the file system allocates on both sides,
-                        or, with no file system, if side 1 holds data that isn’t filler (unless <code>--force</code>).
-                        A single-sided image has nothing to drop.</td>
+                        or, with no file system, if side 1 holds data that isn’t filler (unless <code>--force</code>),
+                        or if side 1 has a sign of copy protection. A single-sided image has nothing to drop.</td>
                 </tr>
                 <tr>
                     <td><code>--force</code></td>
                     <td>Drop tracks that hold data we can’t prove is unused, as described above. It also lets <code>trim</code> work
-                        on an image marked write-protected.</td>
+                        on an image marked write-protected. It never drops a track with a sign of copy protection,
+                        and doesn’t change what a plain <code>trim</code> drops.</td>
                 </tr>
             </table>
 

@@ -6,7 +6,7 @@ import {
 } from "trs80-base";
 import {
     type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind, trsdosPasswordIsSet,
-    TrimCylindersReason, type TrimDoneResult, TrimNothingReason,
+    TrimCylindersReason, type TrimDoneResult, TrimNothingReason, type TrimNothingResult,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
 import type {GeometryInfoJson, OsInfoJson} from "../info.js";
@@ -722,8 +722,12 @@ export type TrimNothingReasonJson =
     "oneSide" |
     /** A number of cylinders was asked for, but the image has no more than that. */
     "cylinders" |
-    /** The image has no cylinders at the end that the disk doesn't use. */
-    "unused";
+    /** The image has no cylinders past the end that the DOS's records give the disk. */
+    "unused" |
+    /** The image has cylinders past the disk's end, but none that provably hold nothing the disk needs. */
+    "kept" |
+    /** The DOS's records don't prove where the disk ends, so nothing past it can be dropped. */
+    "sizeUnproven";
 
 /**
  * The result of "trim" when it had nothing to trim.
@@ -733,6 +737,12 @@ export interface TrimNothingResultJson {
     trimmed: false;
     /** Why there was nothing to trim. */
     reason: TrimNothingReasonJson;
+    /** Why cylinders past the disk's end were kept, one sentence each. Empty unless the reason is "kept". */
+    kept: string[];
+    /** The disk's cylinders by its DOS's records. Only when they prove a size. */
+    diskCylinders?: number;
+    /** Why the DOS's records don't prove the disk's size. Only when the reason is "sizeUnproven". */
+    unproven?: string;
 }
 
 /**
@@ -741,10 +751,8 @@ export interface TrimNothingResultJson {
 export type TrimCylindersReasonJson =
     /** --cylinders asked for fewer. */
     "requested" |
-    /** The file system doesn't use them. */
-    "fileSystemEnd" |
-    /** They're at the end of the image and have no readable sectors. */
-    "unreadable";
+    /** They're past the end that the DOS's records give the disk, and hold only re-reads and unformatted tracks. */
+    "pastDiskEnd";
 
 /**
  * A count before and after a change.
@@ -766,6 +774,8 @@ export interface TrimDoneResultJson {
     cylinders: BeforeAfterJson;
     /** Why cylinders were dropped. Only when some were. */
     cylindersReason?: TrimCylindersReasonJson;
+    /** Why cylinders past the disk's end were kept, one sentence each. */
+    kept: string[];
     /** The image's sides, before and after. */
     sides: BeforeAfterJson;
     /** The image's size in bytes, before and after. */
@@ -901,6 +911,7 @@ export function trimDoneToJson(result: TrimDoneResult): TrimDoneResultJson {
         cylinders: {before: result.oldCylinderCount, after: result.newCylinderCount},
         sides: {before: result.oldSideCount, after: result.newSideCount},
         size: {before: result.oldSize, after: result.newSize},
+        kept: result.kept,
     };
     if (result.cylindersReason !== undefined) {
         json.cylindersReason = trimCylindersReasonToJson(result.cylindersReason);
@@ -915,13 +926,25 @@ export function trimCylindersReasonToJson(reason: TrimCylindersReason): TrimCyli
     switch (reason) {
         case TrimCylindersReason.REQUESTED:
             return "requested";
-        case TrimCylindersReason.FILE_SYSTEM_END:
-            return "fileSystemEnd";
-        case TrimCylindersReason.UNREADABLE:
-            return "unreadable";
+        case TrimCylindersReason.PAST_DISK_END:
+            return "pastDiskEnd";
         default:
             assertNever(reason);
     }
+}
+
+/**
+ * Convert what "trim" said when it had nothing to trim to JSON.
+ */
+export function trimNothingToJson(result: TrimNothingResult): TrimNothingResultJson {
+    const json: TrimNothingResultJson = {trimmed: false, reason: trimNothingReasonToJson(result.reason), kept: result.kept};
+    if (result.diskCylinderCount !== undefined) {
+        json.diskCylinders = result.diskCylinderCount;
+    }
+    if (result.unproven !== undefined) {
+        json.unproven = result.unproven;
+    }
+    return json;
 }
 
 /**
@@ -935,6 +958,10 @@ export function trimNothingReasonToJson(reason: TrimNothingReason): TrimNothingR
             return "cylinders";
         case TrimNothingReason.UNUSED:
             return "unused";
+        case TrimNothingReason.KEPT:
+            return "kept";
+        case TrimNothingReason.SIZE_UNPROVEN:
+            return "sizeUnproven";
         default:
             assertNever(reason);
     }

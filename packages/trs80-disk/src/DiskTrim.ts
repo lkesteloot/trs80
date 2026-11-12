@@ -1,6 +1,8 @@
 import {
-    canTrimFloppy, decodeFloppyFileSystem, type FloppyDisk, type FloppyFileSystem, type KnownFloppyFileSystem,
-    SectorData, Trsdos, TrackPosition, trimFloppy, TRIMMABLE_FLOPPY_FORMATS,
+    analyzeFloppyTail, canTrimFloppy, decodeFloppyFileSystem, describeTailKeepReason, findProtectionSigns,
+    findReReadCylinder, findTrsdosCylinderUse, type FloppyDisk, type FloppyFileSystem, type FloppyTail,
+    isProtectionSign, type KnownFloppyFileSystem, type ProtectionSign, ProtectionSignKind, protectionSignKindToString,
+    sectorsReadTheSame, type TailCylinder, TailTrackKind, Trsdos, TrackPosition, trimFloppy, TRIMMABLE_FLOPPY_FORMATS,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
@@ -22,8 +24,6 @@ interface CylinderUse {
     claimedBy: string[];
     /** Whether the cylinder has space that the file system could still hand out. Only known for TRSDOS. */
     hasFreeSpace: boolean;
-    /** Whether any track of the cylinder has a sector that we can read. */
-    readable: boolean;
 }
 
 /**
@@ -66,9 +66,8 @@ function addName(names: string[], name: string): void {
 }
 
 /**
- * Work out what a TRSDOS-family file system uses on each cylinder, from its granule map: which granules
- * files and the directory own, and which are free. A granule that the GAT says is used but that nothing
- * owns (including the lockout table's "beyond the end" entries) counts as neither.
+ * Work out what a TRSDOS-family file system uses on each cylinder, from its granule map (see
+ * findTrsdosCylinderUse() in trs80-base).
  *
  * @param session the session, whose disk has a TRSDOS-family file system.
  * @param trsdos the file system.
@@ -82,27 +81,10 @@ function analyzeTrsdosCylinders(session: DiskSession, trsdos: Trsdos, cylinders:
             (typeof granuleMap === "string" ? ": " + granuleMap : ""));
     }
 
-    for (const granule of granuleMap.granules) {
-        // A granule is a run of sectors, and normally sits within one cylinder, but be careful.
-        const firstSectorIndex = granule.lump*trsdos.sectorsPerLump + granule.granule*trsdos.sectorsPerGranule;
-        const lastSectorIndex = firstSectorIndex + trsdos.sectorsPerGranule - 1;
-        const firstCylinder = trsdos.firstDataCylinder + Math.floor(firstSectorIndex/trsdos.sectorsPerCylinder);
-        const lastCylinder = trsdos.firstDataCylinder + Math.floor(lastSectorIndex/trsdos.sectorsPerCylinder);
-
-        for (let cylinder = firstCylinder; cylinder <= lastCylinder && cylinder < cylinders.length; cylinder++) {
-            const use = cylinders[cylinder];
-            for (const owner of granule.owners) {
-                addName(use.claimedBy, owner.getFilename("/"));
-            }
-            if (granule.inDirectory && granule.owners.length === 0) {
-                // Normally DIR/SYS owns these granules, but a disk can be damaged.
-                addName(use.claimedBy, "the directory");
-            }
-            if (granule.isFree()) {
-                use.hasFreeSpace = true;
-            }
-        }
-    }
+    findTrsdosCylinderUse(trsdos, granuleMap, cylinders.length).forEach((use, cylinder) => {
+        cylinders[cylinder].claimedBy.push(...use.claimedBy);
+        cylinders[cylinder].hasFreeSpace = use.hasFreeSpace;
+    });
 }
 
 /**
@@ -140,11 +122,7 @@ function analyzeCylinders(session: DiskSession): CylinderAnalysis {
     const geometry = session.floppy.getGeometry();
     const cylinders: CylinderUse[] = [];
     for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
-        let readable = false;
-        for (let side = 0; side < geometry.sideCount; side++) {
-            readable ||= geometry.trackMap.has(new TrackPosition(cylinder, side).key());
-        }
-        cylinders.push({claimedBy: [], hasFreeSpace: false, readable});
+        cylinders.push({claimedBy: [], hasFreeSpace: false});
     }
 
     const sideOneNames: string[] = [];
@@ -219,29 +197,131 @@ interface TrimPlan {
     cylindersReason: TrimCylindersReason | undefined;
     /** What to tell the user about what's dropped, one sentence each. Empty if nothing is. */
     removed: string[];
+    /** Why cylinders past the disk's end were kept, one sentence each. Only for a plain trim. */
+    kept: string[];
+    /** For a plain trim, what's past the disk's end. */
+    tail: FloppyTail | undefined;
 }
 
 /**
- * Decide how many cylinders to keep when the user didn't say: the cylinders the file system uses, less
- * any at the end that can't be read. A cylinder with a file on it is never dropped.
- *
- * @param analysis what the file system uses.
- * @return the count to keep, and the reason for dropping the rest (undefined if nothing is dropped).
+ * Describe what a dropped cylinder past the disk's end holds, such as "re-read cylinder 39" or "unformatted".
  */
-function chooseDefaultCylinders(analysis: CylinderAnalysis): {keep: number, reason: TrimCylindersReason | undefined} {
-    const cylinders = analysis.cylinders;
-    const claimedEnd = endOfCylinders(cylinders, use => use.claimedBy.length > 0);
-    const readableEnd = endOfCylinders(cylinders, use => use.readable);
-    const fileSystemEnd = analysis.trsdos === undefined ? undefined :
-        endOfCylinders(cylinders, use => use.claimedBy.length > 0 || use.hasFreeSpace);
+function describeDroppedCylinder(tailCylinder: TailCylinder): string {
+    const kinds = new Set(tailCylinder.tracks.map(track => track.kind));
+    const named = new Set(tailCylinder.tracks.map(track => track.namedCylinder).filter(cylinder => cylinder !== undefined));
+    if (kinds.size === 1 && kinds.has(TailTrackKind.UNFORMATTED)) {
+        return "unformatted";
+    }
+    if (kinds.size === 1 && kinds.has(TailTrackKind.RE_READ) && named.size === 1) {
+        return "re-read cylinder " + [...named][0];
+    }
+    return "re-reads and unformatted tracks";
+}
 
-    const keep = Math.min(cylinders.length, Math.max(claimedEnd, Math.min(fileSystemEnd ?? Infinity, readableEnd)));
-    let reason: TrimCylindersReason | undefined = undefined;
-    if (keep < cylinders.length) {
-        reason = keep === fileSystemEnd ? TrimCylindersReason.FILE_SYSTEM_END : TrimCylindersReason.UNREADABLE;
+/**
+ * Group consecutive cylinders that are described the same way, such as 40 and 41 as "re-read cylinder 39".
+ *
+ * @param cylinders the cylinders, in order.
+ * @param describe what to say about each.
+ * @return the groups' first and last cylinders and descriptions, in order.
+ */
+function groupCylinders(cylinders: TailCylinder[], describe: (tailCylinder: TailCylinder) => string):
+    {first: number, last: number, text: string}[] {
+
+    const groups: {first: number, last: number, text: string}[] = [];
+    for (const tailCylinder of cylinders) {
+        const text = describe(tailCylinder);
+        const last = groups[groups.length - 1];
+        if (last !== undefined && last.text === text && last.last === tailCylinder.cylinder - 1) {
+            last.last = tailCylinder.cylinder;
+        } else {
+            groups.push({first: tailCylinder.cylinder, last: tailCylinder.cylinder, text});
+        }
+    }
+    return groups;
+}
+
+/**
+ * Decide how many cylinders to keep when the user didn't say: only an unbroken run at the end of the
+ * image that the DOS's records put past the disk's end, and that holds nothing but re-reads of earlier
+ * cylinders and unformatted tracks, with no sign of copy protection (see analyzeFloppyTail() in trs80-base).
+ *
+ * @param session the session.
+ * @param signs the disk's protection signs.
+ * @return the count to keep, what to say about the dropped cylinders (undefined if none are), why the
+ * others past the disk's end were kept, and the analysis.
+ */
+function chooseDefaultCylinders(session: DiskSession, signs: ProtectionSign[]):
+    {keep: number, removed: string | undefined, kept: string[], tail: FloppyTail} {
+
+    const floppy = session.floppy;
+    const geometry = floppy.getGeometry();
+    const granuleMap = session.getGranuleMap();
+    const tail = analyzeFloppyTail(floppy, session.fileSystem, signs,
+        granuleMap === undefined || typeof granuleMap === "string" ? undefined : granuleMap);
+
+    const keptCylinders = tail.cylinders.filter(tailCylinder => tailCylinder.cylinder < tail.dropFrom);
+    const kept = groupCylinders(keptCylinders,
+        tailCylinder => describeTailKeepReason(tail, tailCylinder, geometry.sideCount))
+        .map(group => "Kept " + cylinderRangeText(group.first, group.last) + ": " + group.text + ".");
+
+    let removed: string | undefined = undefined;
+    if (tail.size !== undefined && tail.dropFrom < geometry.cylinderCount) {
+        const dropped = tail.cylinders.filter(tailCylinder => tailCylinder.cylinder >= tail.dropFrom);
+        const groups = groupCylinders(dropped, describeDroppedCylinder);
+        const what = groups.length === 1 ? groups[0].text : groups.map(group =>
+            (group.first === group.last ? group.first : group.first + "-" + group.last) + " " + group.text).join(", ");
+        removed = "Removed " + cylinderRangeText(tail.dropFrom, geometry.cylinderCount - 1) + " (past the disk's " +
+            tail.size.cylinderCount + " cylinders, from " + tail.size.source + "; " + what + ").";
     }
 
-    return {keep, reason};
+    return {keep: tail.dropFrom, removed, kept, tail};
+}
+
+/**
+ * Whether a sign says something about a track that dropping it would destroy. A re-read's IDs naming the
+ * cylinder it re-reads don't: dropping the copy leaves the original.
+ */
+function signConcernsTrack(floppy: FloppyDisk, sign: ProtectionSign, trackPosition: TrackPosition): boolean {
+    if (!sign.tracks.some(track => track.equals(trackPosition))) {
+        return false;
+    }
+    return !(sign.kind === ProtectionSignKind.FOREIGN_CYLINDER_IDS && findReReadCylinder(floppy, trackPosition) !== undefined);
+}
+
+/**
+ * Refuse to drop tracks that show signs of copy protection, or any track of a disk with a sign that
+ * isn't about particular tracks, even with --force: a trimmed copy of a protected disk wouldn't work.
+ *
+ * @param floppy the disk.
+ * @param signs its protection signs.
+ * @param isDropped says whether a track is among those being dropped.
+ * @param what what's being dropped, for the message, such as "cylinders 40-79".
+ * @throws DiskError if a sign is on a dropped track.
+ */
+function checkDroppedProtection(floppy: FloppyDisk, signs: ProtectionSign[],
+                                isDropped: (cylinder: number, side: number) => boolean, what: string): void {
+
+    const geometry = floppy.getGeometry();
+    const found: ProtectionSign[] = signs.filter(sign => isProtectionSign(sign) && sign.tracks.length === 0);
+    for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
+        for (let side = 0; side < geometry.sideCount; side++) {
+            if (!isDropped(cylinder, side)) {
+                continue;
+            }
+            const trackPosition = new TrackPosition(cylinder, side);
+            for (const sign of signs) {
+                if (!found.includes(sign) && signConcernsTrack(floppy, sign, trackPosition)) {
+                    found.push(sign);
+                }
+            }
+        }
+    }
+    if (found.length > 0) {
+        throw new DiskError("Can't drop " + what + ": the disk shows signs of copy protection there (" +
+            found.map(sign => protectionSignKindToString(sign.kind)).join(", ") + "), and trim never drops " +
+            "those, even with --force. " + found.map(sign => sign.message).join(" "));
+    }
 }
 
 /**
@@ -312,19 +392,6 @@ function checkSideDrop(analysis: CylinderAnalysis): void {
 }
 
 /**
- * Whether two sectors read the same: data, deleted state and data address mark.
- */
-function sectorsMatch(a: SectorData | undefined, b: SectorData | undefined): boolean {
-    if (a === undefined || b === undefined) {
-        return a === b;
-    }
-    if (a.data.length !== b.data.length || a.deleted !== b.deleted || a.getDataAddressMark() !== b.getDataAddressMark()) {
-        return false;
-    }
-    return a.data.every((value, i) => value === b.data[i]);
-}
-
-/**
  * Compare the trimmed image with the original and say what's different about it, other than what was
  * dropped. The kept sectors must read the same, and the file system must decode the same way with the
  * same files that read the same.
@@ -345,7 +412,7 @@ function findTrimDifference(session: DiskSession, trimmed: FloppyDisk, keepCylin
     for (const sectorInfo of original.getGeometry().sectorInfos) {
         const position = sectorInfo.sectorPosition;
         if (position.cylinderNumber < keepCylinders && position.side < keepSides &&
-            !sectorsMatch(original.readSector(position), trimmed.readSector(position))) {
+            !sectorsReadTheSame(original.readSector(position), trimmed.readSector(position))) {
 
             return "sector " + position.key() + " reads differently";
         }
@@ -411,7 +478,10 @@ function makePlan(session: DiskSession, requestedCylinders: number | undefined, 
     const floppy = session.floppy;
     const geometry = floppy.getGeometry();
     const analysis = analyzeCylinders(session);
+    const signs = findProtectionSigns(floppy, session.fileSystem);
     const removed: string[] = [];
+    let kept: string[] = [];
+    let tail: FloppyTail | undefined = undefined;
 
     // Cylinders.
     let keepCylinders: number;
@@ -421,12 +491,22 @@ function makePlan(session: DiskSession, requestedCylinders: number | undefined, 
             // The user asked for a particular thing, so don't do the other.
             keepCylinders = geometry.cylinderCount;
         } else {
-            ({keep: keepCylinders, reason} = chooseDefaultCylinders(analysis));
+            const choice = chooseDefaultCylinders(session, signs);
+            keepCylinders = choice.keep;
+            kept = choice.kept;
+            tail = choice.tail;
+            if (choice.removed !== undefined) {
+                reason = TrimCylindersReason.PAST_DISK_END;
+                removed.push(choice.removed);
+            }
         }
     } else {
         keepCylinders = checkRequestedCylinders(analysis, requestedCylinders, force);
         if (keepCylinders < geometry.cylinderCount) {
             reason = TrimCylindersReason.REQUESTED;
+            checkDroppedProtection(floppy, signs, cylinder => cylinder >= keepCylinders,
+                cylinderRangeText(keepCylinders, geometry.cylinderCount - 1));
+            removed.push("Removed " + cylinderRangeText(keepCylinders, geometry.cylinderCount - 1) + ".");
         }
     }
 
@@ -434,6 +514,7 @@ function makePlan(session: DiskSession, requestedCylinders: number | undefined, 
     let keepSides = geometry.sideCount;
     if (dropSide && geometry.sideCount > 1) {
         checkSideDrop(analysis);
+        checkDroppedProtection(floppy, signs, (_cylinder, side) => side >= 1, "side 1");
         keepSides = 1;
     }
 
@@ -452,30 +533,12 @@ function makePlan(session: DiskSession, requestedCylinders: number | undefined, 
         }
     }
 
-    if (keepCylinders < geometry.cylinderCount) {
-        const dropped = cylinderRangeText(keepCylinders, geometry.cylinderCount - 1);
-        let why: string;
-        switch (reason) {
-            case undefined:
-            case TrimCylindersReason.REQUESTED:
-                why = "";
-                break;
-            case TrimCylindersReason.FILE_SYSTEM_END:
-                why = " (the file system uses 0-" + (keepCylinders - 1) + ")";
-                break;
-            case TrimCylindersReason.UNREADABLE:
-                why = " (they have no readable sectors)";
-                break;
-            default:
-                assertNever(reason);
-        }
-        removed.push("Removed " + dropped + why + ".");
-    }
     if (keepSides < geometry.sideCount) {
         removed.push("Removed side 1.");
     }
 
-    return {keepCylinders, keepSides, cylindersReason: keepCylinders < geometry.cylinderCount ? reason : undefined, removed};
+    return {keepCylinders, keepSides, cylindersReason: keepCylinders < geometry.cylinderCount ? reason : undefined,
+        removed, kept, tail};
 }
 
 /**
@@ -486,8 +549,12 @@ export enum TrimNothingReason {
     ONE_SIDE,
     /** A number of cylinders was asked for, but the image has no more than that. */
     CYLINDERS,
-    /** The image has no cylinders at the end that the disk doesn't use. */
+    /** The image has no cylinders past the end that the DOS's records give the disk. */
     UNUSED,
+    /** The image has cylinders past the disk's end, but none that can be proven to hold nothing the disk needs. */
+    KEPT,
+    /** The DOS's records don't prove where the disk ends, so nothing past it can be dropped. */
+    SIZE_UNPROVEN,
 }
 
 /**
@@ -496,10 +563,11 @@ export enum TrimNothingReason {
 export enum TrimCylindersReason {
     /** The user asked for fewer cylinders. */
     REQUESTED,
-    /** The file system doesn't use the dropped cylinders. */
-    FILE_SYSTEM_END,
-    /** The dropped cylinders, at the end of the image, have no readable sectors. */
-    UNREADABLE,
+    /**
+     * The dropped cylinders are past the end that the DOS's records give the disk, and hold only
+     * re-reads of earlier cylinders and unformatted tracks.
+     */
+    PAST_DISK_END,
 }
 
 /**
@@ -509,6 +577,8 @@ export interface TrimDoneResult {
     trimmed: true;
     /** What was dropped, one sentence each. */
     removed: string[];
+    /** Why cylinders past the disk's end were kept, one sentence each. */
+    kept: string[];
     /** Why cylinders were dropped, or undefined if none were. */
     cylindersReason: TrimCylindersReason | undefined;
     /** The image's cylinders before. */
@@ -526,17 +596,38 @@ export interface TrimDoneResult {
 }
 
 /**
+ * What trimDisk() did when it had nothing to trim.
+ */
+export interface TrimNothingResult {
+    trimmed: false;
+    reason: TrimNothingReason;
+    /** The image's cylinders. */
+    cylinderCount: number;
+    /** Why cylinders past the disk's end were kept, one sentence each. Empty unless the reason is KEPT. */
+    kept: string[];
+    /** The disk's cylinders by its DOS's records, if they prove a size. */
+    diskCylinderCount: number | undefined;
+    /** Where the disk's size comes from, such as "GAT byte 0xCC", if it's proven. */
+    diskSizeSource: string | undefined;
+    /** Why the DOS's records don't prove the disk's size, as a clause, if the reason is SIZE_UNPROVEN. */
+    unproven: string | undefined;
+}
+
+/**
  * What trimDisk() did: nothing, or the new, smaller image.
  */
-export type TrimResult = {trimmed: false, reason: TrimNothingReason, cylinderCount: number} | TrimDoneResult;
+export type TrimResult = TrimNothingResult | TrimDoneResult;
 
 /**
  * Rebuild the image without the tracks that nothing needs, and replace the session's disk with it, so that
- * the change is saved like any other. With no options, drops the cylinders past the ones the file system
- * uses, and unreadable ones at the end. With a number of cylinders or dropSide, drops what was asked for,
- * but refuses if a file (or, on TRSDOS, the file system's own space) is there, or, where we can't tell,
- * if the tracks hold data that isn't filler (unless forced). The result must decode as the same file system
- * with the same files, or nothing changes. Works on DMK, JV1 and JV3 images.
+ * the change is saved like any other. With no options, drops only cylinders at the end that the DOS's own
+ * records put past the disk's end and that hold nothing but re-reads of earlier cylinders and unformatted
+ * tracks (see analyzeFloppyTail() in trs80-base), and says why it kept the others. With a number of
+ * cylinders or dropSide, drops what was asked for, but refuses if a file (or, on TRSDOS, the file
+ * system's own space) is there, or, where we can't tell, if the tracks hold data that isn't filler
+ * (unless forced). Either way it refuses to drop a track that shows signs of copy protection, even when
+ * forced. The result must decode as the same file system with the same files, or nothing changes. Works
+ * on DMK, JV1 and JV3 images.
  *
  * @param session the session, whose disk is a floppy.
  * @param options what to drop.
@@ -565,10 +656,18 @@ export function trimDisk(session: DiskSession, options: {cylinders: number | und
             reason = TrimNothingReason.ONE_SIDE;
         } else if (requestedCylinders !== undefined) {
             reason = TrimNothingReason.CYLINDERS;
-        } else {
+        } else if (plan.tail === undefined || plan.tail.size === undefined) {
+            reason = TrimNothingReason.SIZE_UNPROVEN;
+        } else if (plan.tail.cylinders.length === 0) {
             reason = TrimNothingReason.UNUSED;
+        } else {
+            reason = TrimNothingReason.KEPT;
         }
-        return {trimmed: false, reason, cylinderCount: geometry.cylinderCount};
+        return {
+            trimmed: false, reason, cylinderCount: geometry.cylinderCount, kept: plan.kept,
+            diskCylinderCount: plan.tail?.size?.cylinderCount, diskSizeSource: plan.tail?.size?.source,
+            unproven: plan.tail?.unproven,
+        };
     }
 
     if (floppy.isWriteProtected() && !force) {
@@ -589,6 +688,7 @@ export function trimDisk(session: DiskSession, options: {cylinders: number | und
     return {
         trimmed: true,
         removed: plan.removed,
+        kept: plan.kept,
         cylindersReason: plan.cylindersReason,
         oldCylinderCount: geometry.cylinderCount,
         newCylinderCount: plan.keepCylinders,

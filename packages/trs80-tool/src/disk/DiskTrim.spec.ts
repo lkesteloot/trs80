@@ -2,8 +2,9 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
-    type DmkFloppyDisk, formatTrsdosDataDisk, LSDOS_DD_TRACK_LAYOUT, makeBlankFloppy, makeTrsdos23TestDisk,
-    SectorData, SectorPosition, type TestFile, TRSDOS_23_TRACK_LAYOUT, type TrackLayout, TrsdosFormatDos,
+    appendDmkTestTracks, decodeFloppyFileSystem, type DmkFloppyDisk, formatTrsdosDataDisk, LSDOS_DD_TRACK_LAYOUT,
+    makeBlankFloppy, makeTrsdos23TestDisk, SectorData, SectorPosition, type TestFile, type TestTailTrack,
+    TRSDOS_23_TRACK_LAYOUT, type TrackLayout, Trsdos, TrsdosFormatDos, USER_DATA_ADDRESS_MARK_F9,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
@@ -107,6 +108,44 @@ describe("disk trim", () => {
     }
 
     /**
+     * Write a TRSDOS 2.3 image of 40 formatted cylinders followed by these single-sided cylinders, and return
+     * its pathname.
+     *
+     * @param tail the cylinders after the disk's 40.
+     * @param change a change to make to the formatted disk before the tail is added.
+     */
+    function makeTrsdos23WithTail(tail: TestTailTrack[], change: (floppy: DmkFloppyDisk) => void = () => {}): string {
+        const pathname = path.join(dir, "tail.dmk");
+        const formatted = format(TrsdosFormatDos.TRSDOS_2_3, 40, 1);
+        change(formatted);
+        const floppy = appendDmkTestTracks(formatted, tail.map(track => [track]), TRSDOS_23_TRACK_LAYOUT);
+        fs.writeFileSync(pathname, floppy.binary);
+        return pathname;
+    }
+
+    /**
+     * Write a TRSDOS 2.3 image of 40 cylinders whose last is read twice more, as an imager whose drive
+     * couldn't step any further leaves it, and return its pathname.
+     */
+    function makeTrsdos23WithReReads(): string {
+        return makeTrsdos23WithTail([{kind: "reRead", cylinder: 39}, {kind: "reRead", cylinder: 39}]);
+    }
+
+    /**
+     * Give sector 3 of cylinder 39 the 0xF9 data mark, a sign of copy protection.
+     */
+    function markCylinder39(floppy: DmkFloppyDisk): void {
+        const position = SectorPosition.make(39, 0, 3);
+        const sector = floppy.readSector(position);
+        if (sector === undefined) {
+            throw new Error("No sector");
+        }
+        const marked = new SectorData(sector.data, position, sector.density);
+        marked.dataAddressMark = USER_DATA_ADDRESS_MARK_F9;
+        floppy.writeSector(position, marked);
+    }
+
+    /**
      * Read back an image and return its file system's file names and contents, joined as "NAME=bytes".
      */
     function describeFiles(pathname: string): string[] {
@@ -115,21 +154,21 @@ describe("disk trim", () => {
             Buffer.from(inputFile.binary).toString("hex").substring(0, 40) + "/" + inputFile.binary.length);
     }
 
-    it("drops the cylinders past the file system's, keeping the files", async () => {
-        const pathname = makeOversizedTrsdos23();
+    it("drops re-reads past the disk's end, keeping the files", async () => {
+        const pathname = makeTrsdos23WithReReads();
         const hostPathname = makeHostFile("data.bin", 3000);
         await runDiskOn(pathname, "add", hostPathname, "--as", "DATA/BIN");
         const before = describeFiles(pathname);
         const sizeBefore = fs.statSync(pathname).size;
-        expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(80);
+        expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(42);
 
         const lines = await runDiskOn(pathname, "trim");
 
-        expect(lines[0]).to.eql("Removed cylinders 40-79 (the file system uses 0-39).");
+        expect(lines[0]).to.eql("Removed cylinders 40-41 (past the disk's 40 cylinders, from the GAT; re-read cylinder 39).");
         expect(lines[lines.length - 1]).to.eql("Saved " + pathname + ".");
         const session = openDiskSession(pathname);
         expect(session.floppy.getGeometry().cylinderCount).to.eql(40);
-        expect(fs.statSync(pathname).size).to.eql(sizeBefore/2 + DMK_HEADER_SIZE/2);
+        expect(fs.statSync(pathname).size).to.eql(DMK_HEADER_SIZE + (sizeBefore - DMK_HEADER_SIZE)*40/42);
         expect(describeFiles(pathname)).to.eql(before);
         expect(session.getReadOnlyReason()).to.eql(undefined);
         expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["DATA.BIN"]);
@@ -142,11 +181,11 @@ describe("disk trim", () => {
 
         const lines = await runDiskOn(pathname, "trim");
 
-        expect(lines).to.eql(["Nothing to trim: the image has no cylinders at the end that the disk doesn't use."]);
+        expect(lines).to.eql(["Nothing to trim: the image has no cylinders past the disk's 40 cylinders (from the GAT)."]);
         expect(fs.readFileSync(pathname)).to.eql(before);
     });
 
-    it("drops unreadable cylinders at the end", async () => {
+    it("drops unformatted cylinders at the end", async () => {
         // TRSDOS 1.3 doesn't mark the cylinders past its end, so only the unformatted ones go.
         const pathname = path.join(dir, "tail.dmk");
         const formatted = format(TrsdosFormatDos.TRSDOS_1_3, 40, 1);
@@ -158,8 +197,112 @@ describe("disk trim", () => {
 
         const lines = await runDiskOn(pathname, "trim");
 
-        expect(lines[0]).to.eql("Removed cylinders 40-44 (they have no readable sectors).");
+        expect(lines[0]).to.eql("Removed cylinders 40-44 (past the disk's 40 cylinders, from TRSDOS 1.x's fixed size; " +
+            "unformatted).");
         expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(40);
+    });
+
+    it("says what each dropped cylinder was", async () => {
+        const pathname = makeTrsdos23WithTail([{kind: "reRead", cylinder: 39}, {kind: "unformatted"}]);
+
+        const lines = await runDiskOn(pathname, "trim");
+
+        expect(lines[0]).to.eql("Removed cylinders 40-41 (past the disk's 40 cylinders, from the GAT; " +
+            "40 re-read cylinder 39, 41 unformatted).");
+    });
+
+    it("leaves an unused tail in the disk's own format alone", async () => {
+        const pathname = makeTrsdos23WithTail([{kind: "blank"}, {kind: "blank"}, {kind: "blank"}]);
+        const before = fs.readFileSync(pathname);
+
+        const lines = await runDiskOn(pathname, "trim");
+
+        expect(lines).to.eql([
+            "Nothing to trim: no cylinder past the disk's 40 cylinders (from the GAT) is provably outside the disk.",
+            "Kept cylinders 40-42: it's formatted like the rest of the disk, and an unused tail in the disk's own " +
+            "format is left alone.",
+        ]);
+        expect(fs.readFileSync(pathname)).to.eql(before);
+    });
+
+    it("drops only an unbroken run to the end, and says why it kept the rest", async () => {
+        const pathname = makeTrsdos23WithTail([{kind: "unformatted"}, {kind: "blank"}, {kind: "reRead", cylinder: 41}]);
+
+        const lines = await runDiskOn(pathname, "trim");
+
+        expect(lines.slice(0, 3)).to.eql([
+            "Removed cylinder 42 (past the disk's 40 cylinders, from the GAT; re-read cylinder 41).",
+            "Kept cylinder 40: a later cylinder is kept, and only an unbroken run to the end of the image is dropped.",
+            "Kept cylinder 41: it's formatted like the rest of the disk, and an unused tail in the disk's own format " +
+            "is left alone.",
+        ]);
+        expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(42);
+    });
+
+    it("keeps a tail of 7 or more cylinders", async () => {
+        const pathname = makeTrsdos23WithTail(Array.from({length: 7}, () => ({kind: "unformatted"} as const)));
+        const before = fs.readFileSync(pathname);
+
+        const lines = await runDiskOn(pathname, "trim");
+
+        expect(lines[1]).to.eql("Kept cylinders 40-46: the image has 7 cylinders past the disk's end, and a tail " +
+            "of 7 or more wants a person to look at it.");
+        expect(fs.readFileSync(pathname)).to.eql(before);
+    });
+
+    it("drops nothing when the DOS's records don't prove where the disk ends", async () => {
+        const pathname = path.join(dir, "ldos.dmk");
+        const formatted = format(TrsdosFormatDos.LSDOS_6_3, 40, 1);
+        // GAT byte 0xCC says 38 cylinders, but the media block says 40.
+        const trsdos = decodeFloppyFileSystem(formatted);
+        if (!(trsdos instanceof Trsdos)) {
+            throw new Error("Not a TRSDOS-family disk");
+        }
+        const gatPosition = trsdos.getGatPosition();
+        const gat = formatted.readSector(gatPosition);
+        if (gat === undefined) {
+            throw new Error("No GAT");
+        }
+        const data = gat.data.slice();
+        data[0xCC] = 3;
+        formatted.writeSector(gatPosition, new SectorData(data, gatPosition, gat.density));
+        const floppy = appendDmkTestTracks(formatted, [[{kind: "unformatted"}]], LSDOS_DD_TRACK_LAYOUT);
+        fs.writeFileSync(pathname, floppy.binary);
+
+        const lines = await runDiskOn(pathname, "trim");
+
+        expect(lines).to.eql(["Nothing to trim: the DOS's records don't prove where the disk ends (GAT byte 0xCC " +
+            "says 38 cylinders, but the media block says 40)."]);
+    });
+
+    describe("copy protection", () => {
+        it("keeps a cylinder that shows signs of copy protection", async () => {
+            const pathname = makeTrsdos23WithTail([{kind: "reRead", cylinder: 39}], markCylinder39);
+            const before = fs.readFileSync(pathname);
+
+            const lines = await runDiskOn(pathname, "trim");
+
+            expect(lines[1]).to.eql("Kept cylinder 40: it shows signs of copy protection (F9 data marks).");
+            expect(fs.readFileSync(pathname)).to.eql(before);
+        });
+
+        it("refuses to drop it when asked to, even with --force", async () => {
+            const pathname = makeTrsdos23WithTail([{kind: "reRead", cylinder: 39}], markCylinder39);
+            const before = fs.readFileSync(pathname);
+
+            const error = await runDiskExpectingError(pathname, "trim", "--cylinders", "40", "--force");
+
+            expect(error.message).to.match(/^Can't drop cylinder 40: the disk shows signs of copy protection there \(F9 data marks\), and trim never drops those, even with --force\./);
+            expect(fs.readFileSync(pathname)).to.eql(before);
+        });
+
+        it("drops the copy of a cylinder whose IDs name another, which isn't protection", async () => {
+            const pathname = makeTrsdos23WithReReads();
+
+            const lines = await runDiskOn(pathname, "trim", "--cylinders", "40");
+
+            expect(lines[0]).to.eql("Removed cylinders 40-41.");
+        });
     });
 
     describe("--cylinders", () => {
@@ -354,13 +497,14 @@ describe("disk trim", () => {
             expect(openDiskSession(pathname).floppy.getGeometry().cylinderCount).to.eql(35);
         });
 
-        it("by default drops only unreadable cylinders", async () => {
+        it("drops nothing by default", async () => {
             const pathname = makeBlankImage(40);
             const before = fs.readFileSync(pathname);
 
             const lines = await runDiskOn(pathname, "trim");
 
-            expect(lines[0]).to.match(/^Nothing to trim/);
+            expect(lines).to.eql(["Nothing to trim: the DOS's records don't prove where the disk ends " +
+                "(the disk has no file system that we recognize)."]);
             expect(fs.readFileSync(pathname)).to.eql(before);
         });
     });
@@ -378,13 +522,26 @@ describe("disk trim", () => {
             return pathname;
         }
 
+        it("keeps a JV1 image's tail, which is formatted like the disk", async () => {
+            const pathname = makeOversizedJv1();
+
+            const lines = await runDiskOn(pathname, "trim");
+
+            expect(lines).to.eql([
+                "Nothing to trim: no cylinder past the disk's 35 cylinders (from TRSDOS 2.x's fixed size) is " +
+                "provably outside the disk.",
+                "Kept cylinders 35-39: it's formatted like the rest of the disk, and an unused tail in the disk's own " +
+                "format is left alone.",
+            ]);
+        });
+
         it("trims a JV1 image", async () => {
             const pathname = makeOversizedJv1();
             const before = describeFiles(pathname);
 
-            const lines = await runDiskOn(pathname, "trim");
+            const lines = await runDiskOn(pathname, "trim", "--cylinders", "35");
 
-            expect(lines[0]).to.eql("Removed cylinders 35-39 (the file system uses 0-34).");
+            expect(lines[0]).to.eql("Removed cylinders 35-39.");
             const session = openDiskSession(pathname);
             expect(session.floppy.getDescription()).to.eql("Floppy disk (JV1)");
             expect(session.floppy.getGeometry().cylinderCount).to.eql(35);
@@ -410,9 +567,9 @@ describe("disk trim", () => {
             const before = describeFiles(pathname);
             expect(openDiskSession(pathname).floppy.getDescription()).to.eql("Floppy disk (JV3)");
 
-            const lines = await runDiskOn(pathname, "trim");
+            const lines = await runDiskOn(pathname, "trim", "--cylinders", "35");
 
-            expect(lines[0]).to.eql("Removed cylinders 35-39 (the file system uses 0-34).");
+            expect(lines[0]).to.eql("Removed cylinders 35-39.");
             const session = openDiskSession(pathname);
             expect(session.floppy.getDescription()).to.eql("Floppy disk (JV3)");
             expect(session.floppy.getGeometry().cylinderCount).to.eql(35);
@@ -435,18 +592,18 @@ describe("disk trim", () => {
 
     describe("saving", () => {
         it("writes nothing with --dry-run", async () => {
-            const pathname = makeOversizedTrsdos23();
+            const pathname = makeTrsdos23WithReReads();
             const before = fs.readFileSync(pathname);
 
             const lines = await runDiskOn(pathname, "--dry-run", "trim");
 
-            expect(lines[0]).to.eql("Removed cylinders 40-79 (the file system uses 0-39).");
+            expect(lines[0]).to.eql("Removed cylinders 40-41 (past the disk's 40 cylinders, from the GAT; re-read cylinder 39).");
             expect(lines[lines.length - 1]).to.eql("Not saved (--dry-run): " + pathname + " would have changed.");
             expect(fs.readFileSync(pathname)).to.eql(before);
         });
 
         it("saves to the --output file and leaves the image alone", async () => {
-            const pathname = makeOversizedTrsdos23();
+            const pathname = makeTrsdos23WithReReads();
             const before = fs.readFileSync(pathname);
             const outputPathname = path.join(dir, "small.dmk");
 
@@ -457,7 +614,7 @@ describe("disk trim", () => {
         });
 
         it("refuses a write-protected image unless forced", async () => {
-            const pathname = makeOversizedTrsdos23();
+            const pathname = makeTrsdos23WithReReads();
             const binary = fs.readFileSync(pathname);
             binary[0] = 0xFF;
             fs.writeFileSync(pathname, binary);
@@ -473,12 +630,12 @@ describe("disk trim", () => {
         });
 
         it("lets later commands in the same run use the trimmed disk", async () => {
-            const pathname = makeOversizedTrsdos23();
+            const pathname = makeTrsdos23WithReReads();
             const hostPathname = makeHostFile("data.bin", 3000);
 
             const lines = await runDiskOn(pathname, "trim", ":", "add", hostPathname, "--as", "DATA/BIN", ":", "free");
 
-            expect(lines[0]).to.eql("Removed cylinders 40-79 (the file system uses 0-39).");
+            expect(lines[0]).to.eql("Removed cylinders 40-41 (past the disk's 40 cylinders, from the GAT; re-read cylinder 39).");
             const session = openDiskSession(pathname);
             expect(session.floppy.getGeometry().cylinderCount).to.eql(40);
             expect(sessionInputFiles(session, false).map(f => f.filename)).to.eql(["DATA.BIN"]);

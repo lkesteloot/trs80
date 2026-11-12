@@ -554,13 +554,38 @@ signs (see "Copy protection signs" in `FLOPPY_FORMATS.md`). Left out, or left ro
       the GAT's cylinder count (0xCC on the LDOS line) would drop `CLOAD Magazine Issue 58`'s cylinder 35,
       but a wrong count would hide real signs, so it wants checking across the DOSes first.
 - [ ] **Re-read tails and 80-track reads** of 40-track disks are reported as IDs naming another cylinder
-      (possible). A sign of their own (the last tracks repeating an earlier cylinder; every even track
-      naming half its cylinder) would let trim (#47) tell them from protection.
+      (possible). `FloppyTail.ts` now recognizes re-reads past a proven disk end, and trim and repair
+      don't count the sign there, but the report itself still lists it. 80-track reads (every even track
+      naming half its cylinder) are still only "IDs naming another cylinder", so trim keeps them.
 - [ ] **FA marks inside files** (`newdos80-SSSD-80T.dmk`'s EDTASM/CMD) are flagged as possible. Whether
       some DOS or copier writes them there is unknown.
 - [ ] **Signs the readers can't see:** IDs with no data mark or inside other sectors' data that a reader
       drops (see "IDs the HFE reader can't see" above), and raw size codes on JV3 and IMD, which can't
       store them.
+
+## Tails and trim
+
+`trim` drops only what `analyzeFloppyTail()` proves is outside the disk (see "Tails past the disk's
+end" in `FLOPPY_FORMATS.md`), and `repair` refuses disks with protection signs. Left out, or left rough:
+
+- [ ] **More sources for the disk's size.** Only the LDOS line, DOSPLUS 3.x/4.0, NEWDOS/80 system disks,
+      and TRSDOS 2.x and 1.x have one. DOSPLUS IV writes the TRSDOS 6 GAT (see "GAT bytes 0xCB-0xCD") but
+      has no rule set, so it isn't covered; NEWDOS/80's derivatives (NEWDOS/86 and /90, G-DOS, H-DOS) and
+      its data disks, which have no PDRIVE table, aren't either; nor are TRSDOS 2.7, NEWDOS 2.1-3.0,
+      MultiDOS, DoubleDOS, VTOS, UltraDOS and the rest, or CP/M, whose size comes from our format table
+      rather than the disk. Each needs its own evidence first.
+- [ ] **TRSDOS 2.x's fixed 35 cylinders** come from its FORMAT; a disk ZAPped to 40 is recognized only
+      when its GAT covers the extra cylinders. One whose GAT doesn't keeps its tail as "formatted like
+      the disk", which is safe.
+- [ ] **Re-reads whose IDs name a later cylinder**, like cylinder 40 of `TRSDOS v6.02.01-AR ...
+      [Original][Set 5]` (IDs say 42, data matches no neighbor), aren't re-reads by rule 2 and stay. If
+      Ira's list is right that it's one, the rule needs a second form.
+- [ ] **Ira's other hands-off checks** for repair aren't done: filename tags containing "Protect", a
+      JV3 file named `.dmk`, and odd image header bytes.
+- [ ] **No override.** Neither trim nor repair can be made to touch a disk with protection signs, even with
+      `--force`. If that's ever needed, it wants an option of its own.
+- [ ] **`check` doesn't discount re-reads.** It reports IDs naming another cylinder on re-read tails as a
+      protection sign, though repair doesn't count them.
 
 ## Hard disks
 

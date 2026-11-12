@@ -79,14 +79,14 @@ describe("DiskTrim", () => {
             expect([result.oldSideCount, result.newSideCount]).to.eql([1, 1]);
         }
         const again = trimDisk(session, {cylinders: 40, dropSide: false, force: true});
-        expect(again).to.eql({trimmed: false, reason: TrimNothingReason.CYLINDERS, cylinderCount: 40});
+        expect(again).to.include({trimmed: false, reason: TrimNothingReason.CYLINDERS, cylinderCount: 40});
     });
 
     it("refuses 0 cylinders and says when there's nothing on a second side", () => {
         const session = makeSession();
         expect(() => trimDisk(session, {cylinders: 0, dropSide: false, force: false})).to.throw("Invalid --cylinders \"0\"");
         expect(trimDisk(session, {cylinders: undefined, dropSide: true, force: false}))
-            .to.eql({trimmed: false, reason: TrimNothingReason.ONE_SIDE, cylinderCount: 35});
+            .to.include({trimmed: false, reason: TrimNothingReason.ONE_SIDE, cylinderCount: 35});
     });
 });
 
