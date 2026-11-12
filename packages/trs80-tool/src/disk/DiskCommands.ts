@@ -154,9 +154,12 @@ const DIR_COMMAND: DiskCommand = {
         for (const line of dirListingLines(selected)) {
             out.line(line);
         }
+        const readOnlyReason = session.getReadOnlyReason();
         out.result({
             os: session.fileSystem?.nameAndVersion ?? "",
             files: selected.map(inFile => fileToJson(inFile, undefined)),
+            writable: readOnlyReason === undefined,
+            ...(readOnlyReason === undefined ? {} : {readOnlyReason}),
         });
     },
 };

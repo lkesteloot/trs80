@@ -296,6 +296,8 @@ describe("disk --json", () => {
         const label = commandAt<LabelResultJson>(run, 2, "label").result;
         expect(label.masterPassword).to.equal("PASSWORD");
         const dirResult = commandAt<DirResultJson>(run, 3, "dir").result;
+        expect(dirResult.writable).to.equal(true);
+        expect(dirResult.readOnlyReason).to.equal(undefined);
         const trsdos = dirResult.files[0].trsdos!;
         expect(trsdos.updatePassword).to.equal("");
         expect(trsdos.accessPassword).to.equal("");

@@ -136,6 +136,10 @@ export interface DirResultJson {
     os: string;
     /** The files listed, as "dir --json" gives them. */
     files: FileJson[];
+    /** Whether the disk can be written to, as "info" says. */
+    writable: boolean;
+    /** Why it can't be. Only when it's not writable. */
+    readOnlyReason?: string;
 }
 
 /**
