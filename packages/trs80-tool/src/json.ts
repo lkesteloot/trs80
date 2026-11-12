@@ -11,7 +11,7 @@ import {
 
 // This file defines the types of the JSON that the --json flags of the "dir", "extract", "sectors",
 // and "info" commands print, and the helpers that build them. (The "disk" command's --json has its own
-// types, in disk/DiskJson.ts, which reuse some of these.) The comments on the interfaces are the
+// types, in disk/DiskJson.ts, which reuse some of these, and "help --json" has its own in helpJson.ts.) The comments on the interfaces are the
 // documentation of the format. The format is meant to be stable: field names are explicit, raw
 // values and their interpretations are in separate fields, and nothing depends on the terminal.
 // Optional fields are left out of the JSON when they don't apply.
@@ -159,6 +159,16 @@ export function contentTypeOf(trs80File: Trs80File): ContentType {
  * The format of a floppy disk image file.
  */
 export type FloppyFormat = "JV1" | "JV3" | "DMK" | "HFE" | "IMD" | "SCP";
+
+/**
+ * Every floppy image format that we read. A record, so that a format missing from it is a compile error.
+ */
+const FLOPPY_FORMAT_SET: Record<FloppyFormat, true> = {JV1: true, JV3: true, DMK: true, HFE: true, IMD: true, SCP: true};
+
+/**
+ * Every floppy image format that we read, in a fixed order.
+ */
+export const FLOPPY_FORMATS = Object.keys(FLOPPY_FORMAT_SET) as FloppyFormat[];
 
 /**
  * The format of the image file that the floppy was decoded from.

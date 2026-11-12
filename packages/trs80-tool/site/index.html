@@ -214,7 +214,8 @@
             </table>
 
             <p>The <code>--json</code> flags of <code>dir</code>, <code>extract</code>, <code>sectors</code>,
-            <code>info</code>, and <code>disk</code> print JSON that a program can rely on. New fields may
+            <code>info</code>, <code>disk</code>, and <a href="#help"><code>help</code></a> print JSON that a program
+            can rely on. New fields may
             be added, but existing fields keep their names, types, and meanings. New values may appear in lists of
             string values (such as content types), so a program should accept values it doesn’t know. Fields meant
             for people, such as <code>messages</code>, <code>message</code>, <code>advice</code>,
@@ -788,6 +789,25 @@ C CRC error (ID or data).
             <div><pre><code>% trs80-tool help dir
 % trs80-tool help convert</code></pre>
             </div>
+            <p id="help-json">With <code>--json</code>, it prints what this version of the tool can do as one JSON
+            object, for a program that drives the tool, such as a front end that offers only what the user’s copy
+            supports. It has the <code>version</code> and the <code>gitHash</code> it was built from; the program’s
+            <code>options</code>; every command in <code>commands</code>, each with its <code>name</code>,
+            <code>aliases</code>, <code>arguments</code> (whether each is required or takes the rest), and
+            <code>options</code> (with the <code>value</code> each takes, its <code>choices</code> and
+            <code>default</code>, if any); and, in <code>disk</code>, the <a href="disk.html">disk</a> command’s own
+            options and commands in the same form. It also lists the values that are data rather than text:
+            <code>writableDoses</code> (the names <code>disk --dos</code> takes), <code>formatDoses</code> (the
+            names <code>disk create</code> and <code>disk format</code> take), <code>systemDisks</code> (what
+            <code>disk create --system</code> can make), <code>imageFormats</code> (which formats are
+            <code>read</code>, made by <code>convert</code>, changed by <code>disk</code>, and made by <code>disk
+            create</code>), and the <a href="#exit-status"><code>exitCodes</code></a>. Name a command to describe
+            only that one (<code>help --json disk</code>). The comments in
+            <a href="https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/src/helpJson.ts"><code>src/helpJson.ts</code></a>
+            are the full reference.</p>
+            <div><pre><code>% trs80-tool help --json
+% trs80-tool help --json disk</code></pre>
+            </div>
 
             <h2 id="limitations">Limitations</h2>
             <ul>
@@ -823,6 +843,9 @@ C CRC error (ID or data).
                             <code>disk partition</code> adds and deletes partitions.</li>
                         <li><a href="disk.html#json"><code>disk --json</code></a> describes the whole
                             run as JSON, for programs.</li>
+                        <li><a href="#help-json"><code>help --json</code></a> describes every
+                            command, option, and disk command, and the DOSes and image formats, for
+                            programs that drive the tool.</li>
                         <li>New <a href="#exit-status">exit statuses</a> say why a command failed:
                             not found, read-only, write-protected, damaged, or disk full.</li>
                         <li>In <code>dir --json</code>, TRSDOS files have their password hashes,

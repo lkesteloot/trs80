@@ -15,7 +15,7 @@ export {DiskError as ToolError, DiskErrorKind as ToolErrorKind} from "trs80-disk
 
 /**
  * The tool's exit statuses, which scripts can rely on. Anything that fails for a reason not listed exits with
- * {@link ToolExitCode.GENERAL}. The "--help" text and the site list them too (see EXIT_CODES_HELP).
+ * {@link ToolExitCode.GENERAL}. The "--help" text and the site list them too (see EXIT_CODES).
  */
 export enum ToolExitCode {
     SUCCESS = 0,
@@ -36,17 +36,24 @@ export enum ToolExitCode {
 }
 
 /**
+ * The exit statuses, with what each means, for the end of "--help" and for "help --json".
+ */
+export const EXIT_CODES: readonly {code: ToolExitCode, meaning: string}[] = [
+    {code: ToolExitCode.SUCCESS, meaning: "success"},
+    {code: ToolExitCode.GENERAL, meaning: "any error not listed below"},
+    {code: ToolExitCode.NOT_FOUND, meaning: "not found: a host file, the image, a partition, or a file on the disk"},
+    {code: ToolExitCode.READ_ONLY, meaning: "the disk can't be written (no DOS rules for it, its layout is in doubt, ...)"},
+    {code: ToolExitCode.WRITE_PROTECTED, meaning: "the image is write-protected (--force writes anyway)"},
+    {code: ToolExitCode.DAMAGED, meaning: "the file system is damaged (only \"repair\" writes to it)"},
+    {code: ToolExitCode.DISK_FULL, meaning: "no room on the disk (too few free granules or directory entries)"},
+    {code: ToolExitCode.PAGER_CLOSED, meaning: "the pager was closed"},
+];
+
+/**
  * The exit codes, for the end of "--help".
  */
-export const EXIT_CODES_HELP = `Exit status:
-  0    success
-  1    any error not listed below
-  3    not found: a host file, the image, a partition, or a file on the disk
-  4    the disk can't be written (no DOS rules for it, its layout is in doubt, ...)
-  5    the image is write-protected (--force writes anyway)
-  6    the file system is damaged (only "repair" writes to it)
-  7    no room on the disk (too few free granules or directory entries)
-  130  the pager was closed`;
+export const EXIT_CODES_HELP = "Exit status:\n" +
+    EXIT_CODES.map(({code, meaning}) => "  " + String(code).padEnd(5) + meaning).join("\n");
 
 /**
  * The exit status for a tool error, by its kind.

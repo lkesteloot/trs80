@@ -19,6 +19,8 @@ import {mcp} from "./mcp.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {disk} from "./disk/disk.js";
 import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS} from "./disk/DiskCommands.js";
+import {HELP_JSON_OPTION, makeHelpJson} from "./helpJson.js";
+import {printJson} from "./json.js";
 import {diskOverviewSections, renderHelpSections} from "./disk/DiskHelp.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
@@ -380,6 +382,35 @@ async function main(): Promise<void> {
         .description("interactive prompt for exploring the Z80")
         .action(() => {
             repl();
+        });
+    // Commander's own help command, but with --json. It's listed and behaves as Commander's does, so --json
+    // isn't a Commander option, which would add "[options]" to the listing; it's read from the raw words.
+    program.helpCommand(false);
+    program
+        .command("help [command]")
+        .description("display help for command")
+        .addHelpText("after", () => "\n" + wrapMessage("Options:\n  " + HELP_JSON_OPTION.name + "  " +
+            HELP_JSON_OPTION.description))
+        .helpOption(false)
+        .allowUnknownOption()
+        .allowExcessArguments()
+        .action(() => {
+            const words = wordsAfterSubcommand(process.argv.slice(2), "help", PROGRAM_OPTIONS_WITH_VALUES) ?? [];
+            const json = words.includes(HELP_JSON_OPTION.name);
+            const name = words.find(word => word !== HELP_JSON_OPTION.name);
+            if (json) {
+                printJson(makeHelpJson(program, name));
+            } else if (name === undefined) {
+                program.help();
+            } else {
+                // As Commander's help command does: the command's help, or the program's as an error.
+                const command = program.commands.find(c => c.name() === name || c.aliases().includes(name));
+                if (command === undefined) {
+                    program.help({error: true});
+                } else {
+                    command.help();
+                }
+            }
         });
 
     let error: unknown = undefined;
