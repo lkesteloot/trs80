@@ -62,6 +62,8 @@ export * from "./DmkBuilder.js";
 export * from "./FloppyTrim.js";
 export * from "./CopyProtection.js";
 export * from "./FloppyTail.js";
+export * from "./ImagingArtifacts.js";
 export * from "./DmkTestTail.js";
+export * from "./DmkTestArtifacts.js";
 export * from "./FloppyConvert.js";
 export * from "./FloppyCompare.js";
