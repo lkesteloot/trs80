@@ -2,7 +2,8 @@
  * Makes DMK images with imaging artifacts, for tests: the ones that ImagingArtifacts.ts recognizes (reads
  * that began late, reads of one revolution, converters' CRC markers), and two that the readers already
  * ignore (garbled IDs decoded from past the index, and sync bytes stored as something other than 0xA1).
- * Each function returns a changed copy and leaves the image it's given alone.
+ * It can also drop a sector's ID, as an imager that missed it does. Each function returns a changed copy and
+ * leaves the image it's given alone.
  */
 
 import {decodeDmkFloppyDisk, DmkFloppyDisk, TRACK_HEADER_SIZE} from "./DmkFloppyDisk.js";
@@ -195,5 +196,22 @@ export function setDmkSyncByte(floppy: DmkFloppyDisk, position: SectorPosition, 
     const sector = findSector(floppy, position);
     const binary = new Uint8Array(floppy.binary);
     binary[sector.track.offset + sector.offset - 3] = value;
+    return redecode(binary);
+}
+
+/**
+ * Drop a sector's ID from its track's table of pointers, so that the image no longer has the sector, as when
+ * an imager missed it. The track's bytes stay as they were.
+ *
+ * @param floppy the image.
+ * @param position the sector's physical position.
+ */
+export function removeDmkId(floppy: DmkFloppyDisk, position: SectorPosition): DmkFloppyDisk {
+    const sector = findSector(floppy, position);
+    const binary = new Uint8Array(floppy.binary);
+    const trackOffset = sector.track.offset;
+    const pointers = readPointers(binary, trackOffset)
+        .filter(pointer => (pointer & POINTER_OFFSET_MASK) !== sector.offset);
+    writePointers(binary, trackOffset, pointers);
     return redecode(binary);
 }

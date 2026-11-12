@@ -474,7 +474,9 @@ partition --delete [N|NAME] [--force]</code></pre>
 
             <h3 id="free"><code>free</code></h3>
             <p>Show the space left for new files on a TRSDOS-family disk: granules that
-            the GAT says are free and that no file uses.</p>
+            the GAT says are free and that no file uses. That includes any free granules that the
+            image doesn’t fully hold, which new files skip; <a href="#check"><code>check</code></a>
+            notes them.</p>
 
             <h3 id="map"><code>map</code></h3>
             <div><pre><code>map [PATTERN...]</code></pre>
@@ -519,7 +521,12 @@ partition --delete [N|NAME] [--force]</code></pre>
             files that share granules, files in granules the GAT says are free,
             extents past the end of the disk, HIT bytes that don’t match names,
             and damaged files. It notes programs whose directory size ends before the
-            end of the program, which the DOS loads fine but which copy broken. On a floppy it lists the
+            end of the program, which the DOS loads fine but which copy broken, and free granules that
+            the image doesn’t fully hold (a sector is missing, often lost by the imager, or the wrong
+            size): new files skip them, since writing there would fail, so a little less can be
+            written than <a href="#free"><code>free</code></a> says. The GAT keeps them free, since the
+            real disk may well have those sectors, and they don’t change whether the disk can be
+            written. On a floppy it lists the
             signs of copy protection, if there are any, as
             <a href="index.html#sectors"><code>sectors --protection</code></a> does (with
             <code>--json</code>, always, as <code>protection</code>); they don’t change whether the disk

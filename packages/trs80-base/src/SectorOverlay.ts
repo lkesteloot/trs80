@@ -92,13 +92,9 @@ export class SectorOverlay implements DiskVolume {
         }
 
         // Use the existing change as the template if there is one, since it has the base's mark.
-        const existing = this.readSector(sectorPosition);
-        if (existing === undefined || !this.base.hasSectorData(sectorPosition)) {
-            throw new Error(`Can't write ${description}: no such sector on the disk`);
-        }
-        if (data.length !== existing.data.length) {
-            throw new Error(`Can't write ${description}: the data is ${data.length} bytes ` +
-                `but the sector holds ${existing.data.length}`);
+        const existing = findWritableSector(this, sectorPosition, data.length);
+        if (typeof existing === "string") {
+            throw new Error(`Can't write ${description}: ${existing}`);
         }
 
         const changed = cloneSectorData(existing);
@@ -155,6 +151,30 @@ export class SectorOverlay implements DiskVolume {
     public discard(): void {
         this.changes.clear();
     }
+}
+
+/**
+ * The sector that a write of this many bytes would replace, or why the write would be refused: the sector
+ * isn't on the disk (no ID, or no data field), or it's another size. This is the test that
+ * {@link SectorOverlay.writeSector} makes, apart from write protection, which is the disk's and not the
+ * sector's; the allocator and the check use it to tell which free granules can really be written.
+ *
+ * @param volume the disk, read as a write would see it (through an overlay, if there's one).
+ * @param sectorPosition the sector.
+ * @param length the number of bytes to write.
+ * @return the sector as it reads now, or the reason as a clause, such as "no such sector on the disk".
+ */
+export function findWritableSector(volume: DiskVolume, sectorPosition: SectorPosition,
+                                   length: number): SectorData | string {
+
+    const existing = volume.hasSectorData(sectorPosition) ? volume.readSector(sectorPosition) : undefined;
+    if (existing === undefined) {
+        return "no such sector on the disk";
+    }
+    if (length !== existing.data.length) {
+        return `the data is ${length} bytes but the sector holds ${existing.data.length}`;
+    }
+    return existing;
 }
 
 /**

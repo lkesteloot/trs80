@@ -8,7 +8,9 @@ import {
     TRSDOS_BLANK_PASSWORD_HASH, type Trsdos, type Trsdos23TimeStamp, trsdos23TimeStampToWord,
     type TrsdosDirEntry, type TrsdosDirectory, type TrsdosDirSlot, TrsdosProtectionLevel, TrsdosVersion,
 } from "./Trsdos.js";
-import {allocateGranules, type AllocatedExtent, freeGranuleFlags, maxGranulesPerExtent} from "./TrsdosAllocator.js";
+import {
+    allocateGranules, type AllocatedExtent, findUnwritableGranuleSectors, freeGranuleFlags, maxGranulesPerExtent,
+} from "./TrsdosAllocator.js";
 import {
     analyzeProgramPastEof, checkHitByte, checkTrsdos, findPrimariesOfExtendedEntries, makeOrphanFinding, type TrsdosFinding, TrsdosFindingKind,
     TrsdosFindingSeverity, trsdosFindingKindSeverity,
@@ -686,7 +688,8 @@ export class TrsdosWriter {
     /**
      * Whether each granule is free to be given to a new file, by linear index (lump*granulesPerLump +
      * granule), as of the changes so far: the granules that deleting files freed are free, and those
-     * that adding files took are not.
+     * that adding files took are not. A granule that the image doesn't fully hold is never free (see
+     * {@link canAllocate}).
      */
     private readonly freeGranules: boolean[];
 
@@ -758,7 +761,7 @@ export class TrsdosWriter {
         this.granuleMap = granuleMap;
         this.originalGatBytes = trsdos.disk.readSector(trsdos.getGatPosition())?.data ?? new Uint8Array(0);
         this.dosLumpCount = ruleSet === TrsdosRuleSet.NEWDOS_80 ? newdos80DosLumpCount(trsdos) : trsdos.lumpCount;
-        this.freeGranules = freeGranuleFlags(granuleMap).map((free, index) => free && !this.isNeverAllocated(index));
+        this.freeGranules = freeGranuleFlags(granuleMap).map((free, index) => free && this.canAllocate(index));
 
         this.gat = this.copySector(trsdos.getGatPosition(), "GAT");
         this.hit = this.copySector(trsdos.getHitPosition(), "HIT");
@@ -2234,6 +2237,7 @@ export class TrsdosWriter {
             case TrsdosFindingKind.HIT_MISMATCH:
             case TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY:
             case TrsdosFindingKind.USED_BUT_UNCLAIMED:
+            case TrsdosFindingKind.FREE_BUT_MISSING:
             case TrsdosFindingKind.BOOT_SYS_OVERLAP:
                 return null;
             default:
@@ -2704,7 +2708,7 @@ export class TrsdosWriter {
 
         for (const index of this.releasableGranules(dirEntry)) {
             // Free for the next file to be added, as well as in the GAT.
-            this.freeGranules[index] = !this.isNeverAllocated(index);
+            this.freeGranules[index] = this.canAllocate(index);
 
             const lump = Math.floor(index/granulesPerLump);
             const bit = 1 << (index % granulesPerLump);
@@ -2714,6 +2718,20 @@ export class TrsdosWriter {
                 this.gat.dirty = true;
             }
         }
+    }
+
+    /**
+     * Whether a granule that the GAT and the files leave free may be given to a new file: the DOS would
+     * allocate it ({@link isNeverAllocated}), and the image holds all its sectors, so that writing them
+     * won't fail at the flush ({@link findUnwritableGranuleSectors}). A granule that the image lacks
+     * sectors of stays free in the GAT, since the real disk may well have them; "check" notes it.
+     *
+     * @param index the granule's linear index (lump*granulesPerLump + granule).
+     */
+    private canAllocate(index: number): boolean {
+        const granulesPerLump = this.trsdos.granulesPerLump;
+        return !this.isNeverAllocated(index) && findUnwritableGranuleSectors(this.trsdos,
+            Math.floor(index/granulesPerLump), index % granulesPerLump).length === 0;
     }
 
     /**

@@ -854,6 +854,23 @@ The three rules fire on 16 of the suite's 1,749 floppies (4 late starts on 3, on
 explain in whole or in part. Across the suite it calls 705 floppies writable and finds damage on 181,
 before and after the labels, with no finding changed on any disk.
 
+### Free space the image lacks
+
+A lost sector in free space damages nothing, but a write there fails: the writer writes every sector
+of a file's granules, and `SectorOverlay.writeSector()` refuses a sector with no ID, no data field, or
+the wrong size (a CRC error doesn't matter, since the write replaces it). So the allocator skips any
+free granule with such a sector (`findUnwritableGranuleSectors()`, the same test), and `check` notes
+them (`free-but-missing`, a note, so writability doesn't change). The GAT keeps them free: the disk
+itself may well have the sector, as with the late starts above, and the DOS would never use a granule
+we marked used. The note counts only granules inside the disk's proven size (see "Tails past the
+disk's end"), since TRSDOS 1.3's GAT is zero past its 40 cylinders, so an unformatted tail looks free.
+
+Measured on the suite (November 2026): 34 disks have some, 11 of them writable, and writability is
+unchanged on all 1,760 (823 writable before and after). The Genie disk in the table above lacks two
+(its late-start sectors 14/1/11 and 59/0/0); a 40 KB add there used to fail at save time. The largest
+writable one is `Macro-Mon (1981)(Jake Commander)[M3]`, a DOSPLUS 3.3 disk with 33 of its 68 free
+granules on garbled cylinders; a 35-granule file now fits, and a 36-granule one is refused up front.
+
 ## TRSDOS 2.3B
 
 Measured on `trsdos-2.3B-sssd.dmk`, which boots on an emulator and calls itself
