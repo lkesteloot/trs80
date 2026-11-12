@@ -2,7 +2,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
-    Density, type FloppyDisk, type KnownFloppyFileSystem, SectorData, SectorPosition, Trsdos, TrsdosVersion,
+    Density, DosFamily, type DosName, dosNameToString, type FloppyDisk, type KnownFloppyFileSystem, makeDosName,
+    SectorData, SectorPosition, Trsdos, TrsdosVersion, UNKNOWN_DOS_NAME,
 } from "trs80-base";
 import {
     BasicLevel, CassettePlayer, Config, Keyboard, ModelType, model1ScreenCodeToModel3, SilentSoundPlayer, Trs80, Trs80Screen,
@@ -165,37 +166,40 @@ function killTest1(machine: TestMachine): void {
 
 describe("chooseBootModel", () => {
     /**
-     * Make a fake TRSDOS-family file system with this name and layout, and a fake floppy with this density, for
+     * Make a fake TRSDOS-family file system with this DOS and layout, and a fake floppy with this density, for
      * the DOSes that we have no disk image of.
      */
-    function choose(nameAndVersion: string, version: TrsdosVersion, density: Density) {
-        const fileSystem = Object.assign(Object.create(Trsdos.prototype), {nameAndVersion, version}) as Trsdos;
+    function choose(dosName: DosName, version: TrsdosVersion, density: Density) {
+        const fileSystem = Object.assign(Object.create(Trsdos.prototype), {dosName, version}) as Trsdos;
         const floppy = { getGeometry: () => ({ modalDataDensity: density }) } as unknown as FloppyDisk;
         return chooseBootModel(fileSystem, floppy);
     }
 
     it("picks the Model I for TRSDOS 2.x on any density", () => {
-        expect(choose("TRSDOS 2.3", TrsdosVersion.V2_3, Density.SINGLE).model).to.equal(1);
-        expect(choose("TRSDOS 2.x", TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(1);
-        expect(choose("TRSDOS 2.7DD", TrsdosVersion.V2_7, Density.DOUBLE).model).to.equal(1);
+        expect(choose(makeDosName(DosFamily.TRSDOS, "2.3"), TrsdosVersion.V2_3, Density.SINGLE).model).to.equal(1);
+        expect(choose(makeDosName(DosFamily.TRSDOS, "2.x"), TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(1);
+        expect(choose(makeDosName(DosFamily.TRSDOS, "2.7DD"), TrsdosVersion.V2_7, Density.DOUBLE).model).to.equal(1);
     });
 
     it("picks the Model III for TRSDOS 1.3", () => {
-        const choice = choose("TRSDOS 1.3", TrsdosVersion.V1_3, Density.DOUBLE);
+        const choice = choose(makeDosName(DosFamily.TRSDOS, "1.3"), TrsdosVersion.V1_3, Density.DOUBLE);
         expect(choice.model).to.equal(3);
         expect(choice.reason).to.contain("TRSDOS 1.3");
     });
 
     it("picks the Model 4 for TRSDOS 6, LS-DOS 6 and DOSPLUS IV", () => {
-        expect(choose("TRSDOS 6.2", TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(4);
-        expect(choose("LS-DOS 6.3", TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(4);
-        expect(choose("DOSPLUS IV", TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(4);
+        expect(choose(makeDosName(DosFamily.TRSDOS, "6.2"), TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(4);
+        expect(choose(makeDosName(DosFamily.LS_DOS, "6.3"), TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(4);
+        expect(choose(makeDosName(DosFamily.DOSPLUS_IV), TrsdosVersion.V2_3, Density.DOUBLE).model).to.equal(4);
     });
 
     it("picks by density for the other DOSes", () => {
-        for (const name of ["LDOS 5.3", "DOSPLUS 3.4", "NEWDOS/80 v2.0", "VTOS 3.0", "Unknown DOS"]) {
-            expect(choose(name, TrsdosVersion.V2_3, Density.SINGLE).model, name + " single").to.equal(1);
-            expect(choose(name, TrsdosVersion.V2_3, Density.DOUBLE).model, name + " double").to.equal(3);
+        const names = [makeDosName(DosFamily.LDOS, "5.3"), makeDosName(DosFamily.DOSPLUS, "3.4"),
+            makeDosName(DosFamily.NEWDOS_80, "2.0"), makeDosName(DosFamily.VTOS, "3.0"), UNKNOWN_DOS_NAME];
+        for (const name of names) {
+            const text = dosNameToString(name);
+            expect(choose(name, TrsdosVersion.V2_3, Density.SINGLE).model, text + " single").to.equal(1);
+            expect(choose(name, TrsdosVersion.V2_3, Density.DOUBLE).model, text + " double").to.equal(3);
         }
     });
 

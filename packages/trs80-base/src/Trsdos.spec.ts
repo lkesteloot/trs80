@@ -1,12 +1,13 @@
 import {describe, expect, it} from "vitest";
 import {
     decodeDirEntry, decodeTrsdos, encodeTrsdos13DirEntry, encodeTrsdos23DirEntry, encodeTrsdos23ExtendedDirEntry,
-    hashTrsdosPassword, isUnknownDosName, parseTrsdosProtectionLevel, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
+    hashTrsdosPassword, parseTrsdosProtectionLevel, TRSDOS_13_BLANK_PASSWORD_HASH, TRSDOS_BLANK_PASSWORD_HASH, TRSDOS_DEFAULT_PASSWORD_HASH, TrsdosDirEntry,
     Trsdos, TrsdosProtectionLevel, TrsdosProtectionNames, trsdosProtectionLevels, trsdosProtectionLevelToString,
     trsdosProtectionNamesFor, TrsdosVersion, type Trsdos13DirEntryFields, type Trsdos23DirEntryFields,
 } from "./Trsdos.js";
 import {hashTrsdos13Password} from "./TrsdosFormat.js";
 import {makeTrsdos23TestDisk} from "./TrsdosTestDisk.js";
+import {DosFamily, isUnknownDosName, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
 
 /**
  * Make a directory entry with the given date fields, and placeholders for everything else.
@@ -294,21 +295,21 @@ describe("Super Utility+ data disks", () => {
     });
 
     it("counts as naming no DOS", () => {
-        expect(isUnknownDosName("Unknown DOS")).to.equal(true);
-        expect(isUnknownDosName("Super Utility+ 3.1 data disk")).to.equal(true);
-        expect(isUnknownDosName("DOSPLUS 3.4")).to.equal(false);
+        expect(isUnknownDosName(UNKNOWN_DOS_NAME)).to.equal(true);
+        expect(isUnknownDosName(makeDosName(DosFamily.SUPER_UTILITY_PLUS, "3.1"))).to.equal(true);
+        expect(isUnknownDosName(makeDosName(DosFamily.DOSPLUS, "3.4"))).to.equal(false);
     });
 });
 
 describe("protection level names", () => {
     it("uses the LDOS names on the 2.3 layout, and TRSDOS 6's names for TRSDOS 6 and LS-DOS 6", () => {
-        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "LDOS 5.1.4")).to.eql(TrsdosProtectionNames.LDOS);
-        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "TRSDOS 2.x")).to.eql(TrsdosProtectionNames.LDOS);
-        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "Unknown DOS")).to.eql(TrsdosProtectionNames.LDOS);
-        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "TRSDOS 6.2")).to.eql(TrsdosProtectionNames.TRSDOS_6);
-        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, "LS-DOS 6.3")).to.eql(TrsdosProtectionNames.TRSDOS_6);
-        expect(trsdosProtectionNamesFor(TrsdosVersion.V1_3, "TRSDOS 1.3")).to.eql(TrsdosProtectionNames.TRSDOS_6);
-        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_7, "TRSDOS 2.7")).to.eql(TrsdosProtectionNames.TRSDOS_6);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, makeDosName(DosFamily.LDOS, "5.1.4"))).to.eql(TrsdosProtectionNames.LDOS);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, makeDosName(DosFamily.TRSDOS, "2.x"))).to.eql(TrsdosProtectionNames.LDOS);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, UNKNOWN_DOS_NAME)).to.eql(TrsdosProtectionNames.LDOS);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, makeDosName(DosFamily.TRSDOS, "6.2"))).to.eql(TrsdosProtectionNames.TRSDOS_6);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_3, makeDosName(DosFamily.LS_DOS, "6.3"))).to.eql(TrsdosProtectionNames.TRSDOS_6);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V1_3, makeDosName(DosFamily.TRSDOS, "1.3"))).to.eql(TrsdosProtectionNames.TRSDOS_6);
+        expect(trsdosProtectionNamesFor(TrsdosVersion.V2_7, makeDosName(DosFamily.TRSDOS, "2.7"))).to.eql(TrsdosProtectionNames.TRSDOS_6);
     });
 
     it("names levels 1, 3 and 4 differently", () => {
@@ -536,7 +537,7 @@ describe("Trsdos DOS name from the boot sector", () => {
     const ESOTERIC_BOOT = [0x00, 0xFE, 0x11, 0xCD, 0x0B, 0x00, 0x11, 0x10, 0x00, 0x19, 0x7E, 0x23, 0xCD, 0x33, 0x00, 0xB7, 0x20, 0xF8];
 
     it("names MultiDOS/Esoteric from its boot sector", () => {
-        expect(nameOf(ESOTERIC_BOOT, 0x21)).to.eql("MultiDOS/Esoteric");
+        expect(nameOf(ESOTERIC_BOOT, 0x21)).to.eql("MultiDOS or Esoteric");
     });
 
     it("tells NEWDOS 3.0 from LDOS 5.3 by the boot sector", () => {
@@ -566,18 +567,18 @@ describe("Trsdos DOS name from the boot sector", () => {
         0xCD, 0xA5, 0x42];
 
     it("tells TRSDOS 2.2 and 2.3 data disks by boot byte 0x7D", () => {
-        expect(nameOf(TRSDOS_2_BOOT, 0x21, 0, bytesAt(0x7D, [0xB6]))).to.eql("TRSDOS 2.2-2.3");
+        expect(nameOf(TRSDOS_2_BOOT, 0x21, 0, bytesAt(0x7D, [0xB6]))).to.eql("TRSDOS 2.2 or 2.3");
         expect(nameOf(TRSDOS_2_BOOT, 0x21, 0, bytesAt(0x7D, [0xE1]))).to.eql("TRSDOS 2.x");
     });
 
     it("gives LDOS 5.1 data disks a third digit from BOOT/SYS's passwords", () => {
         expect(nameOf(LDOS_BOOT, 0x51, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0x20, 0xC2, 0x52, 0xC3])))
-            .to.eql("LDOS 5.1.0-5.1.1");
+            .to.eql("LDOS 5.1.0 or 5.1.1");
         const ldos513 = bytesAt(BOOT_SYS_OFFSET + 0x10, [0xAE, 0x01, 0xF5, 0x9C]);
         expect(nameOf(LDOS_BOOT, 0x51, 0, binary => {
             ldos513(binary);
             binary[BOOT_SYS_OFFSET + 0x1A] = 0x00;
-        })).to.eql("LDOS 5.1.2-5.1.3");
+        })).to.eql("LDOS 5.1.2 or 5.1.3");
         expect(nameOf(LDOS_BOOT, 0x51, 0, binary => {
             ldos513(binary);
             binary[BOOT_SYS_OFFSET + 0x1A] = 0xFF;
@@ -600,7 +601,7 @@ describe("Trsdos DOS name from the boot sector", () => {
 
     it("names TRSDOS 6.0 and 6.1 data disks by their stubs", () => {
         expect(nameOf(TRSDOS_6_0_STUB, 0x60, 0x60)).to.eql("TRSDOS 6.0.0");
-        expect(nameOf(TRSDOS_6_1_STUB, 0x61, 0x61)).to.eql("TRSDOS 6.1.1-6.1.2");
+        expect(nameOf(TRSDOS_6_1_STUB, 0x61, 0x61)).to.eql("TRSDOS 6.1.1 or 6.1.2");
     });
 
     it("names DOSPLUS IV from BOOT/SYS's password rather than TRSDOS 6.0", () => {
@@ -617,8 +618,8 @@ describe("Trsdos DOS name from the boot sector", () => {
         expect(nameOf(LDOS_BOOT.slice(0, 3), 0x63, 0, media("631", [0xF6, 0x37]))).to.eql("LS-DOS 6.3");
     });
 
-    it("gives NEWDOS/80 2.x data disks a range, and tells 3.0 by its boot sector", () => {
-        expect(nameOf(NEWDOS_80_2_BOOT, 0x82)).to.eql("NEWDOS/80 v2.0-2.74");
+    it("gives NEWDOS/80 2.x data disks a list of releases, and tells 3.0 by its boot sector", () => {
+        expect(nameOf(NEWDOS_80_2_BOOT, 0x82)).to.eql("NEWDOS/80 v2.0, v2.5 or v2.74");
         expect(nameOf(NEWDOS_80_3_BOOT, 0x82)).to.eql("NEWDOS/80 v3.0");
     });
 
@@ -651,6 +652,6 @@ describe("Trsdos DOS name from the boot sector", () => {
 
     it("names DOSPLUS from BOOT/SYS's passwords when the GAT doesn't", () => {
         expect(nameOf(TRSDOS_2_BOOT, 0x50, 0, bytesAt(BOOT_SYS_OFFSET + 0x10, [0x27, 0x0B, 0x82, 0x2A])))
-            .to.eql("DOSPLUS 3.2.1-3.4");
+            .to.eql("DOSPLUS 3.2.1, 3.3 or 3.4");
     });
 });

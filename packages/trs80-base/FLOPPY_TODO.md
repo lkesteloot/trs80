@@ -183,7 +183,7 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       names, but files written to the host could get an extension from their
       decoded contents (`getTrs80FileExtension()` already does that for cassettes),
       for every file system at once.
-- [ ] **What `nameAndVersion` still can't tell.** It reads system-file banners,
+- [ ] **What `dosName` still can't tell.** It reads system-file banners,
       then boot-track strings, then 0xCB with the boot sector, the system sector
       and FORMAT's BOOT/SYS and DIR/SYS passwords, and says "Unknown DOS"
       otherwise (see "Identifying the DOS" and "Boot sector code by DOS" in
@@ -200,7 +200,7 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       Super Utility+'s data disks are named by its version, not a DOS (see
       "Super Utility+" in `FLOPPY_FORMATS.md`); and Kim Watt's 0x50 and the
       Planet Makruk disks are "Unknown DOS". NEWDOS/80 v2's banner gives "2.X"
-      and "2/4" on some disks, and the second falls back to "v2.0-2.74"; Ira
+      and "2/4" on some disks, and the second falls back to "v2.0, v2.5 or v2.74"; Ira
       suggests matching their system files' CRC-32s against the File Manifests
       of each NEWDOS/80 release group (2.0 and 2.5 differ in SYS0, SYS3, SYS16,
       SYS17, SYS21 and the utilities).
@@ -216,7 +216,7 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       formatter's template is TRSDOS 2.3's system boot sector, with 0xE1 at 0x7D,
       but 2.3's FORMAT writes 0xB6 there (Ira, and `issue-1/m1-trsdos-blank.dmk`),
       so our disks aren't what 2.3's FORMAT makes, and decode as "TRSDOS 2.x"
-      rather than "TRSDOS 2.2-2.3". Taking the template from a 2.3 FORMAT's disk
+      rather than "TRSDOS 2.2 or 2.3". Taking the template from a 2.3 FORMAT's disk
       would fix both, if its boot code also works on disks we write.
 - [ ] **A "MULTIDOS" fill in a system file still makes a MultiDOS banner.** The
       boot track's runs of "MULTIDOS" are ignored, but the banner fallback
@@ -291,9 +291,10 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **Rename `TrsdosVersion`.** It isn't a version: it picks between the two
       on-disk layouts, the TRSDOS 2.3 family (TRSDOS 2.x, LDOS, TRSDOS 6,
       LS-DOS, DOSPLUS, NEWDOS/80, MultiDOS, VTOS) and Model III TRSDOS 1.x.
-      Something like `DosFamily` with members named after the layouts rather
-      than `V2_3` and `V1_3`, `Trsdos.version` to match (it's next to
-      `nameAndVersion`, which really is a version), and
+      Something like `TrsdosLayout` (not `DosFamily`, which is now the DOS's
+      family) with members named after the layouts rather than `V2_3` and
+      `V1_3`, `Trsdos.version` to match (it's next to `dosName`, which really
+      has versions), and
       `trsdosVersionToString()`, which still returns "Model I" and "Model III".
       Those were machine names in name only: the report's `os.model` field was
       dropped for it (report version 3). The `Trsdos` class itself covers
@@ -351,7 +352,7 @@ more.
   recover 18 of the 156 missing sectors. Decide whether the reader should load
   whole tracks past the header's count.
 - `lanhawk/Archive2a/ARCH067.DSK`, `ARCH146.DSK`, `ARCH158.DSK`: 0xCB is 0x50, but
-  BOOT/SYS has the DOSPLUS 3.2.1-3.4 FORMAT's passwords, so they're "DOSPLUS 3.2.1-3.4"
+  BOOT/SYS has the DOSPLUS 3.2.1-3.4 FORMAT's passwords, so they're "DOSPLUS 3.2.1, 3.3 or 3.4"
   (November 2026), which we don't write to, since something else wrote the GAT. Their boot sector is byte for byte the `F3 FE` one of eight DOSPLUS 3.3
   disks (including `ARCH121` and `ARCH151` of the same set), and nothing else of ours, so
   they're probably 3.3. Ira's fill test would settle it (3.3 fills never-written sectors
@@ -426,7 +427,7 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
       - **OASIS** (`OASIS55A.IMD`) and **RM/COS** (`RMCOS243.IMD`), one disk each.
       - DOSPLUS II data disks are "Unknown DOS": GAT byte 0xCB is 0x10, which
         MultiDOS 1.x also writes, and they have no banner. A boot sector hash
-        table (see "What `nameAndVersion` still can't tell") would name them.
+        table (see "What `dosName` still can't tell") would name them.
       - TRSDOS-II's flag bit 0x08 (only on SYSRES/SYS, SYSTEM/SYS and BOOT/SYS),
         its second flag byte, privilege bits 3-4, and the allocation bitmap, which
         isn't read. Model II TRSDOS's bytes 1-2 and 61-63.

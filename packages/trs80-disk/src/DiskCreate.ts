@@ -1,7 +1,7 @@
 import {
     Density, densityToString, type FloppyDisk, formatLdosPartition, formatTrsdosDataDisk, hardDiskDosProblem,
     HARD_DISK_SECTOR_SIZE, HARD_DISK_SECTORS_PER_TRACK, makeBlankHdvHardDisk, PARTITION_MAX_CYLINDERS,
-    PARTITION_MIN_CYLINDERS, TrsdosFormatDos, type TrsdosFormatOptions, TrsdosRuleSet,
+    PARTITION_MIN_CYLINDERS, DosFamily, Trsdos, TrsdosFormatDos, type TrsdosFormatOptions, TrsdosRuleSet,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError} from "./DiskError.js";
@@ -462,9 +462,13 @@ export function getSessionFormatDos(session: DiskSession): TrsdosFormatDos | und
             return TrsdosFormatDos.TRSDOS_1_3;
         case TrsdosRuleSet.LDOS_5:
             return TrsdosFormatDos.LDOS_5_3;
-        case TrsdosRuleSet.TRSDOS_6:
-            // TRSDOS 6 and LS-DOS 6 share their rules, so go by the name.
-            return session.fileSystem?.nameAndVersion.startsWith("LS-DOS") ? TrsdosFormatDos.LSDOS_6_3 : TrsdosFormatDos.TRSDOS_6_2;
+        case TrsdosRuleSet.TRSDOS_6: {
+            // TRSDOS 6 and LS-DOS 6 share their rules, so go by the name. Anything but LS-DOS gets
+            // TRSDOS 6.2, the one the rules are named for.
+            const fileSystem = session.fileSystem;
+            const isLsdos = fileSystem instanceof Trsdos && fileSystem.dosName.family === DosFamily.LS_DOS;
+            return isLsdos ? TrsdosFormatDos.LSDOS_6_3 : TrsdosFormatDos.TRSDOS_6_2;
+        }
         case TrsdosRuleSet.DOSPLUS:
         case TrsdosRuleSet.TRSDOS_2_7:
             return undefined;

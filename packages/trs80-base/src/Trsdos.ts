@@ -15,6 +15,7 @@ import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
 import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {bytesToText, type DosBanner, findDosBanner} from "./DiskUtils.js";
+import {DosFamily, type DosName, dosNameToString, isTrsdos6Line, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
 import type {AllocatedExtent} from "./TrsdosAllocator.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
@@ -28,22 +29,6 @@ const NO_PASSWORD = 0xEF5C;
 
 // Password value for "PASSWORD".
 const PASSWORD = 0xD38F;
-
-// Name of a disk whose DOS we can't tell.
-export const UNKNOWN_DOS = "Unknown DOS";
-
-// Names of data disks whose DOS we can't tell, but whose formatter we can, such as "Super
-// Utility+ 3.1 data disk".
-const FORMATTER_DATA_DISK_NAME = /^Super Utility\+ \d\.\d data disk$/;
-
-/**
- * Whether a DOS name, as {@link Trsdos.nameAndVersion} gives it, names no DOS: it's
- * {@link UNKNOWN_DOS}, or it names only the utility that formatted the disk. Such a disk can be
- * written only under a DOS that the user names.
- */
-export function isUnknownDosName(name: string): boolean {
-    return name === UNKNOWN_DOS || FORMATTER_DATA_DISK_NAME.test(name);
-}
 
 /**
  * The boot sector that one major version of Kim Watt's Super Utility+ writes on a disk that it
@@ -84,7 +69,7 @@ const BOOT_FILENAMES = new Set(["BOOT/SYS", "DOS/SYS", "RESIDENT/SYS"]);
 /**
  * A banner in a system disk's system files, and which of their texts to search for it.
  */
-interface SystemFileBanner extends DosBanner {
+interface SystemFileBanner extends DosBanner<DosName> {
     // Only search system files with names that match this.
     readonly file?: RegExp;
     // Search the whole file, not just the bytes its load records load, and the sectors where
@@ -93,7 +78,7 @@ interface SystemFileBanner extends DosBanner {
 }
 
 /**
- * Banners that system disks' system files carry, each turned into a name and version. See
+ * Banners that system disks' system files carry, each turned into a DOS name. See
  * "Identifying the DOS" in FLOPPY_FORMATS.md.
  */
 const SYSTEM_BANNERS: readonly SystemFileBanner[] = [
@@ -103,57 +88,57 @@ const SYSTEM_BANNERS: readonly SystemFileBanner[] = [
     // ESORES/SYS. Hard disk editions add "HD" (in XSYSRES/SYS and XESORES/SYS); a floppy boots
     // the other one. Before MultiDOS 1.7, the resident file (DOS/SYS) is a short CMD loader
     // followed by the resident itself, past the transfer address, so search all of it.
-    {pattern: /Version (?!\d\.\d+\w*HD)(\d\.\d+[A-Za-z]*)/, name: m => `Esoteric ${m[1]}`, file: /^ESORES\/SYS$/i},
+    {pattern: /Version (?!\d\.\d+\w*HD)(\d\.\d+[A-Za-z]*)/, name: m => makeDosName(DosFamily.ESOTERIC, m[1]), file: /^ESORES\/SYS$/i},
     {pattern: /\btm\W{1,4}MODEL\W+(?:I{1,3}|4),\W+VERSION\W+(?!\d\.\d+\w*HD)(\d\.\d+[A-Za-z]*)/i,
-        name: m => `MultiDOS ${m[1]}`, raw: true},
+        name: m => makeDosName(DosFamily.MULTIDOS, m[1]), raw: true},
     // Z'DOS's has graphics where MultiDOS's has "tm", so it must come after MultiDOS's.
-    {pattern: /MODEL[ \x80-\xBF]I{1,3},[\x80-\xBF]{1,3}VERSION[\x80-\xBF](\d\.\d+[A-Z]?)/i, name: m => `Z'DOS ${m[1]}`, raw: true},
+    {pattern: /MODEL[ \x80-\xBF]I{1,3},[\x80-\xBF]{1,3}VERSION[\x80-\xBF](\d\.\d+[A-Z]?)/i, name: m => makeDosName(DosFamily.Z_DOS, m[1]), raw: true},
     // MultiDOS 1.0 and 1.1 for the Model III, and the 1.6K edition.
-    {pattern: /Model III, Version (\d\.\d+)/, name: m => `MultiDOS ${m[1]}`, raw: true},
-    {pattern: /Multidos (\d\.\d+[A-Z]?) \(C\)\d{4} Cosmopolitan/, name: m => `MultiDOS ${m[1]}`, raw: true},
-    {pattern: /Multidos[\x80-\xBF](\d\.\d+[A-Za-z]?)[\x80-\xBF]/, name: m => `MultiDOS ${m[1]}`, raw: true},
+    {pattern: /Model III, Version (\d\.\d+)/, name: m => makeDosName(DosFamily.MULTIDOS, m[1]), raw: true},
+    {pattern: /Multidos (\d\.\d+[A-Z]?) \(C\)\d{4} Cosmopolitan/, name: m => makeDosName(DosFamily.MULTIDOS, m[1]), raw: true},
+    {pattern: /Multidos[\x80-\xBF](\d\.\d+[A-Za-z]?)[\x80-\xBF]/, name: m => makeDosName(DosFamily.MULTIDOS, m[1]), raw: true},
     // MultiDOS 1.0-1.2 for the Model I keep their banner backwards in the boot sector, which
     // copies it to the screen from the end, so this matches the boot track reversed.
     {pattern: /Multidos(?:, [\w-]+)? Disk Operating System, (?:Model III, )?Version (\d\.\d+[A-Z]?)/,
-        name: m => `MultiDOS ${m[1]}`},
+        name: m => makeDosName(DosFamily.MULTIDOS, m[1])},
     // A MultiDOS disk whose resident we can't read.
-    {pattern: /MULTIDOS|Cosmopolitan Electronics/, name: () => "MultiDOS"},
+    {pattern: /MULTIDOS|Cosmopolitan Electronics/, name: () => makeDosName(DosFamily.MULTIDOS)},
     // W. S. and D. S. Sands's extensions of NEWDOS/80 v2.0, which keep its disk format, so only
     // their system disks can be told apart. Must come before NEWDOS/80's banners, which they keep.
-    {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => `NEWDOS/${m[1]}`},
-    {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => `NEWDOS/80 v${m[1]}`},
+    {pattern: /a NewDos ?(86|90) SYSTEM disk/i, name: m => makeDosName(m[1] === "86" ? DosFamily.NEWDOS_86 : DosFamily.NEWDOS_90)},
+    {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => makeDosName(DosFamily.NEWDOS_80, m[1])},
     // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text. Some zap
     // levels shorten "VERSION 2.0" to "VER 2.1 Z38", "Vr2.0 Zap 82" or "V 2.0  Z 85", and the
     // German edition says "Apparat Inc." and "Vers. 2.052".
-    {pattern: /APPARAT,? INC\.[\s\S]{0,60}?(?:VERSION |VER |VERS\. |Vr|V )(\d\.[\dX]\d*)/i, name: m => `NEWDOS/80 v${m[1]}`},
+    {pattern: /APPARAT,? INC\.[\s\S]{0,60}?(?:VERSION |VER |VERS\. |Vr|V )(\d\.[\dX]\d*)/i, name: m => makeDosName(DosFamily.NEWDOS_80, m[1])},
     // Others drop "APPARAT, INC." for the zap level, as in "VERSION 2.0" then "Z=90 SD".
-    {pattern: /VERSION (\d\.\d+)[\s\S]{0,60}?Z=\d+ [SD]D/, name: m => `NEWDOS/80 v${m[1]}`, file: /^SYS0\/SYS$/i},
+    {pattern: /VERSION (\d\.\d+)[\s\S]{0,60}?Z=\d+ [SD]D/, name: m => makeDosName(DosFamily.NEWDOS_80, m[1]), file: /^SYS0\/SYS$/i},
     // NEWDOS 2.2 (NEWDOS+) says it this way.
-    {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
-    {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
-    {pattern: /NEWDOS 40 TRK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
-    {pattern: /NEWDOS\+- DISK OPERATING SYSTEM - VER (\d\.\d)\+/, name: m => `NEWDOS+ ${m[1]}`},
+    {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => makeDosName(DosFamily.NEWDOS, m[1])},
+    {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => makeDosName(DosFamily.NEWDOS, m[1])},
+    {pattern: /NEWDOS 40 TRK OPERATING SYSTEM - VER (\d\.\d)/, name: m => makeDosName(DosFamily.NEWDOS, m[1])},
+    {pattern: /NEWDOS\+- DISK OPERATING SYSTEM - VER (\d\.\d)\+/, name: m => makeDosName(DosFamily.NEWDOS_PLUS, m[1])},
     // NEWDOS 2.1's second line, which a copy that calls itself "TRS-80 - DISK OPERATING SYSTEM"
     // keeps. Must come before TRSDOS's banners.
     {pattern: /DISK OPERATING SYSTEM - VER (\d\.\d)[\s\S]{1,4}THIS DOS \(BOOT, SYS0-SYS6, FORMAT\) ORIGINALLY/,
-        name: m => `NEWDOS ${m[1]}`},
-    {pattern: /DBLDOS - DISK OPERATING SYSTEM - VER (\d\.\d+)/, name: m => `DoubleDOS ${m[1]}`},
-    {pattern: /VTOS - VIRTUAL TECHNOLOGY'S OPERATING SYSTEM - VER (\d\.\d(?:\.\d)?)/, name: m => `VTOS ${m[1]}`},
+        name: m => makeDosName(DosFamily.NEWDOS, m[1])},
+    {pattern: /DBLDOS - DISK OPERATING SYSTEM - VER (\d\.\d+)/, name: m => makeDosName(DosFamily.DOUBLEDOS, m[1])},
+    {pattern: /VTOS - VIRTUAL TECHNOLOGY'S OPERATING SYSTEM - VER (\d\.\d(?:\.\d)?)/, name: m => makeDosName(DosFamily.VTOS, m[1])},
     {pattern: /DOSPLUS IV - Model 4 Disk Operating System - Version (\d\.\d+)/,
-        name: m => `DOSPLUS IV ${m[1].replace(/^(\d\.\d)0$/, "$1")}`},
-    {pattern: /DOS ?PLUS IV/, name: () => "DOSPLUS IV"},
+        name: m => makeDosName(DosFamily.DOSPLUS_IV, m[1].replace(/^(\d\.\d)0$/, "$1"))},
+    {pattern: /DOS ?PLUS IV/, name: () => makeDosName(DosFamily.DOSPLUS_IV)},
     // The Model II's, by MicroPower: "DosPLUS II - Series A.00".
-    {pattern: /DosPLUS II - Series ([A-Z]\.\d+)/, name: m => `DOSPLUS II ${m[1]}`},
+    {pattern: /DosPLUS II - Series ([A-Z]\.\d+)/, name: m => makeDosName(DosFamily.DOSPLUS_II, m[1])},
     // DOSPLUS 3.5 says "3.50" but writes 0x35 at 0xCB; use the shorter form for both.
-    {pattern: /DOS ?PLUS\b[^\n]{0,50}?(\d\.\d+[a-z]?(?:\.\d+)?)/, name: m => `DOSPLUS ${m[1].replace(/^(\d\.\d)0$/, "$1")}`},
+    {pattern: /DOS ?PLUS\b[^\n]{0,50}?(\d\.\d+[a-z]?(?:\.\d+)?)/, name: m => makeDosName(DosFamily.DOSPLUS, m[1].replace(/^(\d\.\d)0$/, "$1"))},
     // "VER 5.1.4", "Ver 5.1.4", "VER. 5.0.1" (the Lobo edition), and "VER 513/R".
-    {pattern: /L ?D ?O ?S - [^\n]{0,60}?VER\.? ?(\d)\.?(\d)\.?(\d)/i, name: m => `LDOS ${m[1]}.${m[2]}.${m[3]}`},
-    {pattern: /LS-DOS 0?(\d)\.0?(\d)\.0?(\d)/, name: m => `LS-DOS ${m[1]}.${m[2]}.${m[3]}`},
-    {pattern: /TRSDOS 0?(6)\.0?(\d)\.0?(\d)/, name: m => `TRSDOS ${m[1]}.${m[2]}.${m[3]}`},
+    {pattern: /L ?D ?O ?S - [^\n]{0,60}?VER\.? ?(\d)\.?(\d)\.?(\d)/i, name: m => makeDosName(DosFamily.LDOS, `${m[1]}.${m[2]}.${m[3]}`)},
+    {pattern: /LS-DOS 0?(\d)\.0?(\d)\.0?(\d)/, name: m => makeDosName(DosFamily.LS_DOS, `${m[1]}.${m[2]}.${m[3]}`)},
+    {pattern: /TRSDOS 0?(6)\.0?(\d)\.0?(\d)/, name: m => makeDosName(DosFamily.TRSDOS, `${m[1]}.${m[2]}.${m[3]}`)},
     // "TRSDOS - DISK OPERATING SYSTEM - VER 2.3", "... VER 2.3B", "...   VER 2.3" (the Japanese
     // edition), and Percom's patched editions.
-    {pattern: /TRSDOS - DISK OPERATING SYSTEM *-? *VER (\d\.\d[A-Z]?)/, name: m => `TRSDOS ${m[1]}`},
-    {pattern: /TRSDOS \+ PERCOM PATCH PAK #\d\/\d+ +VER (\d\.\d)/, name: m => `TRSDOS ${m[1]}`},
+    {pattern: /TRSDOS - DISK OPERATING SYSTEM *-? *VER (\d\.\d[A-Z]?)/, name: m => makeDosName(DosFamily.TRSDOS, m[1])},
+    {pattern: /TRSDOS \+ PERCOM PATCH PAK #\d\/\d+ +VER (\d\.\d)/, name: m => makeDosName(DosFamily.TRSDOS, m[1])},
 ];
 
 /**
@@ -161,15 +146,56 @@ const SYSTEM_BANNERS: readonly SystemFileBanner[] = [
  * SYSTEM_BANNERS. See "The TRSDOS 1.3 layout's DOSes" in FLOPPY_FORMATS.md.
  */
 const TRSDOS13_BANNERS: readonly SystemFileBanner[] = [
-    {pattern: /SUPERDOS Ver(?:sion)? (\d\.\d+)/, name: m => `SuperDOS ${m[1]}`},
-    {pattern: /PROLOGICA +\* +CP-500 +\* +DOS500 V(\d\.\d+)/, name: m => `DOS500 ${m[1]}`},
-    {pattern: /Version (\d\.\d+)[^\n]{0,10}\d{4} Rapidynamic Software/, name: m => `RAPIDOS ${m[1]}`},
+    {pattern: /SUPERDOS Ver(?:sion)? (\d\.\d+)/, name: m => makeDosName(DosFamily.SUPERDOS, m[1])},
+    {pattern: /PROLOGICA +\* +CP-500 +\* +DOS500 V(\d\.\d+)/, name: m => makeDosName(DosFamily.DOS500, m[1])},
+    {pattern: /Version (\d\.\d+)[^\n]{0,10}\d{4} Rapidynamic Software/, name: m => makeDosName(DosFamily.RAPIDOS, m[1])},
     // "TRSDOS version 1.3.2", "1.3I", "Fast Boot 40Track Version 1.3", and Model 4's "01.04.00".
     {pattern: /TRSDOS (?:Fast Boot \w+ )?version (\d+\.\d+(?:\.\d+)?[A-Z]?)/i,
-        name: m => `TRSDOS ${m[1].replace(/^0(\d)\.0(\d)\.00$/, "$1.$2")}`},
+        name: m => makeDosName(DosFamily.TRSDOS, m[1].replace(/^0(\d)\.0(\d)\.00$/, "$1.$2"))},
     // GRL Software's 1.5.
-    {pattern: /Super Charged TRS80 Model III operating System (\d\.\d)/, name: m => `TRSDOS ${m[1]}`},
+    {pattern: /Super Charged TRS80 Model III operating System (\d\.\d)/, name: m => makeDosName(DosFamily.TRSDOS, m[1])},
 ];
+
+/**
+ * Whether the DOS's disks can have lumps that aren't whole cylinders: NEWDOS/80's (and so NEWDOS/86's
+ * and /90's), MultiDOS's (and so Z'DOS's and Esoteric's) and DoubleDOS's. A banner of another DOS on
+ * such a disk isn't the DOS that wrote it.
+ */
+function writesPartialLumps(family: DosFamily): boolean {
+    switch (family) {
+        case DosFamily.NEWDOS_80:
+        case DosFamily.NEWDOS_86:
+        case DosFamily.NEWDOS_90:
+        case DosFamily.MULTIDOS:
+        case DosFamily.Z_DOS:
+        case DosFamily.ESOTERIC:
+        case DosFamily.DOUBLEDOS:
+            return true;
+
+        case DosFamily.UNKNOWN:
+        case DosFamily.TRSDOS:
+        case DosFamily.LDOS:
+        case DosFamily.LS_DOS:
+        case DosFamily.VTOS:
+        case DosFamily.DOSPLUS:
+        case DosFamily.DOSPLUS_II:
+        case DosFamily.DOSPLUS_IV:
+        case DosFamily.NEWDOS:
+        case DosFamily.NEWDOS_PLUS:
+        case DosFamily.G_DOS:
+        case DosFamily.H_DOS:
+        case DosFamily.ULTRADOS:
+        case DosFamily.RAPIDOS:
+        case DosFamily.SUPERDOS:
+        case DosFamily.DOS500:
+        case DosFamily.SUPER_UTILITY_PLUS:
+        case DosFamily.BFLOADER:
+            return false;
+
+        default:
+            assertNever(family);
+    }
+}
 
 /**
  * Reverse the order of the characters.
@@ -684,33 +710,47 @@ function hexBytesAt(data: Uint8Array | undefined, offset: number, hex: string): 
 }
 
 /**
+ * A MultiDOS release, or else the Esoteric release that writes the same disk.
+ *
+ * @param multiDosVersion the MultiDOS release, or none if we can't tell.
+ * @param esotericVersion the Esoteric release, or none if we can't tell.
+ */
+function multiDosOrEsoteric(multiDosVersion?: string, esotericVersion?: string): DosName {
+    const versions = (version: string | undefined) => version === undefined ? [] : [version];
+    return {
+        ...makeDosName(DosFamily.MULTIDOS, ...versions(multiDosVersion)),
+        or: makeDosName(DosFamily.ESOTERIC, ...versions(esotericVersion)),
+    };
+}
+
+/**
  * The DIR/SYS passwords (directory entry bytes 0x10 on) that copying the system of a MultiDOS
  * release from 4.01 on, or of an Esoteric release, writes, and the releases that write them. Two
  * releases can share them. Only the ones that the disks we have confirm. See "MultiDOS, Z'DOS and
  * Esoteric" in FLOPPY_FORMATS.md.
  */
-const MULTIDOS_DIR_SYS_PASSWORDS: readonly {passwords: string, name: string}[] = [
-    {passwords: "B1 01 00 00", name: "MultiDOS 5.11 or Esoteric 2.12"},
-    {passwords: "BD 18", name: "Esoteric 2.11"},
-    {passwords: "D2 44 00 00", name: "MultiDOS 6.00 or Esoteric 3.00"},
-    {passwords: "D6 63 7B C0", name: "MultiDOS 6.20 or Esoteric 3.20"},
+const MULTIDOS_DIR_SYS_PASSWORDS: readonly {passwords: string, name: DosName}[] = [
+    {passwords: "B1 01 00 00", name: multiDosOrEsoteric("5.11", "2.12")},
+    {passwords: "BD 18", name: makeDosName(DosFamily.ESOTERIC, "2.11")},
+    {passwords: "D2 44 00 00", name: multiDosOrEsoteric("6.00", "3.00")},
+    {passwords: "D6 63 7B C0", name: multiDosOrEsoteric("6.20", "3.20")},
 ];
 
 /**
- * The LDOS 5.1 release whose FORMAT gave BOOT/SYS the passwords that this one has, and padded
+ * The LDOS 5.1 releases whose FORMAT gave BOOT/SYS the passwords that this one has, and padded
  * its unused extents with 0xFF (5.1.4) or zeros. "LDOS 5.1" if the passwords don't say, as when
  * they've been cleared. See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
  *
  * @param bootSys BOOT/SYS's directory entry, if the disk has one.
  */
-function decodeLdos51Release(bootSys: Uint8Array | undefined): string {
+function decodeLdos51Release(bootSys: Uint8Array | undefined): DosName {
     if (hexBytesAt(bootSys, 0x10, "20 C2 52 C3")) {
-        return "LDOS 5.1.0-5.1.1";
+        return makeDosName(DosFamily.LDOS, "5.1.0", "5.1.1");
     }
     if (bootSys !== undefined && hexBytesAt(bootSys, 0x10, "AE 01 F5 9C")) {
-        return bootSys[0x1A] === 0xFF ? "LDOS 5.1.4" : "LDOS 5.1.2-5.1.3";
+        return bootSys[0x1A] === 0xFF ? makeDosName(DosFamily.LDOS, "5.1.4") : makeDosName(DosFamily.LDOS, "5.1.2", "5.1.3");
     }
-    return "LDOS 5.1";
+    return makeDosName(DosFamily.LDOS, "5.1");
 }
 
 /**
@@ -721,9 +761,9 @@ function decodeLdos51Release(bootSys: Uint8Array | undefined): string {
  * @param bootSys BOOT/SYS's directory entry, if the disk has one.
  * @param dirSys DIR/SYS's directory entry, if the disk has one.
  */
-function decodeLdos53Release(bootSys: Uint8Array | undefined, dirSys: Uint8Array | undefined): string {
+function decodeLdos53Release(bootSys: Uint8Array | undefined, dirSys: Uint8Array | undefined): DosName {
     const is531 = hexBytesAt(dirSys, 0x10, "AE 01 96 42") || hexBytesAt(bootSys, 0x10, "5F 01");
-    return is531 ? "LDOS 5.3.1" : "LDOS 5.3";
+    return makeDosName(DosFamily.LDOS, is531 ? "5.3.1" : "5.3");
 }
 
 // Various TRSDOS versions. All other TRS-80 DOS formats are variants of one of these.
@@ -902,22 +942,16 @@ export enum TrsdosProtectionNames {
 }
 
 /**
- * Matches the names of the DOSes that number the protection levels like TRSDOS 6 (see
- * {@link Trsdos.nameAndVersion}). TRSDOS 6 and LS-DOS 6 are the same family, and LDOS 6 is what
- * some people call them.
- */
-export const TRSDOS_6_DOS_NAME = /^(?:TRSDOS|LS-DOS) 6\./;
-
-/**
  * Work out which names a disk's DOS gives the protection levels.
  *
  * @param version the disk's layout.
- * @param dosName the DOS's name and version, as {@link Trsdos.nameAndVersion} gives it.
+ * @param dosName the DOS, as {@link Trsdos.dosName} gives it. TRSDOS 6 and LS-DOS 6 number them
+ * like TRSDOS 6.
  */
-export function trsdosProtectionNamesFor(version: TrsdosVersion, dosName: string): TrsdosProtectionNames {
+export function trsdosProtectionNamesFor(version: TrsdosVersion, dosName: DosName): TrsdosProtectionNames {
     switch (version) {
         case TrsdosVersion.V2_3:
-            return TRSDOS_6_DOS_NAME.test(dosName) ? TrsdosProtectionNames.TRSDOS_6 : TrsdosProtectionNames.LDOS;
+            return isTrsdos6Line(dosName) ? TrsdosProtectionNames.TRSDOS_6 : TrsdosProtectionNames.LDOS;
 
         case TrsdosVersion.V1_3:
         case TrsdosVersion.V2_7:
@@ -2264,14 +2298,14 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      */
     public readonly hasTimeStamps: boolean;
     /**
-     * Name and version of the DOS that wrote the disk, such as "LDOS 5.1.4" or "NEWDOS/80 v2.0", or
-     * "Unknown DOS" when the disk doesn't say. Only decoded for candidates that aren't disqualified,
-     * because it reads the system files.
+     * The DOS that wrote the disk, such as LDOS 5.1.4 or NEWDOS/80 v2.0, or {@link UNKNOWN_DOS_NAME}
+     * when the disk doesn't say. Only decoded for candidates that aren't disqualified, because it
+     * reads the system files.
      */
-    public readonly nameAndVersion: string;
+    public readonly dosName: DosName;
     /**
      * Which DOS's names this disk's DOS gives the protection levels, from the layout and
-     * {@link nameAndVersion}. Disks whose DOS we don't know get the LDOS names on the 2.3 layout.
+     * {@link dosName}. Disks whose DOS we don't know get the LDOS names on the 2.3 layout.
      */
     public readonly protectionNames: TrsdosProtectionNames;
 
@@ -2314,8 +2348,17 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.gatPassesStrictCheck = typeof gatInfo !== "string" &&
             gatInfo.hasValidHighBits(this.granulesPerLump, this.lumpCount, this.version);
         this.dirSysConfirmsSize = this.evaluation.score >= 0 && this.dirSysCoversDirectory();
-        this.nameAndVersion = this.evaluation.score >= 0 ? this.decodeNameAndVersion() : UNKNOWN_DOS;
-        this.protectionNames = trsdosProtectionNamesFor(this.version, this.nameAndVersion);
+        this.dosName = this.evaluation.score >= 0 ? this.decodeDosName() : UNKNOWN_DOS_NAME;
+        this.protectionNames = trsdosProtectionNamesFor(this.version, this.dosName);
+    }
+
+    /**
+     * The name and version of the DOS that wrote the disk, as we show it, such as "LDOS 5.1.4",
+     * "NEWDOS/80 v2.0, v2.5 or v2.74" or "Unknown DOS". Code that acts on the DOS uses
+     * {@link dosName} instead.
+     */
+    public get nameAndVersion(): string {
+        return dosNameToString(this.dosName);
     }
 
     /**
@@ -3123,13 +3166,12 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Decide the name and version of the DOS that wrote the disk, from what the disk says about
-     * itself.
+     * Decide which DOS wrote the disk, from what the disk says about itself.
      */
-    private decodeNameAndVersion(): string {
+    private decodeDosName(): DosName {
         const gatInfo = this.getGatInfo();
         if (typeof gatInfo === "string") {
-            return UNKNOWN_DOS;
+            return UNKNOWN_DOS_NAME;
         }
 
         const bootTrack = this.disk.getBootTrackText();
@@ -3138,7 +3180,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
         // Big Five's loader boots a game with no DOS, whatever layout its directory fits.
         if (bootSectorDos === BootSectorDos.BFLOADER) {
-            return "Big Five BFLOADER";
+            return makeDosName(DosFamily.BFLOADER);
         }
 
         switch (this.version) {
@@ -3156,7 +3198,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 }
                 const match = bootTrack.match(/version (1\.\d)/);
                 if (match !== null) {
-                    return `TRSDOS ${match[1]}`;
+                    return makeDosName(DosFamily.TRSDOS, match[1]);
                 }
                 // Tandy's boot sector keeps the version in BCD at 0xFE, with 0x28 at 0xFF. GRL's
                 // TRSDOS 1.5 keeps 1.3's, but its FORMAT adds a BOOT/SYS entry, which 1.1-1.4 don't.
@@ -3164,16 +3206,16 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 if (bootSectorDos === BootSectorDos.TRSDOS_1 && bootSector !== undefined && !hasBootSys &&
                     bootSector.data[0xFF] === 0x28 && bootSector.data[0xFE] >= 0x10 && bootSector.data[0xFE] <= 0x19) {
 
-                    return `TRSDOS 1.${bootSector.data[0xFE] & 0x0F}`;
+                    return makeDosName(DosFamily.TRSDOS, `1.${bootSector.data[0xFE] & 0x0F}`);
                 }
-                return "TRSDOS 1.x";
+                return makeDosName(DosFamily.TRSDOS, "1.x");
             }
 
             case TrsdosVersion.V2_7: {
                 // System disks name their version, such as "TRSDOS version 2.7DD", "2.7SD" or "2.8.0".
                 // The text isn't on the single-density boot track (cylinder 0) but on cylinder 1.
                 const match = this.getFirstDataCylinderText().match(/TRSDOS version (2\.\d[\w.]*)/);
-                return match === null ? "TRSDOS 2.7" : `TRSDOS ${match[1]}`;
+                return makeDosName(DosFamily.TRSDOS, match === null ? "2.7" : match[1]);
             }
 
             default:
@@ -3184,10 +3226,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         // and keep NEWDOS/80's banner.
         if (this.findFile("INHALT/SYS") !== undefined) {
             if (this.findFile("GDOS/SYS") !== undefined) {
-                return "G-DOS";
+                return makeDosName(DosFamily.G_DOS);
             }
             if (this.findFile("HDOS/SYS") !== undefined) {
-                return "H-DOS";
+                return makeDosName(DosFamily.H_DOS);
             }
         }
 
@@ -3203,12 +3245,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             {text: bootTrack, raw: true},
             {text: this.getCylinderText(dirCylinder - 1), raw: true},
         ]);
-        if (banner !== undefined && (this.lumpTerm === "cylinder" ||
-            /^(NEWDOS\/(80|86|90)|MultiDOS|Z'DOS|Esoteric|DoubleDOS)/.test(banner))) {
-
+        if (banner !== undefined && (this.lumpTerm === "cylinder" || writesPartialLumps(banner.family))) {
             // "MultiDOS" with no version is also what the AUTO text that MultiDOS's FORMAT
             // leaves in the GAT (inside DIR/SYS) gives, so let its stub give the version.
-            if (banner === "MultiDOS") {
+            if (banner.family === DosFamily.MULTIDOS && banner.versions.length === 0) {
                 return this.decodeMultiDosVersion(bootSectorDos, gatInfo.osVersion) ?? banner;
             }
             return banner;
@@ -3223,23 +3263,23 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
             this.bootSectorStartsWith(0x3B, 0xFE) || isMultiDosBootSectorDos(bootSectorDos);
         if (isMultiDos || bootSectorDos === BootSectorDos.MULTIDOS_ESOTERIC) {
             return this.decodeMultiDosVersion(bootSectorDos, gatInfo.osVersion) ??
-                (isMultiDos ? "MultiDOS" : "MultiDOS/Esoteric");
+                (isMultiDos ? makeDosName(DosFamily.MULTIDOS) : multiDosOrEsoteric());
         }
         if (bootTrack.includes("ULTRADOS")) {
             const match = bootTrack.match(/ULTRADOS DISK OPERATING SYSTEM VERSION (\d\.\d)/);
             if (match !== null) {
-                return `UltraDOS ${match[1]}`;
+                return makeDosName(DosFamily.ULTRADOS, match[1]);
             }
             // Some UltraDOS disks have "U" and the version in ASCII at 0xCB-0xCD ("U41").
             const version = this.getGatText(0xCC, 0xCE);
-            return /^\d\d$/.test(version) ? `UltraDOS ${version[0]}.${version[1]}` : "UltraDOS";
+            return /^\d\d$/.test(version) ? makeDosName(DosFamily.ULTRADOS, `${version[0]}.${version[1]}`) : makeDosName(DosFamily.ULTRADOS);
         }
         if (bootTrack.includes("RAPIDOS")) {
             const match = bootTrack.match(/Version (\d\.\d)/);
-            return match === null ? "RAPIDOS" : `RAPIDOS ${match[1]}`;
+            return match === null ? makeDosName(DosFamily.RAPIDOS) : makeDosName(DosFamily.RAPIDOS, match[1]);
         }
         if (bootSectorDos === BootSectorDos.RAPIDOS) {
-            return "RAPIDOS";
+            return makeDosName(DosFamily.RAPIDOS);
         }
 
         // Super Utility+ writes its own version at 0xCB (0x22 and 0x31 look like TRSDOS 2.2 and
@@ -3248,7 +3288,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         const superUtilityMajor = this.getSuperUtilityMajorVersion();
         const gatVersion = gatInfo.osVersion;
         if (superUtilityMajor !== undefined && gatVersion >> 4 === superUtilityMajor && (gatVersion & 0x0F) <= 9) {
-            return `Super Utility+ ${superUtilityMajor}.${gatVersion & 0x0F} data disk`;
+            return makeDosName(DosFamily.SUPER_UTILITY_PLUS, `${superUtilityMajor}.${gatVersion & 0x0F}`);
         }
 
         // The LDOS line also writes its release number in the system sector. Where it disagrees
@@ -3268,9 +3308,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         const dirSys = this.getSystemDirEntryBytes("DIR     SYS");
         switch (osVersion) {
             case 0x00:
-                return this.hasTrsdos23BBootSector() ? "TRSDOS 2.3B" : UNKNOWN_DOS;
+                return this.hasTrsdos23BBootSector() ? makeDosName(DosFamily.TRSDOS, "2.3B") : UNKNOWN_DOS_NAME;
             case 0x20:
-                return "TRSDOS 2.0";
+                return makeDosName(DosFamily.TRSDOS, "2.0");
             case 0x21:
                 // TRSDOS 2.1 through 2.3 all write 0x21, as do their derivatives NEWDOS 2.1,
                 // NEWDOS 3.0 and DoubleDOS, whose system disks are named by their banners. Only
@@ -3279,100 +3319,101 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 if (bootSectorDos === BootSectorDos.TRSDOS_2 && bootSector !== undefined &&
                     bootSector.data[0x7D] === 0xB6) {
 
-                    return "TRSDOS 2.2-2.3";
+                    return makeDosName(DosFamily.TRSDOS, "2.2", "2.3");
                 }
-                return "TRSDOS 2.x";
+                return makeDosName(DosFamily.TRSDOS, "2.x");
             case 0x30:
-                return "VTOS 3.0";
+                return makeDosName(DosFamily.VTOS, "3.0");
             case 0x31: case 0x32: case 0x33: case 0x34: case 0x35:
-                return `DOSPLUS 3.${osVersion & 0x0F}`;
+                return makeDosName(DosFamily.DOSPLUS, `3.${osVersion & 0x0F}`);
             case 0x40:
                 // Written by VTOS 4.0, DOSPLUS 3.4a and 3.4D, and the Model I and III DOSPLUS 4.0
                 // (not DOSPLUS IV, which writes 0x60).
                 if (bootTrack.includes("VTOS")) {
-                    return "VTOS 4.0";
+                    return makeDosName(DosFamily.VTOS, "4.0");
                 }
                 if (bootSectorDos === BootSectorDos.LDOS) {
                     // VTOS 4.0 shares LDOS's boot sector.
-                    return "VTOS 4.0";
+                    return makeDosName(DosFamily.VTOS, "4.0");
                 }
                 if (bootSectorDos === BootSectorDos.DOSPLUS_3) {
-                    return "DOSPLUS 3.4";
+                    return makeDosName(DosFamily.DOSPLUS, "3.4");
                 }
                 if (bootSectorDos === BootSectorDos.DOSPLUS_EMPTY) {
                     // Could be 3.4a or the Model I and III's 4.0.
-                    return "DOSPLUS";
+                    return makeDosName(DosFamily.DOSPLUS);
                 }
-                return bootTrack.includes("DOSPLUS") ? "DOSPLUS" : UNKNOWN_DOS;
+                return bootTrack.includes("DOSPLUS") ? makeDosName(DosFamily.DOSPLUS) : UNKNOWN_DOS_NAME;
             case 0x50:
                 // Kim Watt's utility disks also write 0x50, with neither of these.
                 if (bootSectorDos === BootSectorDos.LDOS || systemSectorVersion === 0x50) {
-                    return "LDOS 5.0";
+                    return makeDosName(DosFamily.LDOS, "5.0");
                 }
-                return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS;
+                return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS_NAME;
             case 0x51:
-                return bootSectorDos === BootSectorDos.LDOS ? decodeLdos51Release(bootSys) : "LDOS 5.1";
+                return bootSectorDos === BootSectorDos.LDOS ? decodeLdos51Release(bootSys) : makeDosName(DosFamily.LDOS, "5.1");
             case 0x53:
                 // Disks with TRSDOS 2.x's boot sector and 0x53 carry NEWDOS 3.0's system on
                 // cylinder 0, though NEWDOS 3.0's FORMAT writes 0x21. LDOS has its own boot sector.
                 // See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
                 if (bootSectorDos === BootSectorDos.TRSDOS_2) {
-                    return "NEWDOS 3.0";
+                    return makeDosName(DosFamily.NEWDOS, "3.0");
                 }
-                return bootSectorDos === BootSectorDos.LDOS ? decodeLdos53Release(bootSys, dirSys) : "LDOS 5.3";
+                return bootSectorDos === BootSectorDos.LDOS ? decodeLdos53Release(bootSys, dirSys) : makeDosName(DosFamily.LDOS, "5.3");
             case 0x60:
                 // DOSPLUS IV writes the TRSDOS 6 GAT, so test for it first.
                 if (bootTrack.includes("DOSPLUS") || bootSectorDos === BootSectorDos.DOSPLUS_IV ||
                     bootSectorDos === BootSectorDos.DOSPLUS_EMPTY || hexBytesAt(bootSys, 0x10, "DD 23")) {
 
-                    return "DOSPLUS IV";
+                    return makeDosName(DosFamily.DOSPLUS_IV);
                 }
-                return bootSectorDos === BootSectorDos.TRSDOS_6_0_STUB ? "TRSDOS 6.0.0" : "TRSDOS 6.0";
+                return makeDosName(DosFamily.TRSDOS, bootSectorDos === BootSectorDos.TRSDOS_6_0_STUB ? "6.0.0" : "6.0");
             case 0x61:
                 // TRSDOS 6.01.00 writes 6.0.0's stub.
                 if (bootSectorDos === BootSectorDos.TRSDOS_6_0_STUB) {
-                    return "TRSDOS 6.1.0";
+                    return makeDosName(DosFamily.TRSDOS, "6.1.0");
                 }
-                return bootSectorDos === BootSectorDos.TRSDOS_6_1_STUB ? "TRSDOS 6.1.1-6.1.2" : "TRSDOS 6.1";
+                return bootSectorDos === BootSectorDos.TRSDOS_6_1_STUB ? makeDosName(DosFamily.TRSDOS, "6.1.1", "6.1.2") : makeDosName(DosFamily.TRSDOS, "6.1");
             case 0x62:
                 // 6.02.00 and 6.02.01 write the same data disk.
-                return "TRSDOS 6.2";
+                return makeDosName(DosFamily.TRSDOS, "6.2");
             case 0x63:
                 return this.decodeLsdos63Release(bootSys);
             case 0x80:
-                return "NEWDOS/80 v1.0";
+                return makeDosName(DosFamily.NEWDOS_80, "1.0");
             case 0x82:
                 // 2.0, 2.5 and 2.74 write the same data disk, and 3.0 has its own boot sector.
-                return bootSectorDos === BootSectorDos.NEWDOS_80_3 ? "NEWDOS/80 v3.0" : "NEWDOS/80 v2.0-2.74";
+                return bootSectorDos === BootSectorDos.NEWDOS_80_3 ? makeDosName(DosFamily.NEWDOS_80, "3.0") : makeDosName(DosFamily.NEWDOS_80, "2.0", "2.5", "2.74");
             case 0xFC:
-                return "TRSDOS 3.0";
+                return makeDosName(DosFamily.TRSDOS, "3.0");
             default:
                 // Among others: 0x22 (Super Utility+ 2.2's version, not TRSDOS 2.2, on a disk
                 // whose boot sector isn't Super Utility+'s), and 0x55 (UltraDOS's "U").
-                return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS;
+                return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS_NAME;
         }
     }
 
     /**
-     * The name and version range of a MultiDOS disk with no banner, from the data-disk stub that its
+     * The name and releases of a MultiDOS disk with no banner, from the data-disk stub that its
      * FORMAT wrote and the directory, or undefined if they don't say. See "MultiDOS, Z'DOS and
      * Esoteric" in FLOPPY_FORMATS.md.
      *
      * @param bootSectorDos the DOS of the boot sector, if we recognize it.
      * @param gatVersion GAT byte 0xCB.
      */
-    private decodeMultiDosVersion(bootSectorDos: BootSectorDos | undefined, gatVersion: number): string | undefined {
+    private decodeMultiDosVersion(bootSectorDos: BootSectorDos | undefined, gatVersion: number): DosName | undefined {
         switch (bootSectorDos) {
             case BootSectorDos.MULTIDOS_1_5_STUB:
-                return gatVersion === 0x15 ? "MultiDOS 1.5" : gatVersion === 0x16 ? "MultiDOS 1.6" : undefined;
+                return gatVersion === 0x15 ? makeDosName(DosFamily.MULTIDOS, "1.5") : gatVersion === 0x16 ? makeDosName(DosFamily.MULTIDOS, "1.6") : undefined;
 
             case BootSectorDos.MULTIDOS_1_7_STUB:
                 if (gatVersion === 0xFF) {
-                    return "MultiDOS 2.10";
+                    return makeDosName(DosFamily.MULTIDOS, "2.10");
                 }
                 if (gatVersion === 0x17) {
                     // FORMAT adds a BOOT/SYS entry from 2.00 on.
-                    return this.getSystemDirEntryBytes("BOOT    SYS") !== undefined ? "MultiDOS 2.00" : "MultiDOS 1.7-1.71";
+                    return this.getSystemDirEntryBytes("BOOT    SYS") !== undefined
+                        ? makeDosName(DosFamily.MULTIDOS, "2.00") : makeDosName(DosFamily.MULTIDOS, "1.7", "1.7.1", "1.71");
                 }
                 return undefined;
 
@@ -3396,33 +3437,36 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      *
      * @param bootSys BOOT/SYS's directory entry, if the disk has one.
      */
-    private decodeLsdos63Release(bootSys: Uint8Array | undefined): string {
+    private decodeLsdos63Release(bootSys: Uint8Array | undefined): DosName {
         const mediaText = this.getGatText(0xF6, 0xF9);
         if (mediaText === "631" && hexBytesAt(bootSys, 0x10, "F4 71")) {
-            return "LS-DOS 6.3.1";
+            return makeDosName(DosFamily.LS_DOS, "6.3.1");
         }
         if (mediaText === "LSI" && hexBytesAt(bootSys, 0x10, "F6 37")) {
-            return "LS-DOS 6.3.0";
+            return makeDosName(DosFamily.LS_DOS, "6.3.0");
         }
-        return "LS-DOS 6.3";
+        return makeDosName(DosFamily.LS_DOS, "6.3");
     }
 
     /**
-     * "DOSPLUS" and the range of versions whose FORMAT gives BOOT/SYS the passwords that this one
-     * has, or undefined if they aren't DOSPLUS's. For disks whose GAT byte 0xCB names no DOS. See
-     * "Boot sector code by DOS" in FLOPPY_FORMATS.md. Always a range, which `DOS_NAME_RULES` in
-     * TrsdosRuleSet.ts gives no rule set, since something other than DOSPLUS wrote the GAT.
+     * DOSPLUS and the releases whose FORMAT gives BOOT/SYS the passwords that this one has, or
+     * undefined if they aren't DOSPLUS's. For disks whose GAT byte 0xCB names no DOS. See "Boot
+     * sector code by DOS" in FLOPPY_FORMATS.md. The name is marked
+     * {@link DosName.fromPasswordsOnly}, which gets it no rule set in `ruleSetForDosName()`, since
+     * something other than DOSPLUS wrote the GAT.
      *
      * @param bootSys BOOT/SYS's directory entry, if the disk has one.
      */
-    private decodeDosplusFromPasswords(bootSys: Uint8Array | undefined): string | undefined {
+    private decodeDosplusFromPasswords(bootSys: Uint8Array | undefined): DosName | undefined {
+        let versions: string[];
         if (hexBytesAt(bootSys, 0x10, "7E B2 82 2A")) {
-            return "DOSPLUS 3.1-3.2";
+            versions = ["3.1", "3.2"];
+        } else if (hexBytesAt(bootSys, 0x10, "27 0B 82 2A")) {
+            versions = ["3.2.1", "3.3", "3.4"];
+        } else {
+            return undefined;
         }
-        if (hexBytesAt(bootSys, 0x10, "27 0B 82 2A")) {
-            return "DOSPLUS 3.2.1-3.4";
-        }
-        return undefined;
+        return {...makeDosName(DosFamily.DOSPLUS, ...versions), fromPasswordsOnly: true};
     }
 
     /**
@@ -3449,11 +3493,11 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     }
 
     /**
-     * Search the text of the system files for one of the banners, returning the name and
-     * version it gives, or undefined if there isn't one.
+     * Search the text of the system files for one of the banners, returning the DOS it names, or
+     * undefined if there isn't one.
      */
     private findSystemBanner(banners: readonly SystemFileBanner[] = SYSTEM_BANNERS,
-                             otherTexts: {text: string, raw: boolean}[] = []): string | undefined {
+                             otherTexts: {text: string, raw: boolean}[] = []): DosName | undefined {
 
         // Each system file's text as loaded and as stored, each also negated, then the other
         // texts to search, each searched by the banners with the same "raw".

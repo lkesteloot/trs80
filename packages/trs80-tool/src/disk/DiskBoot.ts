@@ -1,7 +1,7 @@
 import {BasicLevel, Config, ModelType} from "trs80-emulator";
 import {
-    Density, densityToString, type FloppyDisk, type KnownFloppyFileSystem, Trsdos, TRSDOS_6_DOS_NAME,
-    TrsdosVersion,
+    Density, densityToString, DosFamily, type DosName, type FloppyDisk, isTrsdos6Line, type KnownFloppyFileSystem,
+    Trsdos, TrsdosVersion,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {runInTerminal} from "../run.js";
@@ -59,6 +59,54 @@ function chooseModelByDensity(name: string, density: Density): BootModelChoice {
 }
 
 /**
+ * The model that a DOS is for, when its name alone says: 4 for TRSDOS 6, LS-DOS 6 and DOSPLUS IV, 1
+ * for TRSDOS 2.x, and undefined for the others, whose disks say it only by their layout or density.
+ */
+function modelOfDos(dosName: DosName): BootModel | undefined {
+    if (isTrsdos6Line(dosName)) {
+        return 4;
+    }
+
+    switch (dosName.family) {
+        case DosFamily.DOSPLUS_IV:
+            return 4;
+
+        case DosFamily.TRSDOS: {
+            const isTrsdos2 = dosName.versions.length > 0 && dosName.versions.every(version => version.major() === 2);
+            return isTrsdos2 ? 1 : undefined;
+        }
+
+        case DosFamily.UNKNOWN:
+        case DosFamily.LDOS:
+        case DosFamily.LS_DOS:
+        case DosFamily.VTOS:
+        case DosFamily.DOSPLUS:
+        case DosFamily.DOSPLUS_II:
+        case DosFamily.NEWDOS:
+        case DosFamily.NEWDOS_PLUS:
+        case DosFamily.NEWDOS_80:
+        case DosFamily.NEWDOS_86:
+        case DosFamily.NEWDOS_90:
+        case DosFamily.G_DOS:
+        case DosFamily.H_DOS:
+        case DosFamily.DOUBLEDOS:
+        case DosFamily.MULTIDOS:
+        case DosFamily.ESOTERIC:
+        case DosFamily.Z_DOS:
+        case DosFamily.ULTRADOS:
+        case DosFamily.RAPIDOS:
+        case DosFamily.SUPERDOS:
+        case DosFamily.DOS500:
+        case DosFamily.SUPER_UTILITY_PLUS:
+        case DosFamily.BFLOADER:
+            return undefined;
+
+        default:
+            assertNever(dosName.family);
+    }
+}
+
+/**
  * Choose the TRS-80 model to boot a disk on, from the DOS that the disk has:
  *
  * - TRSDOS 6 and LS-DOS 6 (and DOSPLUS IV) are Model 4 DOSes.
@@ -79,7 +127,8 @@ export function chooseBootModel(fileSystem: KnownFloppyFileSystem | undefined, f
     }
 
     const name = fileSystem.nameAndVersion;
-    if (TRSDOS_6_DOS_NAME.test(name) || name.startsWith("DOSPLUS IV")) {
+    const dosModel = modelOfDos(fileSystem.dosName);
+    if (dosModel === 4) {
         return { model: 4, reason: name + " is a Model 4 DOS" };
     }
 
@@ -91,7 +140,7 @@ export function chooseBootModel(fileSystem: KnownFloppyFileSystem | undefined, f
             return { model: 1, reason: name + " is a Model I DOS" };
 
         case TrsdosVersion.V2_3:
-            if (name.startsWith("TRSDOS 2.")) {
+            if (dosModel === 1) {
                 return { model: 1, reason: name + " is a Model I DOS" };
             }
             return chooseModelByDensity(name, floppy.getGeometry().modalDataDensity);

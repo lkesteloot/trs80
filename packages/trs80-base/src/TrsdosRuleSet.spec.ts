@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {decodeTrsdos, TrsdosVersion} from "./Trsdos.js";
+import {decodeTrsdos, type Trsdos, TrsdosVersion} from "./Trsdos.js";
 import {
     identifyTrsdosRuleSet,
     parseTrsdosRuleSet,
@@ -11,103 +11,149 @@ import {
     trsdosRuleSetToString,
 } from "./TrsdosRuleSet.js";
 import {makeTrsdos23TestDisk} from "./TrsdosTestDisk.js";
+import {DosFamily, type DosName, dosNameToString, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
+
+/**
+ * A TRSDOS release's name, for short.
+ */
+function trsdos(version: string): DosName {
+    return makeDosName(DosFamily.TRSDOS, version);
+}
+
+/**
+ * Give a decoded disk another DOS name, to test what's decided from the name.
+ */
+function withDosName(trsdos: Trsdos, dosName: DosName): Trsdos {
+    Object.defineProperty(trsdos, "dosName", {value: dosName});
+    return trsdos;
+}
 
 /**
  * Names of DOSes on the 2.3 layout, and the rule set each follows (undefined for none).
  */
-const LAYOUT_2_3_NAMES: [string, TrsdosRuleSet | undefined][] = [
-    ["TRSDOS 2.0", TrsdosRuleSet.TRSDOS_2],
-    ["TRSDOS 2.1", TrsdosRuleSet.TRSDOS_2],
-    ["TRSDOS 2.1C", TrsdosRuleSet.TRSDOS_2],
-    ["TRSDOS 2.2", TrsdosRuleSet.TRSDOS_2],
-    ["TRSDOS 2.3", TrsdosRuleSet.TRSDOS_2],
-    ["TRSDOS 2.x", TrsdosRuleSet.TRSDOS_2],
-    ["TRSDOS 2.2-2.3", TrsdosRuleSet.TRSDOS_2],
-    ["TRSDOS 2.3B", undefined],
-    ["TRSDOS 3.0", undefined],
-    ["LDOS 5.0.0", TrsdosRuleSet.LDOS_5],
-    ["LDOS 5.1.4", TrsdosRuleSet.LDOS_5],
-    ["LDOS 5.3.1", TrsdosRuleSet.LDOS_5],
-    ["LDOS 5.1", TrsdosRuleSet.LDOS_5],
-    ["LDOS 5.3", TrsdosRuleSet.LDOS_5],
-    ["LDOS 5.1.0-5.1.1", TrsdosRuleSet.LDOS_5],
-    ["LS-DOS 6.2.0", TrsdosRuleSet.TRSDOS_6],
-    ["LS-DOS 6.3", TrsdosRuleSet.TRSDOS_6],
-    ["LS-DOS 6.3.0", TrsdosRuleSet.TRSDOS_6],
-    ["LS-DOS 6.3.1", TrsdosRuleSet.TRSDOS_6],
-    ["TRSDOS 6.0.0", TrsdosRuleSet.TRSDOS_6],
-    ["TRSDOS 6.0", TrsdosRuleSet.TRSDOS_6],
-    ["TRSDOS 6.2.1", TrsdosRuleSet.TRSDOS_6],
-    ["TRSDOS 6.2", TrsdosRuleSet.TRSDOS_6],
-    ["TRSDOS 6.1.1-6.1.2", TrsdosRuleSet.TRSDOS_6],
-    ["DOSPLUS 3.1", TrsdosRuleSet.DOSPLUS],
-    ["DOSPLUS 3.2.1", TrsdosRuleSet.DOSPLUS],
-    ["DOSPLUS 3.4a", TrsdosRuleSet.DOSPLUS],
-    ["DOSPLUS 3.5", TrsdosRuleSet.DOSPLUS],
-    ["DOSPLUS 3.3", TrsdosRuleSet.DOSPLUS],
-    ["DOSPLUS 3.2.1-3.4", undefined],
-    ["DOSPLUS 3.1-3.2", undefined],
-    ["DOSPLUS 4.0", undefined],
-    ["DOSPLUS II A.00", undefined],
-    ["DOSPLUS IV 1.0", undefined],
-    ["DOSPLUS IV", undefined],
-    ["DOSPLUS", undefined],
-    ["NEWDOS/80 v2.0", undefined],
-    ["NEWDOS/80 v2.0-2.74", undefined],
-    ["Big Five BFLOADER", undefined],
-    ["NEWDOS 2.1", undefined],
-    ["MultiDOS 1.6", undefined],
-    ["VTOS 4.0", undefined],
-    ["Super Utility+ 3.1 data disk", undefined],
-    ["Unknown DOS", undefined],
+const LAYOUT_2_3_NAMES: [DosName, TrsdosRuleSet | undefined][] = [
+    [makeDosName(DosFamily.TRSDOS, "2.0"), TrsdosRuleSet.TRSDOS_2],
+    [makeDosName(DosFamily.TRSDOS, "2.1"), TrsdosRuleSet.TRSDOS_2],
+    [makeDosName(DosFamily.TRSDOS, "2.1C"), TrsdosRuleSet.TRSDOS_2],
+    [makeDosName(DosFamily.TRSDOS, "2.2"), TrsdosRuleSet.TRSDOS_2],
+    [makeDosName(DosFamily.TRSDOS, "2.3"), TrsdosRuleSet.TRSDOS_2],
+    [makeDosName(DosFamily.TRSDOS, "2.x"), TrsdosRuleSet.TRSDOS_2],
+    [makeDosName(DosFamily.TRSDOS, "2.2", "2.3"), TrsdosRuleSet.TRSDOS_2],
+    [makeDosName(DosFamily.TRSDOS, "2.3B"), undefined],
+    [makeDosName(DosFamily.TRSDOS, "3.0"), undefined],
+    [makeDosName(DosFamily.LDOS, "5.0.0"), TrsdosRuleSet.LDOS_5],
+    [makeDosName(DosFamily.LDOS, "5.1.4"), TrsdosRuleSet.LDOS_5],
+    [makeDosName(DosFamily.LDOS, "5.3.1"), TrsdosRuleSet.LDOS_5],
+    [makeDosName(DosFamily.LDOS, "5.1"), TrsdosRuleSet.LDOS_5],
+    [makeDosName(DosFamily.LDOS, "5.3"), TrsdosRuleSet.LDOS_5],
+    [makeDosName(DosFamily.LDOS, "5.1.0", "5.1.1"), TrsdosRuleSet.LDOS_5],
+    [makeDosName(DosFamily.LS_DOS, "6.2.0"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.LS_DOS, "6.3"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.LS_DOS, "6.3.0"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.LS_DOS, "6.3.1"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.TRSDOS, "6.0.0"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.TRSDOS, "6.0"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.TRSDOS, "6.2.1"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.TRSDOS, "6.2"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.TRSDOS, "6.1.1", "6.1.2"), TrsdosRuleSet.TRSDOS_6],
+    [makeDosName(DosFamily.DOSPLUS, "3.1"), TrsdosRuleSet.DOSPLUS],
+    [makeDosName(DosFamily.DOSPLUS, "3.2.1"), TrsdosRuleSet.DOSPLUS],
+    [makeDosName(DosFamily.DOSPLUS, "3.4a"), TrsdosRuleSet.DOSPLUS],
+    [makeDosName(DosFamily.DOSPLUS, "3.5"), TrsdosRuleSet.DOSPLUS],
+    [makeDosName(DosFamily.DOSPLUS, "3.3"), TrsdosRuleSet.DOSPLUS],
+    [{...makeDosName(DosFamily.DOSPLUS, "3.2.1", "3.3", "3.4"), fromPasswordsOnly: true}, undefined],
+    [{...makeDosName(DosFamily.DOSPLUS, "3.1", "3.2"), fromPasswordsOnly: true}, undefined],
+    [makeDosName(DosFamily.DOSPLUS, "4.0"), undefined],
+    [makeDosName(DosFamily.DOSPLUS_II, "A.00"), undefined],
+    [makeDosName(DosFamily.DOSPLUS_IV, "1.0"), undefined],
+    [makeDosName(DosFamily.DOSPLUS_IV), undefined],
+    [makeDosName(DosFamily.DOSPLUS), undefined],
+    [makeDosName(DosFamily.NEWDOS_80, "2.0"), undefined],
+    [makeDosName(DosFamily.NEWDOS_80, "2.0", "2.5", "2.74"), undefined],
+    [makeDosName(DosFamily.BFLOADER), undefined],
+    [makeDosName(DosFamily.NEWDOS, "2.1"), undefined],
+    [makeDosName(DosFamily.MULTIDOS, "1.6"), undefined],
+    [makeDosName(DosFamily.VTOS, "4.0"), undefined],
+    [makeDosName(DosFamily.SUPER_UTILITY_PLUS, "3.1"), undefined],
+    [makeDosName(DosFamily.UNKNOWN), undefined],
 ];
 
 /**
  * Names of DOSes on the TRSDOS 1.3 layout, and the rule set each follows.
  */
-const LAYOUT_1_3_NAMES: [string, TrsdosRuleSet | undefined][] = [
-    ["TRSDOS 1.1", TrsdosRuleSet.TRSDOS_1_3],
-    ["TRSDOS 1.3", TrsdosRuleSet.TRSDOS_1_3],
-    ["TRSDOS 1.3.2", TrsdosRuleSet.TRSDOS_1_3],
-    ["TRSDOS 1.3I", TrsdosRuleSet.TRSDOS_1_3],
-    ["TRSDOS 1.4", TrsdosRuleSet.TRSDOS_1_3],
-    ["TRSDOS 1.5", TrsdosRuleSet.TRSDOS_1_3],
-    ["TRSDOS 1.x", TrsdosRuleSet.TRSDOS_1_3],
-    ["SuperDOS 1.3", undefined],
-    ["DOS500 1.3", undefined],
-    ["RAPIDOS 1.3", undefined],
-    ["Unknown DOS", undefined],
+const LAYOUT_1_3_NAMES: [DosName, TrsdosRuleSet | undefined][] = [
+    [makeDosName(DosFamily.TRSDOS, "1.1"), TrsdosRuleSet.TRSDOS_1_3],
+    [makeDosName(DosFamily.TRSDOS, "1.3"), TrsdosRuleSet.TRSDOS_1_3],
+    [makeDosName(DosFamily.TRSDOS, "1.3.2"), TrsdosRuleSet.TRSDOS_1_3],
+    [makeDosName(DosFamily.TRSDOS, "1.3I"), TrsdosRuleSet.TRSDOS_1_3],
+    [makeDosName(DosFamily.TRSDOS, "1.4"), TrsdosRuleSet.TRSDOS_1_3],
+    [makeDosName(DosFamily.TRSDOS, "1.5"), TrsdosRuleSet.TRSDOS_1_3],
+    [makeDosName(DosFamily.TRSDOS, "1.x"), TrsdosRuleSet.TRSDOS_1_3],
+    [makeDosName(DosFamily.SUPERDOS, "1.3"), undefined],
+    [makeDosName(DosFamily.DOS500, "1.3"), undefined],
+    [makeDosName(DosFamily.RAPIDOS, "1.3"), undefined],
+    [makeDosName(DosFamily.UNKNOWN), undefined],
 ];
 
 describe("ruleSetForDosName", () => {
     it("maps the names on the 2.3 layout", () => {
         for (const [name, expected] of LAYOUT_2_3_NAMES) {
-            expect(ruleSetForDosName(name, TrsdosVersion.V2_3), name).to.equal(expected);
+            expect(ruleSetForDosName(name, TrsdosVersion.V2_3), dosNameToString(name)).to.equal(expected);
         }
     });
 
     it("maps the names on the 1.3 layout", () => {
         for (const [name, expected] of LAYOUT_1_3_NAMES) {
-            expect(ruleSetForDosName(name, TrsdosVersion.V1_3), name).to.equal(expected);
+            expect(ruleSetForDosName(name, TrsdosVersion.V1_3), dosNameToString(name)).to.equal(expected);
         }
     });
 
     it("maps TRSDOS 2.7 and 2.8 on the 2.7 layout, and nothing else", () => {
-        for (const name of ["TRSDOS 2.7DD", "TRSDOS 2.7SD", "TRSDOS 2.8.0", "TRSDOS 2.8", "TRSDOS 2.7"]) {
-            expect(ruleSetForDosName(name, TrsdosVersion.V2_7), name).to.equal(TrsdosRuleSet.TRSDOS_2_7);
+        for (const version of ["2.7DD", "2.7SD", "2.8.0", "2.8", "2.7"]) {
+            expect(ruleSetForDosName(trsdos(version), TrsdosVersion.V2_7), version).to.equal(TrsdosRuleSet.TRSDOS_2_7);
         }
-        for (const name of ["TRSDOS 2.77D", "TRSDOS 2.3", "TRSDOS 2.x", "LDOS 5.3"]) {
-            expect(ruleSetForDosName(name, TrsdosVersion.V2_7), name).to.be.undefined;
+        for (const name of [trsdos("2.77D"), trsdos("2.3"), trsdos("2.x"), makeDosName(DosFamily.LDOS, "5.3")]) {
+            expect(ruleSetForDosName(name, TrsdosVersion.V2_7), dosNameToString(name)).to.be.undefined;
         }
     });
 
     it("rejects a name whose layout doesn't fit its rule set", () => {
-        expect(ruleSetForDosName("LDOS 5.1.4", TrsdosVersion.V1_3)).to.be.undefined;
-        expect(ruleSetForDosName("TRSDOS 2.3", TrsdosVersion.V1_3)).to.be.undefined;
-        expect(ruleSetForDosName("TRSDOS 1.3", TrsdosVersion.V2_3)).to.be.undefined;
-        expect(ruleSetForDosName("TRSDOS 6.2.0", TrsdosVersion.V2_7)).to.be.undefined;
-        expect(ruleSetForDosName("TRSDOS 2.8.0", TrsdosVersion.V2_3)).to.be.undefined;
-        expect(ruleSetForDosName("TRSDOS 2.7DD", TrsdosVersion.V1_3)).to.be.undefined;
+        expect(ruleSetForDosName(makeDosName(DosFamily.LDOS, "5.1.4"), TrsdosVersion.V1_3)).to.be.undefined;
+        expect(ruleSetForDosName(trsdos("2.3"), TrsdosVersion.V1_3)).to.be.undefined;
+        expect(ruleSetForDosName(trsdos("1.3"), TrsdosVersion.V2_3)).to.be.undefined;
+        expect(ruleSetForDosName(trsdos("6.2.0"), TrsdosVersion.V2_7)).to.be.undefined;
+        expect(ruleSetForDosName(trsdos("2.8.0"), TrsdosVersion.V2_3)).to.be.undefined;
+        expect(ruleSetForDosName(trsdos("2.7DD"), TrsdosVersion.V1_3)).to.be.undefined;
+    });
+
+    it("needs every release in a list to have the same rule set", () => {
+        expect(ruleSetForDosName(makeDosName(DosFamily.TRSDOS, "2.3", "2.3B"), TrsdosVersion.V2_3)).to.be.undefined;
+        expect(ruleSetForDosName(makeDosName(DosFamily.TRSDOS, "2.3", "6.2"), TrsdosVersion.V2_3)).to.be.undefined;
+    });
+
+    it("goes by the passwords flag, not by how many releases there are", () => {
+        const dosplus = makeDosName(DosFamily.DOSPLUS, "3.2.1", "3.3", "3.4");
+        expect(ruleSetForDosName(dosplus, TrsdosVersion.V2_3)).to.equal(TrsdosRuleSet.DOSPLUS);
+        expect(ruleSetForDosName({...dosplus, fromPasswordsOnly: true}, TrsdosVersion.V2_3)).to.be.undefined;
+        const single = {...makeDosName(DosFamily.DOSPLUS, "3.3"), fromPasswordsOnly: true};
+        expect(ruleSetForDosName(single, TrsdosVersion.V2_3)).to.be.undefined;
+    });
+
+    it("gives a name with another candidate family a rule set only if both have the same one", () => {
+        // Two families with different rule sets: neither one's rules are safe.
+        const ldosOrTrsdos = {...makeDosName(DosFamily.LDOS, "5.3.1"), or: trsdos("2.3")};
+        expect(ruleSetForDosName(ldosOrTrsdos, TrsdosVersion.V2_3)).to.be.undefined;
+        // One with rules and one without.
+        const ldosOrMultiDos = {...makeDosName(DosFamily.LDOS, "5.3.1"), or: makeDosName(DosFamily.MULTIDOS, "5.11")};
+        expect(ruleSetForDosName(ldosOrMultiDos, TrsdosVersion.V2_3)).to.be.undefined;
+        const multiDosOrLdos = {...makeDosName(DosFamily.MULTIDOS, "5.11"), or: makeDosName(DosFamily.LDOS, "5.3.1")};
+        expect(ruleSetForDosName(multiDosOrLdos, TrsdosVersion.V2_3)).to.be.undefined;
+        // Two names for the same rules.
+        const trsdosOrLsdos = {...trsdos("6.2"), or: makeDosName(DosFamily.LS_DOS, "6.3.1")};
+        expect(ruleSetForDosName(trsdosOrLsdos, TrsdosVersion.V2_3)).to.equal(TrsdosRuleSet.TRSDOS_6);
+        // As the decoder names these, where neither family has rules.
+        const multiDosOrEsoteric = {...makeDosName(DosFamily.MULTIDOS, "5.11"), or: makeDosName(DosFamily.ESOTERIC, "2.12")};
+        expect(ruleSetForDosName(multiDosOrEsoteric, TrsdosVersion.V2_3)).to.be.undefined;
     });
 });
 
@@ -120,20 +166,17 @@ describe("identifyTrsdosRuleSet", () => {
 
     it("doesn't recognize a disk of an unknown DOS", () => {
         const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]))!;
-        Object.defineProperty(trsdos, "nameAndVersion", {value: "Unknown DOS"});
-        expect(identifyTrsdosRuleSet(trsdos)).to.eql({ruleSet: undefined, recognized: false});
+        expect(identifyTrsdosRuleSet(withDosName(trsdos, UNKNOWN_DOS_NAME))).to.eql({ruleSet: undefined, recognized: false});
     });
 
     it("doesn't recognize a disk named only by the utility that formatted it", () => {
         const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]))!;
-        Object.defineProperty(trsdos, "nameAndVersion", {value: "Super Utility+ 3.1 data disk"});
-        expect(identifyTrsdosRuleSet(trsdos)).to.eql({ruleSet: undefined, recognized: false});
+        expect(identifyTrsdosRuleSet(withDosName(trsdos, makeDosName(DosFamily.SUPER_UTILITY_PLUS, "3.1")))).to.eql({ruleSet: undefined, recognized: false});
     });
 
     it("recognizes a DOS that we have no rules for", () => {
         const trsdos = decodeTrsdos(makeTrsdos23TestDisk([]))!;
-        Object.defineProperty(trsdos, "nameAndVersion", {value: "TRSDOS 2.3B"});
-        expect(identifyTrsdosRuleSet(trsdos)).to.eql({ruleSet: undefined, recognized: true});
+        expect(identifyTrsdosRuleSet(withDosName(trsdos, makeDosName(DosFamily.TRSDOS, "2.3B")))).to.eql({ruleSet: undefined, recognized: true});
     });
 });
 

@@ -1,6 +1,7 @@
 import {assertNever} from "z80-base";
 import {BasicDialect} from "./BasicDialect.js";
-import {isUnknownDosName, type Trsdos, TRSDOS_6_DOS_NAME, TrsdosVersion} from "./Trsdos.js";
+import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
+import {DosFamily, type DosName, type DosVersion, isUnknownDosName} from "./DosName.js";
 
 /**
  * The rules of the DOS that a disk is written under. The TRSDOS 2.3 family's DOSes share a layout
@@ -156,65 +157,118 @@ export function trsdosRuleSetLayout(ruleSet: TrsdosRuleSet): TrsdosVersion {
     }
 }
 
-/**
- * One row of the table that maps a decoded DOS name to a rule set.
- */
-interface DosNameRule {
-    /**
-     * Matches the names of the DOSes that follow the rule set (see {@link Trsdos.nameAndVersion}).
-     */
-    readonly pattern: RegExp;
+// The TRSDOS 2.x releases that follow TRSDOS 2.3's rules (2.1C is a variant of 2.1), including the
+// data disks that only know their GAT says 0x21. Not 2.3B, which differs from 2.3 (see "TRSDOS 2.3B"
+// in FLOPPY_FORMATS.md).
+const TRSDOS_2_VERSIONS = ["2.0", "2.1", "2.2", "2.3", "2.0C", "2.1C", "2.2C", "2.3C", "2.x"];
 
-    /**
-     * The rules that those DOSes follow.
-     */
-    readonly ruleSet: TrsdosRuleSet;
+// Tandy's 2.7DD, 2.7SD and 2.8.0 as their banners name them, and the data disks that only know
+// their layout.
+const TRSDOS_2_7_VERSIONS = ["2.7", "2.7DD", "2.7SD", "2.8", "2.8.0"];
+
+/**
+ * The rule set that one release of a family follows, or undefined if we have none. Among the
+ * releases that have none on purpose:
+ *
+ * - TRSDOS 2.3B, which differs from 2.3, and TRSDOS 3.0, a later rewrite.
+ * - DOSPLUS 4.0, which is another machine's, and DOSPLUS with no version, which is 4.0 or 3.4a.
+ *
+ * @param family the DOS's family.
+ * @param version one of its releases.
+ */
+function ruleSetForVersion(family: DosFamily, version: DosVersion): TrsdosRuleSet | undefined {
+    const isOneOf = (texts: readonly string[]) => texts.some(text => version.is(text));
+    switch (family) {
+        case DosFamily.TRSDOS:
+            switch (version.major()) {
+                case 1:
+                    // Every 1.x, including the data disks that only know they're "TRSDOS 1.x".
+                    return TrsdosRuleSet.TRSDOS_1_3;
+                case 2:
+                    return isOneOf(TRSDOS_2_VERSIONS) ? TrsdosRuleSet.TRSDOS_2 :
+                        isOneOf(TRSDOS_2_7_VERSIONS) ? TrsdosRuleSet.TRSDOS_2_7 : undefined;
+                case 6:
+                    return TrsdosRuleSet.TRSDOS_6;
+                default:
+                    return undefined;
+            }
+
+        case DosFamily.LDOS:
+            return version.major() === 5 ? TrsdosRuleSet.LDOS_5 : undefined;
+
+        case DosFamily.LS_DOS:
+            // TRSDOS 6 under another name.
+            return version.major() === 6 ? TrsdosRuleSet.TRSDOS_6 : undefined;
+
+        case DosFamily.DOSPLUS:
+            return version.major() === 3 ? TrsdosRuleSet.DOSPLUS : undefined;
+
+        case DosFamily.UNKNOWN:
+        case DosFamily.VTOS:
+        case DosFamily.DOSPLUS_II:
+        case DosFamily.DOSPLUS_IV:
+        case DosFamily.NEWDOS:
+        case DosFamily.NEWDOS_PLUS:
+        case DosFamily.NEWDOS_80:
+        case DosFamily.NEWDOS_86:
+        case DosFamily.NEWDOS_90:
+        case DosFamily.G_DOS:
+        case DosFamily.H_DOS:
+        case DosFamily.DOUBLEDOS:
+        case DosFamily.MULTIDOS:
+        case DosFamily.ESOTERIC:
+        case DosFamily.Z_DOS:
+        case DosFamily.ULTRADOS:
+        case DosFamily.RAPIDOS:
+        case DosFamily.SUPERDOS:
+        case DosFamily.DOS500:
+        case DosFamily.SUPER_UTILITY_PLUS:
+        case DosFamily.BFLOADER:
+            // DOSPLUS IV and II are other machines; SuperDOS, DOS500 and RAPIDOS, on the TRSDOS 1.3
+            // layout, have rules that haven't been checked; the rest we haven't written rules for.
+            return undefined;
+
+        default:
+            assertNever(family);
+    }
 }
 
 /**
- * The DOS names that we have rules for. A name that no row matches is a DOS we don't write, which
- * includes these on purpose:
- *
- * - TRSDOS 2.3B, which differs from 2.3 (see "TRSDOS 2.3B" in FLOPPY_FORMATS.md).
- * - TRSDOS 3.0, a later rewrite.
- * - SuperDOS and the other DOSes on the TRSDOS 1.3 layout, whose rules haven't been checked.
- * - DOSPLUS 4.0, DOSPLUS IV and DOSPLUS II, which are other machines or other rules.
- * - The DOS "DOSPLUS" with no version, which is DOSPLUS 4.0 or 3.4a.
- * - DOSPLUS's version ranges ("DOSPLUS 3.2.1-3.4"), which only BOOT/SYS's passwords name, on disks
- *   whose GAT byte 0xCB isn't DOSPLUS's, so something other than DOSPLUS wrote that GAT.
- *
- * The patterns are anchored, so that a longer name (such as "TRSDOS 2.3B") doesn't match a
- * shorter one's row.
+ * The rule set of a name's first candidate (ignoring {@link DosName.or}), or undefined if we have
+ * none, or its releases don't all have the same one, or it doesn't fit the layout.
  */
-const DOS_NAME_RULES: readonly DosNameRule[] = [
-    // 2.0 through 2.3 (2.1C is a variant of 2.1), the data disks that only know their GAT says 0x21,
-    // and those whose boot sector says the 2.2 or 2.3 FORMAT wrote them.
-    {pattern: /^TRSDOS 2\.(?:[0-3]C?|x|2-2\.3)$/, ruleSet: TrsdosRuleSet.TRSDOS_2},
-    // Every 1.x, including the data disks that only know they're "TRSDOS 1.x".
-    {pattern: /^TRSDOS 1\./, ruleSet: TrsdosRuleSet.TRSDOS_1_3},
-    {pattern: /^LDOS 5\./, ruleSet: TrsdosRuleSet.LDOS_5},
-    {pattern: TRSDOS_6_DOS_NAME, ruleSet: TrsdosRuleSet.TRSDOS_6},
-    // A single version, not a range, which only passwords give (see above).
-    {pattern: /^DOSPLUS 3\.[^-]+$/, ruleSet: TrsdosRuleSet.DOSPLUS},
-    // 2.7DD, 2.7SD and 2.8.0 as their banners name them, and the data disks that only know their layout.
-    {pattern: /^TRSDOS 2\.(?:7(?:DD|SD)?|8(?:\.0)?)$/, ruleSet: TrsdosRuleSet.TRSDOS_2_7},
-];
-
-/**
- * The rule set for a DOS name, as {@link Trsdos.nameAndVersion} builds it, on a layout. (Exported
- * for tests.)
- *
- * @param name the DOS's name and version, such as "LDOS 5.1.4".
- * @param layout the layout the disk was decoded with.
- * @returns the rule set, or undefined if we have none for that name, or the name matches a
- * rule set that the layout doesn't fit (an "LDOS" on the 1.3 layout is not one we know).
- */
-export function ruleSetForDosName(name: string, layout: TrsdosVersion): TrsdosRuleSet | undefined {
-    const rule = DOS_NAME_RULES.find(rule => rule.pattern.test(name));
-    if (rule === undefined || trsdosRuleSetLayout(rule.ruleSet) !== layout) {
+function ruleSetForFirstCandidate(name: DosName, layout: TrsdosVersion): TrsdosRuleSet | undefined {
+    // DOSPLUS's passwords on a GAT that another DOS wrote don't make the disk DOSPLUS's to write.
+    if (name.fromPasswordsOnly === true || name.versions.length === 0) {
         return undefined;
     }
-    return rule.ruleSet;
+
+    const ruleSets = name.versions.map(version => ruleSetForVersion(name.family, version));
+    const ruleSet = ruleSets[0];
+    if (ruleSet === undefined || ruleSets.some(other => other !== ruleSet) ||
+        trsdosRuleSetLayout(ruleSet) !== layout) {
+
+        return undefined;
+    }
+    return ruleSet;
+}
+
+/**
+ * The rule set for a DOS, as {@link Trsdos.dosName} gives it, on a layout. This is the only place
+ * that maps a DOS to its rules. (Exported for tests.)
+ *
+ * @param name the DOS, such as LDOS 5.1.4.
+ * @param layout the layout the disk was decoded with.
+ * @returns the rule set, or undefined if we have none for that DOS, or its rule set doesn't fit the
+ * layout (an "LDOS" on the 1.3 layout is not one we know), or the name has candidates
+ * ({@link DosName.or}) that don't all have the same one.
+ */
+export function ruleSetForDosName(name: DosName, layout: TrsdosVersion): TrsdosRuleSet | undefined {
+    const ruleSet = ruleSetForFirstCandidate(name, layout);
+    if (name.or === undefined) {
+        return ruleSet;
+    }
+    return ruleSetForDosName(name.or, layout) === ruleSet ? ruleSet : undefined;
 }
 
 /**
@@ -238,8 +292,8 @@ export interface TrsdosDosIdentity {
  */
 export function identifyTrsdosRuleSet(trsdos: Trsdos): TrsdosDosIdentity {
     return {
-        ruleSet: ruleSetForDosName(trsdos.nameAndVersion, trsdos.version),
-        recognized: !isUnknownDosName(trsdos.nameAndVersion),
+        ruleSet: ruleSetForDosName(trsdos.dosName, trsdos.version),
+        recognized: !isUnknownDosName(trsdos.dosName),
     };
 }
 

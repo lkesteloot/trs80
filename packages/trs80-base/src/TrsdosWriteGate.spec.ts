@@ -6,6 +6,7 @@ import {decodeTrsdos, Trsdos, TrsdosVersion} from "./Trsdos.js";
 import {TrsdosFindingKind} from "./TrsdosCheck.js";
 import {formatTrsdosDataDisk, TrsdosFormatDos} from "./TrsdosFormat.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
+import {DosFamily, type DosName, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
 import {makeTrsdos23TestDisk, type TestDiskOptions, type TestFile} from "./TrsdosTestDisk.js";
 import {
     directorySizesTried,
@@ -81,8 +82,8 @@ function kinds(blockers: TrsdosWriteBlocker[]): TrsdosWriteBlockerKind[] {
 /**
  * Make the decoded disk claim to be from another DOS, since the test disk can't carry a banner.
  */
-function withName(trsdos: Trsdos, nameAndVersion: string): Trsdos {
-    Object.defineProperty(trsdos, "nameAndVersion", {value: nameAndVersion});
+function withName(trsdos: Trsdos, dosName: DosName): Trsdos {
+    Object.defineProperty(trsdos, "dosName", {value: dosName});
     return trsdos;
 }
 
@@ -223,7 +224,7 @@ describe("the gate's DOS rules", () => {
     });
 
     it("lets the user name the rules of a disk that doesn't say", () => {
-        const unknown = withName(decode(), "Unknown DOS");
+        const unknown = withName(decode(), UNKNOWN_DOS_NAME);
         const gate = evaluateTrsdosWriteGate(unknown, TrsdosRuleSet.LDOS_5);
         expect(gate.blockers).to.eql([]);
         expect(gate.ruleSet).to.equal(TrsdosRuleSet.LDOS_5);
@@ -231,7 +232,7 @@ describe("the gate's DOS rules", () => {
     });
 
     it("blocks a disk that doesn't say which DOS wrote it", () => {
-        const gate = evaluateTrsdosWriteGate(withName(decode(), "Unknown DOS"));
+        const gate = evaluateTrsdosWriteGate(withName(decode(), UNKNOWN_DOS_NAME));
         expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
         expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.UNKNOWN_DOS]);
         expect(gate.blockers[0].forceable).to.equal(false);
@@ -240,7 +241,7 @@ describe("the gate's DOS rules", () => {
     });
 
     it("treats a Super Utility+ data disk like one that doesn't say", () => {
-        const name = "Super Utility+ 3.1 data disk";
+        const name = makeDosName(DosFamily.SUPER_UTILITY_PLUS, "3.1");
         const blocked = evaluateTrsdosWriteGate(withName(decode(), name));
         expect(kinds(blocked.blockers)).to.eql([TrsdosWriteBlockerKind.UNKNOWN_DOS]);
         const named = evaluateTrsdosWriteGate(withName(decode(), name), TrsdosRuleSet.DOSPLUS);
@@ -249,7 +250,7 @@ describe("the gate's DOS rules", () => {
     });
 
     it("blocks a DOS that we have no rules for", () => {
-        const gate = evaluateTrsdosWriteGate(withName(decode(), "TRSDOS 2.3B"));
+        const gate = evaluateTrsdosWriteGate(withName(decode(), makeDosName(DosFamily.TRSDOS, "2.3B")));
         expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
         expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.UNSUPPORTED_DOS]);
         expect(gate.blockers[0].forceable).to.equal(false);
@@ -257,7 +258,7 @@ describe("the gate's DOS rules", () => {
     });
 
     it("blocks a rule set that differs from the disk's DOS, and lets it be forced", () => {
-        const gate = evaluateTrsdosWriteGate(withName(decode(), "LDOS 5.1.4"), TrsdosRuleSet.TRSDOS_2);
+        const gate = evaluateTrsdosWriteGate(withName(decode(), makeDosName(DosFamily.LDOS, "5.1.4")), TrsdosRuleSet.TRSDOS_2);
         expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
         expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.DOS_MISMATCH]);
         expect(gate.blockers[0].forceable).to.equal(true);
@@ -266,7 +267,7 @@ describe("the gate's DOS rules", () => {
     });
 
     it("blocks a rule set that differs from an unsupported DOS", () => {
-        const gate = evaluateTrsdosWriteGate(withName(decode(), "DOSPLUS IV 1.0"), TrsdosRuleSet.DOSPLUS);
+        const gate = evaluateTrsdosWriteGate(withName(decode(), makeDosName(DosFamily.DOSPLUS_IV, "1.0")), TrsdosRuleSet.DOSPLUS);
         expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.DOS_MISMATCH]);
     });
 
@@ -281,7 +282,7 @@ describe("the gate's DOS rules", () => {
 
     it("skips the DOS rules for a layout we can't write", () => {
         const lumpy = reinterpret(decode(), TrsdosVersion.V2_3, 4, 4);
-        const gate = evaluateTrsdosWriteGate(withName(lumpy, "Unknown DOS"));
+        const gate = evaluateTrsdosWriteGate(withName(lumpy, UNKNOWN_DOS_NAME));
         expect(kinds(gate.blockers)).not.to.include(TrsdosWriteBlockerKind.UNKNOWN_DOS);
         expect(kinds(gate.blockers)).to.include(TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT);
     });
@@ -289,20 +290,20 @@ describe("the gate's DOS rules", () => {
     it("puts the DOS blockers after the layout and before the rest", () => {
         const disk = makeTrsdos23TestDisk([]);
         disk.setMountedWriteProtected(true);
-        const gate = evaluateTrsdosWriteGate(withName(decodeTrsdos(disk)!, "Unknown DOS"));
+        const gate = evaluateTrsdosWriteGate(withName(decodeTrsdos(disk)!, UNKNOWN_DOS_NAME));
         expect(kinds(gate.blockers)).to.eql([TrsdosWriteBlockerKind.UNKNOWN_DOS, TrsdosWriteBlockerKind.WRITE_PROTECTED]);
     });
 
     it("decides from the name and layout alone in evaluateDosRules", () => {
-        const verdict = evaluateDosRules("LS-DOS 6.3", TrsdosVersion.V2_3, undefined);
+        const verdict = evaluateDosRules(makeDosName(DosFamily.LS_DOS, "6.3"), TrsdosVersion.V2_3, undefined);
         expect(verdict.ruleSet).to.equal(TrsdosRuleSet.TRSDOS_6);
         expect(verdict.blockers).to.eql([]);
 
-        const named = evaluateDosRules("LS-DOS 6.3", TrsdosVersion.V2_3, TrsdosRuleSet.TRSDOS_6);
+        const named = evaluateDosRules(makeDosName(DosFamily.LS_DOS, "6.3"), TrsdosVersion.V2_3, TrsdosRuleSet.TRSDOS_6);
         expect(named.blockers).to.eql([]);
 
         // The layout mismatch is reported alone, not also as a DOS mismatch.
-        const wrongLayout = evaluateDosRules("TRSDOS 1.3", TrsdosVersion.V1_3, TrsdosRuleSet.LDOS_5);
+        const wrongLayout = evaluateDosRules(makeDosName(DosFamily.TRSDOS, "1.3"), TrsdosVersion.V1_3, TrsdosRuleSet.LDOS_5);
         expect(wrongLayout.blockers.map(blocker => blocker.kind)).to.eql([TrsdosWriteBlockerKind.RULE_SET_LAYOUT_MISMATCH]);
     });
 });
@@ -410,12 +411,12 @@ describe("gatProvesSides", () => {
     });
 
     it("is false for a DOS whose GAT bit isn't reliable", () => {
-        expect(gatProvesSides(withName(decodeTwoSidedLdos(), "DOSPLUS 3.4"))).to.equal(false);
-        expect(gatProvesSides(withName(decodeTwoSidedLdos(), "TRSDOS 2.x"))).to.equal(false);
+        expect(gatProvesSides(withName(decodeTwoSidedLdos(), makeDosName(DosFamily.DOSPLUS, "3.4")))).to.equal(false);
+        expect(gatProvesSides(withName(decodeTwoSidedLdos(), makeDosName(DosFamily.TRSDOS, "2.x")))).to.equal(false);
     });
 
     it("is false when the disk doesn't name its DOS", () => {
-        expect(gatProvesSides(withName(decodeTwoSidedLdos(), "Unknown DOS"))).to.equal(false);
+        expect(gatProvesSides(withName(decodeTwoSidedLdos(), UNKNOWN_DOS_NAME))).to.equal(false);
     });
 });
 

@@ -9,7 +9,8 @@ import {ImdFloppyDisk} from "./ImdFloppyDisk.js";
 import {Jv1FloppyDisk, JV1_DIRECTORY_CYLINDER} from "./Jv1FloppyDisk.js";
 import {Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {SectorOverlay} from "./SectorOverlay.js";
-import {isUnknownDosName, type Trsdos, TrsdosVersion} from "./Trsdos.js";
+import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
+import {type DosName, dosNameToString, isUnknownDosName} from "./DosName.js";
 import {
     checkTrsdos,
     type TrsdosCheckResult,
@@ -502,15 +503,16 @@ export interface TrsdosDosRulesVerdict {
  * Without a rule set from the user, the disk has to name a DOS that we have rules for. With one,
  * its layout has to be the disk's, and the disk may only name that DOS or none.
  *
- * @param nameAndVersion the DOS the disk names ({@link Trsdos.nameAndVersion}).
+ * @param dosName the DOS the disk names ({@link Trsdos.dosName}).
  * @param layout the layout the disk was decoded with.
  * @param givenRuleSet the user's choice, if any.
  */
-export function evaluateDosRules(nameAndVersion: string, layout: TrsdosVersion,
+export function evaluateDosRules(dosName: DosName, layout: TrsdosVersion,
                                  givenRuleSet: TrsdosRuleSet | undefined): TrsdosDosRulesVerdict {
 
-    const identifiedRuleSet = ruleSetForDosName(nameAndVersion, layout);
-    const recognized = !isUnknownDosName(nameAndVersion);
+    const identifiedRuleSet = ruleSetForDosName(dosName, layout);
+    const recognized = !isUnknownDosName(dosName);
+    const nameAndVersion = dosNameToString(dosName);
 
     if (givenRuleSet !== undefined) {
         const ruleSetLayout = trsdosRuleSetLayout(givenRuleSet);
@@ -610,7 +612,7 @@ export function evaluateTrsdosWriteGate(trsdos: Trsdos, givenRuleSet?: TrsdosRul
     // The rules are for a layout we can write, as with the sides and the directory size below.
     let ruleSet = givenRuleSet ?? identifyTrsdosRuleSet(trsdos).ruleSet;
     if (unsupported === undefined) {
-        const verdict = evaluateDosRules(trsdos.nameAndVersion, trsdos.version, givenRuleSet);
+        const verdict = evaluateDosRules(trsdos.dosName, trsdos.version, givenRuleSet);
         blockers.push(...verdict.blockers);
         ruleSet = verdict.ruleSet;
     }

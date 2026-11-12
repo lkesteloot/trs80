@@ -1032,7 +1032,7 @@ Strongest first. Measured on all 274 images.
    diskette", MultiDOS's banner and "(c) CEC." (Cosmopolitan Electronics).
 4. **GAT byte 0xCB**, last; see "GAT bytes 0xCB-0xCD".
 
-`Trsdos.nameAndVersion` follows that order, using the boot sector's code only where
+`Trsdos.dosName` follows that order, using the boot sector's code only where
 "Boot sector code by DOS" below says it helps (November 2026). What it needed beyond the above:
 
 - **Search every system file, not just SYS0, and join the load records first.**
@@ -1196,13 +1196,13 @@ boot track text and GAT 0xCB, as above):
   text on the boot track, unless the directory has a BOOT/SYS entry: GRL's TRSDOS 1.5 also
   keeps 1.3's byte, but its FORMAT adds that entry (Ira), which 1.1-1.4 don't write.
 - **MultiDOS 4.01 on and Esoteric**, whose data disks carry nothing else: named
-  "MultiDOS/Esoteric", since their FORMATs write the same disk, or by DIR/SYS's
+  "MultiDOS or Esoteric", since their FORMATs write the same disk, or by DIR/SYS's
   passwords where they're a release's (see "MultiDOS, Z'DOS and Esoteric"). The 1.5-1.6
   stub with 0x15 or 0x16 at 0xCB is "MultiDOS 1.5" or "MultiDOS 1.6"; the 1.7-2.10 stub
   is "MultiDOS 2.10" with 0xFF, "MultiDOS 2.00" with 0x17 and a BOOT/SYS entry (which
-  FORMAT adds from 2.00 on), and "MultiDOS 1.7-1.71" with 0x17 and none. The other
+  FORMAT adds from 2.00 on), and "MultiDOS 1.7, 1.7.1 or 1.71" with 0x17 and none. The other
   stubs name "MultiDOS".
-- **NEWDOS/80 2.x data disks** are "NEWDOS/80 v2.0-2.74", since 2.0, 2.5 and 2.74 write
+- **NEWDOS/80 2.x data disks** are "NEWDOS/80 v2.0, v2.5 or v2.74", since 2.0, 2.5 and 2.74 write
   the same disk (Ira), and 3.0's Model III boot sector (`CD 47 43`) makes "NEWDOS/80 v3.0".
 - **Big Five's BFLOADER** boots a game with no DOS (Ira: sector 0 seeks to cylinder 2,
   reads an address, and loads a /CMD-format module; on the dual-boot disks sector 1 is a
@@ -1224,7 +1224,7 @@ boot track text and GAT 0xCB, as above):
 - **TRSDOS 2.2 and 2.3 data disks** by boot byte 0x7D. Ira: TRSDOS 2.0, 2.1, NEWDOS 2.1,
   NEWDOS 3.0, NEWDOS+ 3.0 and NEWDOS+++ all write 0xE1 there; only the 2.2 and 2.3 FORMATs
   write 0xB6. 0xB6 is on four of our disks, all data disks with 0x21 at 0xCB, which are now
-  "TRSDOS 2.2-2.3". 0xE1 isn't used, since every 2.2 and 2.3 system disk has it too (their
+  "TRSDOS 2.2 or 2.3". 0xE1 isn't used, since every 2.2 and 2.3 system disk has it too (their
   boot sector is the system's, not FORMAT's), and so does any disk whose boot sector was
   copied from one, including the TRSDOS 2.3 data disks that our own formatter writes.
 - **RapidDOS for the Model 4**, which writes TRSDOS 6's GAT, by its boot sector.
@@ -1246,15 +1246,15 @@ boot track text and GAT 0xCB, as above):
   source disk's GAT; LDOS 5.1.3 masters have 0x34, and what first wrote it is unknown.
 - **TRSDOS 6 data disks' release**, from the stub and the version: the 6.0.0 and 6.01.00
   stub with 0x60 or 0x61 is "TRSDOS 6.0.0" or "TRSDOS 6.1.0", the 6.01.01 stub with 0x61
-  is "TRSDOS 6.1.1-6.1.2", and 6.02.00 and 6.02.01 write the same disk ("TRSDOS 6.2").
+  is "TRSDOS 6.1.1 or 6.1.2", and 6.02.00 and 6.02.01 write the same disk ("TRSDOS 6.2").
   A stub and version that disagree (the 6.0 stub with 0x62) give only the version.
 - **LS-DOS 6.3's release**, from the media block and BOOT/SYS's update password, which
   change together: "631" and `F4 71` is 6.3.1, "LSI" and `F6 37` is 6.3.0 (see Ira's
   table below). Anything else is "LS-DOS 6.3". The trs80gp blanks and telanoc's disks,
   which telanoc says were made with 6.3.1, are 6.3.1.
 - **LDOS's third digit** on disks with LDOS's boot sector and no banner, from BOOT/SYS's
-  passwords: `20 C2 52 C3` is "LDOS 5.1.0-5.1.1"; `AE 01 F5 9C` is 5.1.4 if BOOT/SYS's
-  unused extents are padded with 0xFF (byte 0x1A), otherwise "LDOS 5.1.2-5.1.3". With
+  passwords: `20 C2 52 C3` is "LDOS 5.1.0 or 5.1.1"; `AE 01 F5 9C` is 5.1.4 if BOOT/SYS's
+  unused extents are padded with 0xFF (byte 0x1A), otherwise "LDOS 5.1.2 or 5.1.3". With
   0x53, DIR/SYS's `AE 01 96 42` or BOOT/SYS's `5F 01` is 5.3.1, and anything else is
   "LDOS 5.3" (5.3.0's passwords are also on 5.3.1 disks). Checked against the banners of
   our system disks: byte 0x1A is 0xFF on 34 disks, all 5.1.4; 0x00 on 36 5.1.2 and
@@ -1264,10 +1264,10 @@ boot track text and GAT 0xCB, as above):
   there is one, still names the system. telanoc's LDOS data disks, which it says were
   made with 5.3.1, come out 5.3.1.
 - **DOSPLUS from BOOT/SYS's passwords**, where 0xCB names nothing: `7E B2 82 2A` is
-  "DOSPLUS 3.1-3.2" and `27 0B 82 2A` "DOSPLUS 3.2.1-3.4" (Ira's FORMAT table below; on our
-  disks they're only on DOSPLUS). That names three `lanhawk` disks with 0x50 at 0xCB.
-  These ranges are read-only: something other than DOSPLUS wrote the GAT, so the
-  DOSPLUS rules for writing aren't proven on them.
+  "DOSPLUS 3.1 or 3.2" and `27 0B 82 2A` "DOSPLUS 3.2.1, 3.3 or 3.4" (Ira's FORMAT table
+  below; on our disks they're only on DOSPLUS). That names three `lanhawk` disks with 0x50
+  at 0xCB. These names are read-only (`DosName.fromPasswordsOnly`): something other than
+  DOSPLUS wrote the GAT, so the DOSPLUS rules for writing aren't proven on them.
 - **DOSPLUS IV** also by BOOT/SYS's update password `DD 23` with 0x60, which TRSDOS 6
   never writes (DOSPLUS 3.5 writes it too).
 - **G-DOS and H-DOS**, German NEWDOS/80 2.1b builds, rename BOOT/SYS to GDOS/SYS or
@@ -1443,8 +1443,8 @@ of the banner as text beside it. All three keep it in the resident system file:
   and FORMAT's says 0x10, 0x17 or 0xFF for whole ranges of versions (Ira's table
   in "Boot sector code by DOS").
 - **Data disks** are named from FORMAT's stub and 0xCB, as "Boot sector code by
-  DOS" says, which gives a version or a range ("MultiDOS 1.6", "MultiDOS
-  1.7-1.71"). FORMAT also leaves AUTO text in the GAT (`MULTIDOS format.(c) '85
+  DOS" says, which gives a version or a list of them ("MultiDOS 1.6", "MultiDOS
+  1.7, 1.7.1 or 1.71"). FORMAT also leaves AUTO text in the GAT (`MULTIDOS format.(c) '85
   C. E. C.`), which DIR/SYS covers, so the bare "MultiDOS" banner matches data
   disks too; the stub refines it.
 - **DIR/SYS's passwords name the release** that copied its system to a disk, since
