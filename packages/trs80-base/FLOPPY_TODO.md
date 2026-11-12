@@ -196,7 +196,10 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       5.3.0 can't be told from a 5.3.1 disk with 5.3.0's passwords, and the third
       digit names the formatter, not the system later used; TRSDOS 6.02.00 and
       6.02.01 write the same data disk, as NEWDOS/80 2.0, 2.5 and 2.74 do; 0x80
-      is "NEWDOS/80 v1.0" though Ira hasn't measured whether 1.1 also writes it;
+      is "NEWDOS/80 v1.0" though Ira hasn't measured whether 1.1 also writes it
+      (our two 1.1 system disks have 0x80 and 1.0's boot sector, `00 FE xx F3 31
+      04 42`, which Ira takes as 1.0, so on a data disk "v1.0 or v1.1" may be
+      right);
       Super Utility+'s data disks are named by its version, not a DOS (see
       "Super Utility+" in `FLOPPY_FORMATS.md`); and Kim Watt's 0x50 and the
       Planet Makruk disks are "Unknown DOS". NEWDOS/80 v2's banner gives "2.X"

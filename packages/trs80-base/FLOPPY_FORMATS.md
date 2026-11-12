@@ -1296,7 +1296,18 @@ boot track text and GAT 0xCB, as above):
   never writes (DOSPLUS 3.5 writes it too).
 - **G-DOS and H-DOS**, German NEWDOS/80 2.1b builds, rename BOOT/SYS to GDOS/SYS or
   HDOS/SYS and DIR/SYS to INHALT/SYS, and keep NEWDOS/80's banner. (Ira gives their boot
-  sector's byte 2 as 0x18, but that's the directory cylinder, not a fingerprint.)
+  sector's byte 2 as 0x18, but that's the directory cylinder, not a fingerprint: NEWDOS/80
+  lets the directory go anywhere, and our NEWDOS/80 disks have it at 0x1F, 0x24, 0x28, 0x30
+  and 0x3D too.) Ira names G-DOS as 2.1b and H-DOS as 2.3c, but our one G-DOS disk carries
+  "G-DOS Version 2.1b" only in a sector outside its files, and GDOS/SYS says just "G-DOS",
+  so the name has no version.
+- **DOSPLUS's system and its FORMAT.** The boot sector and the banner name the system last
+  put on the disk, and 0xCB names the FORMAT (Ira). Where they differ (a 3.4 system on a
+  disk with 0x35 or 0x40, a 3.5 system with 0x34, on eleven disks of ours), the name is the
+  system's, from the banner (or with 0x40, from 3.4's boot sector): it's what boots and
+  what the disk's files were written under, and the GAT still holds the formatter. Data disks have no banner, and their
+  boot sector is FORMAT's stub, so 0xCB names them, which agrees with it. We don't show
+  both, since a single name is what `info` and the write rules use.
 - **TRSDOS 3.0** writes 0xFC at 0xCB (its system disks are already named by banner).
 
 What didn't hold up on used disks:
