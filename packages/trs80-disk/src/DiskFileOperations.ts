@@ -5,8 +5,8 @@ import {
     trsdosFilenameToString, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString,
     type TrsdosProtectionNames,
 } from "trs80-base";
-import {DiskError} from "./DiskError.js";
 import {importHostFile, stemOf} from "./DiskImport.js";
+import {DiskError, DiskErrorKind} from "./DiskError.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {selectByPatterns, systemWildcardHint} from "./Patterns.js";
 import {pluralizeWithCount} from "./Plural.js";
@@ -33,7 +33,7 @@ export function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[
     }, false);
     if (unmatchedPattern !== undefined) {
         throw new DiskError("No file on the disk matches \"" + unmatchedPattern + "\"" +
-            systemWildcardHint(unmatchedOnlySystem));
+            systemWildcardHint(unmatchedOnlySystem), DiskErrorKind.NOT_FOUND);
     }
 
     return selected;
@@ -99,7 +99,7 @@ export function renameFile(session: DiskSession, oldText: string, newText: strin
     session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
         const dirEntry = writer.findFile(oldName);
         if (dirEntry === undefined) {
-            throw new DiskError("No file on the disk is called " + oldName);
+            throw new DiskError("No file on the disk is called " + oldName, DiskErrorKind.NOT_FOUND);
         }
         // The name as it is on the disk.
         shownOldName = dirEntry.getFilename("/");

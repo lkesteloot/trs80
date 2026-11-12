@@ -16,7 +16,8 @@ import {
 import {toHexWord} from "z80-base";
 import {colors, type Style} from "./colors.js";
 import {hexdumpBinary} from "./hexdump.js";
-import {captureLogs, type InfileJson, printInfilesJson, toBase64} from "./json.js";
+import {captureLogs, type InfileJson, infileErrorJson, printInfilesJson, toBase64} from "./json.js";
+import {hostFileError} from "./utils.js";
 
 const STYLE_FOR_LETTER: { [letter: string]: Style } = {
     "-": colors.muted,
@@ -320,8 +321,8 @@ function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: b
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
-    } catch (e: any) {
-        return { infile: filename, sectors: [], error: "Can't open file: " + e.message };
+    } catch (e) {
+        return { infile: filename, sectors: [], ...infileErrorJson(hostFileError("Can't open file", e)) };
     }
 
     const file = decodeTrs80File(buffer, { filename });

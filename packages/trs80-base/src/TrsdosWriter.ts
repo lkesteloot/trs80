@@ -119,14 +119,33 @@ const PROTECTED_RAW_FILENAMES = ["BOOT    SYS", "DIR     SYS"];
  * and the caller must discard it.
  */
 export class TrsdosWriteError extends Error {
+    /** What kind of refusal this is, for callers that act on the cause. */
+    public readonly kind: TrsdosWriteErrorKind;
+
     /**
      * @param message what went wrong.
+     * @param kind what kind of refusal this is.
      */
-    constructor(message: string) {
+    constructor(message: string, kind: TrsdosWriteErrorKind = TrsdosWriteErrorKind.OTHER) {
         super(message);
         this.name = "TrsdosWriteError";
+        this.kind = kind;
     }
 }
+
+/**
+ * The kinds of {@link TrsdosWriteError}, for the causes that a caller may want to tell apart without
+ * reading the message.
+ */
+export enum TrsdosWriteErrorKind {
+    /** Anything not listed below. */
+    OTHER,
+
+    /** There's no room for the file: too few free granules, or no free directory entries. */
+    NO_SPACE,
+}
+
+/**
 
 /**
  * What to do differently when adding a file.
@@ -1189,7 +1208,17 @@ export class TrsdosWriter {
             }
         }
         if (typeof extents === "string") {
-            throw new TrsdosWriteError(`Can't ${verb} ${name}: ${extents.charAt(0).toLowerCase()}${extents.substring(1)}`);
+            // Fragmentation can also stop it, so say it's out of space only if the granules are too few.
+            const available = this.freeGranules.slice();
+            if (replacing !== undefined) {
+                for (const index of this.releasableGranules(replacing)) {
+                    available[index] = true;
+                }
+            }
+            const freeCount = available.filter(free => free).length;
+            const kind = freeCount < neededGranules ? TrsdosWriteErrorKind.NO_SPACE : TrsdosWriteErrorKind.OTHER;
+            throw new TrsdosWriteError(`Can't ${verb} ${name}: ${extents.charAt(0).toLowerCase()}${extents.substring(1)}`,
+                kind);
         }
         if (extents.some(extent => extent.lump > 0xFD)) {
             throw new TrsdosWriteError(`Can't ${verb} ${name}: it would need a lump that a directory entry can't hold`);
@@ -1250,7 +1279,10 @@ export class TrsdosWriter {
                 const reason = `${moreDecs.charAt(0).toLowerCase()}${moreDecs.substring(1)}`;
                 const fragmentation = extentGroups.length > 1 ?
                     `the free space is fragmented, so it needs ${extents.length} extents; ` : "";
-                throw new TrsdosWriteError(`Can't ${verb} ${name}: ${fragmentation}${reason}`);
+                // The slots can be in any sector, so if the HIT can be read, the directory is full.
+                const hitReadable = typeof trsdos.getHitInfo() !== "string";
+                throw new TrsdosWriteError(`Can't ${verb} ${name}: ${fragmentation}${reason}`,
+                    hitReadable ? TrsdosWriteErrorKind.NO_SPACE : TrsdosWriteErrorKind.OTHER);
             }
             decs.push(...moreDecs);
         }

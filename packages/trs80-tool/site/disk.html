@@ -758,7 +758,7 @@ Type "help" for a list of commands, and "quit" to leave.
             <h2 id="json">JSON output</h2>
             <p>With <code>--json</code>, <code>disk</code> prints one JSON object that describes the whole run, for a
             program to read, instead of the text that it prints for a person. Nothing else goes to standard output, and
-            the exit code is 1 if anything failed, as without it. It works with commands on the command line and
+            the <a href="./#exit-status">exit status</a> is the same as without it. It works with commands on the command line and
             with a script on standard input, but not with the interactive prompt, so it needs one or the other. Like the
             other options for the whole run, it goes before the first command.</p>
             <div><pre><code>% trs80-tool disk games.dmk --json create ldos-5.3 : add hello.bas : free
@@ -821,13 +821,15 @@ Type "help" for a list of commands, and "quit" to leave.
             in order, the path that the changes were <code>saved</code> to (or <code>null</code>), the
             <code>warnings</code> that the decoders logged, and, only with <code>--dry-run</code>,
             <code>wouldHaveChanged</code>. If something stops the run before or between commands, such as an image that
-            can’t be opened or a script line with a syntax error, its message is in a top-level <code>error</code>.</p>
+            can’t be opened or a script line with a syntax error, its message is in a top-level <code>error</code>,
+            and its <a href="./#exit-status">exit status</a> in <code>errorCode</code>.</p>
             <p>Each entry in <code>commands</code> has the command as typed, its <code>name</code> (without aliases, so
             <code>add</code> for <code>put</code>), the <code>messages</code> that the text mode would have printed, line
             by line and without colors, and any <code>warnings</code>. The messages are for showing to people; their
             wording may change, so a program should use the <code>result</code> instead, which has the same
             information in separate, named fields and is different for each command (<code>name</code> says which).
-            A command that fails has an <code>error</code> and no <code>result</code>, and it is the last entry,
+            A command that fails has an <code>error</code>, its <a href="./#exit-status">exit status</a> in
+            <code>errorCode</code> (such as 5 for a write-protected image), and no <code>result</code>, and it is the last entry,
             since the rest of the commands don’t run and nothing is saved. A syntax error on the command line is the
             exception: it’s found before anything runs, and is printed as text, as without <code>--json</code>.</p>
             <p>The commands that have no use in a program are refused: <code>boot</code> needs a terminal, and

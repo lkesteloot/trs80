@@ -221,6 +221,27 @@
             <code>description</code>, <code>readOnlyReason</code>, <code>error</code>, and <code>warnings</code>,
             can change their wording. There is no version number.</p>
 
+            <p id="exit-status">The exit status says why a command failed, so that a script doesn’t have to read the
+            message. A failure whose cause is clear gets its own code; anything else is 1, so a script that only
+            checks for non-zero works as before. With <code>--json</code>, each input file’s entry (and each failed
+            <code>disk</code> command) has the same number in an <code>errorCode</code> field, next to its
+            <code>error</code>. When several input files fail with different codes, the status is 1.</p>
+            <table class="flags">
+                <tr><td><code>0</code></td><td>Success.</td></tr>
+                <tr><td><code>1</code></td><td>Any error not listed below.</td></tr>
+                <tr><td><code>3</code></td><td>Not found: a host file, the image, a partition, or a file on the
+                    disk (<code>disk games.dmk extract NOPE.BAS</code>).</td></tr>
+                <tr><td><code>4</code></td><td>The disk can’t be written: there are no DOS rules or no writer for it,
+                    its layout is in doubt, or several of the reasons for 5 and 6 apply at once.</td></tr>
+                <tr><td><code>5</code></td><td>The image is write-protected, and that’s all that’s in the way
+                    (<code>--force</code> writes anyway).</td></tr>
+                <tr><td><code>6</code></td><td>The file system is damaged, and that’s all that’s in the way
+                    (<a href="disk.html#repair"><code>disk repair</code></a> may fix it).</td></tr>
+                <tr><td><code>7</code></td><td>There’s no room on the disk: too few free granules, or no free
+                    directory entries.</td></tr>
+                <tr><td><code>130</code></td><td>The pager was closed before the output ended.</td></tr>
+            </table>
+
             <h3 id="dir"><code>dir</code></h3>
 
             <p>The <code>dir</code> command shows the contents of an archive file. Archives

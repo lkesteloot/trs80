@@ -1,4 +1,5 @@
 import {colors} from "../colors.js";
+import {type ToolError, toolErrorExitCode, ToolExitCode} from "../utils.js";
 import type {DiskCommandJson, DiskCommandResultJson, DiskRunJson} from "./DiskJson.js";
 
 // Where the output of the "disk" command goes: printed as text, or collected for --json.
@@ -46,7 +47,7 @@ export interface DiskRunOutput {
     /**
      * Record that the command that began last failed. Called before the error is thrown, in JSON mode only.
      */
-    failCommand(message: string): void;
+    failCommand(error: ToolError): void;
     /** Where output that belongs to no command goes, such as the report of the save at the end of the run. */
     readonly outside: DiskOutput;
     /** Say that the commands are over, so that what comes next belongs to no command. */
@@ -92,9 +93,9 @@ export class JsonDiskRun implements DiskRunOutput {
     /** Whether --dry-run has kept changes from being saved. */
     private dryRunWouldHaveChanged = false;
     /** Why the run stopped outside any command, or undefined. */
-    private runError: string | undefined = undefined;
-    /** Whether a command failed. */
-    private commandFailed = false;
+    private runError: ToolError | undefined = undefined;
+    /** The exit status of the command that failed, or undefined if none did. */
+    private commandExitCode: ToolExitCode | undefined = undefined;
 
     public readonly outside: DiskOutput = {
         json: true,
@@ -126,14 +127,15 @@ export class JsonDiskRun implements DiskRunOutput {
     /**
      * Record that the current command failed, and so has no result.
      */
-    public failCommand(message: string): void {
+    public failCommand(error: ToolError): void {
         const command = this.current;
         if (command === undefined) {
             throw new Error("No command to fail");
         }
-        command.error = message;
+        command.error = error.message;
+        command.errorCode = toolErrorExitCode(error);
         delete command.result;
-        this.commandFailed = true;
+        this.commandExitCode = command.errorCode;
     }
 
     /**
@@ -170,22 +172,25 @@ export class JsonDiskRun implements DiskRunOutput {
     /**
      * Record that the run stopped for a reason that isn't a command's failure.
      */
-    public setError(message: string): void {
-        this.runError = message;
+    public setError(error: ToolError): void {
+        this.runError = error;
     }
 
     /**
      * Whether a command failed, in which case its error has been recorded.
      */
     public hasFailedCommand(): boolean {
-        return this.commandFailed;
+        return this.commandExitCode !== undefined;
     }
 
     /**
-     * Whether anything went wrong, which makes the exit code 1.
+     * The exit status for the run: the failed command's, or the run's error's, or success if neither.
      */
-    public hasError(): boolean {
-        return this.commandFailed || this.runError !== undefined;
+    public exitCode(): ToolExitCode {
+        if (this.commandExitCode !== undefined) {
+            return this.commandExitCode;
+        }
+        return this.runError === undefined ? ToolExitCode.SUCCESS : toolErrorExitCode(this.runError);
     }
 
     /**
@@ -203,7 +208,10 @@ export class JsonDiskRun implements DiskRunOutput {
             saved: this.savedPathname,
             ...(dryRun ? {wouldHaveChanged: this.dryRunWouldHaveChanged} : {}),
             warnings: [...logWarnings, ...this.warnings],
-            ...(this.runError === undefined ? {} : {error: this.runError}),
+            ...(this.runError === undefined ? {} : {
+                error: this.runError.message,
+                errorCode: toolErrorExitCode(this.runError),
+            }),
         };
         return json;
     }

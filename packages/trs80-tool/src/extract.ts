@@ -4,7 +4,7 @@ import { type XenixTarExtent } from "trs80-base";
 import { expandContainer, type InputFile, selectInputFiles, XenixTarInputFile } from "./InputFile.js";
 import { filesInfileJson, printInfilesJson } from "./json.js";
 import {
-    DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, systemWildcardHint, ToolError,
+    DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, systemWildcardHint, ToolError, ToolErrorKind,
 } from "./utils.js";
 
 /**
@@ -236,7 +236,8 @@ export function extractInputFiles(allFiles: InputFile[], containerName: string, 
         const isDirectory = fs.statSync(unmatchedPattern, { throwIfNoEntry: false })?.isDirectory() === true;
         throw new ToolError("No file in \"" + containerName + "\" matches \"" + unmatchedPattern + "\"" +
             systemWildcardHint(unmatchedOnlySystem) +
-            (isDirectory ? ". To extract into that directory, use --out-dir " + unmatchedPattern : ""));
+            (isDirectory ? ". To extract into that directory, use --out-dir " + unmatchedPattern : ""),
+            ToolErrorKind.NOT_FOUND);
     }
 
     fs.mkdirSync(outDirname, { recursive: true });
@@ -322,7 +323,7 @@ export function extractOneInputFile(allFiles: InputFile[], containerName: string
         selectInputFiles(allFiles, patterns, wildcardsMatchSystemFiles);
     if (unmatchedPattern !== undefined) {
         throw new ToolError("No file in \"" + containerName + "\" matches \"" + unmatchedPattern + "\"" +
-            systemWildcardHint(unmatchedOnlySystem));
+            systemWildcardHint(unmatchedOnlySystem), ToolErrorKind.NOT_FOUND);
     }
     if (inFiles.length !== 1) {
         throw new ToolError("--as needs exactly one file, but " + patterns.map(p => "\"" + p + "\"").join(", ") +

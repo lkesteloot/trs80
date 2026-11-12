@@ -64,6 +64,8 @@ export interface DiskRunJson {
      * entry instead. A script's error starts with "Line N: ".
      */
     error?: string;
+    /** The exit status that the error gives, such as 3 for an image that isn't there. Only when error is. */
+    errorCode?: number;
 }
 
 /**
@@ -80,6 +82,11 @@ export interface DiskCommandJson {
     warnings: string[];
     /** Missing if the command worked. Otherwise its error, and it was the last command run. */
     error?: string;
+    /**
+     * The exit status that the error gives, such as 5 for a write-protected image (the list is in
+     * "trs80-tool --help"). Only when error is.
+     */
+    errorCode?: number;
     /**
      * The command's own result, whose type is the one that {@link DiskCommandResultsJson} has under the
      * command's name. Missing if the command failed or has no result ("quit", "abort", "help").

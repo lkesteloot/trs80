@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import {exceptionToString, pluralizeWithCount} from "./utils.js";
+import {exceptionToString, hostFileError, pluralizeWithCount} from "./utils.js";
 import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
@@ -12,7 +12,7 @@ import {
 import {assertNever} from "z80-base";
 import {
     captureLogs, type ContentType, contentTypeOf, floppyFormatOf, type FloppyFormat, type InfileJson,
-    printInfilesJson, sha256,
+    infileErrorJson, printInfilesJson, sha256,
 } from "./json.js";
 
 /**
@@ -576,8 +576,8 @@ function infoFileToJson(filename: string, verbose: boolean): Omit<InfoJson, "war
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
-    } catch (e: any) {
-        return { infile: filename, error: "Can't open file: " + e.message };
+    } catch (e) {
+        return { infile: filename, ...infileErrorJson(hostFileError("Can't open file", e)) };
     }
 
     const json: Omit<InfoJson, "warnings"> = {

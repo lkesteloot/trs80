@@ -12,7 +12,7 @@ import {
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {
-    ToolError, type PatternSelection, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
+    hostFileError, ToolError, type PatternSelection, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
     xenixTarTypeLetter, selectByPatterns,
 } from "./utils.js";
 import {colorDate} from "./lscolors.js";
@@ -823,8 +823,8 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
     let buffer;
     try {
         buffer = fs.readFileSync(inFilename);
-    } catch (e: any) {
-        throw new ToolError("Can't open \"" + inFilename + "\": " + e.message);
+    } catch (e) {
+        throw hostFileError("Can't open \"" + inFilename + "\"", e);
     }
 
     if (ext.toLowerCase() === ".wav") {

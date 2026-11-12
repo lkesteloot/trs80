@@ -22,7 +22,10 @@ import {DISK_COMMANDS, DISK_GLOBAL_OPTIONS} from "./disk/DiskCommands.js";
 import {diskOverviewSections, renderHelpSections} from "./disk/DiskHelp.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed } from "trs80-base";
-import {expandInputPattern, expandInputPatterns, ToolError, wordsAfterSubcommand, wrapMessage} from "./utils.js";
+import {
+    EXIT_CODES_HELP, expandInputPattern, expandInputPatterns, ToolError, toolErrorExitCode, wordsAfterSubcommand,
+    wrapMessage,
+} from "./utils.js";
 import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
 
 /**
@@ -31,6 +34,8 @@ import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
 const PROGRAM_OPTIONS_WITH_VALUES = ["--color", "--trace", "--log-file"];
 
 const HELP_TEXT = `
+${EXIT_CODES_HELP}
+
 See this page for full documentation: https://my-trs-80.com/tool
 `
 
@@ -383,7 +388,7 @@ async function main(): Promise<void> {
     } catch (e) {
         if (e instanceof ToolError) {
             console.log(wrapMessage(e.message));
-            process.exitCode = 1;
+            process.exitCode = toolErrorExitCode(e);
         } else if (!(e instanceof PagerClosedError)) {
             error = e;
         }

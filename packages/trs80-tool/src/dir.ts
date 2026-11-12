@@ -1,7 +1,7 @@
 import {expandFile, InputFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
 import {colorError, colorFilename, colorSize} from "./lscolors.js";
-import {ToolError} from "./utils.js";
+import {combineExitCodes, ToolError, toolErrorExitCode, type ToolExitCode} from "./utils.js";
 import {filesInfileJson, printInfilesJson} from "./json.js";
 
 /**
@@ -20,6 +20,7 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
 
     const multipleInputFiles = inFilenames.length > 1;
     let firstFile = true;
+    const exitCodes: ToolExitCode[] = [];
 
     for (const inFilename of inFilenames) {
         if (multipleInputFiles) {
@@ -36,10 +37,13 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
                 throw e;
             }
             console.log(colorError(e.message));
-            process.exitCode = 1;
+            exitCodes.push(toolErrorExitCode(e));
         }
         firstFile = false;
         await pagerYield();
+    }
+    if (exitCodes.length > 0) {
+        process.exitCode = combineExitCodes(exitCodes);
     }
 }
 

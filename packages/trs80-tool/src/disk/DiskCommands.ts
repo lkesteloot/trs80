@@ -10,7 +10,7 @@ import {type ExtractedFile, extractInputFiles, extractOneInputFile} from "../ext
 import {floppyDetailLines, floppyGeometryToJson, osToJson} from "../info.js";
 import {selectInputFiles} from "../InputFile.js";
 import {fileToJson} from "../json.js";
-import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError} from "../utils.js";
+import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {BOOT_COMMAND} from "./DiskBoot.js";
@@ -149,7 +149,7 @@ const DIR_COMMAND: DiskCommand = {
             selectInputFiles(allFiles, command.args, command.options.has("--system"));
         if (unmatchedPattern !== undefined) {
             throw new ToolError("No file on the disk matches \"" + unmatchedPattern + "\"" +
-                systemWildcardHint(unmatchedOnlySystem));
+                systemWildcardHint(unmatchedOnlySystem), ToolErrorKind.NOT_FOUND);
         }
         for (const line of dirListingLines(selected)) {
             out.line(line);
@@ -515,7 +515,7 @@ const ADD_COMMAND: DiskCommand = {
         for (const pathname of expandInputPatterns(command.args)) {
             const stat = fs.statSync(pathname, {throwIfNoEntry: false});
             if (stat === undefined) {
-                throw new ToolError("Can't read \"" + pathname + "\": no such file");
+                throw new ToolError("Can't read \"" + pathname + "\": no such file", ToolErrorKind.NOT_FOUND);
             }
             if (!stat.isFile()) {
                 throw new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
@@ -1082,7 +1082,7 @@ export async function runDiskCommands(session: DiskSession, commands: ParsedDisk
             }
         } catch (e) {
             if (runOutput.json && e instanceof ToolError) {
-                runOutput.failCommand(e.message);
+                runOutput.failCommand(e);
             }
             throw e;
         }

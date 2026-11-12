@@ -3,14 +3,96 @@ import path from "path";
 import {
     ModelIITrsdosDirEntry, Trs80File, TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, XenixTarFile,
     decodeTrs80File } from "trs80-base";
-import {DiskError as ToolError} from "trs80-disk";
+import {DiskError as ToolError, DiskErrorKind as ToolErrorKind} from "trs80-disk";
 import {assertNever} from "z80-base";
 import { AudioFile, readWavFile } from "trs80-cassette";
 
 /**
- * The tool's errors and the disk engine's are one class, so that a single catch handles both.
+ * The tool's errors and the disk engine's are one class, so that a single catch handles both. Its kind
+ * decides the exit status (see {@link toolErrorExitCode}).
  */
-export {DiskError as ToolError} from "trs80-disk";
+export {DiskError as ToolError, DiskErrorKind as ToolErrorKind} from "trs80-disk";
+
+/**
+ * The tool's exit statuses, which scripts can rely on. Anything that fails for a reason not listed exits with
+ * {@link ToolExitCode.GENERAL}. The "--help" text and the site list them too (see EXIT_CODES_HELP).
+ */
+export enum ToolExitCode {
+    SUCCESS = 0,
+    /** Any error not listed below. */
+    GENERAL = 1,
+    /** A host file, the image, a partition, or a file on the disk isn't there. */
+    NOT_FOUND = 3,
+    /** The disk can't be written: no DOS rules or writer for it, its layout is in doubt, or several reasons. */
+    READ_ONLY = 4,
+    /** The image is write-protected (--force writes anyway). */
+    WRITE_PROTECTED = 5,
+    /** The file system is damaged, which only "repair" may write to. */
+    DAMAGED = 6,
+    /** There's no room on the disk: too few free granules, or no free directory entries. */
+    DISK_FULL = 7,
+    /** The pager was closed before the output ended. */
+    PAGER_CLOSED = 130,
+}
+
+/**
+ * The exit codes, for the end of "--help".
+ */
+export const EXIT_CODES_HELP = `Exit status:
+  0    success
+  1    any error not listed below
+  3    not found: a host file, the image, a partition, or a file on the disk
+  4    the disk can't be written (no DOS rules for it, its layout is in doubt, ...)
+  5    the image is write-protected (--force writes anyway)
+  6    the file system is damaged (only "repair" writes to it)
+  7    no room on the disk (too few free granules or directory entries)
+  130  the pager was closed`;
+
+/**
+ * The exit status for a tool error, by its kind.
+ */
+export function toolErrorExitCode(error: ToolError): ToolExitCode {
+    const kind = error.kind;
+    switch (kind) {
+        case ToolErrorKind.GENERAL:
+            return ToolExitCode.GENERAL;
+        case ToolErrorKind.NOT_FOUND:
+            return ToolExitCode.NOT_FOUND;
+        case ToolErrorKind.READ_ONLY:
+            return ToolExitCode.READ_ONLY;
+        case ToolErrorKind.WRITE_PROTECTED:
+            return ToolExitCode.WRITE_PROTECTED;
+        case ToolErrorKind.DAMAGED:
+            return ToolExitCode.DAMAGED;
+        case ToolErrorKind.DISK_FULL:
+            return ToolExitCode.DISK_FULL;
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * The exit status for a run that had several failures, such as one per input file: their common code if
+ * they all have the same one, else {@link ToolExitCode.GENERAL}.
+ *
+ * @param codes the failures' codes, at least one.
+ */
+export function combineExitCodes(codes: ToolExitCode[]): ToolExitCode {
+    return codes.every(code => code === codes[0]) ? codes[0] : ToolExitCode.GENERAL;
+}
+
+/**
+ * The error for a host file that couldn't be read, from the error that Node gave. A file that isn't there
+ * is {@link ToolErrorKind.NOT_FOUND}.
+ *
+ * @param message the start of the message, such as "Can't open \"foo.dsk\"".
+ * @param e what Node threw.
+ */
+export function hostFileError(message: string, e: unknown): ToolError {
+    const code = e instanceof Error && "code" in e ? e.code : undefined;
+    return new ToolError(message + ": " + (e instanceof Error ? e.message : String(e)),
+        code === "ENOENT" ? ToolErrorKind.NOT_FOUND : ToolErrorKind.GENERAL);
+}
 
 /**
  * Text and pattern helpers that live in trs80-disk, re-exported here for the tool's other files.
@@ -306,7 +388,7 @@ function expandInputPatternArg(arg: string): string[] {
         .filter(match => fs.statSync(match, { throwIfNoEntry: false })?.isFile() === true)
         .sort();
     if (matches.length === 0) {
-        throw new ToolError("No files match \"" + arg + "\"");
+        throw new ToolError("No files match \"" + arg + "\"", ToolErrorKind.NOT_FOUND);
     }
 
     return matches;

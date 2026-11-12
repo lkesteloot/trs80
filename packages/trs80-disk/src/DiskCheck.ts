@@ -3,7 +3,7 @@ import {
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError} from "./DiskError.js";
-import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
+import {DiskSession, DiskWritePurpose, writeBlockersErrorKind} from "./DiskSession.js";
 import {pluralizeWithCount} from "./Plural.js";
 
 // The operations behind the "check" and "repair" commands: what's inconsistent in the file system, and
@@ -101,7 +101,8 @@ export function repairDisk(session: DiskSession, options: {freeUnclaimed: boolea
             case TrsdosWriteAccess.REPAIR_ONLY:
                 break;
             case TrsdosWriteAccess.READ_ONLY:
-                throw new DiskError("Can't repair this disk: " + session.getReadOnlyReason());
+                throw new DiskError("Can't repair this disk: " + session.getReadOnlyReason(),
+                    writeBlockersErrorKind(gate.blockers));
             default:
                 assertNever(gate.access);
         }
