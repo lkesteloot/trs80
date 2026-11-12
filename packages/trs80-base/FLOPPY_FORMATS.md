@@ -1169,6 +1169,9 @@ named by the disk's banner or GAT unless noted:
 | TRSDOS 1.x | `FE xx 3E D0 D3 F0 21 02 00 22 EA 43` (1.1: `FE xx 3A D0 00 D3 F0`) | 110, 10 |
 | TRSDOS 2.x, NEWDOS 2.1, 3.0, NEWDOS+ | `00 FE xx F3 31 FC 41 21 E2 42 CD 9A 42 3E 01 32 E1 37` | 113 |
 | TRSDOS 2.3B | `00 FE xx F3 31 FC 41 CD C9 01 3E 01 32 E1 37 3A D8 42` | 3 |
+| TRSDOS 2.7DD and 2.8, system disks | `FE xx 3E 81 32 EE 37` (Tandy's doubler); `FE xx 3E FF 32 EC 37` (Percom's) | 16, 3 |
+| TRSDOS 2.7DD and 2.8, data disks | `FE xx F3 31 71 40 CD C9 01` | 0 |
+| TRSDOS 2.7SD | `FE xx 31 FF 41 3E A0` | 6 |
 | VTOS 3.0 | `00 FE xx F3 31 E0 41 21 E2 42 CD 9A 42 3E 01 32 E1 37` | 25 |
 | LDOS 5 and VTOS 4.0, Model I SD | `00 FE xx F3 31 E0 41 FD 21 00 00` | 97 |
 | LDOS 5, Model I DD | `00 FE xx F3 31 E0 41 FD 21 1C 42` | 6 |
@@ -1327,8 +1330,11 @@ What didn't hold up on used disks:
   password. It's FORMAT's default, which the user can change; two DOSPLUS 3.4 disks have
   E0 42. Not used.
 - **TRSDOS 2.7DD's prefix** (`FE xx F3 31 71 40 CD C9 01 21 04 3E`) matches none of our 20
-  2.7 disks, which start `FE 11 3E FF 32 EC 37` or `FE 11 31 FF 41 3E A0`. The layout
-  names them anyway. DOSPLUS 3.3's sector 1 (`06 0C 21 10 43 7E 23 CD 33 00`) matches 2
+  2.7 disks, because it's the data-disk stub, and ours are all system disks (Ira, #53).
+  Their system boot sectors name the release at bytes 0xF6-0xF8, `00 52 08` for 2.7DD and
+  `01 21 58` for 2.8, which agrees with the banner on all 19 of ours that have them;
+  2.7SD's is zeros there. The banner names these disks first; the boot sector names the
+  ones without one, and the stub "TRSDOS 2.7 or 2.8". DOSPLUS 3.3's sector 1 (`06 0C 21 10 43 7E 23 CD 33 00`) matches 2
   of our 30 3.3 disks; 0x33 at 0xCB names them all.
 
 The passwords of BOOT/SYS and DIR/SYS (directory bytes 0x10-0x13, the update password's

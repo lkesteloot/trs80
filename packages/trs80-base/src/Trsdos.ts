@@ -456,6 +456,12 @@ export enum BootSectorDos {
     MULTIDOS_ESOTERIC,
     ULTRADOS,
     RAPIDOS,
+    // TRSDOS 2.7DD's and 2.8's system disks, for Tandy's and Percom's doublers.
+    TRSDOS_2_7,
+    // The data-disk stub of TRSDOS 2.7DD and 2.8.
+    TRSDOS_2_7_STUB,
+    // TRSDOS 2.7SD, the single-density edition.
+    TRSDOS_2_7_SD,
     // Big Five Software's BFLOADER, which boots a game without a DOS.
     BFLOADER,
 }
@@ -528,6 +534,15 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
         case BootSectorDos.RAPIDOS:
             return "RAPIDOS";
 
+        case BootSectorDos.TRSDOS_2_7:
+            return "TRSDOS 2.7 and 2.8";
+
+        case BootSectorDos.TRSDOS_2_7_STUB:
+            return "TRSDOS 2.7 and 2.8 data disks";
+
+        case BootSectorDos.TRSDOS_2_7_SD:
+            return "TRSDOS 2.7SD";
+
         case BootSectorDos.BFLOADER:
             return "Big Five BFLOADER";
 
@@ -590,6 +605,12 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     {dos: BootSectorDos.RAPIDOS, prefix: "FE xx 21 10 43 11 00 3C 01 11 00 ED B0 C3 0D 43"},
     // Model 4.
     {dos: BootSectorDos.RAPIDOS, prefix: "00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43"},
+    // TRSDOS 2.7 and 2.8, with Tandy's doubler.
+    {dos: BootSectorDos.TRSDOS_2_7, prefix: "FE xx 3E 81 32 EE 37"},
+    // With Percom's.
+    {dos: BootSectorDos.TRSDOS_2_7, prefix: "FE xx 3E FF 32 EC 37"},
+    {dos: BootSectorDos.TRSDOS_2_7_STUB, prefix: "FE xx F3 31 71 40 CD C9 01"},
+    {dos: BootSectorDos.TRSDOS_2_7_SD, prefix: "FE xx 31 FF 41 3E A0"},
     // Big Five's game loader, on game disks with no DOS.
     {dos: BootSectorDos.BFLOADER, prefix: "00 FE xx 31 FC 41 CD C9 01 F3 21 EC 37 36 D0 CD A5 42"},
     // Last, since it's mostly zeros.
@@ -652,6 +673,9 @@ function isLdosLineBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.MULTIDOS_ESOTERIC:
         case BootSectorDos.ULTRADOS:
         case BootSectorDos.RAPIDOS:
+        case BootSectorDos.TRSDOS_2_7:
+        case BootSectorDos.TRSDOS_2_7_STUB:
+        case BootSectorDos.TRSDOS_2_7_SD:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -693,6 +717,9 @@ function isMultiDosBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.MULTIDOS_ESOTERIC:
         case BootSectorDos.ULTRADOS:
         case BootSectorDos.RAPIDOS:
+        case BootSectorDos.TRSDOS_2_7:
+        case BootSectorDos.TRSDOS_2_7_STUB:
+        case BootSectorDos.TRSDOS_2_7_SD:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -3207,7 +3234,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 // System disks name their version, such as "TRSDOS version 2.7DD", "2.7SD" or "2.8.0".
                 // The text isn't on the single-density boot track (cylinder 0) but on cylinder 1.
                 const match = this.getFirstDataCylinderText().match(/TRSDOS version (2\.\d[\w.]*)/);
-                return makeDosName(DosFamily.TRSDOS, match === null ? "2.7" : match[1]);
+                return match === null ? this.decodeTrsdos27Release(bootSector) : makeDosName(DosFamily.TRSDOS, match[1]);
             }
 
             default:
@@ -3383,6 +3410,32 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 // whose boot sector isn't Super Utility+'s), and 0x55 (UltraDOS's "U").
                 return this.decodeDosplusFromPasswords(bootSys) ?? UNKNOWN_DOS_NAME;
         }
+    }
+
+    /**
+     * The release of TRSDOS 2.7 or 2.8 on a disk with no banner, from its boot sector, or "TRSDOS
+     * 2.7" if we don't recognize that. See "Boot sector code by DOS" in FLOPPY_FORMATS.md.
+     *
+     * @param bootSector the boot sector, if we recognize it.
+     */
+    private decodeTrsdos27Release(bootSector: {dos: BootSectorDos, data: Uint8Array} | undefined): DosName {
+        if (bootSector?.dos === BootSectorDos.TRSDOS_2_7_SD) {
+            return makeDosName(DosFamily.TRSDOS, "2.7SD");
+        }
+        if (bootSector?.dos === BootSectorDos.TRSDOS_2_7_STUB) {
+            // Their FORMATs write the same stub.
+            return makeDosName(DosFamily.TRSDOS, "2.7", "2.8");
+        }
+        if (bootSector?.dos === BootSectorDos.TRSDOS_2_7) {
+            // The system boot sector names its release at 0xF6-0xF8.
+            if (hexBytesAt(bootSector.data, 0xF6, "00 52 08")) {
+                return makeDosName(DosFamily.TRSDOS, "2.7DD");
+            }
+            if (hexBytesAt(bootSector.data, 0xF6, "01 21 58")) {
+                return makeDosName(DosFamily.TRSDOS, "2.8");
+            }
+        }
+        return makeDosName(DosFamily.TRSDOS, "2.7");
     }
 
     /**

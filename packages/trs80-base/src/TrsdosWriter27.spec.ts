@@ -81,9 +81,11 @@ function readBytes(volume: { readSector(sectorPosition: SectorPosition): { data:
  *
  * @param patch changes the GAT (sector 1 of the directory cylinder) and the HIT (sector 2) before the disk is
  * decoded, or undefined to leave them.
+ * @param options what to put in place of the banner and the boot sector: no banner, and the boot sector's bytes.
  * @return the disk under an overlay, decoded, with a writer under TRSDOS 2.7's rules.
  */
-function make27Fixture(patch?: (gat: Uint8Array, hit: Uint8Array) => void) {
+function make27Fixture(patch?: (gat: Uint8Array, hit: Uint8Array) => void,
+                       options: {noBanner?: boolean, bootSector?: Uint8Array} = {}) {
     const disk = formatTrsdosDataDisk({dos: TrsdosFormatDos.TRSDOS_1_3, cylinders: 35, sides: 1,
         date: new Date(1982, 11, 15)});
     if (typeof disk === "string") {
@@ -131,13 +133,18 @@ function make27Fixture(patch?: (gat: Uint8Array, hit: Uint8Array) => void) {
     patch?.(gat, hit);
 
     const banner = new Uint8Array(256).fill(0xE5);
-    banner.set([..."TRSDOS version 2.8.0  Wed Dec 15, 1982"].map(c => c.charCodeAt(0)), 0x40);
+    if (options.noBanner !== true) {
+        banner.set([..."TRSDOS version 2.8.0  Wed Dec 15, 1982"].map(c => c.charCodeAt(0)), 0x40);
+    }
 
     const setup = new SectorOverlay(disk);
     setup.writeSector(SectorPosition.make(DIR_CYLINDER, 0, 1), gat);
     setup.writeSector(SectorPosition.make(DIR_CYLINDER, 0, 2), hit);
     dirSectors.forEach((bytes, i) => setup.writeSector(SectorPosition.make(DIR_CYLINDER, 0, i + 3), bytes));
     setup.writeSector(SectorPosition.make(1, 0, 13), banner);
+    if (options.bootSector !== undefined) {
+        setup.writeSector(SectorPosition.make(0, 0, 1), options.bootSector);
+    }
     for (const [position, bytes] of sectorData) {
         setup.writeSector(position, bytes);
     }
@@ -437,5 +444,43 @@ describe("TrsdosWriter on TRSDOS 2.7 and 2.8 disks", () => {
     it("refuses to free unclaimed granules", () => {
         const {writer} = make27Fixture();
         expect(() => writer.repair({freeUnclaimed: true})).to.throw(TrsdosWriteError, "system files");
+    });
+});
+
+describe("Trsdos DOS name of TRSDOS 2.7 and 2.8 disks without a banner", () => {
+    /**
+     * Name the DOS of the test disk with no banner and a boot sector that starts with these bytes,
+     * and has these at 0xF6.
+     */
+    function nameOf(prefix: number[], release: number[] = []): string {
+        const bootSector = new Uint8Array(256);
+        bootSector.set(prefix);
+        bootSector.set(release, 0xF6);
+        return make27Fixture(undefined, {noBanner: true, bootSector}).trsdos.nameAndVersion;
+    }
+
+    const TANDY_SYSTEM_BOOT = [0xFE, 0x11, 0x3E, 0x81, 0x32, 0xEE, 0x37];
+    const PERCOM_SYSTEM_BOOT = [0xFE, 0x11, 0x3E, 0xFF, 0x32, 0xEC, 0x37];
+
+    it("names the release from the system boot sector's bytes 0xF6-0xF8", () => {
+        expect(nameOf(TANDY_SYSTEM_BOOT, [0x00, 0x52, 0x08])).to.eql("TRSDOS 2.7DD");
+        expect(nameOf(TANDY_SYSTEM_BOOT, [0x01, 0x21, 0x58])).to.eql("TRSDOS 2.8");
+        expect(nameOf(PERCOM_SYSTEM_BOOT, [0x00, 0x52, 0x08])).to.eql("TRSDOS 2.7DD");
+        expect(nameOf(PERCOM_SYSTEM_BOOT)).to.eql("TRSDOS 2.7");
+    });
+
+    it("names both releases from the data-disk stub, and 2.7SD from its boot sector", () => {
+        expect(nameOf([0xFE, 0x11, 0xF3, 0x31, 0x71, 0x40, 0xCD, 0xC9, 0x01])).to.eql("TRSDOS 2.7 or 2.8");
+        expect(nameOf([0xFE, 0x11, 0x31, 0xFF, 0x41, 0x3E, 0xA0])).to.eql("TRSDOS 2.7SD");
+    });
+
+    it("says 2.7 for a boot sector it doesn't know", () => {
+        expect(nameOf([0x00, 0xFE, 0x11])).to.eql("TRSDOS 2.7");
+    });
+
+    it("still takes the banner first", () => {
+        const bootSector = new Uint8Array(256);
+        bootSector.set([0xFE, 0x11, 0x31, 0xFF, 0x41, 0x3E, 0xA0]);
+        expect(make27Fixture(undefined, {bootSector}).trsdos.nameAndVersion).to.eql("TRSDOS 2.8.0");
     });
 });
