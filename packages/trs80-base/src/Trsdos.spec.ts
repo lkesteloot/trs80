@@ -652,6 +652,15 @@ describe("Trsdos DOS name from the boot sector", () => {
             .to.eql("MultiDOS 6.20 or Esoteric 3.20");
     });
 
+    it("names the Model 4's RAPIDOS by its GAT", () => {
+        const system = [0x00, 0xFE, 0x11, 0x3E, 0x82, 0xD3, 0x84];
+        const stub = [0x00, 0xFE, 0x11, 0x21, 0x11, 0x43, 0x11, 0x00, 0x3C, 0x01, 0x11, 0x00, 0xED, 0xB0, 0xC3, 0x0E, 0x43];
+        expect(nameOf(stub, 0x62)).to.eql("RAPIDOS 2.0");
+        expect(nameOf(stub, 0x60)).to.eql("RAPIDOS 1.3 or 1.5");
+        expect(nameOf(system, 0x60)).to.eql("RAPIDOS 1.3 or 1.5");
+        expect(nameOf(system, 0x21)).to.eql("RAPIDOS");
+    });
+
     it("names DoubleDOS from its boot sectors", () => {
         const system = [0x36, 0xFF, 0x36, 0xD0, 0x31, 0xFC, 0x41, 0xCD, 0xC9, 0x01];
         const stub = [0x21, 0x10, 0x42, 0x7E, 0xCD, 0x33, 0x00, 0x23, 0xFE, 0x0D, 0x20, 0xF7, 0xCD, 0x40, 0x00, 0x76];
@@ -748,6 +757,12 @@ describe("Trsdos DOS name of Model III TRSDOS data disks", () => {
             patchSector(disk, trsdos.getGatPosition(), 0xCE, [0xEF, 0x5C]);
             patchSector(disk, trsdos.getHitPosition(), 0xC0, [0xFF]);
         })).to.eql("TRSDOS 1.4");
+    });
+
+    it("names the Model III's RAPIDOS by its boot sector", () => {
+        expect(nameOf(0x13, (disk, trsdos) => patchSector(disk, trsdos.geometry.bootTrack!.firstSectorPosition(), 0,
+            [0xFE, 0x11, 0x21, 0x10, 0x43, 0x11, 0x00, 0x3C, 0x01, 0x11, 0x00, 0xED, 0xB0, 0xC3, 0x0D, 0x43])))
+            .to.eql("RAPIDOS 1.3");
     });
 
     it("names GRL's 1.5 by its FORMAT's master password hash", () => {

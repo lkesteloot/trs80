@@ -1195,7 +1195,8 @@ named by the disk's banner or GAT unless noted:
 | DoubleDOS, data disks ("NO SYSTEM") | `21 10 42 7E CD 33 00 23 FE 0D 20 F7 CD 40 00 76` | 0 |
 | UltraDOS 4.1 | `00 FE xx F3 31 00 42 CD C9 01 01 00 4D` | 5 |
 | UltraDOS 4.2, system and data disks | `00 FE xx F3 11 01 3C`; `00 FE xx F3 31 00 42 21 4A 42` | 4, 0 |
-| RapidDOS, Model 4 | `00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43` | 2 |
+| RapidDOS 1.3, Model III, system and data disks | `FE xx AF 32 EB 43`; `FE xx 21 10 43 11 00 3C 01 11 00 ED B0 C3 0D 43` | 2, 0 |
+| RapidDOS, Model 4, system and data disks | `00 FE xx 3E 82 D3 84` (sector 1); `00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43` | 9, 2 |
 | Percom MicroDOS | `FE 00 31 FC 41 CD C9 01 01 00 43 11 EC 37` | 17 |
 | Percom OS-80 III (sector 1) | `FE 00 3E D0 D3 F0 3E C3 32 49 40 21 7C 43` | 5 |
 | Big Five's BFLOADER (no DOS) | `00 FE xx 31 FC 41 CD C9 01 F3 21 EC 37 36 D0 CD A5 42` | 8 |
@@ -1317,6 +1318,12 @@ boot track text and GAT 0xCB, as above):
   0x30 at byte 0x4F and "4.24" with 0x31 (4.2 and 4.23 make byte-identical data disks). Ira
   spells the first "4.20"; we use "4.2", as its banner does. All 14 of our DoubleDOS disks
   are named by their banners, which these agree with.
+- **RAPIDOS** (Rapidynamic's RapidDOS) by its banner, then its boot sector (Ira). The
+  Model III's, on the TRSDOS 1.3 layout, is 1.3. The Model 4's writes TRSDOS 6's GAT, with
+  0x62 from 2.0's FORMAT and 0x60 from 1.3's and 1.5's, so its data disks are "RAPIDOS 2.0"
+  or "RAPIDOS 1.3 or 1.5" (two 1985 Rapidynamic data disks of ours have 0x62). One 2.0
+  system disk has 0x60: 2.0's system on a disk an earlier FORMAT made, which its banner
+  names.
 - **VTOS 3.0's data disks** (0x30) are "VTOS 3.0, 3.0.0 or 3.0.1", since those releases
   write the same boot sector and GAT (Ira). Our bare 3.0.0 and 3.0.1 data disks differ only
   in a few ASCII digits and the CRCs after them.

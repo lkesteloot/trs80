@@ -456,7 +456,8 @@ export enum BootSectorDos {
     MULTIDOS_ESOTERIC,
     // UltraDOS 4.1's boot sector.
     ULTRADOS_4_1,
-    RAPIDOS,
+    // RAPIDOS 1.3 for the Model III.
+    RAPIDOS_3,
     // TRSDOS 2.7DD's and 2.8's system disks, for Tandy's and Percom's doublers.
     TRSDOS_2_7,
     // The data-disk stub of TRSDOS 2.7DD and 2.8.
@@ -469,6 +470,8 @@ export enum BootSectorDos {
     DOUBLEDOS,
     // DoubleDOS's data-disk stub ("NO SYSTEM").
     DOUBLEDOS_STUB,
+    // RAPIDOS 1.3, 1.5 and 2.0 for the Model 4.
+    RAPIDOS_4,
     // Big Five Software's BFLOADER, which boots a game without a DOS.
     BFLOADER,
 }
@@ -538,8 +541,8 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
         case BootSectorDos.ULTRADOS_4_1:
             return "UltraDOS 4.1";
 
-        case BootSectorDos.RAPIDOS:
-            return "RAPIDOS";
+        case BootSectorDos.RAPIDOS_3:
+            return "RAPIDOS (Model III)";
 
         case BootSectorDos.TRSDOS_2_7:
             return "TRSDOS 2.7 and 2.8";
@@ -558,6 +561,9 @@ export function bootSectorDosToString(bootSectorDos: BootSectorDos): string {
 
         case BootSectorDos.DOUBLEDOS_STUB:
             return "DoubleDOS data disks";
+
+        case BootSectorDos.RAPIDOS_4:
+            return "RAPIDOS (Model 4)";
 
         case BootSectorDos.BFLOADER:
             return "Big Five BFLOADER";
@@ -616,10 +622,9 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     {dos: BootSectorDos.MULTIDOS_II, prefix: "00 FE xx ED 56 3A 00 42 B7 20 6F"},
     {dos: BootSectorDos.MULTIDOS_ESOTERIC, prefix: "xx FE xx CD 0B 00 11 10 00 19 7E 23 CD 33 00 B7 20 F8"},
     {dos: BootSectorDos.ULTRADOS_4_1, prefix: "00 FE xx F3 31 00 42 CD C9 01 01 00 4D"},
-    // Model III.
-    {dos: BootSectorDos.RAPIDOS, prefix: "FE xx 21 10 43 11 00 3C 01 11 00 ED B0 C3 0D 43"},
-    // Model 4.
-    {dos: BootSectorDos.RAPIDOS, prefix: "00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43"},
+    // RAPIDOS for the Model III: system disks, then data disks.
+    {dos: BootSectorDos.RAPIDOS_3, prefix: "FE xx AF 32 EB 43"},
+    {dos: BootSectorDos.RAPIDOS_3, prefix: "FE xx 21 10 43 11 00 3C 01 11 00 ED B0 C3 0D 43"},
     // TRSDOS 2.7 and 2.8, with Tandy's doubler.
     {dos: BootSectorDos.TRSDOS_2_7, prefix: "FE xx 3E 81 32 EE 37"},
     // With Percom's.
@@ -632,6 +637,9 @@ const BOOT_SECTOR_PREFIX_SOURCES: readonly {dos: BootSectorDos, prefix: string}[
     // DoubleDOS, whose boot sectors have no directory cylinder.
     {dos: BootSectorDos.DOUBLEDOS, prefix: "36 FF 36 D0 31 FC 41 CD C9 01"},
     {dos: BootSectorDos.DOUBLEDOS_STUB, prefix: "21 10 42 7E CD 33 00 23 FE 0D 20 F7 CD 40 00 76"},
+    // RAPIDOS for the Model 4: system disks, then data disks.
+    {dos: BootSectorDos.RAPIDOS_4, prefix: "00 FE xx 3E 82 D3 84"},
+    {dos: BootSectorDos.RAPIDOS_4, prefix: "00 FE xx 21 11 43 11 00 3C 01 11 00 ED B0 C3 0E 43"},
     // Big Five's game loader, on game disks with no DOS.
     {dos: BootSectorDos.BFLOADER, prefix: "00 FE xx 31 FC 41 CD C9 01 F3 21 EC 37 36 D0 CD A5 42"},
     // Last, since it's mostly zeros.
@@ -693,13 +701,14 @@ function isLdosLineBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.MULTIDOS_II:
         case BootSectorDos.MULTIDOS_ESOTERIC:
         case BootSectorDos.ULTRADOS_4_1:
-        case BootSectorDos.RAPIDOS:
+        case BootSectorDos.RAPIDOS_3:
         case BootSectorDos.TRSDOS_2_7:
         case BootSectorDos.TRSDOS_2_7_STUB:
         case BootSectorDos.TRSDOS_2_7_SD:
         case BootSectorDos.ULTRADOS_4_2:
         case BootSectorDos.DOUBLEDOS:
         case BootSectorDos.DOUBLEDOS_STUB:
+        case BootSectorDos.RAPIDOS_4:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -740,13 +749,14 @@ function isMultiDosBootSectorDos(bootSectorDos: BootSectorDos | undefined): bool
         case BootSectorDos.NEWDOS_80_3:
         case BootSectorDos.MULTIDOS_ESOTERIC:
         case BootSectorDos.ULTRADOS_4_1:
-        case BootSectorDos.RAPIDOS:
+        case BootSectorDos.RAPIDOS_3:
         case BootSectorDos.TRSDOS_2_7:
         case BootSectorDos.TRSDOS_2_7_STUB:
         case BootSectorDos.TRSDOS_2_7_SD:
         case BootSectorDos.ULTRADOS_4_2:
         case BootSectorDos.DOUBLEDOS:
         case BootSectorDos.DOUBLEDOS_STUB:
+        case BootSectorDos.RAPIDOS_4:
         case BootSectorDos.BFLOADER:
             return false;
 
@@ -3254,6 +3264,10 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 if (match !== null) {
                     return makeDosName(DosFamily.TRSDOS, match[1]);
                 }
+                // The Model III's RAPIDOS is 1.3, with the TRSDOS 1.3 layout and its own boot sector.
+                if (bootSectorDos === BootSectorDos.RAPIDOS_3) {
+                    return makeDosName(DosFamily.RAPIDOS, "1.3");
+                }
                 return this.decodeTrsdos1Release(bootSector);
             }
 
@@ -3319,12 +3333,15 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
 
             return this.decodeUltraDosRelease(bootTrack, bootSectorDos, ultraDosGatText);
         }
-        if (bootTrack.includes("RAPIDOS")) {
+        if (bootTrack.includes("RAPIDOS") || bootSectorDos === BootSectorDos.RAPIDOS_4) {
             const match = bootTrack.match(/Version (\d\.\d)/);
-            return match === null ? makeDosName(DosFamily.RAPIDOS) : makeDosName(DosFamily.RAPIDOS, match[1]);
-        }
-        if (bootSectorDos === BootSectorDos.RAPIDOS) {
-            return makeDosName(DosFamily.RAPIDOS);
+            if (match !== null) {
+                return makeDosName(DosFamily.RAPIDOS, match[1]);
+            }
+            // The Model 4's RAPIDOS writes TRSDOS 6's GAT, with 2.0's FORMAT writing 0x62 and 1.3's
+            // and 1.5's 0x60 (Ira).
+            return gatInfo.osVersion === 0x62 ? makeDosName(DosFamily.RAPIDOS, "2.0") :
+                gatInfo.osVersion === 0x60 ? makeDosName(DosFamily.RAPIDOS, "1.3", "1.5") : makeDosName(DosFamily.RAPIDOS);
         }
 
         // DoubleDOS writes TRSDOS 2.x's 0x21 at 0xCB, so its boot sector decides. Its system boot
