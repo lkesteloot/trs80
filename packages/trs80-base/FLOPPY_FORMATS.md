@@ -1309,6 +1309,9 @@ boot track text and GAT 0xCB, as above):
   what the disk's files were written under, and the GAT still holds the formatter. Data disks have no banner, and their
   boot sector is FORMAT's stub, so 0xCB names them, which agrees with it. We don't show
   both, since a single name is what `info` and the write rules use.
+- **VTOS 3.0's data disks** (0x30) are "VTOS 3.0, 3.0.0 or 3.0.1", since those releases
+  write the same boot sector and GAT (Ira). Our bare 3.0.0 and 3.0.1 data disks differ only
+  in a few ASCII digits and the CRCs after them.
 - **UltraDOS** by its banner, then its boot sector (4.1, or 4.2's system or data-disk
   one), then FORMAT's "U41" or "U42" at GAT 0xCB-0xCD (Ira). The boot sector comes before
   the GAT for the reason DOSPLUS's banner does (above): one of our disks has 4.2's system

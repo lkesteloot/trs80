@@ -3351,7 +3351,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
                 }
                 return makeDosName(DosFamily.TRSDOS, "2.x");
             case 0x30:
-                return makeDosName(DosFamily.VTOS, "3.0");
+                // VTOS 3.0, 3.0.0 and 3.0.1 write the same boot sector and GAT (Ira).
+                return makeDosName(DosFamily.VTOS, "3.0", "3.0.0", "3.0.1");
             case 0x31: case 0x32: case 0x33: case 0x34: case 0x35:
                 return makeDosName(DosFamily.DOSPLUS, `3.${osVersion & 0x0F}`);
             case 0x40:
