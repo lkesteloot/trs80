@@ -3452,8 +3452,9 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         if (bootSector === undefined || bootSector.dos !== BootSectorDos.TRSDOS_1 || bootSector.data[0xFF] !== 0x28) {
             return unknown;
         }
+        // Only the releases that exist: 1.1 through 1.5.
         const release = bootSector.data[0xFE];
-        if (release < 0x10 || release > 0x19) {
+        if (release < 0x11 || release > 0x15) {
             return unknown;
         }
 

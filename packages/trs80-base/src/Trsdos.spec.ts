@@ -696,6 +696,11 @@ describe("Trsdos DOS name of Model III TRSDOS data disks", () => {
         expect(nameOf(0x14)).to.eql("TRSDOS 1.4");
     });
 
+    it("doesn't name a release that doesn't exist", () => {
+        expect(nameOf(0x10)).to.eql("TRSDOS 1.x");
+        expect(nameOf(0x16)).to.eql("TRSDOS 1.x");
+    });
+
     it("names 1.3 when its FORMAT's PASSWORD is the master password", () => {
         expect(nameOf(0x13, (disk, trsdos) => patchSector(disk, trsdos.getGatPosition(), 0xCE, [0xD3, 0x8F])))
             .to.eql("TRSDOS 1.3");
