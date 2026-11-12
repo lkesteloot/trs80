@@ -19,7 +19,7 @@ import {
 } from "./FloppyConvert.js";
 import {ConvertSector, ConvertTrack, DiskSize, readConvertTracks} from "./FloppyConvertModel.js";
 import {Density, FloppyDisk, SectorData, SectorPosition, TrackPosition} from "./FloppyDisk.js";
-import {HfeFloppyDisk} from "./HfeFloppyDisk.js";
+import {decodeHfeFloppyDisk, HfeFloppyDisk} from "./HfeFloppyDisk.js";
 import {ImdFloppyDisk} from "./ImdFloppyDisk.js";
 import {
     DATA_ADDRESS_MARK,
@@ -169,6 +169,46 @@ function makeIndexCrossingDisk(): DmkFloppyDisk {
     return disk;
 }
 
+/**
+ * Check that a DMK that went through an HFE has the original's tracks, cut to the HFE's turn of 6,250 slots:
+ * the same header but for the track length, and the same bytes in each track up to the end of the turn.
+ */
+function expectSameTracksInTurn(original: DmkFloppyDisk, back: DmkFloppyDisk): void {
+    expect(compareFloppies(original, back).differences).to.eql([]);
+    expect(back.trackLength).to.equal(128 + 6250);
+    expect(back.trackCount).to.equal(original.trackCount);
+    const trackCount = (original.binary.length - 16)/original.trackLength;
+    for (let track = 0; track < trackCount; track++) {
+        const originalStart = 16 + track*original.trackLength;
+        const backStart = 16 + track*back.trackLength;
+        expect(back.binary.subarray(backStart, backStart + back.trackLength))
+            .to.eql(original.binary.subarray(originalStart, originalStart + back.trackLength));
+    }
+}
+
+/**
+ * Change the turns of an HFE's tracks, as an imager records them: each track's entry in the track list (block
+ * 1) gives the length of both sides, and the reader takes the turn from it. A turn can grow only to the end of
+ * the track's last block (12,544 bytes a side at 5.25 inch), whose unwritten part is blank.
+ *
+ * @param hfe a one-sided HFE.
+ * @param sideBytes the length of a side for each cylinder.
+ */
+function withHfeTurns(hfe: FloppyDisk, sideBytes: (cylinder: number) => number): HfeFloppyDisk {
+    const binary = hfe.binary.slice();
+    const cylinderCount = binary[9];
+    for (let cylinder = 0; cylinder < cylinderCount; cylinder++) {
+        const length = 2*sideBytes(cylinder);
+        binary[512 + cylinder*4 + 2] = length & 0xFF;
+        binary[512 + cylinder*4 + 3] = length >> 8;
+    }
+    const disk = decodeHfeFloppyDisk(binary, {requireBootTrack: false});
+    if (disk === undefined) {
+        throw new Error("HFE didn't decode");
+    }
+    return disk;
+}
+
 describe("floppy image formats", () => {
     it("names formats and their extensions", () => {
         expect(FLOPPY_IMAGE_FORMATS.map(floppyImageFormatToString)).to.eql(["DMK", "JV1", "JV3", "HFE", "IMD"]);
@@ -230,8 +270,8 @@ describe("convertFloppy", () => {
         for (const dmk of [makeDoubleDensityDisk(), makeSingleDensityDisk(), makeMixedDensityDisk()]) {
             const hfe = convert(dmk, FloppyImageFormat.HFE);
             expect(compareFloppies(dmk, hfe).differences).to.eql([]);
-            const back = convert(hfe, FloppyImageFormat.DMK);
-            expect(back.binary).to.eql(dmk.binary);
+            const back = convert(hfe, FloppyImageFormat.DMK) as DmkFloppyDisk;
+            expectSameTracksInTurn(dmk, back);
         }
     });
 
@@ -327,9 +367,45 @@ describe("tracks from imagers", () => {
         expect(compareFloppies(dmk, hfe).getLosses()).to.eql([]);
         expect(readSector(hfe, 0, 0, 3).crcError).to.equal(false);
 
-        // And back, with a track long enough to hold the sector without wrapping it.
-        const back = convert(hfe, FloppyImageFormat.DMK);
+        // And back, with a track long enough to hold the sector without wrapping it, which is longer than
+        // the HFE's turn.
+        const back = convert(hfe, FloppyImageFormat.DMK) as DmkFloppyDisk;
+        expect(back.trackLength).to.be.greaterThan(128 + 6250);
         expect(compareFloppies(dmk, back).getLosses()).to.eql([]);
+    });
+
+    it("makes a DMK track as long as the usual turn of an HFE", () => {
+        // A Model I/III dual-boot disk: a single-density sector 0 and a double-density sector 1 on cylinder 0,
+        // then five single-density sectors of 512 bytes on each track.
+        const tracks: ConvertTrack[] = [{trackPosition: new TrackPosition(0, 0), orderKnown: true, sectors: [
+            makeSector(0, 0x10, {density: Density.SINGLE}),
+            makeSector(1, 0x11),
+        ]}];
+        for (let cylinder = 1; cylinder < 6; cylinder++) {
+            tracks.push({trackPosition: new TrackPosition(cylinder, 0), orderKnown: true,
+                sectors: [0, 1, 2, 3, 4].map(sector =>
+                    makeSector(sector, cylinder*16 + sector, {density: Density.SINGLE, size: 512}))});
+        }
+        const hfe = convert(makeDmkFromTracks(tracks), FloppyImageFormat.HFE);
+
+        // Turns of 12,476 to 12,484 bytes a side (6,238 to 6,242 slots), with a longer track 0.
+        const sides = [12544, 12480, 12476, 12484, 12478, 12482];
+        const imaged = withHfeTurns(hfe, cylinder => sides[cylinder]);
+        expect(imaged.tracks.map(track => track.cellCount()/16)).to.eql([6272, 6240, 6238, 6242, 6239, 6241]);
+
+        // The median turn (with six, the upper of the middle two), not the longest, and not rounded up to a
+        // multiple of 16.
+        const dmk = convert(imaged, FloppyImageFormat.DMK) as DmkFloppyDisk;
+        expect(dmk.trackLength).to.equal(128 + 6241);
+        expect(compareFloppies(imaged, dmk).getLosses()).to.eql([]);
+        expect(readSector(dmk, 0, 0, 0).density).to.equal(Density.SINGLE);
+        expect(readSector(dmk, 0, 0, 1).density).to.equal(Density.DOUBLE);
+        expect(readSector(dmk, 0, 0, 1).data.every(value => value === 0x11)).to.equal(true);
+        expect(readSector(dmk, 5, 0, 4).data.every(value => value === 5*16 + 4)).to.equal(true);
+
+        // A track made from sectors has no turn, so it gets the usual length.
+        expect((convert(convert(imaged, FloppyImageFormat.JV3), FloppyImageFormat.DMK) as DmkFloppyDisk).trackLength)
+            .to.equal(0x1900);
     });
 
     it("gives no marks to pointers that aren't ID fields", () => {
@@ -413,8 +489,8 @@ describe("what a format can't hold", () => {
             expect(readSector(result, 0, 0, 2).density).to.equal(Density.SINGLE);
             expect(readSector(result, 0, 0, 4).density).to.equal(Density.DOUBLE);
         }
-        const hfeBack = convert(convert(dmk, FloppyImageFormat.HFE), FloppyImageFormat.DMK);
-        expect(hfeBack.binary).to.eql(dmk.binary);
+        const hfeBack = convert(convert(dmk, FloppyImageFormat.HFE), FloppyImageFormat.DMK) as DmkFloppyDisk;
+        expectSameTracksInTurn(dmk, hfeBack);
 
         // IMD keeps the more common density of the track.
         const imd = convert(dmk, FloppyImageFormat.IMD);

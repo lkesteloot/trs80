@@ -542,6 +542,15 @@ formats" in `FLOPPY_FORMATS.md` for what each holds and the results on the colle
       sector (duplicate, number too high, no data). The writers know; the comparison doesn't.
 - [ ] **Filling the other direction:** `convert` makes floppy images only from floppy images. Putting
       files on a new disk is the `disk` command's job.
+- [ ] **DMK to HFE ignores the DMK's track length.** The HFE writer always makes turns of 6,250 slots,
+      so a Read Track check like Big Five's (see "Big Five's Read Track check" in `FLOPPY_FORMATS.md`)
+      fails on an HFE made from a DMK that held the right length. Most DMKs from imagers are longer than
+      a turn (0x1900 or 0x1980 for 6,250), so the length can't be trusted as a turn in general; it could
+      be when it's close to a turn and not a usual value.
+- [ ] **One length for a whole DMK.** A disk whose checked tracks differ by more than its check allows,
+      or one that has both a sector crossing the index and a Read Track check, can't be held as a DMK
+      that boots. The converter can't tell; it could at least say so when the HFE's turns differ widely.
+- [ ] **DMK tracks of 0x4000.** Our reader and the converter allow it; MAME's reader stops at 0x3FFF.
 
 ## Copy protection signs
 

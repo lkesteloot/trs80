@@ -208,10 +208,50 @@ export function makeDmkTrackFromStream(stream: TrackStream, trackLength: number)
 }
 
 /**
+ * Choose the DMK track length for a set of streams, which a DMK has one of for every track. A Read Track
+ * on the image returns that many bytes after the table (half as many in single density), so it should
+ * be what the real disk returns: some copy protection compares a Read Track's byte count with a table
+ * on the disk (see "DMK track length" in FLOPPY_FORMATS.md).
+ *
+ * When the streams know their turns (from an HFE), the length is the median turn, so that a track that's
+ * longer than the others (an imager's slower turn, say) doesn't set it. It's longer only if a track's sectors
+ * need it: a sector whose data crosses the index must be whole in the DMK track, since a DMK reader doesn't
+ * continue a field at the start of the track. Past the sectors there's only gap, which is cut off where a
+ * stream is longer. The length isn't rounded up to a multiple of 16: the DMK description doesn't ask
+ * for it, and it would add up to 7 single-density bytes.
+ *
+ * Streams synthesized from sectors have no turn, so they get the usual length for the disk size, or more
+ * if one of them needs it.
+ *
+ * @param streams the streams of the tracks.
+ * @param diskSize the size of the disk, for streams with no turn.
+ * @return the track length, which includes the table.
+ */
+function chooseTrackLength(streams: Map<string,TrackStream>, diskSize: DiskSize): number {
+    const turns = [... streams.values()]
+        .map(stream => stream.turnSlots)
+        .filter(turnSlots => turnSlots !== undefined)
+        .sort((a, b) => a - b);
+    if (turns.length > 0) {
+        let slots = turns[Math.floor(turns.length/2)];
+        for (const stream of streams.values()) {
+            slots = Math.max(slots, stream.sectorsEndSlots());
+        }
+        return Math.min(TRACK_HEADER_SIZE + slots, DMK_MAX_TRACK_LENGTH);
+    }
+
+    let trackLength = dmkTrackLength(diskSize);
+    for (const stream of streams.values()) {
+        trackLength = Math.max(trackLength, TRACK_HEADER_SIZE + stream.slotCount);
+    }
+    return Math.min(Math.ceil(trackLength/16)*16, DMK_MAX_TRACK_LENGTH);
+}
+
+/**
  * Build a DMK image from the streams of its tracks and decode it.
  *
  * @param streams the stream of each track that has one, by the key of its position.
- * @param diskSize decides the track length, which is longer if a stream needs it.
+ * @param diskSize decides the track length for streams that don't know their turn.
  * @param writeProtected whether to set the header's write-protect byte.
  * @return the image, or undefined if there are no tracks, the cylinders are too many for a DMK, or the
  * result doesn't decode.
@@ -231,12 +271,7 @@ export function buildDmkImage(streams: Map<string,TrackStream>, diskSize: DiskSi
         return undefined;
     }
 
-    // The usual length, or longer if a track is: a track from an HFE can have a sector that crosses the index.
-    let trackLength = dmkTrackLength(diskSize);
-    for (const stream of streams.values()) {
-        trackLength = Math.max(trackLength, TRACK_HEADER_SIZE + stream.slotCount);
-    }
-    trackLength = Math.min(Math.ceil(trackLength/16)*16, DMK_MAX_TRACK_LENGTH);
+    const trackLength = chooseTrackLength(streams, diskSize);
     const binary = new Uint8Array(FILE_HEADER_SIZE + cylinderCount*sideCount*trackLength);
     binary[0] = writeProtected ? 0xFF : 0x00;
     binary[1] = cylinderCount;

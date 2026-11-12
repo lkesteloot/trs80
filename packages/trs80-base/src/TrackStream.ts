@@ -30,10 +30,17 @@ import {
     CRC_PRESET,
     FM_GAP,
     ID_ADDRESS_MARK,
+    isDataAddressMark,
     MFM_GAP,
     MFM_SYNC,
     MFM_SYNC_COUNT,
 } from "./TrackBytes.js";
+
+/**
+ * The farthest a data address mark can be from the end of its ID field, in bytes, from the WD179x data sheet
+ * (the longer of the two densities).
+ */
+const MAX_DATA_MARK_GAP = 43;
 
 /**
  * How many slots (double-density byte times) a byte of the density takes on the track.
@@ -89,6 +96,15 @@ export class TrackStream {
      * The length of the stream in slots (see the top of this file).
      */
     public slotCount = 0;
+
+    /**
+     * The length in slots of one turn of the track this stream was read from, when the source image
+     * measured it: an HFE records each track's cells from index to index. It's undefined for a stream
+     * synthesized from sectors, and for a DMK track, whose length is the image's and is often more than a
+     * turn. The stream itself can be shorter (cells that don't make a whole byte are dropped where the
+     * density changes) or longer (a sector whose data crosses the index).
+     */
+    public turnSlots: number | undefined = undefined;
 
     /**
      * Append one byte.
@@ -162,6 +178,49 @@ export class TrackStream {
         }
 
         return marks;
+    }
+
+    /**
+     * Find the end of the sector whose ID address mark is at an index: the index just after its data
+     * field's CRC, or just after its ID field if no data address mark follows. It can be past the end of the
+     * stream if the stream stops inside the sector.
+     */
+    public sectorEndIndex(idIndex: number): number {
+        const idEnd = idIndex + 7;
+        const sizeCode = this.values[idIndex + 4] ?? 0;
+        const size = 128 << (sizeCode & 3);
+        const doubleDensity = this.densities[idIndex] === Density.DOUBLE;
+
+        for (let i = idEnd; i < Math.min(idEnd + MAX_DATA_MARK_GAP, this.values.length); i++) {
+            if (this.values[i] === ID_ADDRESS_MARK && (this.specials[i] || this.specials[i - 1])) {
+                // The next sector's ID field.
+                break;
+            }
+            const afterSync = !doubleDensity || (this.specials[i - 1] && this.specials[i - 2] && this.specials[i - 3]);
+            const isMark = isDataAddressMark(this.values[i]) && (doubleDensity ? !this.specials[i] : this.specials[i]);
+            if (isMark && afterSync) {
+                return i + 1 + size + 2;
+            }
+        }
+
+        return idEnd;
+    }
+
+    /**
+     * The number of slots from the start of the stream to the end of the sector that ends last, or 0 if
+     * there are no sectors. Past that there's only gap.
+     */
+    public sectorsEndSlots(): number {
+        let endIndex = 0;
+        for (const mark of this.findIdMarks()) {
+            endIndex = Math.max(endIndex, Math.min(this.sectorEndIndex(mark.index), this.values.length));
+        }
+
+        let slots = 0;
+        for (let i = 0; i < endIndex; i++) {
+            slots += slotsPerByte(this.densities[i]);
+        }
+        return slots;
     }
 }
 
