@@ -430,6 +430,7 @@ function importProgram(hostName: string, trs80File: Trs80File, ascii: boolean, b
         case "RawBinaryFile":
         case "Cassette":
         case "BootSector":
+        case "HiResScreen":
         case "Jv1FloppyDisk":
         case "Jv3FloppyDisk":
         case "DmkFloppyDisk":

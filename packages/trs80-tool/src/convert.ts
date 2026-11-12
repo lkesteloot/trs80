@@ -6,8 +6,10 @@ import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio,
     concatAudio, writeWavFile } from "trs80-cassette";
 import {
     CassetteSpeed, decodeTrs80File, floppyImageFormatFromExtension, isFloppy, Trs80File, Trs80Floppy,
+    hiResScreenFormatToString, whyNotHiResScreen,
 } from "trs80-base";
 import {convertFloppyFile} from "./convertDisk.js";
+import {encodeBlackAndWhitePng} from "./png.js";
 import { concatByteArrays } from "teamten-ts-utils";
 
 /**
@@ -102,6 +104,14 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         break;
                     }
 
+                    case ".png": {
+                        // Only hi-res screens make pictures, so say why this isn't one.
+                        const inExtension = path.parse(infile.filename).ext.toUpperCase();
+                        const reason = whyNotHiResScreen(infile.binary, inExtension) ??
+                            "it isn't a hi-res screen";
+                        throw new ToolError("Can't convert " + infile.filename + " to PNG: " + reason);
+                    }
+
                     default:
                         throw new ToolError("Can't convert a raw binary program to " + outExt.toUpperCase());
                 }
@@ -153,6 +163,22 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
             case "Cassette":
             case "BootSector":
                 throw new ToolError("Files of type \"" + infile.trs80File.getDescription() + "\" are not yet supported");
+
+            case "HiResScreen": {
+                const screen = infile.trs80File;
+                switch (outExt) {
+                    case ".png":
+                        outBinary = encodeBlackAndWhitePng(screen.width, screen.height, screen.bitmap);
+                        description = screen.width + "x" + screen.height + " PNG of a hi-res screen (" +
+                            hiResScreenFormatToString(screen.format) + ")";
+                        break;
+
+                    default:
+                        throw new ToolError("Can't convert a hi-res screen to " + outExt.toUpperCase() +
+                            "; it can only be converted to PNG");
+                }
+                break;
+            }
 
             case "SystemProgram":
                 switch (outExt) {
@@ -308,6 +334,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                     case "RawBinaryFile":
                     case "SystemProgram":
                     case "EdtasmFile":
+                    case "HiResScreen":
                         // Keep as-is.
                         outBinary = inFile.trs80File.binary;
                         description = inFile.trs80File.getDescription();

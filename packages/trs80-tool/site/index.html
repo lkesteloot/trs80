@@ -315,6 +315,31 @@
             <p>The output must be a file; to extract the contents of an archive, use
             <a href="#extract"><code>extract</code></a>.</p>
 
+            <p id="convert-hires"><strong>A hi-res screen can be converted to a PNG.</strong> These are
+            pictures saved from the Model 4’s or Model III’s high-resolution graphics board:</p>
+            <div><pre><code>% trs80-tool convert picture.hr picture.png
+Wrote picture.png: 640x240 PNG of a hi-res screen (Model 4)</code></pre>
+            </div>
+            <table class="flags">
+                <tr>
+                    <td><code>.hr</code>, <code>.hrg</code></td>
+                    <td>The Model 4’s 640×240 screen, 19,200 bytes.</td>
+                </tr>
+                <tr>
+                    <td><code>.hr</code>, <code>.hrx</code></td>
+                    <td>The Model III’s 512×192 screen, 12,288 bytes.</td>
+                </tr>
+                <tr>
+                    <td><code>.chr</code>, <code>.shr</code></td>
+                    <td>The Model 4’s screen, compressed (as by GRAFPACK).</td>
+                </tr>
+            </table>
+            <p>The PNG has one pixel per screen pixel, lit pixels white. The screen’s pixels are about twice as
+            tall as they are wide, so the picture looks squashed unless it’s stretched to twice its height.
+            Files with these extensions that aren’t screens, like fonts, are left as what they are.
+            <code>dir</code> and <code>info</code> describe the screens too, and <code>dir --json</code> gives
+            them the content type <code>hiResScreen</code>.</p>
+
             <p id="convert-floppy"><strong>A floppy image can be converted to another floppy image
             format.</strong> If the input is a floppy image and the output ends in <code>.dmk</code>, <code>.jv1</code>,
             <code>.jv3</code>, <code>.hfe</code>, or <code>.imd</code>, the whole disk is converted to that

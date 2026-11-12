@@ -185,7 +185,8 @@ async function main(): Promise<void> {
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
             files: "one or more infiles (any TRS-80 file), then the outfile (WAV, CAS, CMD, 3BN, BAS, or ASC file), " +
-                "or a floppy image (DMK, JV1, JV3, HFE, or IMD) to convert to another floppy image format",
+                "or a floppy image (DMK, JV1, JV3, HFE, or IMD) to convert to another floppy image format, " +
+                "or a hi-res screen (HR, HRG, HRX, CHR, or SHR) and a PNG file",
         })
         .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")

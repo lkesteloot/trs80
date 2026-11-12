@@ -15,6 +15,7 @@ import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
 import {decodeBootSector, BootSector} from "./BootSector.js";
 import {type FloppyDecodeOptions} from "./FloppyDisk.js";
 import {decodeHdvHardDisk, HdvHardDisk} from "./HdvHardDisk.js";
+import {decodeHiResScreen, HiResScreen, isHiResScreenExtension} from "./HiResScreen.js";
 
 /**
  * The various floppy formats we support.
@@ -43,7 +44,8 @@ export type Trs80File = BasicProgram |
     RawBinaryFile |
     Level1Program |
     EdtasmFile |
-    BootSector;
+    BootSector |
+    HiResScreen;
 
 const CLASS_NAME_TO_EXTENSION = {
     BasicProgram: ".BAS",
@@ -61,6 +63,7 @@ const CLASS_NAME_TO_EXTENSION = {
     Level1Program: ".L1",
     EdtasmFile: ".ASM",
     BootSector: ".SYS",
+    HiResScreen: ".HR",
 };
 
 /**
@@ -236,6 +239,15 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
 
     if (extension === ".CMD") {
         return decodeCmdProgram(binary) ?? new RawBinaryFile(binary);
+    }
+
+    // Hi-res screens have no header, so they're only recognized by their extension and size. Files
+    // with these extensions that aren't screens (often fonts) are decoded as anything else would be.
+    if (isHiResScreenExtension(extension)) {
+        const hiResScreen = decodeHiResScreen(binary, extension);
+        if (hiResScreen !== undefined) {
+            return hiResScreen;
+        }
     }
 
     if (extension === ".SYS") {

@@ -1,6 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import zlib from "zlib";
 import {
     decodeTrs80File, formatTrsdosDataDisk, makeTrsdos23TestDisk, Trs80File, TrsdosFormatDos,
 } from "trs80-base";
@@ -151,5 +152,111 @@ describe("convert a floppy image", () => {
         const inFilename = makeDmk();
         const error = runExpectingError(inFilename, path.join(dir, ".", "in.dmk"));
         expect(error.message).to.contain("same file");
+    });
+});
+
+describe("convert a hi-res screen", () => {
+    let dir = "";
+
+    beforeEach(() => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), "trs80-tool-convert-"));
+    });
+
+    afterEach(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    /**
+     * Read a one-bit grayscale PNG's size and pixels, checking every chunk's CRC.
+     *
+     * @return the size, and a function that says whether a pixel is white.
+     */
+    function readPng(pathname: string): {width: number, height: number, isWhite: (x: number, y: number) => boolean} {
+        const png = new Uint8Array(fs.readFileSync(pathname));
+        const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+        expect(Array.from(png.subarray(0, 8))).to.eql([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        let width = 0;
+        let height = 0;
+        const idat: Uint8Array[] = [];
+        let offset = 8;
+        while (offset < png.length) {
+            const length = view.getUint32(offset);
+            const type = String.fromCharCode(...png.subarray(offset + 4, offset + 8));
+            const data = png.subarray(offset + 8, offset + 8 + length);
+            expect(view.getUint32(offset + 8 + length)).to.equal(zlib.crc32(png.subarray(offset + 4, offset + 8 + length)));
+            if (type === "IHDR") {
+                width = view.getUint32(offset + 8);
+                height = view.getUint32(offset + 12);
+                // One bit per pixel, grayscale, not interlaced.
+                expect([data[8], data[9], data[12]]).to.eql([1, 0, 0]);
+            } else if (type === "IDAT") {
+                idat.push(data);
+            }
+            offset += 12 + length;
+        }
+        const raw = zlib.inflateSync(Buffer.concat(idat));
+        const stride = width/8 + 1;
+        expect(raw.length).to.equal(stride*height);
+        return {
+            width,
+            height,
+            isWhite: (x, y) => {
+                // Each row starts with its filter type, which must be "None" for this simple reader.
+                expect(raw[y*stride]).to.equal(0);
+                return (raw[y*stride + 1 + Math.floor(x/8)] & (0x80 >> (x % 8))) !== 0;
+            },
+        };
+    }
+
+    /**
+     * Run "convert" with one input and return what it printed.
+     */
+    function run(inFilename: string, outFilename: string): string {
+        const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+        try {
+            convert([inFilename], outFilename, undefined, undefined, false, false, false);
+            return spy.mock.calls.map(args => args.join(" ")).join("\n");
+        } finally {
+            spy.mockRestore();
+        }
+    }
+
+    it("writes a Model 4 screen's pixels to a PNG, lit pixels white", () => {
+        const screen = new Uint8Array(19200);
+        screen[0] = 0x80;               // (0, 0)
+        screen[80*100 + 2] = 0x10;      // (19, 100)
+        screen[19199] = 0x01;           // (639, 239)
+        const inFilename = path.join(dir, "PICTURE.HR");
+        fs.writeFileSync(inFilename, screen);
+        const outFilename = path.join(dir, "picture.png");
+        expect(run(inFilename, outFilename)).to.equal(
+            `Wrote ${outFilename}: 640x240 PNG of a hi-res screen (Model 4)`);
+
+        const png = readPng(outFilename);
+        expect([png.width, png.height]).to.eql([640, 240]);
+        const lit: string[] = [];
+        for (let y = 0; y < png.height; y++) {
+            for (let x = 0; x < png.width; x++) {
+                if (png.isWhite(x, y)) {
+                    lit.push(x + "," + y);
+                }
+            }
+        }
+        expect(lit).to.eql(["0,0", "19,100", "639,239"]);
+    });
+
+    it("explains a .HR file of the wrong size", () => {
+        const inFilename = path.join(dir, "FONT.HR");
+        fs.writeFileSync(inFilename, new Uint8Array(1024));
+        let error: unknown = undefined;
+        try {
+            run(inFilename, path.join(dir, "font.png"));
+        } catch (e) {
+            error = e;
+        }
+        expect(error).to.be.instanceOf(ToolError);
+        expect((error as ToolError).message).to.equal("Can't convert FONT.HR to PNG: a hi-res screen in a " +
+            ".HR file is 19,200 bytes (Model 4) or 12,288 bytes (Model III), but this file is 1,024 bytes");
+        expect(fs.existsSync(path.join(dir, "font.png"))).to.be.false;
     });
 });
