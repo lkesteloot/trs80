@@ -757,6 +757,10 @@ function replyError(id: any, code: number, message: string): object {
  * @returns a promise for the reply to send, or for undefined if there's none (for a notification).
  */
 export async function handleRequest(request: any): Promise<object | undefined> {
+    // Valid JSON can still be something other than a request, such as null or a number.
+    if (typeof request !== "object" || request === null || Array.isArray(request)) {
+        return replyError(null, -32600, "Invalid Request: not a JSON object");
+    }
     const {id, method, params} = request;
 
     switch (method) {
@@ -816,25 +820,60 @@ export async function handleRequest(request: any): Promise<object | undefined> {
 }
 
 /**
- * Handle one line of input, a request, and send the reply, if any. Never throws.
+ * Handle one line of input, a request, and send the reply, if any.
+ *
+ * @param write where to send the reply.
  */
-async function handleLine(line: string): Promise<void> {
+async function handleLine(line: string, write: (message: object) => void): Promise<void> {
     let request: any;
     try {
         request = JSON.parse(line);
     } catch (e) {
-        send(replyError(null, -32700, "Parse error"));
+        write(replyError(null, -32700, "Parse error"));
         return;
     }
     try {
         const response = await handleRequest(request);
         if (response !== undefined) {
-            send(response);
+            write(response);
         }
     } catch (e) {
-        if (request.id !== undefined) {
-            send(replyError(request.id, -32603, e instanceof Error ? e.message : String(e)));
+        const id = request?.id;
+        if (id !== undefined) {
+            write(replyError(id, -32603, e instanceof Error ? e.message : String(e)));
         }
+    }
+}
+
+/**
+ * The lines of input waiting to be handled. Each one is handled after the one before it has finished, so
+ * that the replies come in the order of the requests and two tools never run at once.
+ */
+export class LineQueue {
+    /** Settles when the last line pushed has been handled. It never rejects, so the queue can't stall. */
+    private last: Promise<void> = Promise.resolve();
+
+    /**
+     * @param write where to send the replies.
+     */
+    constructor(private readonly write: (message: object) => void) {
+    }
+
+    /**
+     * Handle a line once the lines before it have been. A line whose handling fails, even in a way that
+     * {@link handleLine} doesn't expect, is reported on standard error, and the lines after it are still handled.
+     */
+    public push(line: string): void {
+        this.last = this.last
+            .then(() => handleLine(line, this.write))
+            .catch(e => console.error("Failed to handle a request: " + (e instanceof Error ? e.message : String(e))));
+    }
+
+    /**
+     * A promise that settles once every line pushed so far has been handled.
+     */
+    public idle(): Promise<void> {
+        return this.last;
     }
 }
 
@@ -859,8 +898,7 @@ export function mcp(): void {
     // The disk tools' text goes into JSON, which mustn't have escape codes.
     setColorLevel("off");
 
-    // Each line's handling waits for the one before it.
-    let queue: Promise<void> = Promise.resolve();
+    const queue = new LineQueue(send);
     let buffer = "";
     process.stdin.setEncoding("utf8");
     process.stdin.on("data", chunk => {
@@ -875,12 +913,12 @@ export function mcp(): void {
             if (line === "") {
                 continue;
             }
-            queue = queue.then(() => handleLine(line));
+            queue.push(line);
         }
     });
     // Finish the requests already read before exiting.
     process.stdin.on("end", () => {
-        queue.then(() => process.exit(0));
+        queue.idle().then(() => process.exit(0));
     });
 }
 

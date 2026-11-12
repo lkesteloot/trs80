@@ -4,7 +4,7 @@ import path from "path";
 import {makeTrsdos23TestDisk, type TestFile} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {setColorLevel} from "./colors.js";
-import {handleRequest} from "./mcp.js";
+import {handleRequest, LineQueue} from "./mcp.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 2, granuleOffset: 0, granuleCount: 3}], size: 3000};
 
@@ -142,5 +142,59 @@ describe("mcp disk image tools", () => {
             words: ["extract", "*", "--out-dir", outDir]});
         expect(result.isError).to.equal(false);
         expect(fs.readdirSync(outDir).length).to.equal(1);
+    });
+});
+
+describe("mcp request queue", () => {
+    /**
+     * Push the lines through a queue, and return the replies it sent once they've all been handled.
+     */
+    async function replies(...lines: string[]): Promise<any[]> {
+        const sent: any[] = [];
+        const queue = new LineQueue(message => sent.push(message));
+        for (const line of lines) {
+            queue.push(line);
+        }
+        await queue.idle();
+        return sent;
+    }
+
+    it("answers a request that isn't an object, and the requests after it", async () => {
+        const sent = await replies("null", "5", "[]", "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"ping\"}");
+        expect(sent.map(message => message.error?.code)).to.eql([-32600, -32600, -32600, undefined]);
+        expect(sent[3]).to.eql({jsonrpc: "2.0", id: 9, result: {}});
+    });
+
+    it("answers a line that isn't JSON, and the requests after it", async () => {
+        const sent = await replies("{oops", "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\"}");
+        expect(sent[0].error.code).to.equal(-32700);
+        expect(sent[1].id).to.equal(2);
+    });
+
+    it("keeps going after a line whose handling fails unexpectedly", async () => {
+        // The first two writes fail: the reply, and then the error reply that handleLine sends instead,
+        // so that handleLine itself rejects.
+        const sent: any[] = [];
+        let failuresLeft = 2;
+        const queue = new LineQueue(message => {
+            if (failuresLeft > 0) {
+                failuresLeft--;
+                throw new Error("write failed");
+            }
+            sent.push(message);
+        });
+        queue.push("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}");
+        queue.push("{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\"}");
+        await queue.idle();
+        expect(sent.map(message => message.id)).to.eql([2]);
+    });
+
+    it("replies in the order of the requests", async () => {
+        const sent = await replies(
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"dir\",\"arguments\":{\"images\":[\"missing.dsk\"]}}}",
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\"}",
+            "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",
+            "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"ping\"}");
+        expect(sent.map(message => message.id)).to.eql([1, 2, 3]);
     });
 });
