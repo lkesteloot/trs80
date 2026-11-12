@@ -123,6 +123,11 @@ export interface MapCell {
     kind: MapCellKind;
     /** The file, for a FILE cell. */
     file: MapFile | undefined;
+    /**
+     * Every file whose directory entries claim the granule, in directory order, BOOT/SYS and DIR/SYS
+     * included: one for a FILE cell, two or more (not counting those two) for a SHARED one.
+     */
+    owners: readonly TrsdosDirEntry[];
     /** The name written at the start of a run of these cells, or undefined for kinds that have none. */
     label: string | undefined;
     /** Tells apart cells that look the same, which are drawn as one run when they're next to each other. */
@@ -278,7 +283,7 @@ function makeMapCell(trsdos: Trsdos, granule: TrsdosGranule, mapFiles: Map<Trsdo
     // Files are told apart by their position, everything else by its kind and name.
     const identity = kind + ":" + (file !== undefined ? file.index : label ?? "");
     const sectors = trsdos.getGranuleSectorPositions(granule.lump, granule.granule);
-    return { lump: granule.lump, granule: granule.granule, sectors, kind, file, label, identity };
+    return { lump: granule.lump, granule: granule.granule, sectors, kind, file, owners: [...granule.owners], label, identity };
 }
 
 /**

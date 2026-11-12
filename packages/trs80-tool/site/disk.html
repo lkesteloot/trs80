@@ -487,7 +487,10 @@ partition --delete [N|NAME] [--force]</code></pre>
             that no file claims. With patterns, only the matching files get names and colors, and
             the rest show as a plain <code>─</code>; the matching files are listed below the map.
             A wildcard never matches a system file; to show one, name it.
-            It changes nothing, so it works on a read-only disk, and only on TRSDOS-family disks.</p>
+            It changes nothing, so it works on a read-only disk, and only on TRSDOS-family disks.
+            With <a href="#json"><code>--json</code></a>, each granule’s cell has its <code>kind</code> and, in
+            <code>owners</code>, the names of every file that claims it, so a granule that two files share
+            names both.</p>
             <div><pre><code>cyl   0  1  2  3  4  5  6  7  8  9
   0  BOOT/SYS ─────│·  ·  ·  ·  · │
   1  ·  ·  ·  ·  · │·  ·  ·  ·  · │
