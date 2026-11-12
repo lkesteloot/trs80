@@ -221,7 +221,7 @@ describe("convert a hi-res screen", () => {
         }
     }
 
-    it("writes a Model 4 screen's pixels to a PNG, lit pixels white", () => {
+    it("writes a Model 4 screen's pixels to a PNG, lit pixels white and each row twice", () => {
         const screen = new Uint8Array(19200);
         screen[0] = 0x80;               // (0, 0)
         screen[80*100 + 2] = 0x10;      // (19, 100)
@@ -230,10 +230,10 @@ describe("convert a hi-res screen", () => {
         fs.writeFileSync(inFilename, screen);
         const outFilename = path.join(dir, "picture.png");
         expect(run(inFilename, outFilename)).to.equal(
-            `Wrote ${outFilename}: 640x240 PNG of a hi-res screen (Model 4)`);
+            `Wrote ${outFilename}: 640x480 PNG of a hi-res screen (Model 4)`);
 
         const png = readPng(outFilename);
-        expect([png.width, png.height]).to.eql([640, 240]);
+        expect([png.width, png.height]).to.eql([640, 480]);
         const lit: string[] = [];
         for (let y = 0; y < png.height; y++) {
             for (let x = 0; x < png.width; x++) {
@@ -242,7 +242,7 @@ describe("convert a hi-res screen", () => {
                 }
             }
         }
-        expect(lit).to.eql(["0,0", "19,100", "639,239"]);
+        expect(lit).to.eql(["0,0", "0,1", "19,200", "19,201", "639,478", "639,479"]);
     });
 
     it("explains a .HR file of the wrong size", () => {

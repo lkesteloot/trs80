@@ -318,7 +318,7 @@
             <p id="convert-hires"><strong>A hi-res screen can be converted to a PNG.</strong> These are
             pictures saved from the Model 4’s or Model III’s high-resolution graphics board:</p>
             <div><pre><code>% trs80-tool convert picture.hr picture.png
-Wrote picture.png: 640x240 PNG of a hi-res screen (Model 4)</code></pre>
+Wrote picture.png: 640x480 PNG of a hi-res screen (Model 4)</code></pre>
             </div>
             <table class="flags">
                 <tr>
@@ -334,8 +334,9 @@ Wrote picture.png: 640x240 PNG of a hi-res screen (Model 4)</code></pre>
                     <td>The Model 4’s screen, compressed (as by GRAFPACK).</td>
                 </tr>
             </table>
-            <p>The PNG has one pixel per screen pixel, lit pixels white. The screen’s pixels are about twice as
-            tall as they are wide, so the picture looks squashed unless it’s stretched to twice its height.
+            <p>Lit pixels are white. The screen’s pixels are about twice as tall as they are wide, so the PNG
+            has each row twice, to keep the picture from looking squashed: a Model 4 screen makes a 640×480
+            PNG, and a Model III screen a 512×384 one.
             Files with these extensions that aren’t screens, like fonts, are left as what they are.
             <code>dir</code> and <code>info</code> describe the screens too, and <code>dir --json</code> gives
             them the content type <code>hiResScreen</code>.</p>
