@@ -767,6 +767,22 @@ What it would take, from FreHD's source, Tandy's LS-DOS drivers and trs80gp's
   - a way to mount a hard disk in trs80-tool's `run` and `mcp`, and in the web
     apps.
 
+## Emulating floppy copy protection
+
+The emulator's Read Track returns a turn of the image's length where the format records one (DMK, HFE),
+which Big Five's check needs (see "Big Five's Read Track check" in `FLOPPY_FORMATS.md`). What's left:
+
+- [ ] **Read Track synthesizes the track** from the sectors with standard gaps, even for DMK and HFE,
+      which keep the real bytes. A protection that looks at the gaps, or at IDs the readers drop, sees
+      something other than the disk.
+- [ ] **Write Track ends after 3,125 or 6,250 bytes**, not after the image's turn.
+- [ ] **Nothing else in the suite exercises it.** Booting every DMK and HFE in the suite (November 2026)
+      on a Model I and a Model III for 20 emulated seconds, typing nothing, found two that issue a Read
+      Track while booting: Super Utility (`SuperUtility-1su.dmk`, Model III, 3,136 bytes now against
+      3,125) and a SoftSide issue (`SoftSide Magazine Vol 5 No 12 ... [Set 3].dmk`, Model I, 3,200 against
+      3,125, which loops reading track 0 and doesn't boot either way). Both end on the same screen with
+      either length. A protected program that checks later, or after a key, wasn't reached.
+
 ## Regression suite housekeeping
 
 - [ ] The five `newdos80/` disks with PDRIVE sidecars decode to exactly their

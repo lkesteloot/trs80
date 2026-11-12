@@ -951,6 +951,17 @@ export abstract class FloppyDisk extends AbstractTrs80File implements WritableDi
     }
 
     /**
+     * The length of one turn of a track, in double-density bytes (twice the number of single-density
+     * bytes), when the image records it. This version returns undefined: the sector formats don't record
+     * the length of a track.
+     *
+     * @param _trackPosition the track.
+     */
+    public getTurnLength(_trackPosition: TrackPosition): number | undefined {
+        return undefined;
+    }
+
+    /**
      * Replace a track with a newly formatted one. Check first with isWriteProtected().
      *
      * @return whether successful. A file format that can't represent the new layout,

@@ -295,6 +295,15 @@ export class HfeFloppyDisk extends FloppyDisk {
     }
 
     /**
+     * The length of a turn, which this version takes from the length of the track's cell stream, since
+     * HFE records each track from index to index. A track with no sectors isn't kept, so its length isn't known.
+     */
+    public override getTurnLength(trackPosition: TrackPosition): number | undefined {
+        const track = this.tracks.find(track => track.trackPosition.equals(trackPosition));
+        return track === undefined ? undefined : Math.floor(track.cellCount()/MFM_CELLS_PER_BYTE);
+    }
+
+    /**
      * Whether the header says the image is write-protected, or it was mounted that way.
      */
     public isWriteProtected(): boolean {

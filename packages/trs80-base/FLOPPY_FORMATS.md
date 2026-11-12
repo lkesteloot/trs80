@@ -623,15 +623,15 @@ FM sector of 1,024 and one of 256.
 - **On failure it destroys the disk.** It stores F4h (Write Track) in the
   command byte, patches its copy loop at B364h from `LD A,(BC) / LD (DE),A` to
   `LD A,(DE) / LD (BC),A`, and formats tracks 1 to 19 with ROM bytes. In our
-  emulator that's 19 Write Tracks, on a Model I and a Model III; in trs80gp the DMK's cylinders 1-19 lost their
+  emulator that's 19 Write Tracks; in trs80gp the DMK's cylinders 1-19 lost their
   sectors on a Model I, and cylinders 1-16 were rewritten by frame 1,000 on a
-  Model III. Its loader wasn't traced.
+  Model III. The Model III boot does the same Read Tracks (11 down to 4) and Write
+  Tracks in our emulator; its loader wasn't traced.
 - **What it takes to boot.** The check passes only on an image that records a turn
   within a few bytes of the original's: an HFE, or a DMK whose track length is
-  that turn (see "DMK track length"). Booted in trs80gp, on a Model I and a
-  Model III, the HFE and a DMK of 0x18DF (3,119 FM bytes) reach the game, and a DMK
-  of 0x1980 fails. Our emulator's Read Track returns 3,125 bytes on every image, so
-  every image fails there.
+  that turn (see "DMK track length"). Booted in our emulator and in trs80gp, on a
+  Model I and a Model III, the HFE and a DMK of 0x18DF (3,119 FM bytes) reach the
+  game, and a DMK of 0x1980 fails.
 - The issue's notes say Robot Attack has the same check with another table, and
   that some copies have it disabled by a RET at its entry. Neither is checked.
 
@@ -3403,6 +3403,7 @@ density, where they're doubled. trs80gp's WD17xx (`wd17xx_f.cpp`, the
 `op_ReadTrack` states) reads from one index pulse to the next, and its DMK track
 (`fd_image_dmktrack.cpp`) wraps at the track length, so that's its count; Big
 Five's check above passes there on a DMK of 0x18DF and fails on one of 0x1980.
+Our emulator does the same since November 2026 (for HFE, the track's own cells).
 xtrs doesn't: it gives a fixed 6,250 bytes (`TRKSIZE_DD`) whatever the length.
 So copy protection that checks Read Track counts boots from a DMK only if its
 track length is the disk's real turn, and only if every checked track has about
