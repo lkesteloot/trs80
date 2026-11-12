@@ -1229,6 +1229,12 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     // Link to next (extended) directory entry.
     public nextDirEntry: TrsdosDirEntry | undefined = undefined;
     public readonly extents: TrsdosExtent[];
+    // Bytes 0 and 1 of the entry as stored, whose bits mean different things to different DOSes (see
+    // "Directory entries (2.3 family)" in FLOPPY_FORMATS.md). Byte 0 is before decodeDirEntry() clears a
+    // MultiDOS primary entry's extended-entry bit, which {@link flags} has done. Undefined for TRSDOS 1.3's
+    // system files, which have no directory entries.
+    public readonly storedByte0: number | undefined;
+    public readonly storedByte1: number | undefined;
 
     constructor(version: TrsdosVersion, flags: number, day: number, month: number, year: number | undefined,
                 hour: number | undefined, minute: number | undefined,
@@ -1237,7 +1243,9 @@ export class TrsdosDirEntry implements FloppyDirEntry {
                 sectorCount: number,
                 prevDec: number | undefined,
                 nextDec: number | undefined,
-                extents: TrsdosExtent[]) {
+                extents: TrsdosExtent[],
+                storedByte0: number | undefined = undefined,
+                storedByte1: number | undefined = undefined) {
 
         this.version = version;
         this.flags = flags;
@@ -1255,6 +1263,8 @@ export class TrsdosDirEntry implements FloppyDirEntry {
         this.prevDec = prevDec;
         this.nextDec = nextDec;
         this.extents = extents;
+        this.storedByte0 = storedByte0;
+        this.storedByte1 = storedByte1;
     }
 
     /**
@@ -1264,7 +1274,7 @@ export class TrsdosDirEntry implements FloppyDirEntry {
     public withRawFilename(rawFilename: string): TrsdosDirEntry {
         return new TrsdosDirEntry(this.version, this.flags, this.day, this.month, this.year,
             this.hour, this.minute, this.lastSectorSize, this.lrl, rawFilename, this.updatePassword, this.accessPassword,
-            this.sectorCount, this.prevDec, this.nextDec, this.extents);
+            this.sectorCount, this.prevDec, this.nextDec, this.extents, this.storedByte0, this.storedByte1);
     }
 
     /**
@@ -1576,7 +1586,7 @@ export function decodeDirEntry(binary: Uint8Array, geometry: VolumeGeometry, ver
     const nextDec = hasNextDecLink && binary[30] === 0xFE ? binary[31] : undefined;
 
     return new TrsdosDirEntry(version, flags, day, month, year, hour, minute, lastSectorSize, lrl, filename,
-        updatePassword, accessPassword, sectorCount, prevDec, nextDec, extents);
+        updatePassword, accessPassword, sectorCount, prevDec, nextDec, extents, binary[0], binary[1]);
 }
 
 /**

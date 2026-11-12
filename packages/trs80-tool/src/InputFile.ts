@@ -331,6 +331,12 @@ export class TrsdosInputFile extends InputFile {
         if (accessPassword !== undefined) {
             trsdos.accessPassword = accessPassword;
         }
+        if (dirEntry.storedByte0 !== undefined) {
+            trsdos.entryByte0 = dirEntry.storedByte0;
+        }
+        if (dirEntry.storedByte1 !== undefined) {
+            trsdos.entryByte1 = dirEntry.storedByte1;
+        }
 
         return { trsdos };
     }

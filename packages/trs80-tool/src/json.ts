@@ -285,6 +285,19 @@ export interface TrsdosFileJson {
      * same for every file on the disk.
      */
     timeStampsReplaceAccessPassword: boolean;
+    /**
+     * Directory entry byte 0 as stored: the attributes that osFile, hidden and protection decode, and bits
+     * that only some DOSes use. Missing for TRSDOS 1.3's system files, which have no directory entries.
+     */
+    entryByte0?: number;
+    /**
+     * Directory entry byte 1 as stored, whose meaning depends on the DOS: on LDOS and TRSDOS 6, bit 7 is
+     * "CREATEd", bit 6 "modified since the last backup" (MOD), bit 5 "open", bit 4 "no date", and the low
+     * nibble the month; NEWDOS/80 and TRSDOS 2.3 use the bits differently, and TRSDOS 1.3 keeps the month in
+     * the low nibble. See "Directory entries (2.3 family)" in trs80-base's FLOPPY_FORMATS.md. Missing for
+     * TRSDOS 1.3's system files.
+     */
+    entryByte1?: number;
 }
 
 /**

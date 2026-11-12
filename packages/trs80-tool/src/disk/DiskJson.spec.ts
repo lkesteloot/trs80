@@ -301,6 +301,9 @@ describe("disk --json", () => {
         expect(trsdos.accessPassword).to.equal("");
         expect(trsdos.updatePasswordHash).to.equal(TRSDOS_13_BLANK_PASSWORD_HASH);
         expect(trsdos.timeStampsReplaceAccessPassword).to.equal(false);
+        // In use, and the month in byte 1's low nibble.
+        expect(trsdos.entryByte0! & 0x10).to.equal(0x10);
+        expect(trsdos.entryByte1).to.be.a("number");
     });
 
     it("says when time stamps take the access password's place", async () => {
@@ -310,6 +313,8 @@ describe("disk --json", () => {
         expect(trsdos.updatePassword).to.equal("");
         expect(trsdos.accessPasswordHash).to.equal(undefined);
         expect(trsdos.accessPassword).to.equal(undefined);
+        // LDOS sets the modified bit on any file it writes.
+        expect(trsdos.entryByte1! & 0x40).to.equal(0x40);
     });
 
     it("shows a file's contents in base64, with the listing", async () => {
