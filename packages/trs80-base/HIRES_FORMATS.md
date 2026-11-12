@@ -27,8 +27,8 @@ is a lit pixel, shown white on black.
 
 The screens' pixels aren't square: both screens are 8/3 as wide as they are tall in pixels, shown
 on a 4:3 tube, so a pixel is about twice as tall as it is wide. TRSTool showed the pictures at
-2×. The PNGs keep one pixel per screen pixel, so they look squashed unless stretched to twice
-their height.
+2×. `trs80-tool convert` writes each row twice in its PNGs (640×480 and 512×384), and
+`HiResScreen` keeps the bitmap at the screen's own resolution.
 
 ## Model 4 (`.HR`, `.HRG`): 19,200 bytes
 

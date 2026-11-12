@@ -7,7 +7,7 @@ import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-casset
 import {
     Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findLdosPartitions, getFloppyDetails, isFloppy,
     isHardDisk, knownTrsdosPassword, MicroDos,
-    modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
+    modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, pdriveSettingsToString, pdriveSourceToString, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
     UcsdPascal, XenixTar} from "trs80-base";
 import {assertNever} from "z80-base";
 import {
@@ -202,9 +202,23 @@ export interface TrsdosInfoJson {
     sectorsPerGranule: number;
     /** Granules per lump. */
     granulesPerLump: number;
-    /** The NEWDOS/80 PDRIVE settings that read the disk, if its lumps aren't cylinders. */
-    pdrive?: PdriveSettings;
+    /**
+     * The NEWDOS/80 PDRIVE settings for the disk, if it's NEWDOS/80's or its lumps aren't cylinders:
+     * from its drive table if it has one, else worked out from its layout.
+     */
+    pdrive?: PdriveInfoJson;
 }
+
+/**
+ * NEWDOS/80 PDRIVE settings, for "info --json --verbose": the fields of {@link PdriveSettings},
+ * with the source as a string, plus the line as PDRIVE takes it.
+ */
+export type PdriveInfoJson = Omit<PdriveSettings, "source"> & {
+    /** Where the settings came from: "table" (the disk's drive table) or "layout" (worked out from how we decoded it). */
+    source: string;
+    /** The settings as PDRIVE takes them, such as "TI=A,TD=E,TC=40,SPT=18,TSR=3,GPL=2,DDSL=17,DDGA=2". */
+    text: string;
+};
 
 /**
  * Details of a CP/M file system, for "info --json --verbose".
@@ -438,7 +452,11 @@ function fileSystemDetailsToJson(fileSystem: KnownFloppyFileSystem):
         }
         const pdriveSettings = fileSystem.getPdriveSettings();
         if (pdriveSettings !== undefined) {
-            trsdos.pdrive = pdriveSettings;
+            trsdos.pdrive = {
+                ...pdriveSettings,
+                source: pdriveSourceToString(pdriveSettings.source),
+                text: pdriveSettingsToString(pdriveSettings),
+            };
         }
         return { trsdos };
     } else if (fileSystem instanceof Cpm) {

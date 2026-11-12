@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {
-    DosFamily, dosNameToString, DosVersion, isTrsdos6Line, isUnknownDosName, makeDosName, UNKNOWN_DOS_NAME,
+    DosFamily, dosNameToString, DosVersion, isNewdos80Line, isTrsdos6Line, isUnknownDosName, makeDosName, UNKNOWN_DOS_NAME,
 } from "./DosName.js";
 
 describe("DosVersion", () => {
@@ -69,5 +69,17 @@ describe("isTrsdos6Line", () => {
         expect(isTrsdos6Line(makeDosName(DosFamily.DOSPLUS_IV, "1.0"))).to.equal(false);
         expect(isTrsdos6Line({...makeDosName(DosFamily.TRSDOS, "6.2"), or: makeDosName(DosFamily.LDOS, "5.3")}))
             .to.equal(false);
+    });
+});
+
+describe("isNewdos80Line", () => {
+    it("takes NEWDOS/80 and the DOSes built from it, for any candidate", () => {
+        expect(isNewdos80Line(makeDosName(DosFamily.NEWDOS_80, "2.0", "2.5"))).to.equal(true);
+        expect(isNewdos80Line(makeDosName(DosFamily.NEWDOS_90))).to.equal(true);
+        expect(isNewdos80Line(makeDosName(DosFamily.G_DOS))).to.equal(true);
+        expect(isNewdos80Line(makeDosName(DosFamily.NEWDOS, "2.1"))).to.equal(false);
+        expect(isNewdos80Line(UNKNOWN_DOS_NAME)).to.equal(false);
+        expect(isNewdos80Line({...makeDosName(DosFamily.MULTIDOS), or: makeDosName(DosFamily.NEWDOS_80, "2.0")}))
+            .to.equal(true);
     });
 });

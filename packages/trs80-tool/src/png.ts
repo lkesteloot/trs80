@@ -29,12 +29,15 @@ function makeChunk(type: string, data: Uint8Array): Uint8Array {
 /**
  * Encode a black-and-white bitmap as a PNG, one bit per pixel, with 1 bits white.
  *
- * @param width the image's width in pixels, a multiple of 8.
- * @param height the image's height in pixels.
+ * @param width the bitmap's width in pixels, a multiple of 8.
+ * @param height the bitmap's height in pixels.
  * @param bitmap the rows from the top, width/8 bytes each, with the leftmost pixel in the high bit.
+ * @param rowCopies how many times to write each row, to make pixels that are taller than they are wide.
+ * The PNG is this many times the bitmap's height.
  * @return the PNG file's bytes.
  */
-export function encodeBlackAndWhitePng(width: number, height: number, bitmap: Uint8Array): Uint8Array {
+export function encodeBlackAndWhitePng(width: number, height: number, bitmap: Uint8Array,
+                                       rowCopies = 1): Uint8Array {
     const bytesPerRow = width/8;
     if (!Number.isInteger(bytesPerRow) || bitmap.length !== bytesPerRow*height) {
         throw new Error(`Bitmap of ${bitmap.length} bytes doesn't fit ${width}x${height}`);
@@ -43,16 +46,18 @@ export function encodeBlackAndWhitePng(width: number, height: number, bitmap: Ui
     const header = new Uint8Array(13);
     const headerView = new DataView(header.buffer);
     headerView.setUint32(0, width);
-    headerView.setUint32(4, height);
+    const pngHeight = height*rowCopies;
+    headerView.setUint32(4, pngHeight);
     header[8] = BIT_DEPTH;
     header[9] = COLOR_TYPE_GRAYSCALE;
     // Compression, filter method, and interlace are all 0 (the only or the default choice).
 
-    const raw = new Uint8Array((bytesPerRow + 1)*height);
-    for (let y = 0; y < height; y++) {
+    const raw = new Uint8Array((bytesPerRow + 1)*pngHeight);
+    for (let y = 0; y < pngHeight; y++) {
         const offset = y*(bytesPerRow + 1);
+        const bitmapRow = Math.floor(y/rowCopies);
         raw[offset] = FILTER_NONE;
-        raw.set(bitmap.subarray(y*bytesPerRow, (y + 1)*bytesPerRow), offset + 1);
+        raw.set(bitmap.subarray(bitmapRow*bytesPerRow, (bitmapRow + 1)*bytesPerRow), offset + 1);
     }
 
     const chunks = [

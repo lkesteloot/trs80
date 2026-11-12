@@ -2259,22 +2259,55 @@ density single sided is `SPT=10, GPL=2`; single density double sided is
 double-density double-sided disks can't be read by version 2 at all.
 
 **A NEWDOS/80 system disk carries its PDRIVE table at cylinder 0, sector 2**, as
-sixteen-byte slots, one per drive. Verified against the owner's own listing for
-three disks — every field matches:
+sixteen-byte slots, one per drive. The decoding below is Matthew Reed's TRSTool's
+(issue #26), and `readPdriveTable()` in `Pdrive.ts` follows it. It reproduces all
+six owner-recorded PDRIVE lines in the collection exactly, `TI` and `TSR`
+included (the `pdrive` sidecars; see below):
 
-    byte 0   DDSL            byte 5   GPL
-    byte 1   lump count      byte 8   DDSL again
-    byte 3   TC              byte 9   DDGA
-    byte 4   SPT             byte 15  TD, apparently a bit field: bit 1 = double
-                                      sided, bit 2 = double density (0=A, 2=C, 4=E, 6=G)
+    byte 0   DDSL                     byte 9   DDGA
+    byte 1   lump count               byte 12  TSR, 0-3
+    byte 3   TC                       byte 13  TI's interface letter: the lowest
+    byte 4   SPT                               set bit of 0-4 is A-E
+    byte 5   GPL                      byte 14  TI's flags: bit 0 I, bit 1 J, bit 2 K
+    byte 8   DDSL again               byte 15  TD, 0-7 for A-H (bit 1 double sided,
+                                               bit 2 double density, bit 0 8")
 
-Bytes 2, 7, 0x0D and 0x0E hold the `TI` flags and the step rate; those bits are
-only partly worked out. The lump count in byte 1 matches `TC * SPT / (SPG * GPL)`
-on every disk, including the 160 of `newdos80-DSSD-80T.dmk`.
+The lump count in byte 1 matches `TC * SPT / (SPG * GPL)` on every disk,
+including the 160 of `newdos80-DSSD-80T.dmk`. Bytes 2, 6, 7, 10 and 11 are still
+unknown, and so is bit 7 of byte 13, which two disks set (`0x81` and `0x84`,
+alongside A and C); no slot sets the H, L or M letters anywhere we can see.
+
+- **The sanity check** before trusting a slot: the two copies of `DDSL` agree,
+  `TC` is 1-96, `SPT` 1-72 and `GPL` 1-8. On the whole collection, only disks of
+  the NEWDOS/80 line (NEWDOS/80, /86, /90 and G-DOS) pass it, but we read the
+  table only on those anyway.
+- **A blank sector 2** (its first five bytes 0xE5) means a disk whose cylinder 0
+  is in the other density: the table is then in sector 2 of cylinder 1, the `K`
+  flag is implied, and a `TD` of 0 there is shown as E, since that track is
+  double density. The three flippy disks (`games1_flippy_games2.dmk`,
+  `qb-games2-flippy-games1.dmk` and `quentin/games1`) are like this, and their
+  cylinder 1 tables give exactly the owner's `TI=CK,TD=E,TC=43,...,TSR=0`.
+- **A hard disk's slots set bit 6 of byte 13** (0x40): every slot of the three
+  NEWDOS/80 hard disk images does, along with `SPT`=32 and `DDGA`=33 (see "Hard
+  disk images"). Four floppies in `disks/peter/` carry such a slot as slot 0,
+  from a system whose drive 0 was a hard disk; it passes the sanity check but
+  describes a partition, not the floppy (`TC`=5, `GPL`=8, `TSR`=6), so it's
+  rejected and the line comes from the layout.
+- **No table:** NEWDOS/80 version 1 disks (of the 27 we name v1, only two
+  NEWDOS/86 2.0 utility disks, misnamed, have one) and most data disks. For
+  these, and for disks whose table fails the check, `getPdriveSettings()` works
+  the line out from the layout we decoded, which can't know the interface letter
+  or `TSR`.
+- **Against the layout:** of the 154 disks whose table is used, 126 agree on
+  every field with the settings worked out from how we decoded them. The rest
+  differ as the next paragraph expects: `TC` (18, the drive's tracks against the
+  image's), `DDGA` (4), the FRED disks' `TD` (4), `73BFRED.DMK`'s `SPT`, and
+  `DDSL` on two disks whose directory isn't where the drive's settings would
+  have put it.
 
 **The table is a strong hint, not ground truth.** It describes how the *drive*
 was configured when the system disk was last written, and the disk in the image
-can differ. Across the 28 images that carry one:
+can differ. Across the 28 images that carried one when this was first measured:
 
 - `SPT` matches the media on 27. The exception is `73BFRED.DMK`, whose table says
   `SPT=18` (double density, single sided) while the disk is single density,
@@ -2284,8 +2317,7 @@ can differ. Across the 28 images that carry one:
   double sided, alongside `SPT=20` and single-density media.
 
 So prefer the table's `GPL` and `DDSL` as the first candidates to try, trust
-`SPT` over `TD`, and trust the media over both. Data disks have no table at all
-(the flippies' sector 2 is 0xE5 filler). The later slots describe the owner's
+`SPT` over `TD`, and trust the media over both. The later slots describe the owner's
 *other* drives, so slot 0 is the one that matters.
 
 The owner's PDRIVE settings for five disks are recorded in the `pdrive` field of

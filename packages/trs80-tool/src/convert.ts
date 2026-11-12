@@ -12,6 +12,9 @@ import {convertFloppyFile} from "./convertDisk.js";
 import {encodeBlackAndWhitePng} from "./png.js";
 import { concatByteArrays } from "teamten-ts-utils";
 
+// Hi-res screens' pixels are about twice as tall as they are wide, so their PNGs have each row twice.
+const HI_RES_ROW_COPIES = 2;
+
 /**
  * Handle the "convert" command.
  *
@@ -168,9 +171,10 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                 const screen = infile.trs80File;
                 switch (outExt) {
                     case ".png":
-                        outBinary = encodeBlackAndWhitePng(screen.width, screen.height, screen.bitmap);
-                        description = screen.width + "x" + screen.height + " PNG of a hi-res screen (" +
-                            hiResScreenFormatToString(screen.format) + ")";
+                        outBinary = encodeBlackAndWhitePng(screen.width, screen.height, screen.bitmap,
+                            HI_RES_ROW_COPIES);
+                        description = screen.width + "x" + screen.height*HI_RES_ROW_COPIES +
+                            " PNG of a hi-res screen (" + hiResScreenFormatToString(screen.format) + ")";
                         break;
 
                     default:
