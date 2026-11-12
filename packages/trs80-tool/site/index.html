@@ -784,6 +784,37 @@ C CRC error (ID or data).
             they’re exact and repeatable no matter how fast the emulator happens to run on your
             machine.</p>
 
+            <p>The server also runs some commands on disk images on your computer. Each one returns
+            the JSON that the command prints with <code>--json</code>, on one line. A program that
+            makes many calls, such as a GUI, pays for starting Node once, not on every call:</p>
+
+            <ul>
+                <li><code>dir</code>, <code>info</code>, <code>sectors</code> — as
+                    <a href="#dir"><code>dir --json</code></a>,
+                    <a href="#info"><code>info --json</code></a>, and
+                    <a href="#sectors"><code>sectors --json</code></a>, for a list of files.</li>
+                <li><code>disk</code> — run <a href="disk.html">disk commands</a> on one image, as
+                    <code>disk IMAGE --dry-run --json …</code> would. Nothing is saved, and
+                    <code>extract</code> is refused, so this tool never changes a file.
+                    <code>wouldHaveChanged</code> in its result says whether the commands would
+                    have changed the image.</li>
+                <li><code>disk_write</code> — the same, but changes are saved, as
+                    <code>disk IMAGE --json …</code> does, and <code>extract</code> writes host files.</li>
+            </ul>
+
+            <p>Only <code>disk_write</code> changes files. It’s a separate tool so that your AI tool
+            can ask before every write while still letting reads through. When a document reports a
+            failure, such as a file that isn’t there or a disk command that fails, the result is
+            marked as an error. The document is returned whole, and its <code>errorCode</code>
+            fields hold the <a href="#exit-status">exit status</a> the command would have given.
+            Requests run one at a time, in the order they arrive.</p>
+
+            <p>A program that isn’t an AI tool can use these too. Start <code>trs80-tool mcp</code>,
+            then write one JSON-RPC request per line to its standard input and read one reply per
+            line from its standard output:</p>
+
+            <div><pre><code>{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"disk","arguments":{"image":"game.dmk","words":["info",":","dir"]}}}</code></pre></div>
+
             <h3 id="help"><code>help</code></h3>
             <p>The <code>help</code> command shows more specific information about other commands:</p>
             <div><pre><code>% trs80-tool help dir

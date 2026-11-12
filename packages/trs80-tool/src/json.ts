@@ -614,12 +614,21 @@ export interface InfilesJson<T extends InfileJson> {
 export function printInfilesJson<T extends InfileJson>(infiles: T[]): void {
     const output: InfilesJson<T> = { infiles };
     printJson(output);
+    const exitCode = infilesExitCode(infiles);
+    if (exitCode !== ToolExitCode.SUCCESS) {
+        process.exitCode = exitCode;
+    }
+}
+
+/**
+ * The exit status for a command's JSON: success if none of the input files had an error, else their
+ * errorCode if they all have the same one, else 1.
+ */
+export function infilesExitCode(infiles: InfileJson[]): ToolExitCode {
     const codes = infiles
         .filter(infile => infile.error !== undefined)
         .map(infile => infile.errorCode ?? ToolExitCode.GENERAL);
-    if (codes.length > 0) {
-        process.exitCode = combineExitCodes(codes);
-    }
+    return codes.length === 0 ? ToolExitCode.SUCCESS : combineExitCodes(codes);
 }
 
 /**

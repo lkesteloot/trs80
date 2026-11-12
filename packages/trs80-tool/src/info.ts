@@ -377,7 +377,7 @@ interface CassetteInfoJson {
 /**
  * The JSON for one input file of "info --json".
  */
-interface InfoJson extends InfileJson {
+export interface InfoJson extends InfileJson {
     /** Length in bytes of the input file. Missing if it couldn't be read. */
     size?: number;
     /** SHA-256 of the input file, in lowercase hexadecimal. Missing if it couldn't be read. */
@@ -633,13 +633,23 @@ function infoFileToJson(filename: string, verbose: boolean): Omit<InfoJson, "war
 }
 
 /**
+ * The "infiles" of "info --json", without printing them.
+ *
+ * @param infiles the input files, with wildcards already expanded.
+ * @param verbose whether to include more information about each file.
+ */
+export function infoJsonInfiles(infiles: string[], verbose: boolean): InfoJson[] {
+    return infiles.map((infile): InfoJson => {
+        const {result, warnings} = captureLogs(() => infoFileToJson(infile, verbose));
+        return { ...result, warnings };
+    });
+}
+
+/**
  * Handle the "info --json" command: print one JSON object for all the input files.
  */
 function printInfoJson(infiles: string[], verbose: boolean): void {
-    printInfilesJson(infiles.map((infile): InfoJson => {
-        const {result, warnings} = captureLogs(() => infoFileToJson(infile, verbose));
-        return { ...result, warnings };
-    }));
+    printInfilesJson(infoJsonInfiles(infiles, verbose));
 }
 
 /**

@@ -6,6 +6,10 @@
  * the screen. The machine persists between calls, so a session is a REPL rather
  * than a batch job.
  *
+ * It also runs the "dir", "info", "sectors" and "disk" commands on disk images in
+ * this process, returning the JSON that their --json prints, so that programs such
+ * as GUIs don't pay a Node start for each command. Only "disk_write" changes files.
+ *
  * We speak the protocol directly instead of pulling in the MCP SDK, because it's
  * only a handful of methods and this tool ships as a standalone binary.
  *
@@ -17,7 +21,8 @@
  * and the change log at the bottom of that page should mention the change.
  *
  * Adding a tool: add an entry to TOOLS with a description written for the model that
- * will call it, a JSON schema for its arguments, and a run() that returns text. Keep
+ * will call it, a JSON schema for its arguments, and a run() that returns text (or a
+ * promise for it, since requests are handled one at a time, in order). Keep
  * the output compact -- it all lands in the caller's context window -- and cap
  * anything that could get large. Report failures by throwing; they come back as an
  * isError result the model can read and react to. Test by piping JSON-RPC into
@@ -35,6 +40,13 @@ import {
 } from "trs80-emulator";
 import {decodeBasicProgram, decodeTrs80File, isFloppy, MODEL3_FONT, parseBasicText} from "trs80-base";
 import {Disasm} from "z80-disasm";
+import {setColorLevel} from "./colors.js";
+import {dirJsonInfiles} from "./dir.js";
+import {diskJsonRun} from "./disk/disk.js";
+import {infoJsonInfiles} from "./info.js";
+import {type InfileJson, infilesExitCode} from "./json.js";
+import {sectorsJsonInfiles} from "./sectors.js";
+import {expandInputPattern, expandInputPatterns, ToolExitCode} from "./utils.js";
 
 const SCREEN_BEGIN = 0x3C00;
 const SCREEN_WIDTH = 64;
@@ -80,6 +92,10 @@ const SERVER_INSTRUCTIONS = [
     "For exact timing, use run_until_memory and let the",
     "program's own writes be the clock; run_until_screen only checks every ~2,000",
     "instructions.",
+    "",
+    "The dir, info, sectors and disk tools read disk images on the host, and return the",
+    "JSON that the command-line tool's --json prints. They never change files; disk_write",
+    "is the one that saves changes to an image.",
     "",
     "This server is open source: " +
         "https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/src/mcp.ts",
@@ -433,10 +449,30 @@ function needMachine(): Machine {
     return machine;
 }
 
+/**
+ * What a tool's run() returns: text, or text with whether it describes a failure. The second is for the tools
+ * that return a JSON document, which describes a failure in its own fields and so isn't thrown.
+ */
+type ToolOutput = string | {text: string, isError: boolean};
+
+/**
+ * The hints that a client may use to decide, for instance, whether to ask before calling a tool (from the
+ * 2025-03-26 version of the protocol; older clients ignore them).
+ */
+interface ToolAnnotations {
+    /** Whether the tool changes nothing outside the server. */
+    readOnlyHint: boolean;
+    /** Whether a tool that changes things may destroy what's there, such as by overwriting a file. */
+    destructiveHint?: boolean;
+    /** Whether the tool talks to the world outside the host (the network). */
+    openWorldHint: boolean;
+}
+
 interface Tool {
     description: string;
     inputSchema: any;
-    run: (args: any) => string;
+    annotations?: ToolAnnotations;
+    run: (args: any) => ToolOutput | Promise<ToolOutput>;
 }
 
 const TOOLS: Record<string, Tool> = {
@@ -701,81 +737,117 @@ TOOLS["type"] = {
 
 //--- JSON-RPC 2.0 over stdio.
 
-function send(message: any): void {
-    process.stdout.write(JSON.stringify(message) + "\n");
+/**
+ * The successful reply to a request.
+ */
+function reply(id: any, result: any): object {
+    return {jsonrpc: "2.0", id, result};
 }
 
-function reply(id: any, result: any): void {
-    send({jsonrpc: "2.0", id, result});
+/**
+ * The error reply to a request, for protocol errors (a tool's failure is a successful reply).
+ */
+function replyError(id: any, code: number, message: string): object {
+    return {jsonrpc: "2.0", id, error: {code, message}};
 }
 
-function replyError(id: any, code: number, message: string): void {
-    send({jsonrpc: "2.0", id, error: {code, message}});
-}
-
-function handle(request: any): void {
+/**
+ * Handle one JSON-RPC request or notification.
+ *
+ * @returns a promise for the reply to send, or for undefined if there's none (for a notification).
+ */
+export async function handleRequest(request: any): Promise<object | undefined> {
     const {id, method, params} = request;
 
     switch (method) {
         case "initialize":
-            reply(id, {
+            return reply(id, {
                 // Echo the client's version back when they ask for one, for compatibility.
                 protocolVersion: params?.protocolVersion ?? PROTOCOL_VERSION,
                 capabilities: {tools: {}},
                 serverInfo: {name: "trs80-tool", version: "1.0.0"},
                 instructions: SERVER_INSTRUCTIONS,
             });
-            break;
 
         case "notifications/initialized":
         case "notifications/cancelled":
             // Notifications have no id and take no reply.
-            break;
+            return undefined;
 
         case "ping":
-            reply(id, {});
-            break;
+            return reply(id, {});
 
         case "tools/list":
-            reply(id, {
+            return reply(id, {
                 tools: Object.entries(TOOLS).map(([name, tool]) => ({
                     name,
                     description: tool.description,
                     inputSchema: tool.inputSchema,
+                    ...(tool.annotations === undefined ? {} : {annotations: tool.annotations}),
                 })),
             });
-            break;
 
         case "tools/call": {
             const tool = TOOLS[params?.name];
             if (tool === undefined) {
-                replyError(id, -32602, "Unknown tool: " + params?.name);
-                break;
+                return replyError(id, -32602, "Unknown tool: " + params?.name);
             }
             try {
-                const text = tool.run(params.arguments ?? {});
-                reply(id, {content: [{type: "text", text}]});
+                const output = await tool.run(params.arguments ?? {});
+                return typeof output === "string"
+                    ? reply(id, {content: [{type: "text", text: output}]})
+                    : reply(id, {
+                        content: [{type: "text", text: output.text}],
+                        ...(output.isError ? {isError: true} : {}),
+                    });
             } catch (e) {
                 // Report tool failures in the result, not as protocol errors, so the
                 // assistant sees what went wrong and can try something else.
-                reply(id, {
+                return reply(id, {
                     content: [{type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e))}],
                     isError: true,
                 });
             }
-            break;
         }
 
         default:
-            if (id !== undefined) {
-                replyError(id, -32601, "Method not found: " + method);
-            }
-            break;
+            return id !== undefined ? replyError(id, -32601, "Method not found: " + method) : undefined;
     }
 }
 
 /**
- * Run the MCP server, reading requests from stdin until it closes.
+ * Handle one line of input, a request, and send the reply, if any. Never throws.
+ */
+async function handleLine(line: string): Promise<void> {
+    let request: any;
+    try {
+        request = JSON.parse(line);
+    } catch (e) {
+        send(replyError(null, -32700, "Parse error"));
+        return;
+    }
+    try {
+        const response = await handleRequest(request);
+        if (response !== undefined) {
+            send(response);
+        }
+    } catch (e) {
+        if (request.id !== undefined) {
+            send(replyError(request.id, -32603, e instanceof Error ? e.message : String(e)));
+        }
+    }
+}
+
+/**
+ * Write a message to the protocol channel, one per line.
+ */
+function send(message: object): void {
+    process.stdout.write(JSON.stringify(message) + "\n");
+}
+
+/**
+ * Run the MCP server, reading requests from stdin until it closes. Requests are handled one at a time, in
+ * the order they arrive, so that the replies come in the same order and two tools never run at once.
  */
 export function mcp(): void {
     // stdout belongs to the protocol. The emulator logs things like ROM-write
@@ -784,7 +856,11 @@ export function mcp(): void {
     console.info = console.log;
     console.warn = console.log;
     console.error = console.log;
+    // The disk tools' text goes into JSON, which mustn't have escape codes.
+    setColorLevel("off");
 
+    // Each line's handling waits for the one before it.
+    let queue: Promise<void> = Promise.resolve();
     let buffer = "";
     process.stdin.setEncoding("utf8");
     process.stdin.on("data", chunk => {
@@ -799,24 +875,13 @@ export function mcp(): void {
             if (line === "") {
                 continue;
             }
-            let request: any;
-            try {
-                request = JSON.parse(line);
-            } catch (e) {
-                replyError(null, -32700, "Parse error");
-                continue;
-            }
-            try {
-                handle(request);
-            } catch (e) {
-                if (request.id !== undefined) {
-                    replyError(request.id, -32603,
-                        e instanceof Error ? e.message : String(e));
-                }
-            }
+            queue = queue.then(() => handleLine(line));
         }
     });
-    process.stdin.on("end", () => process.exit(0));
+    // Finish the requests already read before exiting.
+    process.stdin.on("end", () => {
+        queue.then(() => process.exit(0));
+    });
 }
 
 TOOLS["run_until_screen"] = {
@@ -1287,4 +1352,174 @@ TOOLS["reset"] = {
         m.trs80.pressResetButton();
         return `Reset. Run the machine to let it boot.`;
     },
+};
+
+//--- Disk image tools.
+//
+// These run the command-line tool's commands in this process, so that a program (such as a GUI) that
+// makes many calls doesn't pay a Node start for each. They return the same JSON that the commands' --json
+// prints, documented in json.ts and disk/DiskJson.ts, but on one line. A document that describes a failure
+// (an input that can't be read, a disk command that fails) comes back with isError, but is still the whole
+// document, whose errorCode fields say what the command line's exit status would be.
+//
+// Only disk_write changes anything on the host. It's a separate tool, rather than an argument of "disk",
+// because clients ask permission per tool, so that a user can allow reading without allowing writing.
+
+// The hints for the tools that change nothing.
+const READ_ONLY_TOOL: ToolAnnotations = {readOnlyHint: true, openWorldHint: false};
+
+// What the tools say about paths.
+const PATH_NOTE = "Paths are on the host, relative to the server's working directory unless absolute, and may " +
+    "have wildcards.";
+
+/**
+ * A required argument that must be a non-empty array of strings.
+ *
+ * @throws Error if it isn't.
+ */
+function stringArrayArg(args: any, name: string): string[] {
+    const value = args[name];
+    if (!Array.isArray(value) || value.length === 0 || !value.every(item => typeof item === "string")) {
+        throw new Error(name + " must be a non-empty array of strings");
+    }
+    return value;
+}
+
+/**
+ * An optional argument that must be a boolean, false if missing.
+ *
+ * @throws Error if it's there and isn't a boolean.
+ */
+function booleanArg(args: any, name: string): boolean {
+    const value = args[name] ?? false;
+    if (typeof value !== "boolean") {
+        throw new Error(name + " must be true or false");
+    }
+    return value;
+}
+
+/**
+ * The output for a JSON document, compact since it all goes into the caller's context, which is a failure
+ * if the command line would have exited with an error.
+ */
+function jsonOutput(document: unknown, exitCode: ToolExitCode): ToolOutput {
+    return {text: JSON.stringify(document), isError: exitCode !== ToolExitCode.SUCCESS};
+}
+
+/**
+ * The output for the "infiles" document of "dir", "info" and "sectors".
+ */
+function infilesOutput(infiles: InfileJson[]): ToolOutput {
+    return jsonOutput({infiles}, infilesExitCode(infiles));
+}
+
+/**
+ * Do a "disk" tool call.
+ *
+ * @param readOnly whether the run must change nothing (see {@link diskJsonRun}).
+ */
+async function runDiskTool(args: any, readOnly: boolean): Promise<ToolOutput> {
+    if (typeof args.image !== "string") {
+        throw new Error("image must be a string");
+    }
+    const {json, exitCode} = await diskJsonRun(expandInputPattern(args.image),
+        stringArrayArg(args, "words"), readOnly);
+    return jsonOutput(json, exitCode);
+}
+
+// The arguments of "disk" and "disk_write".
+const DISK_TOOL_SCHEMA = {
+    type: "object",
+    properties: {
+        image: {type: "string", description: "The disk image (floppy or HDV hard disk)"},
+        words: {
+            type: "array",
+            items: {type: "string"},
+            description: "The words after the image on the command line: global options such as " +
+                "--partition, then commands separated by lone \":\" words, e.g. " +
+                "[\"info\", \":\", \"dir\", \"--system\"]",
+        },
+    },
+    required: ["image", "words"],
+};
+
+TOOLS["dir"] = {
+    description: "List the files in disk images (or CAS and WAV files), as \"trs80-tool dir --json\" " +
+        "prints it: {infiles: [{infile, os, files: [...], warnings}]}. " + PATH_NOTE,
+    inputSchema: {
+        type: "object",
+        properties: {
+            images: {type: "array", items: {type: "string"}, description: "The files to list"},
+            system: {type: "boolean", description: "Include system files, defaults to false"},
+            cpmRecords: {type: "boolean",
+                description: "Keep CP/M files' whole 128-byte records, defaults to false"},
+        },
+        required: ["images"],
+    },
+    annotations: READ_ONLY_TOOL,
+    run: args => infilesOutput(dirJsonInfiles(expandInputPatterns(stringArrayArg(args, "images")),
+        booleanArg(args, "system"), booleanArg(args, "cpmRecords"))),
+};
+
+TOOLS["info"] = {
+    description: "Describe files (disk images, cassettes, programs), as \"trs80-tool info --json\" prints " +
+        "it: {infiles: [{infile, size, sha256, contentType, description, floppy | hardDisk | cassette, " +
+        "warnings}]}. " + PATH_NOTE,
+    inputSchema: {
+        type: "object",
+        properties: {
+            images: {type: "array", items: {type: "string"}, description: "The files to describe"},
+            verbose: {type: "boolean",
+                description: "Add the geometry and the file system's details, defaults to false"},
+        },
+        required: ["images"],
+    },
+    annotations: READ_ONLY_TOOL,
+    run: args => infilesOutput(infoJsonInfiles(expandInputPatterns(stringArrayArg(args, "images")),
+        booleanArg(args, "verbose"))),
+};
+
+TOOLS["sectors"] = {
+    description: "List the sectors of floppy images, as \"trs80-tool sectors --json\" prints it: " +
+        "{infiles: [{infile, sectors: [...], warnings}]}, each sector with its position, density, CRC " +
+        "status and the files that use it. That's thousands of entries for a whole disk, so consider " +
+        "bad. " + PATH_NOTE,
+    inputSchema: {
+        type: "object",
+        properties: {
+            images: {type: "array", items: {type: "string"}, description: "The floppy images"},
+            bad: {type: "boolean",
+                description: "Only the bad sectors, and only the images that have some, defaults to false"},
+            contents: {type: "boolean",
+                description: "Include each sector's bytes in base64, which makes the output larger than " +
+                    "the image, defaults to false"},
+        },
+        required: ["images"],
+    },
+    annotations: READ_ONLY_TOOL,
+    run: args => infilesOutput(sectorsJsonInfiles(expandInputPatterns(stringArrayArg(args, "images")),
+        booleanArg(args, "contents"), booleanArg(args, "bad"))),
+};
+
+TOOLS["disk"] = {
+    description: "Run disk commands on one disk image without changing anything, as \"trs80-tool disk " +
+        "IMAGE --dry-run --json WORDS...\" would, and return its JSON: {image, commands: [{command, name, " +
+        "messages, warnings, result | error}], saved, wouldHaveChanged, warnings}. Commands chain with \":\" " +
+        "and may change the disk in memory (add, kill, attrib, ...): wouldHaveChanged then says whether " +
+        "disk_write would change the image. \"extract\", which writes host files, is refused. Try " +
+        "[\"help\"] for the commands. " + PATH_NOTE,
+    inputSchema: DISK_TOOL_SCHEMA,
+    annotations: READ_ONLY_TOOL,
+    run: args => runDiskTool(args, true),
+};
+
+TOOLS["disk_write"] = {
+    description: "Run disk commands on one disk image and save the changes, as \"trs80-tool disk IMAGE " +
+        "--json WORDS...\" does, and return the same JSON as the \"disk\" tool (\"saved\" is the path " +
+        "written). Changes are saved once, at the end, and only if every command worked. This can " +
+        "overwrite the image (or the --output file) and, with \"extract\", host files. Use \"disk\" first " +
+        "to see what would happen. " + PATH_NOTE,
+    inputSchema: DISK_TOOL_SCHEMA,
+    annotations: {readOnlyHint: false, destructiveHint: true, openWorldHint: false},
+    run: args => runDiskTool(args, false),
 };
