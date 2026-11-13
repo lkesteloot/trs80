@@ -32,8 +32,10 @@ function makeJv1Disk(): Jv1FloppyDisk {
  * Make a tiny single-sided, single-density DMK disk with two cylinders of three sectors each
  * (numbered 0 to 2). On each track, sector 1 has the deleted data address mark and the others
  * the normal one, and every byte of sector n on cylinder c is c*16 + n.
+ *
+ * @param idSide the side that the sectors' ID fields name, which some disks have as 1 on side 0.
  */
-function makeDmkDisk(): FloppyDisk {
+function makeDmkDisk(idSide = 0): FloppyDisk {
     const trackLength = 0x0CC0;
     const headerSize = 128;
     const trackCount = 2;
@@ -52,7 +54,7 @@ function makeDmkDisk(): FloppyDisk {
             binary[trackOffset + sector*2] = index & 0xFF;
             binary[trackOffset + sector*2 + 1] = index >> 8;
 
-            const bytes: number[] = [ID_ADDRESS_MARK, cylinder, 0, sector, 1];
+            const bytes: number[] = [ID_ADDRESS_MARK, cylinder, idSide, sector, 1];
             let crc = CRC_PRESET;
             for (const b of bytes) {
                 crc = CRC_16_CCITT.update(crc, b);
@@ -251,6 +253,18 @@ describe("SectorOverlay", () => {
             expect(disk.readSector(deleted)?.data).to.eql(filled(0x5A));
             expect(disk.readSector(deleted)?.getDataAddressMark()).to.equal(DELETED_DATA_ADDRESS_MARK);
             expect(disk.readSector(deleted)?.deleted).to.equal(true);
+        });
+
+        it("commits to where a sector was written, not to the side its ID names", () => {
+            // Side 0's sectors say side 1 in their IDs, as on some NEWDOS/80 1.0 disks.
+            const disk = makeDmkDisk(1);
+            const position = SectorPosition.make(1, 0, 2);
+            expect(disk.readSector(position)?.sectorPosition.side).to.equal(1);
+            const overlay = new SectorOverlay(disk);
+            overlay.writeSector(position, filled(0xA5));
+            expect(overlay.getChangedPositions().map(changed => changed.key())).to.eql([position.key()]);
+            overlay.commit();
+            expect(disk.readSector(position)?.data).to.eql(filled(0xA5));
         });
 
         it("refuses a missing sector and a write-protected disk", () => {

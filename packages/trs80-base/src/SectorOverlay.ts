@@ -26,6 +26,13 @@ export class SectorOverlay implements DiskVolume {
     private readonly changes = new Map<string, SectorData>();
 
     /**
+     * Where each changed sector was written, by the same key. A sector's data names the position in its
+     * ID field, which needn't be where it is: some disks have side 1 in the IDs of side 0's sectors, or
+     * side 0 in side 1's. The commit goes by where it was written, not by the ID.
+     */
+    private readonly changedPositions = new Map<string, SectorPosition>();
+
+    /**
      * @param base the floppy or partition to lay changes over.
      */
     constructor(base: WritableDiskVolume) {
@@ -103,6 +110,7 @@ export class SectorOverlay implements DiskVolume {
         changed.crcError = false;
         changed.crc = undefined;
         this.changes.set(sectorPosition.key(), changed);
+        this.changedPositions.set(sectorPosition.key(), sectorPosition);
     }
 
     /**
@@ -116,8 +124,7 @@ export class SectorOverlay implements DiskVolume {
      * The positions of the changed sectors, in disk order (cylinder, side, sector).
      */
     public getChangedPositions(): SectorPosition[] {
-        return [... this.changes.values()]
-            .map(sectorData => sectorData.sectorPosition)
+        return [... this.changedPositions.values()]
             .sort((a, b) =>
                 a.cylinderNumber - b.cylinderNumber ||
                 a.side - b.side ||
@@ -143,6 +150,7 @@ export class SectorOverlay implements DiskVolume {
             }
         }
         this.changes.clear();
+        this.changedPositions.clear();
     }
 
     /**
@@ -150,6 +158,7 @@ export class SectorOverlay implements DiskVolume {
      */
     public discard(): void {
         this.changes.clear();
+        this.changedPositions.clear();
     }
 }
 
