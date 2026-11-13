@@ -14,6 +14,7 @@
     "@types/node": "^24.13.4"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "strongly-typed-events": "^3.0.11",
     "teamten-ts-utils": "^1.0.3",
     "z80-logger": "*",

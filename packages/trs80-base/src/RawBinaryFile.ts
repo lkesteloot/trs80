@@ -14,8 +14,13 @@ import {ProgramBuilder} from "./ProgramBuilder.js";
 export class RawBinaryFile extends AbstractTrs80File {
     public readonly className = "RawBinaryFile";
 
-    constructor(binary: Uint8Array) {
-        super(binary, undefined, []);
+    /**
+     * @param binary the file's bytes.
+     * @param error why the file couldn't be decoded, if it's raw because of an error (such as a ".gz" file
+     * that isn't valid gzip data).
+     */
+    constructor(binary: Uint8Array, error?: string | undefined) {
+        super(binary, error, []);
     }
 
     public getDescription(): string {

@@ -5,6 +5,7 @@ export * from "./Cassette.js";
 export * from "./SystemProgram.js";
 export * from "./RawBinaryFile.js";
 export * from "./Trs80FileDecoder.js";
+export * from "./Gzip.js";
 export * from "./FloppyDisk.js";
 export * from "./Crc16.js";
 export * from "./TrackBytes.js";

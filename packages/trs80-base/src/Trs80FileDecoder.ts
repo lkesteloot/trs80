@@ -16,6 +16,7 @@ import {decodeBootSector, BootSector} from "./BootSector.js";
 import {type FloppyDecodeOptions} from "./FloppyDisk.js";
 import {decodeHdvHardDisk, HdvHardDisk} from "./HdvHardDisk.js";
 import {decodeHiResScreen, HiResScreen, isHiResScreenExtension} from "./HiResScreen.js";
+import {uncompressFile} from "./Gzip.js";
 
 /**
  * The various floppy formats we support.
@@ -179,16 +180,41 @@ const DECODE_TRS80_FILE_OPTIONS_DEFAULTS: Required<DecodeTrs80FileOptions> = {
 };
 
 /**
- * Top-level decoder for any TRS-80 file.
+ * Top-level decoder for any TRS-80 file. A file whose name ends in ".gz" is decompressed first, and decoded
+ * by the rest of its name (see Gzip.ts). The decoded file's binary is then the decompressed bytes.
  *
  * @param binary the bytes of the file.
  * @param options optional object to control decoding.
+ * @returns the decoded file. A ".gz" file that isn't valid gzip data is a {@link RawBinaryFile} of the
+ * compressed bytes with an error.
  */
 export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOptions): Trs80File {
     const { filename, disassemble, basicDialect } = {
         ... DECODE_TRS80_FILE_OPTIONS_DEFAULTS,
         ... options,
     };
+
+    let uncompressed;
+    try {
+        uncompressed = uncompressFile(filename, binary);
+    } catch (e: any) {
+        return new RawBinaryFile(binary, e.message ?? String(e));
+    }
+
+    return decodeUncompressedFile(uncompressed.bytes, uncompressed.name, disassemble, basicDialect);
+}
+
+/**
+ * Decode any TRS-80 file that isn't compressed.
+ *
+ * @param binary the bytes of the file.
+ * @param filename the file's name, whose extension helps with decoding, or the empty string.
+ * @param disassemble whether to disassemble program files.
+ * @param basicDialect the Basic of tokenized and text Basic programs.
+ */
+function decodeUncompressedFile(binary: Uint8Array, filename: string, disassemble: boolean,
+                                basicDialect: BasicDialect): Trs80File {
+
     let trs80File: Trs80File | undefined;
     const extension = getFilenameExtension(filename);
 
