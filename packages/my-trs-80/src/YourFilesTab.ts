@@ -7,7 +7,7 @@ import {Context} from "./Context.js";
 import {PageTab} from "./PageTab.js";
 import {TagSet} from "./TagSet.js";
 import {PageTabs} from "./PageTabs.js";
-import {TRS80_BLINK_PERIOD_MS} from "trs80-base";
+import {TRS80_BLINK_PERIOD_MS, uncompressFile} from "trs80-base";
 import {withCanvasScreen} from "./ScreenPool.js";
 import {downloadBlob} from "trs80-emulator-web";
 
@@ -233,7 +233,7 @@ export class YourFilesTab extends PageTab {
     private uploadFile(): void {
         const uploadElement = document.createElement("input");
         uploadElement.type = "file";
-        uploadElement.accept = ".cas, .bas, .cmd, .dmk, .dsk, .jv1, .jv3, .3bn, .scp, .hfe, .imd";
+        uploadElement.accept = ".cas, .bas, .cmd, .dmk, .dsk, .jv1, .jv3, .3bn, .scp, .hfe, .imd, .gz";
         uploadElement.multiple = true;
         uploadElement.addEventListener("change", () => {
             const user = this.context.user;
@@ -261,11 +261,21 @@ export class YourFilesTab extends PageTab {
     /**
      * Add an uploaded file to our library.
      * @param uid user ID.
-     * @param filename original filename from the user.
+     * @param filename original filename from the user. If it ends in ".gz", the file is stored decompressed
+     * under the name without the ".gz".
      * @param binary raw binary of the file.
      * @param openFilePanel whether to open the file panel for this file after importing it.
      */
     private importFile(uid: string, filename: string, binary: Uint8Array, openFilePanel: boolean): void {
+        try {
+            const uncompressed = uncompressFile(filename, binary);
+            filename = uncompressed.name;
+            binary = uncompressed.bytes;
+        } catch (e) {
+            reportError("Can't import \"" + filename + "\"", e);
+            return;
+        }
+
         let name = filename;
 
         // Remove extension.
