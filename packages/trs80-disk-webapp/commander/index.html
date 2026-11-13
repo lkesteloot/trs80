@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PRCQT25RPV"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-PRCQT25RPV');
+    </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Disk Commander</title>
+    <link rel="stylesheet" href="/src/commander/commander.css">
+</head>
+<body>
+<div class="title"><b>Disk Commander</b><span>my-trs-80.com/commander</span><span class="grow"></span>
+    <a href="/disk/">[TRS-80 Disk]</a><button id="themeBtn">[Theme]</button><button data-fk="1">[F1 Help]</button></div>
+<div class="panels" id="panels">
+    <div class="panel active" id="leftPanel">
+        <div class="ptitle" id="leftTitle">No folder</div>
+        <div class="rows" id="leftRows"></div>
+        <div class="pfoot" id="leftFoot"></div>
+    </div>
+    <div class="panel" id="rightPanel">
+        <div class="ptitle" id="rightTitle">No disk</div>
+        <div class="rows" id="rightRows"></div>
+        <div class="pfoot" id="rightFoot"></div>
+    </div>
+</div>
+<div class="msgs" id="msgs"></div>
+<div class="cmdline"><span id="prompt">&gt; </span><input id="cmd" autocomplete="off" spellcheck="false" autofocus></div>
+<div class="fkeys" id="fkeys">
+    <button data-fk="1"><b>1</b><i>Help</i></button>
+    <button class="off" data-fk="2" disabled><b>2</b><i>Attrib</i></button>
+    <button class="off" data-fk="3" disabled><b>3</b><i>View</i></button>
+    <button class="off" data-fk="4" disabled><b>4</b><i>Label</i></button>
+    <button class="off" data-fk="5" disabled><b>5</b><i>Copy</i></button>
+    <button class="off" data-fk="6" disabled><b>6</b><i>Rename</i></button>
+    <button class="off" data-fk="7" disabled><b>7</b><i>NewDisk</i></button>
+    <button class="off" data-fk="8" disabled><b>8</b><i>Delete</i></button>
+    <button class="off" data-fk="9" disabled><b>9</b><i>Panel</i></button>
+    <button class="off" data-fk="10" disabled><b>10</b><i>Undo</i></button>
+</div>
+<div id="layer"></div>
+
+<script type="module" src="/src/commander/main.ts"></script>
+</body>
+</html>

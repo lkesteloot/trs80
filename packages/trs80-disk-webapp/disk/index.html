@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PRCQT25RPV"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-PRCQT25RPV');
+    </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TRS-80 Disk</title>
+    <link rel="stylesheet" href="/src/workbench/workbench.css">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="brand"><span class="site">my-trs-80 /</span> <b>disk</b></div>
+    <nav class="tabs" id="tabs"></nav>
+    <div class="top-actions">
+        <a class="otherlink" href="/commander/">Disk Commander</a>
+        <button class="icon" id="undoBtn" title="Undo (Ctrl-Z)" disabled>↶</button>
+        <button class="icon" id="redoBtn" title="Redo (Shift-Ctrl-Z)" disabled>↷</button>
+        <button class="icon" id="themeBtn" title="Light or dark">◐</button>
+    </div>
+</header>
+
+<main id="start">
+    <div class="start">
+        <div class="drop" id="bigDrop">
+            <div class="glyph">💾</div>
+            <h2>Drop a disk image here</h2>
+            <p>DMK, JV1, JV3, HFE, IMD, SCP or HDV, or a ZIP of them. You can then list, view, extract, add, rename and delete files,
+               fix problems, and boot it in the emulator.</p>
+            <div class="btnrow"><button class="primary" id="openBtn">Choose a file…</button></div>
+        </div>
+        <div id="newDisk">
+            <h2 style="margin:0 0 10px;color:var(--fg-strong)">Make a new disk</h2>
+            <div class="dosgrid" id="dosGrid"></div>
+            <div class="card newopts">
+                <div class="form">
+                    <label>Kind</label>
+                    <div class="segmented" id="kindChoice">
+                        <button class="on" data-sys="0">Data disk</button><button data-sys="1">System disk (bootable)</button>
+                    </div>
+                    <label>Cylinders</label><div class="segmented" id="cylinderChoice"></div>
+                    <label>Sides</label><div class="segmented" id="sideChoice"></div>
+                    <label>File name</label><input id="newName" value="new.dmk" style="font-family:var(--mono)">
+                </div>
+                <div class="btnrow" style="margin-top:12px">
+                    <button class="primary" id="createBtn" disabled>Create</button>
+                    <span class="hint" style="margin:0;align-self:center"><code id="createCommand"></code></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="privacy">🔒 Everything happens in your browser. Your disks are never uploaded.</p>
+</main>
+
+<main id="work" hidden>
+    <section class="diskhead" id="diskhead"></section>
+    <div id="banner"></div>
+    <nav class="views" id="views"></nav>
+    <div class="body">
+        <section class="pane" id="pane"></section>
+        <aside class="inspector" id="inspector"></aside>
+    </div>
+</main>
+
+<footer class="strip" id="strip" title="Open the console" hidden></footer>
+<div class="console" id="console" hidden>
+    <div class="log" id="conlog"></div>
+    <div class="inrow"><span id="conprompt">&gt;</span><input id="conin" autocomplete="off" spellcheck="false"></div>
+</div>
+<div id="modal"></div>
+<input type="file" id="filePick" multiple hidden>
+
+<script type="module" src="/src/workbench/main.ts"></script>
+</body>
+</html>

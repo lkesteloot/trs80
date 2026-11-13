@@ -28,6 +28,20 @@
         "--strictPort"
       ],
       "port": 5192
+    },
+    {
+      "name": "trs80-disk-webapp",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "start",
+        "-w",
+        "packages/trs80-disk-webapp",
+        "--",
+        "--port",
+        "5193",
+        "--strictPort"
+      ],
+      "port": 5193
     }
   ]
 }
