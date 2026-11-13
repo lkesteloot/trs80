@@ -1,5 +1,5 @@
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {el} from "./Dom.js";
+import {el} from "../core/Dom.js";
 
 /**
  * What the top bar asks of the page.

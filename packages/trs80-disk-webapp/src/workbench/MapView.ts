@@ -5,8 +5,8 @@ import {
 } from "trs80-disk";
 import {assertNever} from "z80-base";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {fileColor} from "./DiskFacts.js";
-import {el, formatNumber, makeButton} from "./Dom.js";
+import {fileColor} from "../core/DiskFacts.js";
+import {el, formatNumber, makeButton} from "../core/Dom.js";
 import {lightFiles, ownerKey} from "./Highlight.js";
 import type {DiskViewState} from "./ViewState.js";
 

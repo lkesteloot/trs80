@@ -3,7 +3,7 @@ import {type CheckResult, checkDisk, DiskError, type DiskSession, findingSeverit
 import {assertNever} from "z80-base";
 import {type RepairOptions, repairDryRun} from "../core/Actions.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {countOf, el, makeButton, makeSwitch, withDisabledReason} from "./Dom.js";
+import {countOf, el, makeButton, makeSwitch, withDisabledReason} from "../core/Dom.js";
 import {lightFiles, ownerKey} from "./Highlight.js";
 import type {DiskViewState} from "./ViewState.js";
 

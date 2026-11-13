@@ -2,7 +2,7 @@ import {BasicDialect} from "trs80-base";
 import {type AddPlanItem, DiskError} from "trs80-disk";
 import {type AddActionOptions, planAddFiles} from "../core/Actions.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {countOf, el, formatKilobytes, formatNumber, makeButton} from "./Dom.js";
+import {countOf, el, formatKilobytes, formatNumber, makeButton} from "../core/Dom.js";
 import {Sheet} from "./Sheet.js";
 
 /**

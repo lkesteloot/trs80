@@ -5,8 +5,8 @@ import {
 } from "trs80-disk";
 import {formatDryRun} from "../core/Actions.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {getDosOptions} from "./DosOptions.js";
-import {countOf, el, makeButton, makeSegments} from "./Dom.js";
+import {getDosOptions} from "../core/DosOptions.js";
+import {countOf, el, makeButton, makeSegments} from "../core/Dom.js";
 import {Sheet} from "./Sheet.js";
 
 /**

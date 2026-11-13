@@ -1,5 +1,5 @@
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {el, makeButton} from "./Dom.js";
+import {el, makeButton} from "../core/Dom.js";
 import {formatCommandLine} from "trs80-disk";
 
 /**

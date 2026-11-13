@@ -1,6 +1,6 @@
 import {partitionDisplayName} from "trs80-disk";
 import {type OpenDisk} from "../core/OpenDisk.js";
-import {countOf, el} from "./Dom.js";
+import {countOf, el} from "../core/Dom.js";
 
 /**
  * What the partition picker asks of the page.

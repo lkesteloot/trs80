@@ -1,5 +1,5 @@
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {countOf, el, makeButton} from "./Dom.js";
+import {countOf, el, makeButton} from "../core/Dom.js";
 import {Sheet} from "./Sheet.js";
 
 /**

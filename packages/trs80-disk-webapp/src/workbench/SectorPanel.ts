@@ -5,7 +5,7 @@ import {
 import type {DiskSession} from "trs80-disk";
 import {toHexByte, toHexWord} from "z80-base";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {el, formatNumber} from "./Dom.js";
+import {el, formatNumber} from "../core/Dom.js";
 import type {PickedSector} from "./ViewState.js";
 
 /**

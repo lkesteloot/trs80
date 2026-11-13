@@ -1,4 +1,4 @@
-import {el, makeButton} from "./Dom.js";
+import {el, makeButton} from "../core/Dom.js";
 
 /**
  * The parts of a sheet that its owner fills in.

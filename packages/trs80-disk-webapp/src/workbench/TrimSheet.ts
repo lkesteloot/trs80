@@ -2,7 +2,7 @@ import {DiskError, type TrimRequest, type TrimResult, TrimNothingReason, trimCom
 import {assertNever} from "z80-base";
 import {trimDryRun} from "../core/Actions.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {countOf, el, formatNumber, makeButton, makeSwitch} from "./Dom.js";
+import {countOf, el, formatNumber, makeButton, makeSwitch} from "../core/Dom.js";
 import {Sheet} from "./Sheet.js";
 
 /**

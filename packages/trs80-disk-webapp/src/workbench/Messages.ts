@@ -1,5 +1,5 @@
 import {formatCommandLine} from "trs80-disk";
-import {copyText, el, makeButton} from "./Dom.js";
+import {copyText, el, makeButton} from "../core/Dom.js";
 
 /**
  * What the command strip shows for one disk: the last command, and what it said.

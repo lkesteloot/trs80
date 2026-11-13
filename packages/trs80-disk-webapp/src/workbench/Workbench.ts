@@ -20,12 +20,13 @@ import {
     supportsFilePicker, type UnopenedFile,
 } from "../core/Opening.js";
 import {installUnsavedChangesWarning, saveDisk, saveDiskAs} from "../core/Saving.js";
+import {describeAdd} from "../core/Describe.js";
 import {AddSheet} from "./AddSheet.js";
 import {AttributesSheet} from "./AttributesSheet.js";
 import {openCopySheet} from "./CopySheet.js";
 import {DiskHeader} from "./DiskHeader.js";
-import {getSpaceUse, needsPartitionChoice, type SpaceUse} from "./DiskFacts.js";
-import {countOf, el, makeButton} from "./Dom.js";
+import {getSpaceUse, needsPartitionChoice, type SpaceUse} from "../core/DiskFacts.js";
+import {countOf, el, makeButton} from "../core/Dom.js";
 import {FilesView, type FilesViewHost} from "./FilesView.js";
 import {FormatSheet} from "./FormatSheet.js";
 import {countProblems, HealthView} from "./HealthView.js";
@@ -58,21 +59,6 @@ interface HistoryMark {
     position: number;
     /** How many entries there were in all. */
     length: number;
-}
-
-/**
- * The names of the files that an add made, for the strip.
- */
-function describeAdd(result: AddFilesResult): string[] {
-    const lines: string[] = [];
-    for (const file of result.files) {
-        lines.push(...file.conversionMessages);
-        lines.push((file.replaced ? "Replaced " : "Added ") + file.name + " (" + countOf(file.size, "byte") + ").");
-    }
-    for (const warning of result.warnings) {
-        lines.push("Warning: " + warning + ".");
-    }
-    return lines;
 }
 
 /**

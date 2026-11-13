@@ -1,0 +1,417 @@
+import {SectorPosition} from "trs80-base";
+import {
+    buildDiskMap, DiskError, type DiskMapModel, type DiskSession, type MapCell, MapCellKind, mapCellKindIsProblem, mapCellKindToString,
+    totalsText,
+} from "trs80-disk";
+import {assertNever} from "z80-base";
+import {fileColor} from "../core/DiskFacts.js";
+import {escapeHtml} from "../core/preview/PreviewHtml.js";
+
+// The disk map drawn as text, the way "trs80-tool disk IMAGE map" draws it (trs80-tool's DiskMap.ts, which this
+// follows line for line, since a page can't import the tool): a grid with a line for each side of each cylinder,
+// a cell for each sector, the files' names written in their runs, a legend, and the totals. Here the colors
+// are spans, in the commander's theme.
+
+/** The character that ends a granule's last sector, in a cell's last character. */
+const GRANULE_END = "│";
+
+/** The character that fills a run of sectors that belong to a file, after the file's name. */
+const RUN_FILL = "─";
+
+/** The most characters a cell has: two for content and one that is the granule's end, if it is. */
+const WIDE_CELL_WIDTH = 3;
+
+/** The least characters a cell has, used when the wide cells don't fit. */
+const NARROW_CELL_WIDTH = 2;
+
+/** The colors of what isn't a file, from the page's theme. */
+const PLAIN_COLOR = "var(--fg)";
+const MUTED_COLOR = "var(--fg-muted)";
+const WARNING_COLOR = "var(--warn)";
+const ERROR_COLOR = "var(--err)";
+const EMPHASIS_COLOR = "var(--fg-strong)";
+
+/**
+ * The symbol that a kind of cell is drawn with: the only character of a free sector's cell, and the fill of the
+ * rest. A file's run (and the directory's and boot's) is filled with a line after its name.
+ */
+function mapCellKindSymbol(kind: MapCellKind): string {
+    switch (kind) {
+        case MapCellKind.FREE:
+            return "·";
+        case MapCellKind.NOT_ON_IMAGE:
+            return "_";
+        case MapCellKind.PAST_END:
+            return ">";
+        case MapCellKind.FILE:
+        case MapCellKind.OTHER_FILE:
+        case MapCellKind.DIRECTORY:
+        case MapCellKind.BOOT:
+            return RUN_FILL;
+        case MapCellKind.LOCKED_OUT:
+            return "x";
+        case MapCellKind.SHARED:
+            return "!";
+        case MapCellKind.CLAIMED_BUT_FREE:
+            return "?";
+        case MapCellKind.UNCLAIMED:
+            return "u";
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * The color that a kind of cell is drawn in (a file's cells use the file's color instead). The problems stand
+ * out in the error color.
+ */
+function mapCellKindColor(kind: MapCellKind): string {
+    switch (kind) {
+        case MapCellKind.FREE:
+        case MapCellKind.PAST_END:
+        case MapCellKind.OTHER_FILE:
+            return MUTED_COLOR;
+        case MapCellKind.NOT_ON_IMAGE:
+            return WARNING_COLOR;
+        case MapCellKind.FILE:
+            return PLAIN_COLOR;
+        case MapCellKind.DIRECTORY:
+        case MapCellKind.BOOT:
+            return EMPHASIS_COLOR;
+        case MapCellKind.LOCKED_OUT:
+            return WARNING_COLOR;
+        case MapCellKind.SHARED:
+        case MapCellKind.CLAIMED_BUT_FREE:
+        case MapCellKind.UNCLAIMED:
+            return ERROR_COLOR;
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * The color of a cell's characters: its file's color, or its kind's color.
+ */
+function cellColor(cell: MapCell): string {
+    return cell.file !== undefined && cell.file.colorIndex !== undefined ? fileColor(cell.file) :
+        mapCellKindColor(cell.kind);
+}
+
+/**
+ * One character of a drawn line, with the color to draw it in.
+ */
+interface ColoredChar {
+    /** The character. */
+    text: string;
+    /** The CSS color. */
+    color: string;
+}
+
+/**
+ * Where one sector of a granule sits in the grid.
+ */
+interface SectorSlot {
+    /** The index of the sector's granule in the granule map. */
+    granuleIndex: number;
+    /** Whether the sector is the last of its granule. */
+    endsGranule: boolean;
+}
+
+/**
+ * Wrap text in a span of a color.
+ */
+function colored(text: string, color: string): string {
+    return "<span style=\"color:" + color + "\">" + escapeHtml(text) + "</span>";
+}
+
+/**
+ * What a slot's cell looks like, for telling whether neighboring slots belong to one run.
+ *
+ * @param slot the slot, or undefined for a sector that no granule covers.
+ * @param cells how every granule is drawn.
+ */
+function slotIdentity(slot: SectorSlot | undefined, cells: MapCell[]): string | undefined {
+    return slot === undefined ? undefined : cells[slot.granuleIndex].identity;
+}
+
+/**
+ * The character in one position of a sector's cell.
+ *
+ * @param kind what the sector's granule shows.
+ * @param positionInCell the index of the character in the cell.
+ * @param cellWidth the number of characters in a cell.
+ * @param endsGranule whether the sector is the last of its granule, which puts a bar in the cell's last character.
+ */
+function runCharacter(kind: MapCellKind, positionInCell: number, cellWidth: number, endsGranule: boolean): string {
+    if (endsGranule && positionInCell === cellWidth - 1) {
+        return GRANULE_END;
+    }
+
+    switch (kind) {
+        case MapCellKind.FREE:
+        case MapCellKind.PAST_END:
+            // One mark per sector, so that free space doesn't look like a solid bar.
+            return positionInCell === 0 ? mapCellKindSymbol(kind) : " ";
+        case MapCellKind.NOT_ON_IMAGE:
+        case MapCellKind.FILE:
+        case MapCellKind.OTHER_FILE:
+        case MapCellKind.DIRECTORY:
+        case MapCellKind.BOOT:
+        case MapCellKind.LOCKED_OUT:
+        case MapCellKind.SHARED:
+        case MapCellKind.CLAIMED_BUT_FREE:
+        case MapCellKind.UNCLAIMED:
+            return mapCellKindSymbol(kind);
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * Draw the sectors of one line of the grid (one side of one cylinder). Neighboring sectors that show the same
+ * thing form a run, and the run of a file (or of the directory or boot) starts with its name, unless it continues
+ * the previous line's last run.
+ *
+ * @param slots the line's sectors, in sector order, with undefined for those that no granule covers.
+ * @param cells how every granule is drawn.
+ * @param cellWidth the number of characters in a cell.
+ * @param previousIdentity the identity of the last cell of the line before this one in the same cylinder (the
+ * other side), or undefined if there isn't such a line or it ended in no cell.
+ * @returns the line's characters, slots.length*cellWidth of them.
+ */
+function drawSectorRuns(slots: (SectorSlot | undefined)[], cells: MapCell[], cellWidth: number,
+                        previousIdentity: string | undefined): ColoredChar[] {
+
+    const chars: ColoredChar[] = [];
+    for (let i = 0; i < slots.length*cellWidth; i++) {
+        chars.push({text: " ", color: PLAIN_COLOR});
+    }
+
+    let start = 0;
+    while (start < slots.length) {
+        const identity = slotIdentity(slots[start], cells);
+        let end = start + 1;
+        while (end < slots.length && slotIdentity(slots[end], cells) === identity) {
+            end++;
+        }
+
+        const slot = slots[start];
+        if (slot !== undefined) {
+            const cell = cells[slot.granuleIndex];
+            const color = cellColor(cell);
+
+            // The run's background.
+            for (let i = start; i < end; i++) {
+                const endsGranule = slots[i]?.endsGranule ?? false;
+                for (let positionInCell = 0; positionInCell < cellWidth; positionInCell++) {
+                    chars[i*cellWidth + positionInCell] = {
+                        text: runCharacter(cell.kind, positionInCell, cellWidth, endsGranule),
+                        color,
+                    };
+                }
+            }
+
+            // The name, written over the background. A run that continues from the other side's line doesn't
+            // repeat it.
+            const continuesPreviousLine = start === 0 && previousIdentity === identity;
+            if (cell.label !== undefined && !continuesPreviousLine) {
+                // The name may cover the bars between the run's granules, but not the one that ends the run, so
+                // that the end of the file stays visible.
+                const runLength = (end - start)*cellWidth;
+                const endsWithGranuleEnd = chars[end*cellWidth - 1].text === GRANULE_END;
+                const nameLength = Math.min(cell.label.length, endsWithGranuleEnd ? runLength - 1 : runLength);
+                for (let i = 0; i < nameLength; i++) {
+                    chars[start*cellWidth + i] = {text: cell.label[i], color};
+                }
+                // A blank between the name and the fill, but not over a granule end, which stays.
+                if (nameLength < runLength && chars[start*cellWidth + nameLength].text !== GRANULE_END) {
+                    chars[start*cellWidth + nameLength] = {text: " ", color};
+                }
+            }
+        }
+
+        start = end;
+    }
+
+    return chars;
+}
+
+/**
+ * Turn the characters of a line into HTML, with a span for each run of one color and without trailing blanks.
+ */
+function coloredCharsToHtml(chars: ColoredChar[]): string {
+    let end = chars.length;
+    while (end > 0 && chars[end - 1].text === " ") {
+        end--;
+    }
+
+    let result = "";
+    let start = 0;
+    while (start < end) {
+        let stop = start + 1;
+        while (stop < end && chars[stop].color === chars[start].color) {
+            stop++;
+        }
+        result += colored(chars.slice(start, stop).map(char => char.text).join(""), chars[start].color);
+        start = stop;
+    }
+
+    return result;
+}
+
+/**
+ * The legend's lines of symbols and what they mean, for the symbols that appear on the map, wrapped to the width.
+ *
+ * @param counts the number of cells of each kind.
+ * @param width the number of characters that fit on a line.
+ */
+function symbolLegendLines(counts: Map<MapCellKind, number>, width: number): string[] {
+    // The kinds that are drawn with a symbol of their own, in the order they're listed in, with the problems
+    // last. Files, the directory and the boot granules are named in the grid.
+    const kinds = [MapCellKind.FREE, MapCellKind.NOT_ON_IMAGE, MapCellKind.PAST_END, MapCellKind.LOCKED_OUT,
+        MapCellKind.OTHER_FILE, MapCellKind.SHARED, MapCellKind.CLAIMED_BUT_FREE, MapCellKind.UNCLAIMED];
+
+    const lines: string[] = [];
+    let line = "";
+    let lineWidth = 0;
+    for (const kind of kinds) {
+        const count = counts.get(kind) ?? 0;
+        if (count === 0) {
+            continue;
+        }
+        const suffix = mapCellKindIsProblem(kind) ? " (" + count.toLocaleString() + ")" : "";
+        const plainLength = mapCellKindSymbol(kind).length + 1 + mapCellKindToString(kind).length + suffix.length;
+        const text = colored(mapCellKindSymbol(kind), mapCellKindColor(kind)) + " " +
+            escapeHtml(mapCellKindToString(kind) + suffix);
+        if (lineWidth > 0 && lineWidth + 3 + plainLength > width) {
+            lines.push(line);
+            line = "";
+            lineWidth = 0;
+        }
+        if (lineWidth > 0) {
+            line += "   ";
+            lineWidth += 3;
+        }
+        line += text;
+        lineWidth += plainLength;
+    }
+    if (lineWidth > 0) {
+        lines.push(line);
+    }
+
+    return lines;
+}
+
+/**
+ * Draw the map of a TRSDOS disk as lines of HTML: a grid with a line for each side of each cylinder and a cell
+ * for each of its sectors, in the cell's granule's color, with the files' names written in, then a legend of the
+ * symbols and the totals.
+ *
+ * @param model the map's data.
+ * @param width the number of characters that fit on a line, which decides whether the cells are wide or narrow.
+ * @returns the lines.
+ */
+export function drawGranuleMapHtml(model: DiskMapModel, width: number): string[] {
+    const cells = model.cells;
+    const {sectorsPerTrack, firstSectorNumber, allocationSides, imageSideCount, lastCylinder} = model.layout;
+
+    // Find each granule's sectors.
+    const slots = new Map<string, SectorSlot>();
+    for (let granuleIndex = 0; granuleIndex < cells.length; granuleIndex++) {
+        const positions = cells[granuleIndex].sectors;
+        for (let i = 0; i < positions.length; i++) {
+            slots.set(positions[i].key(), {granuleIndex, endsGranule: i === positions.length - 1});
+        }
+    }
+
+    // The layout: a gutter with the cylinder and the side, then a cell for each sector.
+    const cylinderHeader = "cyl";
+    const sideHeader = "side";
+    const cylinderColumnWidth = Math.max(cylinderHeader.length, String(lastCylinder).length);
+    const hasSideColumn = allocationSides > 1;
+    const gutterWidth = cylinderColumnWidth + 2 + (hasSideColumn ? sideHeader.length + 2 : 0);
+    const cellWidth = gutterWidth + sectorsPerTrack*WIDE_CELL_WIDTH <= width ? WIDE_CELL_WIDTH : NARROW_CELL_WIDTH;
+    const makeGutter = (cylinderText: string, sideText: string): string =>
+        cylinderText.padStart(cylinderColumnWidth) + (hasSideColumn ? "  " + sideText.padEnd(sideHeader.length) : "") + "  ";
+
+    const lines: string[] = [];
+
+    // The ruler of sector numbers.
+    if (cellWidth === WIDE_CELL_WIDTH) {
+        let ruler = makeGutter(cylinderHeader, sideHeader);
+        for (let i = 0; i < sectorsPerTrack; i++) {
+            ruler += String(firstSectorNumber + i).padStart(cellWidth - 1) + " ";
+        }
+        lines.push(colored(ruler.trimEnd(), MUTED_COLOR));
+    } else {
+        let tens = makeGutter("", "");
+        let units = makeGutter(cylinderHeader, sideHeader);
+        for (let i = 0; i < sectorsPerTrack; i++) {
+            const sectorNumber = firstSectorNumber + i;
+            const isTens = sectorNumber >= 10 && sectorNumber % 10 === 0;
+            tens += (isTens ? String(Math.floor(sectorNumber/10) % 10) : " ").padEnd(cellWidth);
+            units += String(sectorNumber % 10).padEnd(cellWidth);
+        }
+        // A track with fewer than 10 sectors needs no tens.
+        if (tens.trim() !== "") {
+            lines.push(colored(tens.trimEnd(), MUTED_COLOR));
+        }
+        lines.push(colored(units.trimEnd(), MUTED_COLOR));
+    }
+
+    // The grid, a line for each side of each cylinder, in the order the DOS allocates sectors.
+    for (let cylinder = 0; cylinder <= lastCylinder; cylinder++) {
+        const sideSlots: (SectorSlot | undefined)[][] = [];
+        for (let side = 0; side < allocationSides; side++) {
+            const row: (SectorSlot | undefined)[] = [];
+            for (let i = 0; i < sectorsPerTrack; i++) {
+                row.push(slots.get(SectorPosition.make(cylinder, side, firstSectorNumber + i).key()));
+            }
+            sideSlots.push(row);
+        }
+
+        const isCovered = sideSlots.some(row => row.some(slot => slot !== undefined));
+        if (!isCovered) {
+            lines.push(colored(makeGutter(String(cylinder), "") + "not in the file system", MUTED_COLOR));
+            continue;
+        }
+
+        for (let side = 0; side < allocationSides; side++) {
+            // The other side's line continues onto this one, so don't repeat the name of a file that runs across.
+            const previousIdentity = side > 0 ? slotIdentity(sideSlots[side - 1][sectorsPerTrack - 1], cells) : undefined;
+            const body = coloredCharsToHtml(drawSectorRuns(sideSlots[side], cells, cellWidth, previousIdentity));
+            const gutter = makeGutter(side === 0 ? String(cylinder) : "", String(side));
+            lines.push(body === "" ? colored(gutter.trimEnd(), MUTED_COLOR) : colored(gutter, MUTED_COLOR) + body);
+        }
+    }
+
+    if (imageSideCount > allocationSides) {
+        lines.push(colored("The image has " + imageSideCount + " sides, but the file system uses only " +
+            allocationSides + ".", MUTED_COLOR));
+    }
+
+    // Below the grid.
+    lines.push("");
+    lines.push(...symbolLegendLines(model.kindCounts, width));
+    lines.push(escapeHtml(totalsText(model.totals)));
+
+    return lines;
+}
+
+/**
+ * Draw a session's disk as a map, for a panel.
+ *
+ * @param session the disk's session.
+ * @param width the number of characters that fit on a line.
+ * @returns the map as HTML, or a message (as plain text) if the disk has no map.
+ */
+export function mapHtmlOf(session: DiskSession, width: number): {html: string, isMessage: boolean} {
+    try {
+        return {html: drawGranuleMapHtml(buildDiskMap(session, []), width).join("\n"), isMessage: false};
+    } catch (e: any) {
+        if (e instanceof DiskError) {
+            return {html: escapeHtml(e.message), isMessage: true};
+        }
+        throw e;
+    }
+}

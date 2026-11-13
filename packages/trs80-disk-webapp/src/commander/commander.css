@@ -16,17 +16,17 @@
     color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
     background: var(--bg); color: var(--fg); font: 14px/20px var(--mono);
-    display: grid; grid-template-rows: auto auto 1fr auto auto auto; height: 100vh; overflow: hidden;
+    display: grid; grid-template-rows: auto 1fr auto auto auto; height: 100vh; overflow: hidden;
 }
 button { font: inherit; color: inherit; background: none; border: none; padding: 0; cursor: pointer; }
 .title { display: flex; gap: 14px; padding: 0 10px; background: var(--hl); color: var(--fg-strong); align-items: center; height: 24px; }
 .title b { color: var(--head); }
 .title .grow { flex: 1; }
 .title button:hover { color: var(--head); }
-.mock { font-size: 12px; color: var(--fg-muted); padding: 0 10px; height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: 0; padding: 4px 6px 0; }
 @media (max-width: 800px) { .panels { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
@@ -46,18 +46,23 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 .cols { display: grid; padding: 6px 6px 2px; color: var(--head); border-bottom: 1px solid var(--line); }
 .rows { flex: 1; overflow: auto; padding: 2px 0; }
 .row { display: grid; padding: 0 6px; white-space: pre; cursor: default; user-select: none; }
-.diskcols { grid-template-columns: 10ch 5ch 9ch 13ch 1fr; }
+.row > span, .cols > span { overflow: hidden; text-overflow: ellipsis; }
+.diskcols { grid-template-columns: minmax(10ch, 1fr) 5ch 9ch 17ch 14ch; }
 .hostcols { grid-template-columns: 1fr 10ch 12ch; }
+.partcols { grid-template-columns: 14ch minmax(0, 1fr) 10ch; }
 .row .r { text-align: right; padding-right: 1ch; }
 .row.up { color: var(--fg-muted); }
 .row.img { color: var(--disk); font-weight: 600; }
 .row.sys { color: var(--fg-muted); }
+.row.dir { color: var(--fg-strong); font-weight: 600; }
+.row.bad { color: var(--err); }
 .row.marked { color: var(--mark); font-weight: 600; }
 .row.cursor { background: var(--cursor-dim); }
 .panel.active .row.cursor { background: var(--cursor-bg); color: var(--cursor-fg); }
 .pfoot { border-top: 1px solid var(--line); padding: 2px 6px; display: flex; justify-content: space-between; gap: 10px; white-space: nowrap; overflow: hidden; }
 .pfoot .ro { color: var(--err); }
 .pbody { flex: 1; overflow: auto; padding: 8px 10px; white-space: pre; min-height: 0; }
+.pbody.pwrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 .pbody .k { color: var(--head); }
 .pbody .muted { color: var(--fg-muted); }
 .pbody .err { color: var(--err); }
@@ -65,7 +70,7 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 .pbody .ok { color: var(--ok); }
 .ln { color: var(--disk); } .kw { color: var(--ok); } .str { color: #cb4b16; } .addr { color: var(--fg-muted); } .op { color: #6c71c4; }
 
-.msgs { padding: 2px 10px 0; height: 64px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+.msgs { padding: 2px 10px 0; height: 104px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
 .msgs div { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
 .msgs .cmd { color: var(--fg-muted); }
 .msgs .err { color: var(--err); }
@@ -112,6 +117,78 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 .viewer pre { margin: 0; padding: 10px 14px; overflow: auto; font: inherit; color: var(--fg-strong); }
 .screen { background: #0b1a10; color: #8cf5a6; text-shadow: 0 0 6px rgba(140,245,166,.45); font-size: 16px; line-height: 1.3; padding: 20px 26px; }
 
-/* The command-line strip is below the messages. */
 .title a { color: var(--head); }
 .fkeys button:disabled { cursor: default; }
+.panel.over { border-color: var(--warn); }
+
+/* An empty panel. */
+.pempty { flex: 1; padding: 12px 14px; overflow: auto; white-space: normal; }
+.pempty ul { margin: 0 0 12px; padding-left: 20px; }
+.pempty .muted { color: var(--fg-muted); }
+.pbtns { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.pbtns button { color: var(--head); }
+.pbtns button::before { content: "[ "; } .pbtns button::after { content: " ]"; }
+.pbtns button:hover { background: var(--cursor-bg); color: var(--cursor-fg); }
+
+/* The views of the other panel: the preview fills the body, with the page's colors. */
+.pbody.pview { padding: 0; white-space: normal; display: flex; flex-direction: column; }
+.pbody.pview .preview { height: 100%; }
+.panel, .viewer {
+    --preview-bg: var(--bg);
+    --preview-fg: var(--fg-strong);
+    --preview-muted: var(--fg-muted);
+    --preview-border: var(--line);
+    --preview-error: var(--err);
+    --preview-font: var(--mono);
+    --preview-font-size: 14px;
+    --preview-ui-font: var(--mono);
+    --preview-line-number: var(--disk);
+    --preview-punctuation: var(--fg);
+    --preview-keyword: var(--ok);
+    --preview-regular: var(--fg-strong);
+    --preview-string: #cb4b16;
+    --preview-comment: var(--fg-muted);
+    --preview-address: var(--fg-muted);
+    --preview-hex: var(--fg-strong);
+    --preview-opcode: #6c71c4;
+    --preview-label: var(--warn);
+    --preview-ascii: var(--fg);
+    --preview-annotation: var(--warn);
+}
+
+/* The viewer, above the panels and below the function-key bar. */
+.viewer { inset: 0 0 var(--fkeys-height, 28px) 0; grid-template-rows: 24px 1fr; }
+.viewer .grow { flex: 1; }
+.viewer .vbody { min-height: 0; overflow: hidden; }
+.viewer .vbody .preview { height: 100%; }
+
+/* More of the dialogs. */
+.dlg .wrap { white-space: normal; max-width: 70ch; margin: 0 0 4px; }
+.dlg p { margin: 8px 0 0; }
+.dlg .grid span { white-space: pre; }
+.dlg select { background: var(--bg); color: var(--fg-strong); border: none; border-bottom: 1px solid var(--head); font: inherit; outline: none; }
+.dlg input[type=date] { background: var(--bg); color: var(--fg-strong); border: none; border-bottom: 1px solid var(--head); font: inherit; outline: none; color-scheme: inherit; }
+.dlg table.plan { margin-bottom: 8px; }
+.dlg table.plan th { text-align: left; color: var(--head); font-weight: normal; padding: 0 10px 2px 0; }
+.dlg table.plan th.r, .dlg table.plan td.r { text-align: right; }
+.dlg table.plan td.bad { color: var(--err); white-space: normal; }
+.dlg table.plan td.rep { color: var(--warn); }
+.dlg .btns button:disabled { opacity: .45; cursor: default; }
+.dlg .btns button { color: inherit; }
+.dlg .btns button.def { color: var(--head); }
+.dlg #dlgStatus, .dlg .err { color: var(--err); }
+
+/* Phones: a note instead of the panels. */
+.phonenote { display: none; padding: 14px; white-space: normal; }
+.phonenote a { color: var(--head); }
+@media (max-width: 699px) {
+    body { display: block; height: auto; overflow: auto; }
+    .phonenote { display: block; }
+    .panels, .msgs, .cmdline, .fkeys { display: none; }
+    .title { height: auto; flex-wrap: wrap; padding: 2px 10px; }
+    .title > span, .title [data-fk] { display: none; }
+    .title .grow { display: block; }
+}
+
+/* A tall dialog (the help, a long plan) scrolls its body, so that its buttons stay on screen. */
+.dlgbody { max-height: calc(100vh - 170px); overflow: auto; }

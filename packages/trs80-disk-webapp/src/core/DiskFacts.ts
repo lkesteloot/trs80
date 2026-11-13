@@ -1,5 +1,7 @@
-import {densityToString, floppyImageFormatOf, floppyImageFormatToString} from "trs80-base";
+import {densityToString, floppyImageFormatOf, floppyImageFormatToString, getFloppyDetails} from "trs80-base";
 import {buildDiskMap, DiskError, type DiskSession, type MapFile} from "trs80-disk";
+import {formatNumber} from "./Dom.js";
+import type {OpenDisk} from "./OpenDisk.js";
 
 /**
  * The facts about a disk that the header's chips and the inspector show.
@@ -144,4 +146,42 @@ export function getSpaceUse(session: DiskSession): SpaceUse | undefined {
  */
 export function fileColor(file: MapFile): string {
     return FILE_COLORS[(file.colorIndex ?? 0) % FILE_COLORS.length];
+}
+
+/**
+ * The facts about a disk that aren't in the label, as pairs of a term and its value: what "info --verbose" says,
+ * from the engine's and trs80-base's descriptions.
+ *
+ * @param disk the disk.
+ */
+export function getDiskDetails(disk: OpenDisk): [string, string][] {
+    const session = disk.session;
+    const facts = getDiskFacts(session);
+    const details: [string, string][] = [];
+    details.push(["File", disk.name]);
+    details.push(["DOS", facts.dos]);
+    details.push(["Image format", facts.format]);
+    details.push(["Image size", formatNumber(session.image.binary.length) + " bytes"]);
+
+    if (session.isHardDisk()) {
+        const geometry = session.hardDisk.getGeometry();
+        details.push(["Geometry", formatNumber(geometry.cylinderCount) + " cylinders, " + geometry.headCount + " heads, " +
+            geometry.sectorsPerTrack + " sectors per track, " + geometry.sectorSize + " bytes per sector"]);
+        const partitions = session.getPartitions();
+        details.push(["Partitions", String(partitions.length)]);
+        const number = session.selectedPartitionNumber;
+        if (number !== undefined) {
+            const partition = partitions[number - 1];
+            details.push(["Selected partition", number + " (" + session.selectedPartitionName + "), " +
+                partition.partition.describeLocation()]);
+        }
+    } else {
+        for (const detail of getFloppyDetails(session.floppy, session.fileSystem)) {
+            details.push([detail.label, detail.value]);
+        }
+    }
+
+    const readOnlyReason = session.getReadOnlyReason();
+    details.push(["Writable", readOnlyReason === undefined ? "yes" : "no: " + readOnlyReason]);
+    return details;
 }

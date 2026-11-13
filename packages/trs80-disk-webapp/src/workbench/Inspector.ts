@@ -1,8 +1,8 @@
 import {DiskError, readDiskInfo} from "trs80-disk";
 import {type FileRow} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {countOf, el, formatKilobytes, formatNumber, makeButton} from "./Dom.js";
-import {getDiskFacts, getSpaceUse} from "./DiskFacts.js";
+import {countOf, el, formatKilobytes, formatNumber, makeButton} from "../core/Dom.js";
+import {getDiskFacts, getSpaceUse} from "../core/DiskFacts.js";
 import {describeRow, renderPreviewPanel} from "./PreviewPanel.js";
 import {renderSectorPanel} from "./SectorPanel.js";
 import {type DiskViewState, ViewKind} from "./ViewState.js";

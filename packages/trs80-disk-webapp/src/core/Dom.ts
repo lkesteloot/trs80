@@ -1,5 +1,5 @@
 /**
- * Small helpers for building DOM, shared by the workbench's parts.
+ * Small helpers for building DOM, shared by the pages.
  */
 
 /**

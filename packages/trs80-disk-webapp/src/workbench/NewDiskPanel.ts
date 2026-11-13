@@ -1,7 +1,7 @@
 import {TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosToString} from "trs80-base";
 import {createCommandLine, type CreateFloppyRequest} from "trs80-disk";
-import {el, makeButton} from "./Dom.js";
-import {type DosOptions, getDosOptions, hasSystemDisk} from "./DosOptions.js";
+import {el, makeButton} from "../core/Dom.js";
+import {type DosOptions, getDosOptions, hasSystemDisk} from "../core/DosOptions.js";
 
 /**
  * What the New Disk panel reports when the user presses Create.

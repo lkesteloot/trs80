@@ -1,7 +1,7 @@
 import {TrsdosProtectionLevel} from "trs80-base";
 import {fileKindToString, type FileRow, filterRows} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {el, formatNumber, makeButton, makeCheckbox, makeSwitch} from "./Dom.js";
+import {el, formatNumber, makeButton, makeCheckbox, makeSwitch} from "../core/Dom.js";
 import {lightFiles} from "./Highlight.js";
 import type {DiskViewState} from "./ViewState.js";
 

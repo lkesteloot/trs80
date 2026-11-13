@@ -3,7 +3,7 @@ import {
 } from "trs80-base";
 import {type AttributeRequest, formatYmd} from "trs80-disk";
 import type {FileRow} from "../core/FileRows.js";
-import {el, makeButton} from "./Dom.js";
+import {el, makeButton} from "../core/Dom.js";
 import {Sheet} from "./Sheet.js";
 
 /**

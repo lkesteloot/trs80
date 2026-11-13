@@ -3,7 +3,7 @@ import {
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {el, makeButton} from "./Dom.js";
+import {el, makeButton} from "../core/Dom.js";
 import {Sheet} from "./Sheet.js";
 
 /**

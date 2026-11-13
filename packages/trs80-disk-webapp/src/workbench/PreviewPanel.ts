@@ -4,7 +4,8 @@ import {fileKindToString, type FileRow} from "../core/FileRows.js";
 import {
     availablePreviews, type PreviewFile, PreviewKind, previewKindToString, renderPreview,
 } from "../core/preview/Previews.js";
-import {countOf, el, formatNumber, makeButton} from "./Dom.js";
+import {previewFileOf} from "../core/preview/RowPreview.js";
+import {countOf, el, formatNumber, makeButton} from "../core/Dom.js";
 import type {DiskViewState} from "./ViewState.js";
 
 /**
@@ -48,18 +49,6 @@ function dialectOfChoice(choice: DialectChoice): BasicDialect | undefined {
  */
 function tabsFor(row: FileRow): PreviewTab[] {
     return [...availablePreviews(row.trs80File, row.bytes), INFO_TAB];
-}
-
-/**
- * The core's preview input for a row.
- */
-function previewFileOf(row: FileRow): PreviewFile {
-    return {
-        name: row.hostName,
-        binary: row.bytes,
-        trs80File: row.trs80File,
-        hostText: row.extractBytes !== row.bytes ? row.extractBytes : undefined,
-    };
 }
 
 /**

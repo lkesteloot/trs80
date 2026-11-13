@@ -1,7 +1,7 @@
 import {DiskError, getWriteProtect, readDiskInfo} from "trs80-disk";
 import {SaveKind, type OpenDisk} from "../core/OpenDisk.js";
-import {getDiskFacts, getSpaceUse} from "./DiskFacts.js";
-import {countOf, el, formatKilobytes, formatNumber, makeButton, makeSwitch} from "./Dom.js";
+import {getDiskFacts, getSpaceUse} from "../core/DiskFacts.js";
+import {countOf, el, formatKilobytes, formatNumber, makeButton, makeSwitch} from "../core/Dom.js";
 import {ownerKey} from "./Highlight.js";
 
 /**
