@@ -603,8 +603,8 @@ limit below used the DOS's own disk size):
 ### Big Five's Read Track check
 
 Big Five's 1980-81 loaders check that each of several tracks is as long as on the
-original disk, by Read Track, which no sign above sees. Measured on Attack Force
-v3.0's HFE (GitHub issue #56; not in the suite), a single-sided Model I/III
+original disk, by Read Track, which no sign above sees. Measured first on Attack
+Force v3.0's HFE (GitHub issue #56; now in `ira/big-five-hfe/`), a single-sided Model I/III
 dual-boot disk: FM sector 0 and MFM sector 1 on cylinder 0, five FM sectors of
 512 on cylinders 1, 2 and 4-19, and the serial-number track, cylinder 3, with one
 FM sector of 1,024 and one of 256.
@@ -632,8 +632,46 @@ FM sector of 1,024 and one of 256.
   that turn (see "DMK track length"). Booted in our emulator and in trs80gp, on a
   Model I and a Model III, the HFE and a DMK of 0x18DF (3,119 FM bytes) reach the
   game, and a DMK of 0x1980 fails.
-- The issue's notes say Robot Attack has the same check with another table, and
-  that some copies have it disabled by a RET at its entry. Neither is checked.
+- **The other Big Five disks** (another Attack Force v3.0, Galaxy Invasion v3.0,
+  Super Nova v3.0 and three Robot Attack v1.0, HFEs from Ira for issue #56, in
+  `ira/big-five-hfe/`) all carry the same check. The second Attack Force has the
+  same loader and table as the first. The 1981 loaders, on the other five, run at
+  4600h: the Model I copy (cylinders 1 and 2, sector 1, entry 466Dh) starts once
+  the load reaches track 18 (12h) and Read-Tracks cylinders 13 down to 6, and the
+  Model III copy (cylinders 3 and 6, sector 1, entry 4662h) starts at track 30
+  (1Eh). The comparison is the same code with the same tolerance (`CP 06h`), and
+  so is the Write Track over tracks 1-19. These disks have five FM 512-byte
+  sectors per track and the serial-number track on cylinder 4, whose sector 1
+  holds the table at offset ABh. Cylinder 5 is unformatted.
+- **Each disk has its own table**, which is what the check is for. The 16-bit
+  counts, and the window that a single length must fall in to pass all eight:
+
+  | Disk | Table | Window | Turns (FM bytes) | DMK from HFE |
+  |---|---|---|---|---|
+  | Attack Force (both) | 3120 3118 3117 3120 3119 3119 3119 3120 | 3,115-3,122 | 3,117-3,121 | 3,119 |
+  | Galaxy Invasion | 3113 3116 3112 3114 3114 3114 3113 3114 | 3,111-3,117 | 3,110-3,117 | 3,113 |
+  | Robot Attack, serial 0922… | 3113 3113 3113 3112 3114 3112 3113 3112 | 3,109-3,117 | 3,112-3,116 | 3,113 |
+  | Robot Attack, serial 1101… | 3105 3104 3101 3105 3106 3102 3105 3105 | 3,101-3,106 | 3,100-3,109 | 3,104 |
+
+  The turns are every formatted track's but cylinder 0, whose turn can be
+  longer (3,184 on the second Attack Force). They differ from disk to disk by
+  more than the tolerance (3,101 to 3,122), so no fixed length passes them all. Each
+  disk's tracks agree well enough that the median turn falls inside its window,
+  though the 1101… Robot Attack's window is only six values wide and its DMK's
+  count is two from the top.
+- **Two disks have the check turned off**: a Robot Attack (serial 0211…) and
+  Super Nova have `RET` (C9h) in place of the first byte of the check's entry
+  in all four copies of the loader, and 0xE5 filler where the table would be. The
+  rest of the check is intact. They never Read Track and boot from any image.
+  Whether that was done at the factory or by someone copying them is unknown.
+- **Booted** (November 2026), each disk's HFE and the DMK made from it, on a
+  Model I and a Model III, in our emulator and in trs80gp: every one reaches the
+  game's title or attract screen with no Write Track, and trs80gp leaves every
+  image unchanged. The DMKs that the converter made before this fix (0x1900, so
+  3,136 FM bytes) fail on Galaxy Invasion and the 1101… Robot Attack, the two
+  tried: 19 Write Tracks in our emulator, and cylinders 1-18 rewritten by
+  frame 1,200 in trs80gp, on both models. (trs80gp then hangs, so a run of
+  more frames is killed before it saves the image.)
 
 ## Leftovers from earlier formats
 

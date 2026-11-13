@@ -577,6 +577,8 @@ formats" in `FLOPPY_FORMATS.md` for what each holds and the results on the colle
 - [ ] **One length for a whole DMK.** A disk whose checked tracks differ by more than its check allows,
       or one that has both a sector crossing the index and a Read Track check, can't be held as a DMK
       that boots. The converter can't tell; it could at least say so when the HFE's turns differ widely.
+      None of the seven Big Five HFEs is like that, but one Robot Attack's median turn is only two bytes
+      from the edge of its window (see "Big Five's Read Track check" in `FLOPPY_FORMATS.md`).
 - [ ] **DMK tracks of 0x4000.** Our reader and the converter allow it; MAME's reader stops at 0x3FFF.
 
 ## Copy protection signs
