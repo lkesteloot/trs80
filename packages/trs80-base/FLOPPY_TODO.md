@@ -622,8 +622,6 @@ or left rough:
 - [ ] **Ira's case disks aren't in the suite**: `Modem-80 v3.0 [Set 2]`, Network 3 Disk 1, Nightwalker
       and `GRAFPAC-80 [Set 1]`, and four of the five NEWDOS-90 images. Each rule was confirmed on other
       disks instead; adding these would check the rules on the disks that suggested them.
-- [ ] **`info --report` doesn't carry the artifacts**, so the regression suite doesn't snapshot them. That
-      needs a `REPORT_VERSION` bump in both repos.
 - [ ] **Recovering the sectors.** A one-revolution read loses only the last few dozen bytes of one sector
       per track, and a converter's marker hides whether the data is right. Neither is repaired; Ira's rule
       is to leave the image alone, and reimaging is the fix.
