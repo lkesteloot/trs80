@@ -2,7 +2,7 @@ import {describe, expect, it} from "vitest";
 import {Density, SectorData, SectorPosition} from "./FloppyDisk.js";
 import {HardDiskPartition} from "./HardDiskPartition.js";
 import {decodeHdvHardDisk} from "./HdvHardDisk.js";
-import {findLdosPartitions, type LdosPartition} from "./LdosHardDisk.js";
+import {findLdosPartitions, type DecodedPartition} from "./LdosHardDisk.js";
 import {
     ldosTestSector, type LdosTestPartition, makeLdosTestHardDisk, makeLdosTestHardDiskBinary,
 } from "./LdosTestHardDisk.js";
@@ -235,7 +235,7 @@ describe("the write gate on partitions", () => {
     /**
      * Find the first partition of a disk made from the description.
      */
-    function firstPartition(partition: LdosTestPartition, options = {}): LdosPartition {
+    function firstPartition(partition: LdosTestPartition, options = {}): DecodedPartition {
         return findLdosPartitions(makeLdosTestHardDisk([partition], options))[0];
     }
 
@@ -335,7 +335,7 @@ describe("TrsdosWriter on a hard disk partition", () => {
     /**
      * Start a writer on a partition, over an overlay.
      */
-    function startWriter(found: LdosPartition) {
+    function startWriter(found: DecodedPartition) {
         const overlay = new SectorOverlay(found.partition);
         const trsdos = decodeTrsdosOnOverlay(overlay, found.trsdos)!;
         const writer = new TrsdosWriter(trsdos, TrsdosRuleSet.TRSDOS_6);
@@ -345,7 +345,7 @@ describe("TrsdosWriter on a hard disk partition", () => {
     /**
      * The GAT sector of a partition, as it is on the disk now.
      */
-    function gatOf(disk: Uint8Array, found: LdosPartition): Uint8Array {
+    function gatOf(disk: Uint8Array, found: DecodedPartition): Uint8Array {
         return ldosTestSector(disk, 2, found.partition, found.trsdos.dirLumpNumber, 0);
     }
 

@@ -7,7 +7,7 @@ import {
     Trs80File,
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
     TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type KnownFloppyFileSystem,
-    decodeTrs80CassetteFile, decodeTrs80File, findLdosPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, knownTrsdosPassword, microDosFileTypeToString, trsdosIIProtectionLevelToString,
+    decodeTrs80CassetteFile, decodeTrs80File, findHardDiskPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, knownTrsdosPassword, microDosFileTypeToString, trsdosIIProtectionLevelToString,
     trsdosAccessPasswordHoldsTimeStamp, trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
@@ -875,15 +875,15 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
 
             inFiles.push(...floppyInputFiles(fileSystem, includeSystemFiles));
         } else if (isHardDisk(trs80File)) {
-            const ldosPartitions = findLdosPartitions(trs80File);
-            if (ldosPartitions.length === 0) {
+            const partitions = findHardDiskPartitions(trs80File);
+            if (partitions.length === 0) {
                 throw new ToolError("Can't find a DOS directory on \"" + inFilename + "\"");
             }
 
-            os = ldosPartitions[0].trsdos.nameAndVersion;
+            os = partitions[0].trsdos.nameAndVersion;
 
             // Expand each partition into a directory.
-            for (const {trsdos, directoryName} of ldosPartitions) {
+            for (const {trsdos, directoryName} of partitions) {
                 for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
                     inFiles.push(new TrsdosInputFile(trsdos, dirEntry, directoryName + "/"));
                 }

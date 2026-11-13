@@ -5,7 +5,7 @@ import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
-    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findLdosPartitions, getFloppyDetails, isFloppy,
+    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findHardDiskPartitions, getFloppyDetails, isFloppy,
     isHardDisk, knownTrsdosPassword, MicroDos,
     modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, pdriveSettingsToString, pdriveSourceToString, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
     UcsdPascal, XenixTar} from "trs80-base";
@@ -107,8 +107,8 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                     }
                 } else if (isHardDisk(trs80File)) {
                     // Users don't care about system files, but do care about each partition.
-                    const ldosPartitions = findLdosPartitions(trs80File);
-                    ldosPartitions.forEach(({partition, trsdos, diskName}, index) => {
+                    const partitions = findHardDiskPartitions(trs80File);
+                    partitions.forEach(({partition, trsdos, diskName}, index) => {
                         const fileCount = pluralizeWithCount(trsdos.getDirEntries(false).length, "file");
                         partitionLines.push(`partition ${index + 1} (${partition.describeLocation()}): ` +
                             [diskName, trsdos.nameAndVersion, fileCount].filter(part => part !== "").join(", "));
@@ -585,7 +585,7 @@ function hardDiskToInfoJson(hardDisk: Trs80HardDisk, verbose: boolean): HardDisk
     return {
         cylinderCount: geometry.cylinderCount,
         headCount: geometry.headCount,
-        partitions: findLdosPartitions(hardDisk).map(({partition, trsdos}, index) => ({
+        partitions: findHardDiskPartitions(hardDisk).map(({partition, trsdos}, index) => ({
             number: index + 1,
             cylinderOffset: partition.cylinderOffset,
             headOffset: partition.headOffset,

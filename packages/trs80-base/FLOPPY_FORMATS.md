@@ -2577,8 +2577,8 @@ alongside A and C); no slot sets the H, L or M letters anywhere we can see.
   `qb-games2-flippy-games1.dmk` and `quentin/games1`) are like this, and their
   cylinder 1 tables give exactly the owner's `TI=CK,TD=E,TC=43,...,TSR=0`.
 - **A hard disk's slots set bit 6 of byte 13** (0x40): every slot of the three
-  NEWDOS/80 hard disk images does, along with `SPT`=32 and `DDGA`=33 (see "Hard
-  disk images"). Four floppies in `disks/peter/` carry such a slot as slot 0,
+  NEWDOS/80 hard disk images does, along with `SPT`=32 and `DDGA`=33 (see
+  "NEWDOS/80 on hard disks", which reads them with `readPdriveHardDiskSlots()`). Four floppies in `disks/peter/` carry such a slot as slot 0,
   from a system whose drive 0 was a hard disk; it passes the sanity check but
   describes a partition, not the floppy (`TC`=5, `GPL`=8, `TSR`=6), so it's
   rejected and the line comes from the layout.
@@ -4436,46 +4436,101 @@ information, which VHDUTL shows); its sector reads don't check against it. We wr
 | `m3-ldos531.hdv` | 203 × 4 | Four by head, otherwise the same: LDM3HDA-D |
 | `m4-lsdos631.hdv` | 203 × 8 | Four by head (heads 0-3; the file ends after head 3 of cylinder 202): M4LSDOSA-D, LS-DOS 6.3 |
 | `m1-dosplus35-keil.hdv` | 1024 × 8 | Six by cylinder at 0, 170, ..., 850: 170 cylinders, 8 granules of 32 sectors, directory on cylinder 85, VOL-1, VOL-1, VOL-2 to VOL-5, DOSPLUS 3.5 |
-| `m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`, `m3-newdos80v25-st251.hdv` | | Not read yet; see "NEWDOS/80 on hard disks" |
+| `m1-newdos80v25.hdv` | 1024 × 8 | Six by head (heads 0-5), from the PDRIVE table: head 0 has 128 cylinders and 5-sector granules (NEWDOS80, NEWDOS/80 2.5), heads 1-5 have 1024 cylinders and 22-sector granules (NOTNAMED). See "NEWDOS/80 on hard disks" |
+| `m3-newdos80v25.hdv` | 1024 × 8 | The same layout: NDM3HD-0 to NDM3HD-5 |
+| `m3-newdos80v25-st251.hdv` | 840 × 6 | Six by head, 840 cylinders and 18-sector granules each, directory on lump 80: HARDA-HARDF |
 | `m4-mmcpm22.hdv` | | Not read yet; see "Montezuma CP/M on hard disks" |
 
 On these 4-sector granules, BOOT/SYS's directory entry says 5 sectors but its one
 extent holds one granule (4 sectors), so its file is a sector short (the usual
 "fewer sectors than the size says" anomaly).
 
-### NEWDOS/80 on hard disks (not read yet)
+### NEWDOS/80 on hard disks
 
-Measured on the three NEWDOS/80 2.5 disks in the suite and four more from the
-same FreHD CD (`FreHDCD.zip`: `M1 Floppy Boot images/Newdos80-25/hard4-0`,
+`findNewdos80Partitions()` (in `Newdos80HardDisk.ts`) reads these, and
+`decodeNewdos80HardDiskPartition()` decodes each partition. Measured on the
+three NEWDOS/80 2.5 disks in the suite, and earlier on four more from the same
+FreHD CD (`FreHDCD.zip`: `M1 Floppy Boot images/Newdos80-25/hard4-0`,
 `M1 Quinnterface images/newdos25`, `M3 Diskless Auto Boot images/newdos3D` and
-`FreHD_Self_Boot_Start_Files.zip`'s `newdos3D`). The rule below put a GAT
+`FreHD_Self_Boot_Start_Files.zip`'s `newdos3D`), where the rule below put a GAT
 (version 0x82, a date, and a HIT starting `A2 C4`) exactly where predicted for
-all 39 partitions on the seven. The NEWDOS/80 manual doesn't cover hard disks.
+all 39 partitions on the seven. The four aren't in the suite yet. The NEWDOS/80
+manual doesn't cover hard disks, but NEWDOS/80 2.5 itself, booted from
+`m3-newdos80v25.hdv` in trs80gp (below), confirms the reading.
 
-- **Partitions are by head:** each is one head, from cylinder 0 to the end of
-  the disk, and every head's cylinder 0 sector 0 is a boot sector (`00 FE`, then
-  the directory lump). Sectors run along the head: logical sector *n* is sector
-  *n* % 32 of cylinder ⌊*n* / 32⌋ on that head.
+- **Partitions are by head:** each is one head, from cylinder 0, and every
+  head's cylinder 0 sector 0 is a boot sector (`00 FE`, then the directory lump).
+  Sectors run along the head: logical sector *n* is sector *n* % 32 of cylinder
+  ⌊*n* / 32⌋ on that head. That's a `HardDiskPartition` of one head.
 - **The PDRIVE table** (cylinder 0, head 0, sector 2, as on floppies; see
-  "PDRIVE") has a slot for each partition, recognizable by `SPT` = 32. In those
-  slots:
-  - byte 6 ÷ 8 is the head (0x00, 0x08, ... 0x28; 0x38 for head 7);
-  - byte 5 is `GPL`, 8 on every disk;
+  "PDRIVE") has a slot for each partition, recognizable by bit 6 of byte 13 and
+  `SPT` = 32. NEWDOS/80's `PDRIVE` command shows such a slot as
+  `HDS=(0,128,0,1,32,0,0,4096,5,8,4,33)`, which matches the bytes like this:
+  - bytes 14-15 (little-endian) are the cylinders (128 for the 8-head disks'
+    head 0, 1024 for their other heads, 840 on the ST251 disk), the second
+    field; byte 11 is the cylinders ÷ 8 on every slot;
+  - byte 6 ÷ 8 is the head (0x00, 0x08, ... 0x28; 0x38 for head 7), the third
+    field; the fourth, 1, is presumably the head count;
+  - byte 4 is `SPT`, 32; the eighth field is the cylinders × 32, the sectors in
+    the partition;
   - **byte 3 is the sectors per granule**, not the track count it is on
-    floppies: 18 on the ST251 disks, 5 for head 0 and 22 for the other heads on
-    the 8-head disks;
-  - byte 0 is `DDSL`, and byte 1 a lump count (187, or 103 for the 8-head disks'
-    head 0), which overstates what the head holds.
+    floppies, the ninth field: 18 on the ST251 disk, 5 for head 0 and 22 for the
+    other heads on the 8-head disks;
+  - byte 5 is `GPL`, 8 on every disk, and byte 0 `DDSL` (byte 8 again);
+  - byte 9 is 33 on every slot, the last field, which is the directory's size
+    in sectors (see below);
+  - byte 1 is the lump count, ⌈sectors ÷ (sectors per granule × `GPL`)⌉, with a
+    partial last lump: 187 on the full heads, 103 on the 8-head disks' head 0.
+  - Byte 2 is 0x1C on every slot, and bytes 7, 10, 12 are 0. Which bytes hold
+    the first field (0, perhaps the first cylinder), the head count, and the
+    sixth and seventh fields (0, 0) is unknown; we assume every partition starts
+    at cylinder 0 and has one head, as on every sample.
 - **The directory lump comes from each partition's own boot sector,** not from
   the table: on `M1 Floppy Boot images/Newdos80-25/hard4-0`, the table says 80
   for every head but heads 1-5 were formatted with 35. A lump is `GPL` × byte 3
   sectors, so lumps don't line up with tracks (lump 35 of 144-sector lumps
   starts at sector 16 of a track), which the lump model already handles.
-- A slot can name a head that was never formatted: on the two Model I disks,
-  slot 8 names head 7, whose first sector is 0xFF filler and which has no GAT.
-  Such slots must be skipped.
-- Unknown: whether the GAT holds 187 lumps (more than a floppy's), and what the
-  table's other bytes (2, 7, 11, 13-15) mean on a hard disk.
+- **The GAT holds every lump the table counts,** one byte each from 0x00 (187
+  bytes, to 0xBA, so there's no lockout table at 0x60), then 0xFF to 0xCA,
+  version 0x82 in 0xCB, and the name and date where floppies have them. The
+  partial last lump's missing granules are marked used: lump 186 is 0xFE (one
+  granule of 22 sectors, of the 32 left) on the 1024-cylinder heads and 0xE0
+  (five of 18) on the ST251 heads, and lump 102 of the 8-head disks' head 0 is
+  0xF8. We count those granules as past the end (`Trsdos.granuleCount`), so
+  they're neither free nor "used but unclaimed".
+- **The directory is 33 sectors** on every partition: HIT byte 0x1F is 23 (10
+  more than a floppy's largest, and not a multiple of 5), so the GAT, the HIT and
+  31 entry sectors. That isn't a whole number of granules: it's 7 granules of 5
+  sectors on the 8-head disks' head 0, and 2 of 22 or 18 elsewhere, which
+  DIR/SYS's one extent covers exactly, and DIR/SYS's size is 33 sectors. Only
+  the 33 are read as entries (`Trsdos.dirSectorCount`). NEWDOS/80's `FREE` agrees:
+  246 free directory entries on an empty head, 31 × 8 less BOOT/SYS and DIR/SYS.
+- A slot can name a head that was never formatted: on `m1-newdos80v25.hdv`,
+  slot 8 names head 7, whose first sectors are 0xFF filler and which has no GAT.
+  Such slots are skipped.
+- **Formatted heads that no slot names:** heads 6 and 7 of
+  `m3-newdos80v25.hdv`, and head 6 of `m1-newdos80v25.hdv`, have a boot sector
+  and a directory like the other heads (22-sector granules), but the table's
+  slots 6 and 7 are floppy drives, so NEWDOS/80 as configured can't reach them.
+  They hold only BOOT/SYS and DIR/SYS (named `NDM3HD-6`, `NDM3HD-7` and
+  `NOTNAMED`). We don't read them, since only the table gives the granule size.
+- The rest of head 0, past its 128 cylinders, is filler (0x4E on the Model I
+  disk, 0 on the Model III one).
+- The DOS is named from the boot sector (`00 FE xx F3 21 EC 37 36 xx 36 D0`, so
+  "NEWDOS/80 v2.0, v2.5 or v2.74") on the data heads, and from the system files
+  (v2.5) on head 0.
+- **Checked in trs80gp:** `m3-newdos80v25.hdv` and `m1-newdos80v25.hdv` auto-boot
+  with trs80gp's FreHD emulation (`trs80gp -m3 -batch -turbo -frehd -frehd_patch
+  -frehd_menu -h0 x.hdv -id 600 -i "\r" -id 1500 -i "FREE\r" -id 900 -it -ix`,
+  or `-m1`, run on a copy, since it writes the disk; the `-i "\r"` boots from the
+  FreHD menu, and the screen lands in `trs80-text-0.bin`). The boot runs `PDRIVE,0`. `FREE` gives 469 (744 on the Model I
+  disk), 1482 and 1486 free granules on drives 0, 1 and 2-5, and 138 (212), 242
+  and 246 free directory entries, exactly what we find, and `DIR 1,A` gives
+  EOFs that match the sizes we extract. The ST251 disk is a floppy-boot image
+  and wasn't booted.
+- Writing isn't supported: the write gate refuses these partitions
+  (`unsupportedLayoutMessage()`), and the disk session refuses to add, delete or
+  format partitions on such a disk (`DiskSession.checkPartitionsCanChange()`).
 
 ### Montezuma CP/M on hard disks (not read yet)
 

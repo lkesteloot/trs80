@@ -734,8 +734,9 @@ function hardDiskInfoLines(session: DiskSession): string[] {
             lines.push("Auto command: " + gatInfo.autoCommand);
         }
     }
-    lines.push("Directory cylinder: " + trsdos.dirLumpNumber);
-    lines.push("Granules per cylinder: " + trsdos.granulesPerLump);
+    // A NEWDOS/80 partition's lumps aren't cylinders.
+    lines.push("Directory " + trsdos.lumpTerm + ": " + trsdos.dirLumpNumber);
+    lines.push("Granules per " + trsdos.lumpTerm + ": " + trsdos.granulesPerLump);
     lines.push("Sectors per granule: " + trsdos.sectorsPerGranule);
     lines.push(...freeSpaceLines(session));
     lines.push(...rulesAndWritableLines(session));

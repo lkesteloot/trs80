@@ -312,6 +312,12 @@ function tailProblem(trsdos: Trsdos, floppy: FloppyDisk): string | undefined {
 }
 
 /**
+ * Why NEWDOS/80 hard disk partitions can't be written.
+ */
+const NEWDOS80_PARTITION_MESSAGE = "This is a partition of a NEWDOS/80 hard disk, and writing those isn't " +
+    "supported yet. Files can be listed and extracted.";
+
+/**
  * Why we have no writer for this file system's layout, or undefined if we do. (Exported for tests.)
  *
  * @param trsdos the decoded file system.
@@ -325,7 +331,12 @@ function tailProblem(trsdos: Trsdos, floppy: FloppyDisk): string | undefined {
 export function unsupportedLayoutMessage(trsdos: Trsdos, ruleSet: TrsdosRuleSet | undefined): string | undefined {
     const volume = volumeOf(trsdos);
     if (volume instanceof HardDiskPartition) {
-        // The layout is the LDOS one, which the writer handles. Only the DOSPLUS 3 partitions differ.
+        // NEWDOS/80's partitions have their own layout (one head each, lumps that aren't cylinders, and
+        // a PDRIVE table that describes them), which the writer doesn't know.
+        if (trsdos.newdos80Partition !== undefined) {
+            return NEWDOS80_PARTITION_MESSAGE;
+        }
+        // Otherwise the layout is the LDOS one, which the writer handles. Only the DOSPLUS 3 partitions differ.
         if (identifyTrsdosRuleSet(trsdos).ruleSet === TrsdosRuleSet.DOSPLUS) {
             return dosplusPartitionMessage();
         }

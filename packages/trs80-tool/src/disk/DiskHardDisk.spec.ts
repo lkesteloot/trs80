@@ -3,7 +3,8 @@ import os from "os";
 import path from "path";
 import {
     decodeHdvHardDisk, findLdosPartitions, ldosTestSector, type LdosTestHardDiskOptions, type LdosTestPartition,
-    makeBlankTestHdv, makeLdosTestHardDiskBinary, makeTrsdos23TestDisk,
+    makeBlankTestHdv, makeDefaultNewdos80TestHeads, makeLdosTestHardDiskBinary, makeNewdos80TestContents,
+    makeNewdos80TestHardDiskBinary, makeTrsdos23TestDisk,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
@@ -317,11 +318,38 @@ describe("disk on hard disk images", () => {
         expect(partitions[0]).to.contain("read-only");
     });
 
+    it("reads a NEWDOS/80 hard disk's partitions, but refuses to write them or change its partitions", async () => {
+        const binary = makeNewdos80TestHardDiskBinary(makeDefaultNewdos80TestHeads());
+        fs.writeFileSync(imagePathname, binary);
+
+        const partitions = await runDisk("partition");
+        expect(partitions.length).to.equal(2);
+        expect(partitions[0]).to.contain("head 0  SYSTEM");
+        expect(partitions[1]).to.contain("head 1  DATA");
+        expect(partitions.every(line => line.includes("read-only"))).to.equal(true);
+        expect(fileBytes(imagePathname, "DATA", "BIG.DAT")).to.eql(makeNewdos80TestContents(30*256 + 17));
+
+        const info = (await runDisk("--partition", "2", "info")).join("\n");
+        expect(info).to.contain("Directory lump: 1");
+        expect(info).to.contain("Granules per lump: 8");
+        expect(info).to.contain("Sectors per granule: 22");
+
+        const refusal = "a partition of a NEWDOS/80 hard disk, and writing those isn't supported yet";
+        await expect(runDisk("--partition", "2", "add", makeHostFile("X.DAT", 700), "--binary"))
+            .rejects.toThrow(refusal);
+        await expect(runDisk("--partition", "2", "--force", "kill", "BIG/DAT")).rejects.toThrow(refusal);
+        const partitionRefusal = "This is a NEWDOS/80 hard disk, and adding, deleting or formatting its " +
+            "partitions isn't supported yet.";
+        await expect(runDisk("partition", "--delete", "2", "--force")).rejects.toThrow(partitionRefusal);
+        await expect(runDisk("--partition", "2", "format", "--force")).rejects.toThrow(partitionRefusal);
+        expect(new Uint8Array(fs.readFileSync(imagePathname))).to.eql(binary);
+    });
+
     it("opens a hard disk that has no partitions we recognize, and says so", async () => {
         fs.writeFileSync(imagePathname, makeBlankTestHdv(40, 2));
         const info = await runDisk("info");
-        expect(info[0]).to.contain("no LDOS, LS-DOS or DOSPLUS partitions found");
-        await expect(runDisk("dir")).rejects.toThrow("Can't find an LDOS, LS-DOS or DOSPLUS partition");
+        expect(info[0]).to.contain("no LDOS, LS-DOS, DOSPLUS or NEWDOS/80 partitions found");
+        await expect(runDisk("dir")).rejects.toThrow("Can't find an LDOS, LS-DOS, DOSPLUS or NEWDOS/80 partition");
         // The listing has only the free space, which is all of the disk.
         expect(await runDisk("partition")).to.eql(["     cylinders 0-39, heads 0-1  free (40 cylinders)"]);
     });

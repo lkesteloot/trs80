@@ -592,6 +592,7 @@ export interface FormatHardDiskResult {
  * files and there's no force, or the disk can't be written.
  */
 export function formatHardDiskPartition(session: DiskSession, request: FormatHardDiskRequest): FormatHardDiskResult {
+    session.checkPartitionsCanChange();
     const selected = session.getSelectedPartition();
     const number = session.selectedPartitionNumber;
     const dos = request.dos;

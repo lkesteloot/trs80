@@ -1,5 +1,5 @@
 import {
-    erasePartition, formatLdosPartition, hardDiskDosProblem, type LdosPartition, PARTITION_MAX_CYLINDERS,
+    erasePartition, formatLdosPartition, hardDiskDosProblem, type DecodedPartition, PARTITION_MAX_CYLINDERS,
     PARTITION_MIN_CYLINDERS, type TrsdosFormatDos,
 } from "trs80-base";
 import {
@@ -225,7 +225,7 @@ export interface AddPartitionResult {
     /** The new partition's number, from 1. */
     number: number;
     /** The new partition, as found on the disk afterward. */
-    partition: LdosPartition;
+    partition: DecodedPartition;
 }
 
 /**
@@ -238,6 +238,7 @@ export interface AddPartitionResult {
  * blank and there's no force, or the disk can't be written.
  */
 export function addPartition(session: DiskSession, request: AddPartitionRequest): AddPartitionResult {
+    session.checkPartitionsCanChange();
     const dos = request.dos;
     const dosProblem = hardDiskDosProblem(dos);
     if (dosProblem !== undefined) {
@@ -314,6 +315,7 @@ export interface DeletePartitionResult {
  * can't be written.
  */
 export function deletePartition(session: DiskSession, wanted: string | undefined, force: boolean): DeletePartitionResult {
+    session.checkPartitionsCanChange();
     let number: number;
     if (wanted !== undefined) {
         number = session.findPartitionNumber(wanted);

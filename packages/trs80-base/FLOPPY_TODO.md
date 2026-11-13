@@ -690,15 +690,24 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       we assume the partition takes the rest of the disk's heads, so a disk with
       head partitions and no `RSH` block would find the first partition too tall.
       No sample has this.
-- [ ] **NEWDOS/80 on hard disks** (`m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`,
-      `m3-newdos80v25-st251.hdv`) decode as hard disks with no partitions. The
-      layout is worked out in "NEWDOS/80 on hard disks" in `FLOPPY_FORMATS.md`:
-      a partition per head, with its granule size in byte 3 of its PDRIVE slot.
-      To do: a `HardDiskPartition` for one head, and a NEWDOS/80 candidate whose
-      sectors per granule come from the table instead of being 5. Check how
-      many lumps the GAT holds. Add the four other NEWDOS/80 images from
-      `FreHDCD.zip` (named in that section) to the suite first, to check
-      against.
+- [x] **NEWDOS/80 on hard disks** (`m1-newdos80v25.hdv`, `m3-newdos80v25.hdv`,
+      `m3-newdos80v25-st251.hdv`) are read: a partition per head from the PDRIVE
+      table's hard disk slots, with the slot's granule size and lump count, and
+      the directory's 33 sectors from the HIT (see "NEWDOS/80 on hard disks" in
+      `FLOPPY_FORMATS.md`). NEWDOS/80's own `FREE` agrees on every drive of the
+      two auto-boot disks. Still to do:
+      - Add the four other NEWDOS/80 images from `FreHDCD.zip` (named in that
+        section) to the suite. The zip wasn't on this machine; the Wayback
+        Machine has it (61 MB) at
+        `web.archive.org/web/20230710165007id_/http://members.iinet.net.au/~ianmav/downloads/FreHDCD.zip`.
+      - Writing, and adding, deleting or formatting partitions, are refused.
+        Writing needs the NEWDOS/80 rules on a partition: the partial last lump,
+        a directory that isn't a whole number of granules, and no lockout table.
+      - What the slot bytes for the first cylinder and the head count are (`HDS=`'s
+        first and fourth fields), so that a partition that doesn't start at
+        cylinder 0 or spans heads would be read. No sample has one.
+      - Formatted heads that no slot names (heads 6 and 7 of `m3-newdos80v25.hdv`)
+        are skipped. They're empty on every sample.
 - [ ] **Montezuma CP/M on hard disks** (`m4-mmcpm22.hdv`) decodes as a hard disk
       with no partitions. Its layout is in "Montezuma CP/M on hard disks" in
       `FLOPPY_FORMATS.md`: two drives of 3 heads, whose tracks run down one head

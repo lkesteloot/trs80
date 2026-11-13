@@ -1,8 +1,8 @@
 import {
     BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosOnOverlay,
-    evaluateTrsdosWriteGate, findLdosPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
+    evaluateTrsdosWriteGate, findHardDiskPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     isFloppy, isHardDisk,
-    type KnownFloppyFileSystem, type LdosPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
+    type KnownFloppyFileSystem, type DecodedPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
     type TrsdosRuleSet, TrsdosWriteAccess, type TrsdosWriteBlocker, TrsdosWriteBlockerKind, TrsdosWriteError,
     TrsdosWriteErrorKind, type TrsdosWriteGate, TrsdosWriter, type WritableDiskVolume,
 } from "trs80-base";
@@ -279,7 +279,7 @@ type DiskImage = FloppyDisk | HdvHardDisk;
  * @param partition the partition.
  * @param number its number, from 1.
  */
-export function partitionDisplayName(partition: LdosPartition, number: number): string {
+export function partitionDisplayName(partition: DecodedPartition, number: number): string {
     return partition.diskName !== "" ? partition.diskName : "partition " + number;
 }
 
@@ -353,7 +353,7 @@ export class DiskSession {
      * The LDOS-family partitions of the hard disk, in disk order. Empty for a floppy and for a hard disk with
      * none that we recognize. After a change, the changed partition's entry is decoded again.
      */
-    private partitions: LdosPartition[] = [];
+    private partitions: DecodedPartition[] = [];
     /**
      * The index in {@link partitions} of the partition that the commands work on, or undefined if none is
      * chosen. The choice is part of the session and not of the undo states, so undo never changes it.
@@ -507,7 +507,7 @@ export class DiskSession {
      */
     private findPartitions(wanted: string | undefined): void {
         const image = this.currentImage;
-        this.partitions = image === undefined || image instanceof FloppyDisk ? [] : findLdosPartitions(image);
+        this.partitions = image === undefined || image instanceof FloppyDisk ? [] : findHardDiskPartitions(image);
         this.selectedPartitionIndex = undefined;
         if (wanted !== undefined) {
             this.selectedPartitionIndex = this.resolvePartition(wanted);
@@ -531,7 +531,7 @@ export class DiskSession {
     /**
      * The LDOS-family partitions of the hard disk, in disk order (partition 1 first). Empty for a floppy.
      */
-    public getPartitions(): readonly LdosPartition[] {
+    public getPartitions(): readonly DecodedPartition[] {
         return this.partitions;
     }
 
@@ -626,7 +626,7 @@ export class DiskSession {
      *
      * @throws DiskError if the disk isn't a hard disk, or no partition is selected (saying how to choose one).
      */
-    public getSelectedPartition(): LdosPartition {
+    public getSelectedPartition(): DecodedPartition {
         if (!this.isHardDisk()) {
             throw new DiskError("The disk is a floppy, which has no partitions");
         }
@@ -647,7 +647,7 @@ export class DiskSession {
      * @param partition the partition.
      * @return undefined if it can be written, or the blockers' messages.
      */
-    public partitionReadOnlyReason(partition: LdosPartition): string | undefined {
+    public partitionReadOnlyReason(partition: DecodedPartition): string | undefined {
         const gate = evaluateTrsdosWriteGate(partition.trsdos, this.ruleSet);
         switch (gate.access) {
             case TrsdosWriteAccess.WRITABLE:
@@ -694,8 +694,8 @@ export class DiskSession {
      */
     private makeNoPartitionError(): DiskError {
         if (this.partitions.length === 0) {
-            return new DiskError("Can't find an LDOS, LS-DOS or DOSPLUS partition on \"" + this.name +
-                "\" (NEWDOS/80 and CP/M hard disks aren't supported yet)");
+            return new DiskError("Can't find an LDOS, LS-DOS, DOSPLUS or NEWDOS/80 partition on \"" + this.name +
+                "\" (CP/M hard disks aren't supported yet)");
         }
         return new DiskError("This hard disk has " + this.partitions.length + " partitions, and the command works " +
             "on one.\n" + this.describePartitionChoices());
@@ -824,6 +824,22 @@ export class DiskSession {
     }
 
     /**
+     * Refuse to add, delete or format partitions on a NEWDOS/80 hard disk. Its PDRIVE table describes
+     * its partitions, which we don't update, and its partitions are a different layout than the LDOS
+     * ones that we format. --force doesn't override this. Commands that change partitions call this
+     * before anything else, so that this is the reason given; {@link changeHardDisk} calls it too.
+     *
+     * @throws DiskError if any partition is NEWDOS/80's.
+     */
+    public checkPartitionsCanChange(): void {
+        const newdos80 = this.partitions.some(partition => partition.trsdos.newdos80Partition !== undefined);
+        if (newdos80) {
+            throw new DiskError("This is a NEWDOS/80 hard disk, and adding, deleting or formatting its partitions " +
+                "isn't supported yet.", DiskErrorKind.READ_ONLY);
+        }
+    }
+
+    /**
      * Change the hard disk's partitions, as "partition --add" and "format" do: run the change on the disk,
      * then find its partitions again, since the change can add, remove or rewrite them. The change counts as
      * a change to be saved and undone. Unlike {@link changeTrsdos} this isn't all or nothing, but a change
@@ -836,11 +852,13 @@ export class DiskSession {
      * @param select where the partition to select afterward starts, or undefined to select none. As when the
      * disk is opened, the only partition is selected anyway.
      * @param commandForce whether the command itself was given --force.
-     * @throws DiskError if the disk is a floppy or is write-protected, or whatever change() throws.
+     * @throws DiskError if the disk is a floppy, write-protected or NEWDOS/80's (see
+     * {@link checkPartitionsCanChange}), or whatever change() throws.
      */
     public changeHardDisk(change: (hardDisk: HdvHardDisk) => void, select: PartitionLocation | undefined,
                           commandForce: boolean): void {
 
+        this.checkPartitionsCanChange();
         const hardDisk = this.hardDisk;
         if (hardDisk.isWriteProtected()) {
             const message = hardDiskWriteProtectionMessage(hardDisk) ?? "The disk is write-protected.";
@@ -1477,7 +1495,7 @@ export class DiskSession {
     private describePartitionSummary(): string {
         const index = this.selectedPartitionIndex;
         if (this.partitions.length === 0) {
-            return ", no LDOS, LS-DOS or DOSPLUS partitions found";
+            return ", no LDOS, LS-DOS, DOSPLUS or NEWDOS/80 partitions found";
         }
         if (index === undefined) {
             return ", " + pluralizeWithCount(this.partitions.length, "partition") +

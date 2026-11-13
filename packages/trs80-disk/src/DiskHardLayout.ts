@@ -6,7 +6,7 @@
  */
 
 import {
-    describeHardDiskBlock, HARD_DISK_SECTORS_PER_TRACK, type HardDisk, type HardDiskGeometry, type LdosPartition,
+    describeHardDiskBlock, HARD_DISK_SECTORS_PER_TRACK, type HardDisk, type HardDiskGeometry, type DecodedPartition,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {pluralizeWithCount} from "./Plural.js";
@@ -75,7 +75,7 @@ export function diskSplitToString(split: DiskSplit): string {
 /**
  * The block of a hard disk that a partition occupies.
  */
-export function partitionBlock(ldosPartition: LdosPartition): HardDiskBlock {
+export function partitionBlock(ldosPartition: DecodedPartition): HardDiskBlock {
     const partition = ldosPartition.partition;
     return {
         cylinderOffset: partition.cylinderOffset,
@@ -212,11 +212,18 @@ export function chooseDefaultPartitionName(diskNames: readonly string[]): string
 /**
  * The lines that the "partition" command lists after the partitions: one for each block of free space,
  * lined up under {@link describePartitionLines}'s, or one saying why there's no telling what's free.
+ * There are none for a NEWDOS/80 hard disk, whose partitions can't be added, and whose PDRIVE table,
+ * not the space between partitions, says where they can go.
  *
  * @param geometry the disk's geometry.
  * @param partitions the partitions.
  */
-export function describeFreeSpaceLines(geometry: HardDiskGeometry, partitions: readonly LdosPartition[]): string[] {
+export function describeFreeSpaceLines(geometry: HardDiskGeometry, partitions: readonly DecodedPartition[]): string[] {
+    const isNewdos80 = partitions.some(partition => partition.trsdos.newdos80Partition !== undefined);
+    if (isNewdos80) {
+        return [];
+    }
+
     const blocks = partitions.map(partitionBlock);
     const split = classifySplit(geometry, blocks);
     if (split === DiskSplit.UNKNOWN) {
@@ -257,7 +264,7 @@ export function isBlockBlank(disk: HardDisk, block: HardDiskBlock): boolean {
  * @param partitions the new partitions, each with its number on the disk (from 1).
  */
 export function describeDriverSettings(geometry: HardDiskGeometry,
-                                       partitions: readonly {number: number, partition: LdosPartition}[]): string[] {
+                                       partitions: readonly {number: number, partition: DecodedPartition}[]): string[] {
 
     const lines = [
         "Configure the hard disk driver with these settings (the image has no partition table, so the driver has to be told):",

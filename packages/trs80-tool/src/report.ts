@@ -15,7 +15,7 @@ import {
     FloppyDirEntry,
     FloppyDisk,
     findImagingArtifacts,
-    findLdosPartitions,
+    findHardDiskPartitions,
     FloppyFileSystem,
     isFloppy,
     isHardDisk,
@@ -793,7 +793,7 @@ function reportXenixTar(xenixTar: XenixTar, report: Omit<DiskReport, "warnings">
 }
 
 /**
- * Report on a hard disk: its geometry, and the file system of each LDOS or LS-DOS partition.
+ * Report on a hard disk: its geometry, and the file system of each partition we can read.
  */
 function reportHardDisk(disk: Trs80HardDisk, report: Omit<DiskReport, "warnings">): void {
     const geometry = disk.getGeometry();
@@ -803,7 +803,7 @@ function reportHardDisk(disk: Trs80HardDisk, report: Omit<DiskReport, "warnings"
         headerVersion: disk.headerVersion,
     };
 
-    report.partitions = findLdosPartitions(disk).map(({partition, trsdos}) => {
+    report.partitions = findHardDiskPartitions(disk).map(({partition, trsdos}) => {
         const partitionReport: PartitionReport = {
             cylinderOffset: partition.cylinderOffset,
             headOffset: partition.headOffset,

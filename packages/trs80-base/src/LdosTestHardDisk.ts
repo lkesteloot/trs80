@@ -199,7 +199,7 @@ export function ldosTestSector(binary: Uint8Array, diskHeads: number,
 /**
  * Writes the text into the bytes, padded with spaces on the right.
  */
-function writePadded(bytes: Uint8Array, offset: number, text: string, length: number): void {
+export function writePadded(bytes: Uint8Array, offset: number, text: string, length: number): void {
     for (let i = 0; i < length; i++) {
         bytes[offset + i] = i < text.length ? text.charCodeAt(i) : 0x20;
     }
@@ -209,7 +209,7 @@ function writePadded(bytes: Uint8Array, offset: number, text: string, length: nu
  * Convert a name with a slash, such as "HELLO/TXT", to the 11 characters a directory entry holds:
  * the name padded to 8, then the extension padded to 3.
  */
-function rawFilename(name: string): string {
+export function rawFilename(name: string): string {
     const [base, extension = ""] = name.toUpperCase().split("/");
     return base.padEnd(8, " ") + extension.padEnd(3, " ");
 }
@@ -226,7 +226,7 @@ function rawFilename(name: string): string {
  * @param extents the extents, each as the lump and the extent byte (granule offset in 3 bits, count
  * less one in 5).
  */
-function writeDirEntry(sector: Uint8Array, entryIndex: number, flags: number, filename: string,
+export function writeDirEntry(sector: Uint8Array, entryIndex: number, flags: number, filename: string,
                        sectorCount: number, lastSectorSize: number, extents: [number, number][]): void {
 
     const entry = sector.subarray(entryIndex*32, (entryIndex + 1)*32);

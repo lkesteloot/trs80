@@ -1,6 +1,7 @@
 import {assertNever} from "z80-base";
 import {SectorPosition, TrackPosition} from "./FloppyDisk.js";
 import type {DiskVolume} from "./DiskVolume.js";
+import {HARD_DISK_SECTORS_PER_TRACK} from "./HardDisk.js";
 
 /**
  * Where a disk's PDRIVE settings came from.
@@ -218,4 +219,91 @@ export function readPdriveTable(disk: DiskVolume): PdriveSettings | undefined {
         dirGranules,
         lumpCount,
     };
+}
+
+/**
+ * The number of 16-byte slots in a PDRIVE table, one for each of drives 0 to 9.
+ */
+const PDRIVE_SLOT_COUNT = 10;
+const PDRIVE_SLOT_SIZE = 16;
+
+/**
+ * The bit of a slot's byte 13 that marks the slot as a hard disk's.
+ */
+const PDRIVE_HARD_DISK_BIT = 0x40;
+
+/**
+ * A slot of the PDRIVE table on a NEWDOS/80 hard disk, which describes one partition. Some bytes mean
+ * something else than on a floppy. See "NEWDOS/80 on hard disks" in FLOPPY_FORMATS.md.
+ */
+export interface PdriveHardDiskSlot {
+    /** The slot's index in the table, which is its drive number. */
+    slot: number;
+    /** The head that the partition is on (byte 6 ÷ 8). */
+    head: number;
+    /** The number of cylinders in the partition, from cylinder 0 (bytes 14 and 15, little-endian). */
+    cylinderCount: number;
+    /** Sectors per granule (byte 3, which is TC on a floppy). */
+    sectorsPerGranule: number;
+    /** Granules per lump (byte 5, GPL). */
+    granulesPerLump: number;
+    /** The number of lumps (byte 1), counting a partial last one. */
+    lumpCount: number;
+    /** The lump where FORMAT put the directory (byte 0, DDSL). The partition's boot sector has the real one. */
+    dirStartLump: number;
+}
+
+/**
+ * Read the slots of a NEWDOS/80 hard disk's PDRIVE table that describe its partitions, from sector 2 of
+ * cylinder 0, head 0 (the start of the PDRIVE table on a floppy too). Slots that aren't for a hard disk
+ * (bit 6 of byte 13 clear, or sectors per track other than 32), and slots whose fields are out of range,
+ * are left out. A slot may name a head that was never formatted, so the caller must check the partition.
+ * See "NEWDOS/80 on hard disks" in FLOPPY_FORMATS.md.
+ *
+ * @param readSector reads a sector of the disk by cylinder, head and sector, or returns undefined.
+ * @return the hard disk slots, in table order.
+ */
+export function readPdriveHardDiskSlots(readSector: (cylinder: number, head: number, sector: number) => Uint8Array | undefined):
+    PdriveHardDiskSlot[] {
+
+    const data = readSector(0, 0, PDRIVE_TABLE_SECTOR);
+    if (data === undefined || data.length < PDRIVE_SLOT_COUNT*PDRIVE_SLOT_SIZE) {
+        return [];
+    }
+
+    const slots: PdriveHardDiskSlot[] = [];
+    for (let slot = 0; slot < PDRIVE_SLOT_COUNT; slot++) {
+        const bytes = data.subarray(slot*PDRIVE_SLOT_SIZE, (slot + 1)*PDRIVE_SLOT_SIZE);
+        const dirStartLump = bytes[0];
+        const lumpCount = bytes[1];
+        const sectorsPerGranule = bytes[3];
+        const sectorsPerTrack = bytes[4];
+        const granulesPerLump = bytes[5];
+        const headByte = bytes[6];
+        const dirStartLumpCopy = bytes[8];
+        const interfaceBits = bytes[13];
+        const cylinderCount = bytes[14] | (bytes[15] << 8);
+
+        const isHardDiskSlot = (interfaceBits & PDRIVE_HARD_DISK_BIT) !== 0 &&
+            sectorsPerTrack === HARD_DISK_SECTORS_PER_TRACK;
+        const inRange = dirStartLump === dirStartLumpCopy &&
+            (headByte & 0x07) === 0 &&
+            sectorsPerGranule >= 1 && sectorsPerGranule <= 32 &&
+            granulesPerLump >= 1 && granulesPerLump <= 8 &&
+            lumpCount >= 1 && dirStartLump < lumpCount &&
+            cylinderCount >= 1;
+        if (isHardDiskSlot && inRange) {
+            slots.push({
+                slot,
+                head: headByte >> 3,
+                cylinderCount,
+                sectorsPerGranule,
+                granulesPerLump,
+                lumpCount,
+                dirStartLump,
+            });
+        }
+    }
+
+    return slots;
 }

@@ -315,6 +315,8 @@ function formatHardDiskFromCommand(session: DiskSession, command: ParsedDiskComm
 
     // The default DOS is the chosen partition's, so there must be one. This says how to make one if there are none.
     session.getSelectedPartition();
+    // Before asking for a DOS, which a NEWDOS/80 partition doesn't have that format can make.
+    session.checkPartitionsCanChange();
     const dos = choices.dos ?? getSessionFormatDos(session);
     if (dos === undefined) {
         throw new ToolError("format needs a DOS to format for, since the partition's DOS isn't one that format can " +

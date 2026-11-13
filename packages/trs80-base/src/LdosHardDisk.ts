@@ -2,11 +2,13 @@ import {TRS80_BASE_LOGGER} from "z80-logger";
 import {HARD_DISK_SECTORS_PER_TRACK, type HardDisk} from "./HardDisk.js";
 import {HardDiskPartition} from "./HardDiskPartition.js";
 import {decodeTrsdosHardDiskPartition, type Trsdos} from "./Trsdos.js";
+import {findNewdos80Partitions} from "./Newdos80HardDisk.js";
 
 /**
- * A partition of a hard disk and the LDOS or LS-DOS file system found in it.
+ * A partition of a hard disk and the file system found in it: LDOS, LS-DOS or DOSPLUS 3 (see
+ * {@link findLdosPartitions}), or NEWDOS/80 (see {@link findNewdos80Partitions}).
  */
-export interface LdosPartition {
+export interface DecodedPartition {
     /**
      * Where the partition is on the disk, and a way to read its sectors.
      */
@@ -197,7 +199,54 @@ function getPartitionLayout(gat: Uint8Array, disk: HardDisk, cylinder: number, h
  * start with these bytes, yield nothing. A partition that overlaps an earlier one is dropped. See
  * "Hard disk images" in FLOPPY_FORMATS.md.
  */
-export function findLdosPartitions(disk: HardDisk): LdosPartition[] {
+export function findLdosPartitions(disk: HardDisk): DecodedPartition[] {
+    return nameDecodedPartitions(findLdosPartitionFileSystems(disk));
+}
+
+/**
+ * Find the partitions of a hard disk with any file system we can read, in disk order (by cylinder, then
+ * head): those of the LDOS family (see {@link findLdosPartitions}) and those of NEWDOS/80 (see
+ * {@link findNewdos80Partitions}). A partition that overlaps an earlier one is dropped.
+ */
+export function findHardDiskPartitions(disk: HardDisk): DecodedPartition[] {
+    const found = findLdosPartitionFileSystems(disk);
+    for (const newdos80 of findNewdos80Partitions(disk)) {
+        const overlapped = found.some(other => other.partition.overlaps(newdos80.partition));
+        if (overlapped) {
+            TRS80_BASE_LOGGER.warn(`Skipping the NEWDOS/80 partition on head ${newdos80.partition.headOffset} ` +
+                "because it overlaps an LDOS-style partition");
+            continue;
+        }
+        found.push(newdos80);
+    }
+    found.sort((a, b) => a.partition.cylinderOffset - b.partition.cylinderOffset ||
+        a.partition.headOffset - b.partition.headOffset);
+
+    return nameDecodedPartitions(found);
+}
+
+/**
+ * Give each partition its disk name and a directory name, in the order given.
+ */
+function nameDecodedPartitions(found: {partition: HardDiskPartition, trsdos: Trsdos}[]): DecodedPartition[] {
+    const diskNames = found.map(({trsdos}) => {
+        const gatInfo = trsdos.getGatInfo();
+        return typeof gatInfo === "string" ? "" : gatInfo.name;
+    });
+    const directoryNames = makeDirectoryNames(diskNames);
+
+    return found.map(({partition, trsdos}, index) => ({
+        partition,
+        trsdos,
+        diskName: diskNames[index],
+        directoryName: directoryNames[index],
+    }));
+}
+
+/**
+ * The partitions of {@link findLdosPartitions}, without their names.
+ */
+function findLdosPartitionFileSystems(disk: HardDisk): {partition: HardDiskPartition, trsdos: Trsdos}[] {
     const diskGeometry = disk.getGeometry();
     const ldosPartitions: {partition: HardDiskPartition, trsdos: Trsdos}[] = [];
 
@@ -235,16 +284,5 @@ export function findLdosPartitions(disk: HardDisk): LdosPartition[] {
         }
     }
 
-    const diskNames = ldosPartitions.map(({trsdos}) => {
-        const gatInfo = trsdos.getGatInfo();
-        return typeof gatInfo === "string" ? "" : gatInfo.name;
-    });
-    const directoryNames = makeDirectoryNames(diskNames);
-
-    return ldosPartitions.map(({partition, trsdos}, index) => ({
-        partition,
-        trsdos,
-        diskName: diskNames[index],
-        directoryName: directoryNames[index],
-    }));
+    return ldosPartitions;
 }

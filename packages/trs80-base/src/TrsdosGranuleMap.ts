@@ -41,24 +41,34 @@ export class TrsdosGranule {
     public readonly inDirectory: boolean;
 
     /**
+     * Whether the granule is past the end of the volume: in a partial last lump, which only a NEWDOS/80
+     * hard disk partition has (see {@link Trsdos.granuleCount}). Its GAT marks these used.
+     */
+    public readonly pastEnd: boolean;
+
+    /**
      * The primary entries of the files whose extents include this granule, each at most once. System
      * files are included, and so are TRSDOS 1.3's synthesized SYS files.
      */
     public readonly owners: TrsdosDirEntry[] = [];
 
-    constructor(lump: number, granule: number, gatUsed: boolean, lockedOut: boolean, inDirectory: boolean) {
+    constructor(lump: number, granule: number, gatUsed: boolean, lockedOut: boolean, inDirectory: boolean,
+                pastEnd = false) {
+
         this.lump = lump;
         this.granule = granule;
         this.gatUsed = gatUsed;
         this.lockedOut = lockedOut;
         this.inDirectory = inDirectory;
+        this.pastEnd = pastEnd;
     }
 
     /**
-     * Whether the allocator could hand this granule out: nothing says it's in use, and it isn't locked out.
+     * Whether the allocator could hand this granule out: nothing says it's in use, it isn't locked out,
+     * and it's on the volume.
      */
     public isFree(): boolean {
-        return !this.gatUsed && this.owners.length === 0 && !this.inDirectory && !this.lockedOut;
+        return !this.gatUsed && this.owners.length === 0 && !this.inDirectory && !this.lockedOut && !this.pastEnd;
     }
 }
 
@@ -118,7 +128,8 @@ export class TrsdosGranuleMap {
 
         const granulesPerLump = trsdos.granulesPerLump;
         const lumpCount = trsdos.lumpCount;
-        const granuleCount = lumpCount*granulesPerLump;
+        // The granules on the volume. A partial last lump has more in the map, past the end.
+        const granuleCount = trsdos.granuleCount;
 
         // The lockout table at GAT 0x60 has one byte per lump that mirrors the GAT's bits, but only in
         // the 2.3 family, where it exists for mirror-image backups ("GAT bytes 0xCB-0xCD" and "Cylinders,
@@ -151,7 +162,7 @@ export class TrsdosGranuleMap {
                 const lockedOut = (lockOutByte & (1 << granule)) !== 0;
                 const index = lump*granulesPerLump + granule;
                 const inDirectory = index >= dirStart && index < dirEnd;
-                granules.push(new TrsdosGranule(lump, granule, gatUsed, lockedOut, inDirectory));
+                granules.push(new TrsdosGranule(lump, granule, gatUsed, lockedOut, inDirectory, index >= granuleCount));
             }
         }
 
@@ -217,9 +228,11 @@ export class TrsdosGranuleMap {
 
     /**
      * The granules that the GAT says are used but that no file claims and that aren't the directory.
-     * Locked-out granules are included, since the GAT marks them used.
+     * Locked-out granules are included, since the GAT marks them used, but not those past the end of the
+     * volume, which the GAT marks used because they don't exist.
      */
     public getUsedButUnclaimedGranules(): TrsdosGranule[] {
-        return this.granules.filter(granule => granule.gatUsed && granule.owners.length === 0 && !granule.inDirectory);
+        return this.granules.filter(granule => granule.gatUsed && granule.owners.length === 0 &&
+            !granule.inDirectory && !granule.pastEnd);
     }
 }

@@ -17,7 +17,7 @@ import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {bytesToText, type DosBanner, findDosBanner} from "./DiskUtils.js";
 import {DosFamily, type DosName, dosNameToString, isNewdos80Line, isTrsdos6Line, makeDosName, UNKNOWN_DOS_NAME} from "./DosName.js";
 import type {AllocatedExtent} from "./TrsdosAllocator.js";
-import {type PdriveSettings, PdriveSource, readPdriveTable} from "./Pdrive.js";
+import {type PdriveHardDiskSlot, type PdriveSettings, PdriveSource, readPdriveTable} from "./Pdrive.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -2293,12 +2293,28 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * as evidence by decoding cleanly rather than by matching their hashes.
      */
     public readonly hitIgnored: boolean;
+    /**
+     * For a partition of a NEWDOS/80 hard disk, what its PDRIVE slot and HIT say about its layout;
+     * undefined for every other volume. See {@link Newdos80PartitionLayout}.
+     */
+    public readonly newdos80Partition: Newdos80PartitionLayout | undefined;
     // Derived fields:
+    /**
+     * The number of sectors in the directory, GAT and HIT included: its granules' sectors, except on a
+     * NEWDOS/80 hard disk partition, where the directory needn't fill its last granule.
+     */
+    public readonly dirSectorCount: number;
     public readonly dirEntryLength: number;
     public readonly dirEntriesPerSector: number;
     public readonly sectorsPerLump: number;
     public readonly sectorsPerCylinder: number;
     public readonly lumpCount: number;
+    /**
+     * The number of granules on the volume. That's every lump's, except on a NEWDOS/80 hard disk
+     * partition, whose last lump can be partial: its GAT counts the lump, and marks the granules that
+     * are past the end of the partition as used.
+     */
+    public readonly granuleCount: number;
     /**
      * Whether a lump is exactly a physical cylinder (both allocated sides), as in every DOS but
      * NEWDOS/80, and in NEWDOS/80 when its settings happen to line up with the cylinders.
@@ -2348,7 +2364,8 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         dirLumpNumber: number,
         granulesPerDir: number,
         firstDataCylinder: number,
-        hitIgnored = false) {
+        hitIgnored = false,
+        newdos80Partition: Newdos80PartitionLayout | undefined = undefined) {
 
         this.disk = disk;
         this.geometry = geometry;
@@ -2360,12 +2377,19 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
         this.granulesPerDir = granulesPerDir;
         this.firstDataCylinder = firstDataCylinder;
         this.hitIgnored = hitIgnored;
+        this.newdos80Partition = newdos80Partition;
 
+        this.dirSectorCount = newdos80Partition?.dirSectorCount ?? granulesPerDir*sectorsPerGranule;
         this.dirEntryLength = getDirEntryLength(version);
         this.dirEntriesPerSector = Math.floor(geometry.modalDataSectorSize / this.dirEntryLength);
         this.sectorsPerLump = this.sectorsPerGranule * this.granulesPerLump;
         this.sectorsPerCylinder = geometry.modalDataSectorSpan*this.allocationSides;
-        this.lumpCount = computeLumpCount(geometry, firstDataCylinder, this.sectorsPerCylinder, this.sectorsPerLump);
+        // A NEWDOS/80 partition's GAT counts its partial last lump.
+        this.lumpCount = newdos80Partition?.slot.lumpCount ??
+            computeLumpCount(geometry, firstDataCylinder, this.sectorsPerCylinder, this.sectorsPerLump);
+        this.granuleCount = newdos80Partition === undefined ? this.lumpCount*this.granulesPerLump :
+            Math.min(this.lumpCount*this.granulesPerLump,
+                Math.floor(geometry.cylinderCount*this.sectorsPerCylinder / this.sectorsPerGranule));
         this.lumpsAreCylinders = this.sectorsPerLump === this.sectorsPerCylinder && this.firstDataCylinder === 0;
         this.lumpTerm = this.lumpsAreCylinders ? "cylinder" : "lump";
 
@@ -2739,9 +2763,14 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
      * works on data disks too, since they don't say what wrote them.
      *
      * @return the settings, or undefined for a disk that isn't NEWDOS/80's and whose lumps are
-     * cylinders: any DOS's settings would read it, so PDRIVE says nothing about it.
+     * cylinders: any DOS's settings would read it, so PDRIVE says nothing about it. Also undefined for
+     * a NEWDOS/80 hard disk partition, whose settings aren't a floppy drive's.
      */
     public getPdriveSettings(): PdriveSettings | undefined {
+        // These describe a floppy drive. A hard disk partition's PDRIVE slot means something else.
+        if (this.newdos80Partition !== undefined) {
+            return undefined;
+        }
         const isNewdos80 = isNewdos80Line(this.dosName);
         if (isNewdos80) {
             const table = readPdriveTable(this.disk);
@@ -2988,7 +3017,7 @@ export class Trsdos implements FloppyFileSystem<TrsdosDirEntry> {
     public *getDirSectors(): Generator<{ sectorIndex: number, dirPosition: SectorPosition }> {
         // Skip GAT and HIT.
         const gatHitSectorCount = 2;
-        const sectorCount = this.granulesPerDir*this.sectorsPerGranule - gatHitSectorCount;
+        const sectorCount = this.dirSectorCount - gatHitSectorCount;
         for (let sectorIndex = 0; sectorIndex < sectorCount; sectorIndex++) {
             if (this.version === TrsdosVersion.V2_3 && sectorIndex >= 32) {
                 // Inaccessible, the sector index is stored in 5 bits.
@@ -4167,10 +4196,33 @@ function generateTrsdos27Candidates(disk: DiskVolume): Trsdos[] {
 }
 
 /**
+ * The HIT byte where NEWDOS/80 records the number of directory sectors beyond 10.
+ */
+const NEWDOS80_HIT_DIR_SIZE_OFFSET = 0x1F;
+
+/**
+ * The number of sectors in a NEWDOS/80 directory, GAT and HIT included, according to its HIT. Byte 0x1F
+ * holds the number of directory sectors beyond 10 (see "HIT sector" in FLOPPY_FORMATS.md), and the
+ * directory must also reach every sector that the HIT lists an entry in, since some disks list
+ * entries past what byte 0x1F says.
+ *
+ * @param hit the HIT sector's bytes.
+ */
+function getNewdos80DirSectorCount(hit: Uint8Array): number {
+    let sectorCount = 10 + hit[NEWDOS80_HIT_DIR_SIZE_OFFSET];
+    for (let hitIndex = 0; hitIndex < hit.length; hitIndex++) {
+        if (hitIndex !== NEWDOS80_HIT_DIR_SIZE_OFFSET && hit[hitIndex] !== 0) {
+            // The low five bits are the entry sector, counted after the GAT and HIT.
+            sectorCount = Math.max(sectorCount, (hitIndex & 0x1F) + 3);
+        }
+    }
+    return sectorCount;
+}
+
+/**
  * The size of the directory in 5-sector granules according to the candidate's HIT, if it reads as a
- * NEWDOS/80 HIT, or undefined if it doesn't. Byte 0x1F holds the number of directory sectors beyond
- * 10 (0, 5, 10, 15 or 20; see "HIT sector" in FLOPPY_FORMATS.md), and the directory must also reach
- * every sector that the HIT lists an entry in. Some disks list entries past what byte 0x1F says.
+ * NEWDOS/80 floppy's HIT, or undefined if it doesn't. On a floppy, byte 0x1F is 0, 5, 10, 15 or 20
+ * (see getNewdos80DirSectorCount()).
  */
 function getNewdos80GranulesPerDir(candidate: Trsdos): number | undefined {
     const hitInfo = candidate.getHitInfo();
@@ -4179,22 +4231,13 @@ function getNewdos80GranulesPerDir(candidate: Trsdos): number | undefined {
     }
 
     const hit = hitInfo.hit;
-    const extraSectors = hit[0x1F];
+    const extraSectors = hit[NEWDOS80_HIT_DIR_SIZE_OFFSET];
     if (extraSectors % 5 !== 0 || extraSectors > 20) {
         return undefined;
     }
 
-    // Including the GAT and HIT.
-    let sectorCount = 10 + extraSectors;
-    for (let hitIndex = 0; hitIndex < hit.length; hitIndex++) {
-        if (hitIndex !== 0x1F && hit[hitIndex] !== 0) {
-            // The low five bits are the entry sector, counted after the GAT and HIT.
-            sectorCount = Math.max(sectorCount, (hitIndex & 0x1F) + 3);
-        }
-    }
-
     // At most 6 granules (28 entry sectors).
-    const granulesPerDir = Math.ceil(sectorCount / 5);
+    const granulesPerDir = Math.ceil(getNewdos80DirSectorCount(hit) / 5);
     return granulesPerDir <= 6 ? granulesPerDir : undefined;
 }
 
@@ -4314,6 +4357,88 @@ export function decodeTrsdosHardDiskPartition(volume: DiskVolume, dirCylinder: n
     const sectorsPerGranule = sectorsPerCylinder / granulesPerCylinder;
     const makeCandidate = (hitIgnored: boolean) => new Trsdos(volume, geometry, TrsdosVersion.V2_3, 1,
         granulesPerCylinder, sectorsPerGranule, dirCylinder, granulesPerCylinder, 0, hitIgnored);
+
+    const best = findBestCandidate([makeCandidate(false)]);
+    if (best !== undefined) {
+        return best;
+    }
+
+    const hitIgnoredCandidate = makeCandidate(true);
+    const bestIgnoringHit = hitIgnoredCandidate.gatPassesStrictCheck ?
+        findBestCandidate([hitIgnoredCandidate]) : undefined;
+    if (bestIgnoringHit !== undefined) {
+        TRS80_BASE_LOGGER.warn("The HIT doesn't match the directory, so it was read without it");
+    }
+    return bestIgnoringHit;
+}
+
+/**
+ * What a NEWDOS/80 hard disk partition's PDRIVE slot and HIT say about its layout, which the floppy
+ * candidates can't work out: the granule size and the number of lumps come from the slot, and the
+ * directory's size from the HIT. See "NEWDOS/80 on hard disks" in FLOPPY_FORMATS.md.
+ */
+export interface Newdos80PartitionLayout {
+    /**
+     * The PDRIVE slot that describes the partition.
+     */
+    readonly slot: PdriveHardDiskSlot;
+
+    /**
+     * The number of sectors in the directory, GAT and HIT included. It needn't be a whole number of
+     * granules.
+     */
+    readonly dirSectorCount: number;
+}
+
+/**
+ * The most sectors a 2.3-family directory can have: the GAT, the HIT, and the 32 entry sectors that
+ * a HIT byte's five bits of sector can reach.
+ */
+const MAX_DIR_SECTOR_COUNT = 34;
+
+/**
+ * Decode the file system in one partition (one head) of a NEWDOS/80 hard disk. The sectors per granule,
+ * granules per lump and number of lumps come from the partition's PDRIVE slot; the caller found the
+ * directory's lump in the partition's boot sector, and the directory's size comes from its HIT. Only that
+ * one layout is tried. As with a floppy, if the HIT doesn't match the directory, it tries again without
+ * the HIT. See "NEWDOS/80 on hard disks" in FLOPPY_FORMATS.md.
+ *
+ * @param volume the partition, one head of the disk.
+ * @param slot the partition's PDRIVE slot.
+ * @param dirLumpNumber the directory's lump, from the partition's boot sector.
+ * @return the decoded file system, or undefined if this doesn't look like one.
+ */
+export function decodeNewdos80HardDiskPartition(volume: DiskVolume, slot: PdriveHardDiskSlot,
+                                                dirLumpNumber: number): Trsdos | undefined {
+
+    const geometry = volume.getGeometry();
+    const sectorsPerTrack = geometry.modalDataSectorSpan;
+    const sectorsPerLump = slot.sectorsPerGranule*slot.granulesPerLump;
+    // The GAT records a partial last lump, with its missing granules marked in use.
+    const lumpCount = Math.ceil(geometry.cylinderCount*sectorsPerTrack / sectorsPerLump);
+    if (geometry.modalDataSectorSize !== BYTES_PER_SECTOR || geometry.sideCount !== 1 ||
+        lumpCount !== slot.lumpCount || dirLumpNumber >= lumpCount) {
+
+        return undefined;
+    }
+
+    // The HIT is the directory's second sector. Partition sectors are numbered from 0.
+    const hitSectorIndex = dirLumpNumber*sectorsPerLump + 1;
+    const hitPosition = SectorPosition.make(Math.floor(hitSectorIndex / sectorsPerTrack), 0,
+        hitSectorIndex % sectorsPerTrack);
+    const hitSector = volume.readSector(hitPosition);
+    if (hitSector === undefined || hitSector.data.length < BYTES_PER_SECTOR) {
+        return undefined;
+    }
+    const dirSectorCount = getNewdos80DirSectorCount(hitSector.data);
+    if (dirSectorCount > MAX_DIR_SECTOR_COUNT) {
+        return undefined;
+    }
+    const granulesPerDir = Math.ceil(dirSectorCount / slot.sectorsPerGranule);
+
+    const layout: Newdos80PartitionLayout = {slot, dirSectorCount};
+    const makeCandidate = (hitIgnored: boolean) => new Trsdos(volume, geometry, TrsdosVersion.V2_3, 1,
+        slot.granulesPerLump, slot.sectorsPerGranule, dirLumpNumber, granulesPerDir, 0, hitIgnored, layout);
 
     const best = findBestCandidate([makeCandidate(false)]);
     if (best !== undefined) {

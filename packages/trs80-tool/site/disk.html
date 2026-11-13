@@ -1035,7 +1035,9 @@ Deleted partition 1 (HARDA). Its space (cylinders 0-139, heads 0-5) is free. The
             support, and we have no sample of a TRSDOS 6.2 hard disk partition to check against);
             <code>trim</code>, <code>boot</code>, and <code>map</code>, which work on floppy images and
             say so; DOSPLUS 3 partitions, which are read but never written, because their GAT doesn’t record how many
-            granules each cylinder has; NEWDOS/80 and CP/M hard disks, which aren’t read at all yet; and the HDV
+            granules each cylinder has; NEWDOS/80 hard disks, whose partitions (one for each head that its PDRIVE
+            table names) are read but never written, and can’t be added, deleted or formatted; CP/M hard disks, which
+            aren’t read at all yet; and the HDV
             version 2 format. A write-protected HDV (its header’s flag) can be written only with <code>--force</code>,
             and the saved image keeps its flag.</p>
         </section>

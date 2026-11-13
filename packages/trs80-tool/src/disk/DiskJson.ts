@@ -1,5 +1,5 @@
 import {
-    knownTrsdosPassword, parseTrsdosGatDate, type LdosPartition, type TrsdosFinding, TrsdosFindingKind,
+    knownTrsdosPassword, parseTrsdosGatDate, type DecodedPartition, type TrsdosFinding, TrsdosFindingKind,
     trsdosFindingKindSeverity, TrsdosFindingSeverity,
     type TrsdosDirEntry, type TrsdosDiskInfo, type TrsdosProtectionLevel, type TrsdosProtectionNames,
     trsdosProtectionLevelToString, type TrsdosRuleSet, type TrsdosVersion,
@@ -1092,7 +1092,7 @@ export function freeSpaceToJson(freeSpace: FreeSpace): FreeResultJson {
 /**
  * Where a partition is, as JSON.
  */
-export function partitionLocationToJson(partition: LdosPartition): PartitionLocationJson {
+export function partitionLocationToJson(partition: DecodedPartition): PartitionLocationJson {
     const location = partition.partition;
     return {
         cylinderOffset: location.cylinderOffset,
