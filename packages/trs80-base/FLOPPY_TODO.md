@@ -654,11 +654,11 @@ or left rough:
 `trim` drops only what `analyzeFloppyTail()` proves is outside the disk (see "Tails past the disk's
 end" in `FLOPPY_FORMATS.md`), and `repair` refuses disks with protection signs. Left out, or left rough:
 
-- [ ] **More sources for the disk's size.** Only the LDOS line, DOSPLUS 3.x/4.0, NEWDOS/80 system disks,
+- [ ] **More sources for the disk's size.** Only the LDOS line, DOSPLUS 3.x/4.0, NEWDOS/80 system disks, MultiDOS,
       and TRSDOS 2.x and 1.x have one. DOSPLUS IV writes the TRSDOS 6 GAT (see "GAT bytes 0xCB-0xCD") but
       has no rule set, so it isn't covered; NEWDOS/80's derivatives (NEWDOS/86 and /90, G-DOS, H-DOS) and
       its data disks, which have no PDRIVE table, aren't either; nor are TRSDOS 2.7, NEWDOS 2.1-3.0,
-      MultiDOS, DoubleDOS, VTOS, UltraDOS and the rest, or CP/M, whose size comes from our format table
+      DoubleDOS, VTOS, UltraDOS and the rest, or CP/M, whose size comes from our format table
       rather than the disk. Each needs its own evidence first. **Decided** (November 2026): until a DOS has
       a size source, its disks' tails stay untrimmed, which is the safe side.
 - [ ] **TRSDOS 2.x's fixed 35 cylinders** come from its FORMAT; a disk ZAPped to 40 is recognized only
