@@ -117,16 +117,26 @@ function choosesDensity(dos: TrsdosFormatDos): boolean {
 }
 
 /**
- * Check that the file that the session will save to can hold a DMK image, which is what these commands
- * make. A name with no extension, or with an unfamiliar one, is allowed.
+ * Whether the file that the session will save to can hold a DMK image, which is what "create" and "format"
+ * make. A name with no extension, or with an unfamiliar one, can.
+ *
+ * @param session the session.
+ */
+export function saveNameCanHoldDmk(session: DiskSession): boolean {
+    const extension = extensionOf(session.saveName).toLowerCase();
+    return !OTHER_IMAGE_EXTENSIONS.includes(extension);
+}
+
+/**
+ * Check that the file that the session will save to can hold a DMK image (see {@link saveNameCanHoldDmk}).
  *
  * @param session the session.
  * @param message what to say if the name is that of another kind of image.
  * @throws DiskError with the message if the name has the extension of another kind of image.
  */
 function requireDmkPathname(session: DiskSession, message: string): void {
-    const extension = extensionOf(session.saveName).toLowerCase();
-    if (OTHER_IMAGE_EXTENSIONS.includes(extension)) {
+    const canHoldDmk = saveNameCanHoldDmk(session);
+    if (!canHoldDmk) {
         throw new DiskError(message);
     }
 }

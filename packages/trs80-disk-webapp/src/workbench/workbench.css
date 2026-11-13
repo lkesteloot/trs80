@@ -391,3 +391,54 @@ table.addplan { width: 100%; border-collapse: collapse; font-size: 13px; }
 .fullscreen-head .grow { flex: 1; }
 .fullscreen-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fullscreen-body > .previewbox { flex: 1; min-height: 0; }
+
+/* The Map view. */
+.mapview .mapwrap { align-items: flex-start; }
+.mapleft { flex: 1 1 560px; min-width: 0; }
+.maptip { min-height: 20px; margin: 8px 0 2px; color: var(--fg-strong); font-family: var(--mono); font-size: 12px; }
+.focusbar { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; padding: 6px 10px; border-radius: 8px; font-size: 13px; background: color-mix(in srgb, var(--accent) 12%, var(--panel)); border: 1px solid var(--line); }
+.cell.dir { background: var(--fg-strong); }
+.cell.sys { background: var(--sys); }
+.cell.locked, .swatch.locked { background: repeating-linear-gradient(-45deg, var(--sys) 0 2px, transparent 2px 5px); border: 1px solid var(--sys); }
+.cell.ghost, .swatch.ghost { background: transparent; border: 1px dashed var(--fg-muted); }
+.cell.ghost.pastend, .swatch.ghost.pastend { border-style: dotted; }
+.cell.empty { background: transparent; border: 1px solid color-mix(in srgb, var(--line) 60%, transparent); cursor: default; }
+.cell.bad, .swatch.bad { border: 1px solid var(--danger); }
+.cell.shared, .swatch.shared { background: repeating-linear-gradient(45deg, var(--danger) 0 3px, color-mix(in srgb, var(--danger) 35%, transparent) 3px 6px); }
+.cell.claimedfree, .swatch.claimedfree { background: repeating-linear-gradient(0deg, var(--danger) 0 2px, transparent 2px 5px); }
+.cell.unclaimed, .swatch.unclaimed { background: radial-gradient(circle, var(--danger) 0 1.6px, transparent 2px) 0 0 / 5px 5px, color-mix(in srgb, var(--danger) 18%, transparent); }
+.swatch.dir { background: var(--fg-strong); }
+.swatch.sys { background: var(--sys); }
+.swatch.kind { border-radius: 3px; }
+.cell.sd, .swatch.sd { background: #859900; }
+.cell.dd, .swatch.dd { background: var(--accent); }
+.cell.crc, .swatch.crc { background: repeating-linear-gradient(45deg, var(--danger) 0 3px, color-mix(in srgb, var(--danger) 35%, transparent) 3px 6px); }
+.cell.deleted, .swatch.deleted { background: var(--warn); }
+.cell.nodata, .swatch.nodata { background: repeating-linear-gradient(0deg, var(--danger) 0 2px, transparent 2px 5px); border: 1px solid var(--danger); }
+.map.focusing .cell:not(.focus) { opacity: .2; }
+.map.focusing .cell.focus { outline: 2px solid var(--danger); outline-offset: 0; z-index: 2; }
+.legend .item.hl { background: var(--hl); }
+.legend .item .swatch { flex: none; }
+.legend .item .n { flex: none; }
+
+/* The Health view. */
+.severity { margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .05em; }
+.finding.hl { background: color-mix(in srgb, var(--hl) 70%, transparent); }
+.finding .fix { margin-top: 2px; }
+
+/* The Disk info view. */
+.kv.facts { grid-template-columns: 170px minmax(0, 1fr); }
+.kv.facts dd { overflow-wrap: anywhere; }
+.form .note.bad { color: var(--danger); }
+.formatwarning { margin: 0 0 8px; }
+
+/* The inspector's sector. */
+pre.preview.sectorbytes { font-size: 11.5px; max-height: 420px; margin-top: 10px; }
+
+/* The partition picker. */
+#partitions { margin-top: 14px; }
+.partitionhead { margin: 0 0 6px; color: var(--fg-strong); font-size: 14px; }
+.dosgrid.partitions { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.doscard.partition span { display: block; }
+.form > .segmented { justify-self: start; }
+.doscard.partition span.pill { display: inline-block; font-size: 10.5px; color: var(--fg-strong); }

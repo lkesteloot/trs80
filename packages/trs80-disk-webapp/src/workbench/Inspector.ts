@@ -4,7 +4,8 @@ import type {OpenDisk} from "../core/OpenDisk.js";
 import {countOf, el, formatKilobytes, formatNumber, makeButton} from "./Dom.js";
 import {getDiskFacts, getSpaceUse} from "./DiskFacts.js";
 import {describeRow, renderPreviewPanel} from "./PreviewPanel.js";
-import type {DiskViewState} from "./ViewState.js";
+import {renderSectorPanel} from "./SectorPanel.js";
+import {type DiskViewState, ViewKind} from "./ViewState.js";
 
 /**
  * What the inspector asks of the page.
@@ -45,7 +46,10 @@ export class Inspector {
      * @param selected the selected files, in table order.
      */
     public render(disk: OpenDisk, state: DiskViewState, selected: FileRow[]): void {
-        if (selected.length === 0) {
+        const showingSector = state.view === ViewKind.MAP && state.pickedSector !== undefined && !disk.session.isHardDisk();
+        if (showingSector && state.pickedSector !== undefined) {
+            renderSectorPanel(this.container, disk, state.pickedSector);
+        } else if (selected.length === 0) {
             this.renderDetails(disk);
         } else if (selected.length === 1) {
             this.renderFile(disk, state, selected[0]);

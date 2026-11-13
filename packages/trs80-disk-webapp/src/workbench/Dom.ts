@@ -130,3 +130,18 @@ export async function copyText(text: string): Promise<boolean> {
         return false;
     }
 }
+
+/**
+ * Make a row of segmented buttons, one of which is on.
+ *
+ * @param values the choices.
+ * @param current the current choice.
+ * @param label how to show a choice.
+ * @param onChoose called with the choice that the user clicks.
+ */
+export function makeSegments<T>(values: readonly T[], current: T, label: (value: T) => string,
+                                onChoose: (value: T) => void): HTMLElement {
+
+    return el("div", "segmented", ...values.map(value =>
+        makeButton(label(value), () => onChoose(value), value === current ? "on" : "")));
+}

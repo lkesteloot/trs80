@@ -1,9 +1,12 @@
-import {Trsdos} from "trs80-base";
+import {Trsdos, type TrsdosDiskInfoChanges} from "trs80-base";
 import {
-    type AddFilesResult, type AddPlanItem, DiskError, describeChanges, type AttributeRequest,
+    type AddFilesResult, type AddPlanItem, DiskError, describeChanges, type AttributeRequest, type DiskSession,
+    type FormatFloppyRequest, type RepairResult, type TrimRequest, type TrimResult,
 } from "trs80-disk";
+import {assertNever} from "z80-base";
 import {
-    type ActionResult, type AddActionOptions, addPlanned, attrib, kill, protect, redo, rename, undo,
+    type ActionResult, type AddActionOptions, addPlanned, attrib, choosePartition, format, goToHistoryPosition, kill,
+    label as changeLabel, protect, redo, rename, repair, type RepairOptions, revert, trim, undo,
 } from "../core/Actions.js";
 import {
     downloadFile, downloadZip, extractToFolder, type ExtractOptions, type ExtractResult,
@@ -24,14 +27,21 @@ import {DiskHeader} from "./DiskHeader.js";
 import {getSpaceUse, needsPartitionChoice, type SpaceUse} from "./DiskFacts.js";
 import {countOf, el, makeButton} from "./Dom.js";
 import {FilesView, type FilesViewHost} from "./FilesView.js";
+import {FormatSheet} from "./FormatSheet.js";
+import {countProblems, HealthView} from "./HealthView.js";
+import {HistoryView} from "./HistoryView.js";
+import {InfoView} from "./InfoView.js";
 import {Inspector} from "./Inspector.js";
+import {MapView} from "./MapView.js";
 import {Messages} from "./Messages.js";
 import {NewDiskPanel, type NewDiskChoice} from "./NewDiskPanel.js";
+import {PartitionPicker} from "./PartitionPicker.js";
 import {renderPreviewPanel, describeRow} from "./PreviewPanel.js";
 import {makeSampleDisk} from "./Samples.js";
 import {openSaveAsSheet} from "./SaveAsSheet.js";
 import {confirmSheet} from "./Sheet.js";
 import {TopBar} from "./TopBar.js";
+import {TrimSheet} from "./TrimSheet.js";
 import {DiskViewState, VIEW_KINDS, ViewKind, viewKindToString} from "./ViewState.js";
 
 /**
@@ -66,6 +76,35 @@ function describeAdd(result: AddFilesResult): string[] {
 }
 
 /**
+ * What a repair did, for the strip: what it changed, what damage is left, and whether the disk can now be written.
+ */
+function describeRepair(result: RepairResult): string[] {
+    const repaired = result.repaired;
+    const lines = [...repaired.changes];
+    if (repaired.remaining.length > 0) {
+        lines.push(repaired.changes.length === 0 ? "Nothing could be repaired automatically." : "Not repaired:");
+        for (const {finding, advice} of repaired.remaining) {
+            lines.push(finding.message + " " + advice);
+        }
+    } else if (repaired.changes.length === 0) {
+        lines.push("Nothing to repair.");
+    }
+    if (result.damagedBefore) {
+        lines.push(result.readOnlyReasonAfter === undefined ? "The disk is now safe to write." :
+            "The disk is still read-only: " + result.readOnlyReasonAfter);
+    }
+    return lines;
+}
+
+/**
+ * What a trim did, for the strip.
+ */
+function describeTrim(result: TrimResult): string[] {
+    return result.trimmed ? [...result.removed, "The image is now " + countOf(result.newSize, "byte") + " (was " +
+        countOf(result.oldSize, "byte") + ")."] : ["The image had nothing to trim."];
+}
+
+/**
  * The workbench page: it owns the open disks, which one is on show, and each disk's view state, and it wires the
  * parts of the page (the top bar, the start screen, the header, the Files view, the inspector and the command
  * strip) to the disks. When a disk changes, it redraws what depends on it.
@@ -84,6 +123,7 @@ export class Workbench implements FilesViewHost {
     private readonly workElement = document.getElementById("work") as HTMLElement;
     private readonly viewsElement = document.getElementById("views") as HTMLElement;
     private readonly paneElement = document.getElementById("pane") as HTMLElement;
+    private readonly bodyElement = document.getElementById("body") as HTMLElement;
     private readonly openInput = document.getElementById("filePick") as HTMLInputElement;
     private readonly addInput = el("input");
     private readonly messages = new Messages(document.getElementById("strip") as HTMLElement);
@@ -92,6 +132,11 @@ export class Workbench implements FilesViewHost {
     private readonly filesView: FilesView;
     private readonly inspector: Inspector;
     private readonly newDiskPanel: NewDiskPanel;
+    private readonly partitionPicker: PartitionPicker;
+    private readonly mapView: MapView;
+    private readonly healthView: HealthView;
+    private readonly historyView: HistoryView;
+    private readonly infoView: InfoView;
 
     /**
      * Build the page's parts and start listening.
@@ -119,6 +164,35 @@ export class Workbench implements FilesViewHost {
             countFiles: disk => this.countFiles(disk),
         });
         this.newDiskPanel = new NewDiskPanel(choice => void this.createDisk(choice));
+        this.partitionPicker = new PartitionPicker(document.getElementById("partitions") as HTMLElement, {
+            choose: (disk, number) => this.choosePartitionOf(disk, number),
+        });
+        this.mapView = new MapView({
+            sectorPicked: () => this.renderCurrentInspector(),
+            clearFocus: () => this.showMapFocus(undefined),
+        });
+        this.healthView = new HealthView({
+            repair: options => this.repairCurrent(options),
+            showOnMap: (title, granules) => this.showMapFocus({title, granules}),
+        });
+        this.historyView = new HistoryView({
+            undo: () => this.undoCurrent(),
+            redo: () => this.redoCurrent(),
+            revert: () => void this.revertCurrent(),
+            goTo: position => void this.goToHistory(position),
+        });
+        this.infoView = new InfoView({
+            saveLabel: changes => this.saveLabel(changes),
+            setWriteProtect: (disk, writeProtected) => void this.setWriteProtect(disk, writeProtected),
+            format: () => this.openFormatSheet(),
+            trim: () => this.openTrimSheet(),
+            saveAs: () => {
+                const disk = this.currentDisk();
+                if (disk !== undefined) {
+                    this.saveAs(disk);
+                }
+            },
+        });
 
         this.addInput.type = "file";
         this.addInput.multiple = true;
@@ -257,18 +331,40 @@ export class Workbench implements FilesViewHost {
     }
 
     /**
-     * Draw the header, the view tabs, the main pane and the inspector for a disk.
+     * Whether a hard disk can't show its views yet: it has several partitions and none is chosen, or none that we
+     * recognize. The CLI is as careful, and the picker is all that shows.
+     */
+    private isChoosingPartition(disk: OpenDisk): boolean {
+        const session = disk.session;
+        return needsPartitionChoice(session) || (session.isHardDisk() && session.getPartitions().length === 0);
+    }
+
+    /**
+     * Draw the header, the partition picker, the view tabs, the main pane and the inspector for a disk.
      */
     private renderDisk(disk: OpenDisk): void {
         const state = this.stateOf(disk);
         this.header.render(disk, this.countFiles(disk).user);
+        this.partitionPicker.render(disk);
+        const choosing = this.isChoosingPartition(disk);
+        this.viewsElement.hidden = choosing;
+        this.bodyElement.hidden = choosing;
+        if (choosing) {
+            return;
+        }
+
+        // The Map isn't offered for a hard disk, so a view of it falls back to the files.
+        if (state.view === ViewKind.MAP && disk.session.isHardDisk()) {
+            state.view = ViewKind.FILES;
+        }
         this.renderViewTabs(disk, state);
         this.renderPane(disk, state);
         this.renderInspector(disk, state);
     }
 
     /**
-     * Draw the row of view tabs.
+     * Draw the row of view tabs. The Health tab has a badge with the number of problems, and the Map tab is
+     * disabled, with its reason, for a hard disk.
      */
     private renderViewTabs(disk: OpenDisk, state: DiskViewState): void {
         this.viewsElement.replaceChildren(...VIEW_KINDS.map(kind => {
@@ -276,32 +372,64 @@ export class Workbench implements FilesViewHost {
                 state.view = kind;
                 this.renderDisk(disk);
             }, state.view === kind ? "active" : "");
+            switch (kind) {
+                case ViewKind.MAP:
+                    if (disk.session.isHardDisk()) {
+                        button.disabled = true;
+                        button.title = "The map isn't offered for a hard disk image.";
+                    }
+                    break;
+                case ViewKind.HEALTH: {
+                    const problems = countProblems(disk.session);
+                    if (problems !== undefined) {
+                        button.append(el("span", "badge " + (problems > 0 ? "warn" : "ok"), problems > 0 ? String(problems) : "✓"));
+                        button.title = problems === 0 ? "No problems found." : countOf(problems, "problem") + " found.";
+                    }
+                    break;
+                }
+                case ViewKind.FILES:
+                case ViewKind.HISTORY:
+                case ViewKind.INFO:
+                    break;
+                default:
+                    assertNever(kind);
+            }
             return button;
         }));
     }
 
     /**
-     * Draw the main pane: the Files view, or a note for what isn't built yet.
+     * Draw the main pane: the view that the tab chooses.
      */
     private renderPane(disk: OpenDisk, state: DiskViewState): void {
-        const session = disk.session;
-        if (state.view !== ViewKind.FILES) {
-            this.paneElement.replaceChildren(el("div", "card comingsoon", el("h4", "", viewKindToString(state.view)),
-                "Coming soon."));
-            return;
+        let view: {element: HTMLElement};
+        switch (state.view) {
+            case ViewKind.FILES:
+                this.filesView.render(disk, state);
+                view = this.filesView;
+                break;
+            case ViewKind.MAP:
+                this.mapView.render(disk, state);
+                view = this.mapView;
+                break;
+            case ViewKind.HEALTH:
+                this.healthView.render(disk, state);
+                view = this.healthView;
+                break;
+            case ViewKind.HISTORY:
+                this.historyView.render(disk);
+                view = this.historyView;
+                break;
+            case ViewKind.INFO:
+                this.infoView.render(disk);
+                view = this.infoView;
+                break;
+            default:
+                assertNever(state.view);
         }
-        if (needsPartitionChoice(session) || (session.isHardDisk() && session.getPartitions().length === 0)) {
-            const count = session.getPartitions().length;
-            this.paneElement.replaceChildren(el("div", "card comingsoon", el("h4", "", "Hard disk image"),
-                count === 0 ? "No LDOS, LS-DOS, DOSPLUS or NEWDOS/80 partitions were found." :
-                    "This image has " + countOf(count, "partition") + ". Choosing one is coming soon to this page."));
-            return;
+        if (view.element.parentElement !== this.paneElement || this.paneElement.children.length !== 1) {
+            this.paneElement.replaceChildren(view.element);
         }
-
-        if (this.filesView.element.parentElement !== this.paneElement) {
-            this.paneElement.replaceChildren(this.filesView.element);
-        }
-        this.filesView.render(disk, state);
     }
 
     /**
@@ -309,6 +437,16 @@ export class Workbench implements FilesViewHost {
      */
     private renderInspector(disk: OpenDisk, state: DiskViewState): void {
         this.inspector.render(disk, state, this.selectedRows(disk, state));
+    }
+
+    /**
+     * Draw the inspector of the disk on show, for a view that changed what it should say.
+     */
+    private renderCurrentInspector(): void {
+        const disk = this.currentDisk();
+        if (disk !== undefined) {
+            this.renderInspector(disk, this.stateOf(disk));
+        }
     }
 
     /**
@@ -630,6 +768,154 @@ export class Workbench implements FilesViewHost {
             // The switch moved, but nothing changed.
             this.renderDisk(disk);
         }
+    }
+
+    // ------------------------------------------------------------------ The other views' actions.
+
+    /**
+     * Light up some granules in the Map, or put the whole map back.
+     *
+     * @param focus the granules and why, or undefined for the whole map.
+     */
+    private showMapFocus(focus: {title: string, granules: Set<string>} | undefined): void {
+        const disk = this.currentDisk();
+        if (disk === undefined) {
+            return;
+        }
+
+        const state = this.stateOf(disk);
+        state.mapFocus = focus;
+        if (focus !== undefined) {
+            state.view = ViewKind.MAP;
+        }
+        this.renderDisk(disk);
+    }
+
+    /**
+     * Choose the partition of a hard disk that the views show.
+     */
+    private choosePartitionOf(disk: OpenDisk, number: number): void {
+        const state = this.stateOf(disk);
+        state.selected.clear();
+        state.anchor = undefined;
+        state.pickedSector = undefined;
+        state.mapFocus = undefined;
+        void this.run(disk, () => choosePartition(disk.session, number), () => ["Chose partition " + number + "."]);
+    }
+
+    /**
+     * Repair the current disk.
+     *
+     * @returns undefined if it worked, and otherwise the error, which the page has shown.
+     */
+    private async repairCurrent(options: RepairOptions): Promise<string | undefined> {
+        const disk = this.currentDisk();
+        if (disk === undefined) {
+            return "There's no disk.";
+        }
+
+        const outcome = await this.run(disk, () => repair(disk.session, options), describeRepair);
+        return outcome.ok ? undefined : outcome.message;
+    }
+
+    /**
+     * Put the current disk back as it was when last saved.
+     */
+    private async revertCurrent(): Promise<void> {
+        const disk = this.currentDisk();
+        if (disk !== undefined) {
+            await this.run(disk, () => revert(disk.session), reverted =>
+                [reverted ? "Put the disk back as it was when last saved." : "The disk is as it was when last saved."]);
+        }
+    }
+
+    /**
+     * Go to a position in the current disk's history.
+     *
+     * @param position the number of entries to have applied.
+     */
+    private async goToHistory(position: number): Promise<void> {
+        const disk = this.currentDisk();
+        if (disk === undefined) {
+            return;
+        }
+
+        const before = disk.session.getHistory().position;
+        await this.run(disk, () => goToHistoryPosition(disk.session, position), result =>
+            result.labels.map(entry => (position < before ? "Undid " : "Redid ") + entry));
+    }
+
+    /**
+     * Change the current disk's label.
+     *
+     * @returns undefined if it worked, and otherwise the error, which the page has shown.
+     */
+    private async saveLabel(changes: TrsdosDiskInfoChanges): Promise<string | undefined> {
+        const disk = this.currentDisk();
+        if (disk === undefined) {
+            return "There's no disk.";
+        }
+
+        const outcome = await this.run(disk, () => changeLabel(disk.session, changes), info => {
+            const sentences: string[] = [];
+            if (changes.name !== undefined) {
+                sentences.push("Name is now " + info.name + ".");
+            }
+            if (changes.date !== undefined) {
+                sentences.push("Date is now " + info.date + ".");
+            }
+            if (changes.masterPassword !== undefined) {
+                sentences.push(changes.masterPassword.trim() === "" ? "Master password is now blank." :
+                    "Master password is changed.");
+            }
+            if (changes.autoCommand !== undefined) {
+                sentences.push(changes.autoCommand === "" ? "AUTO command is removed." : "AUTO command is now " +
+                    changes.autoCommand + ".");
+            }
+            return [sentences.join(" ")];
+        });
+        return outcome.ok ? undefined : outcome.message;
+    }
+
+    /**
+     * Show the sheet that formats the current disk.
+     */
+    private openFormatSheet(): void {
+        const disk = this.currentDisk();
+        if (disk !== undefined) {
+            new FormatSheet({disk, perform: request => this.performFormat(disk, request)}).open();
+        }
+    }
+
+    /**
+     * Format a disk from the sheet.
+     *
+     * @returns undefined on success, and otherwise the error for the sheet to show.
+     */
+    private async performFormat(disk: OpenDisk, request: FormatFloppyRequest): Promise<string | undefined> {
+        const outcome = await this.run(disk, () => format(disk.session, request), () =>
+            ["Formatted the disk as a blank data disk."]);
+        return outcome.ok ? undefined : outcome.message;
+    }
+
+    /**
+     * Show the sheet that trims the current disk.
+     */
+    private openTrimSheet(): void {
+        const disk = this.currentDisk();
+        if (disk !== undefined) {
+            new TrimSheet({disk, perform: request => this.performTrim(disk, request)}).open();
+        }
+    }
+
+    /**
+     * Trim a disk from the sheet.
+     *
+     * @returns undefined on success, and otherwise the error for the sheet to show.
+     */
+    private async performTrim(disk: OpenDisk, request: TrimRequest): Promise<string | undefined> {
+        const outcome = await this.run(disk, () => trim(disk.session, request), describeTrim);
+        return outcome.ok ? undefined : outcome.message;
     }
 
     // ------------------------------------------------------------------ FilesViewHost.

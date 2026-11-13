@@ -142,6 +142,6 @@ export function getSpaceUse(session: DiskSession): SpaceUse | undefined {
 /**
  * The color of a file in the map's legend.
  */
-function fileColor(file: MapFile): string {
+export function fileColor(file: MapFile): string {
     return FILE_COLORS[(file.colorIndex ?? 0) % FILE_COLORS.length];
 }

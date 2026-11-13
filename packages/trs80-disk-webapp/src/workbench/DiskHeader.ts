@@ -2,6 +2,7 @@ import {DiskError, getWriteProtect, readDiskInfo} from "trs80-disk";
 import {SaveKind, type OpenDisk} from "../core/OpenDisk.js";
 import {getDiskFacts, getSpaceUse} from "./DiskFacts.js";
 import {countOf, el, formatKilobytes, formatNumber, makeButton, makeSwitch} from "./Dom.js";
+import {ownerKey} from "./Highlight.js";
 
 /**
  * What the disk header asks of the page.
@@ -138,7 +139,7 @@ export class DiskHeader {
 
         const bar = el("div", "spacebar");
         const total = space.totalGranules;
-        const addSegment = (granules: number, color: string, title: string): void => {
+        const addSegment = (granules: number, color: string, title: string, fileName?: string): void => {
             if (granules <= 0) {
                 return;
             }
@@ -146,11 +147,15 @@ export class DiskHeader {
             segment.style.width = (100*granules/total) + "%";
             segment.style.background = color;
             segment.title = title;
+            if (fileName !== undefined) {
+                // Lights up when the file is hovered in the list or the map.
+                segment.dataset.o = ownerKey(fileName);
+            }
             bar.append(segment);
         };
         addSegment(space.otherGranules, "var(--sys)", "Boot, directory and other: " + countOf(space.otherGranules, "granule"));
         for (const file of space.files) {
-            addSegment(file.granules, file.color, file.name + ": " + countOf(file.granules, "granule"));
+            addSegment(file.granules, file.color, file.name + ": " + countOf(file.granules, "granule"), file.name);
         }
 
         const totalBytes = total * space.granuleBytes;

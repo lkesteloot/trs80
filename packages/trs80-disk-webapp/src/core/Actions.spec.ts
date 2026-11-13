@@ -1,12 +1,13 @@
 import {BasicDialect, TrsdosProtectionLevel} from "trs80-base";
-import type {DiskSession} from "trs80-disk";
+import {createHardDisk, DiskSession} from "trs80-disk";
 import {describe, expect, it} from "vitest";
 import {
-    addPlanned, attrib, format, goToHistoryPosition, kill, label, planAddFiles, protect, redo, rename, repair,
+    addPlanned, attrib, choosePartition, format, formatDryRun, goToHistoryPosition, kill, label, planAddFiles, protect, redo, rename, repair,
     repairDryRun, revert, trim, trimDryRun, undo,
 } from "./Actions.js";
 import {getFileRows} from "./FileRows.js";
 import {planExtraction} from "./Extracting.js";
+import {TEMPLATES} from "./Templates.js";
 import {makeBlankDisk, makeDiskWithFiles, textFile} from "./TestHelpers.js";
 import {TrsdosFormatDos} from "trs80-base";
 
@@ -123,6 +124,29 @@ describe("Actions", () => {
         expect(names(disk.session)).to.eql(["HELLO/BAS", "PROG/CMD"]);
     });
 
+    it("tries a format on a copy, and says what the engine would refuse", async () => {
+        const disk = await makeDiskWithFiles();
+        const request = {format: {dos: TrsdosFormatDos.LDOS_5_3, cylinders: undefined, sides: undefined,
+            density: undefined, model: undefined, name: undefined, date: undefined}, force: true};
+
+        // With force the dry run succeeds and changes nothing.
+        const {commandLine} = formatDryRun(disk.session, request);
+        expect(commandLine).to.equal("format ldos-5.3 --force");
+        expect(names(disk.session)).to.eql(["HELLO/BAS", "PROG/CMD"]);
+        expect(disk.session.getHistory().entries.length).to.equal(1);
+
+        // Without it, the disk's files stop the format, as they would for the real one.
+        let message = "";
+        try {
+            formatDryRun(disk.session, {...request, force: false});
+        } catch (e: any) {
+            expect(e.name).to.equal("DiskError");
+            message = e.message;
+        }
+        expect(message).to.contain("would erase 2 files");
+        expect(names(disk.session)).to.eql(["HELLO/BAS", "PROG/CMD"]);
+    });
+
     it("reverts to the saved disk, and goes to a history position", async () => {
         const disk = await makeDiskWithFiles();
         const session = disk.session;
@@ -158,6 +182,34 @@ describe("Actions", () => {
         }
         expect(message).to.contain("NOPE/BAS");
         expect(disk.session.getHistory().entries.length).to.equal(1);
+    });
+});
+
+describe("choosePartition", () => {
+    /**
+     * Make a hard disk session with two LDOS partitions.
+     */
+    function makeHardDisk(): DiskSession {
+        const session = DiskSession.fromBinary("test.hdv", undefined, {templates: TEMPLATES});
+        createHardDisk(session, {dos: TrsdosFormatDos.LDOS_5_3, heads: 2, cylinders: 200, partitions: 2, model: undefined,
+            name: undefined, date: undefined, force: false});
+        return session;
+    }
+
+    it("chooses a partition, with the command line and no history entry", () => {
+        const session = makeHardDisk();
+        expect(session.getPartitions().length).to.equal(2);
+        const {commandLine} = choosePartition(session, 2);
+        expect(commandLine).to.equal("partition 2");
+        expect(session.selectedPartitionNumber).to.equal(2);
+        expect(session.getHistory().entries).to.eql([]);
+    });
+
+    it("refuses a partition that isn't there, and a floppy", async () => {
+        const session = makeHardDisk();
+        expect(() => choosePartition(session, 3)).to.throw("There is no partition 3");
+        const floppy = await makeBlankDisk();
+        expect(() => choosePartition(floppy.session, 1)).to.throw("floppy");
     });
 });
 

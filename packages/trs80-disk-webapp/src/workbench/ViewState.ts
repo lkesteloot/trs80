@@ -1,4 +1,5 @@
 import type {BasicDialect} from "trs80-base";
+import type {RepairOptions} from "../core/Actions.js";
 import {assertNever} from "z80-base";
 import type {PreviewTab} from "./PreviewPanel.js";
 
@@ -41,6 +42,30 @@ export function viewKindToString(kind: ViewKind): string {
 }
 
 /**
+ * A sector that the user picked in the Map view, as the sector's ID gives its position.
+ */
+export interface PickedSector {
+    /** The cylinder. */
+    cylinder: number;
+    /** The side. */
+    side: number;
+    /** The sector number. */
+    sector: number;
+    /** What the map said about the sector when it was picked, such as "granule 1 of cylinder 5, HELLO/BAS", or "". */
+    note: string;
+}
+
+/**
+ * Granules that the Map view lights because the user asked to see them from the Health view.
+ */
+export interface MapFocus {
+    /** What the granules are about, in a phrase for the chip that says why only they are lit. */
+    title: string;
+    /** The granules, each as "lump:granule". */
+    granules: Set<string>;
+}
+
+/**
  * What the page remembers about how one open disk is shown: the view, the selection, the filter, and the like.
  * It's kept by the disk's ID, so it survives switching tabs.
  */
@@ -65,4 +90,10 @@ export class DiskViewState {
     public extractLowercase = false;
     /** Whether to mark damaged files in extracted names. */
     public extractMarkDamaged = false;
+    /** The sector picked in the Map view, or undefined. */
+    public pickedSector: PickedSector | undefined = undefined;
+    /** The granules that the Map view lights for a finding, or undefined for none. */
+    public mapFocus: MapFocus | undefined = undefined;
+    /** The extra repairs that the Health view has switched on. */
+    public repairOptions: RepairOptions = {freeUnclaimed: false, fixProgramSizes: false, markMissingUsed: false};
 }

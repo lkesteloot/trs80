@@ -2,6 +2,7 @@ import {TrsdosProtectionLevel} from "trs80-base";
 import {fileKindToString, type FileRow, filterRows} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {el, formatNumber, makeButton, makeCheckbox, makeSwitch} from "./Dom.js";
+import {lightFiles} from "./Highlight.js";
 import type {DiskViewState} from "./ViewState.js";
 
 /**
@@ -234,6 +235,7 @@ export class FilesView {
         }
 
         this.redrawing = true;
+        lightFiles(undefined);
         if (this.visibleRows.length === 0) {
             const message = state.filter === "" ? "No files." : "No files match.";
             this.tbody.replaceChildren(el("tr", "", Object.assign(el("td", "kind empty", message), {colSpan: 6})));
@@ -292,6 +294,9 @@ export class FilesView {
             nameCell, el("td", "mono", renaming ? "" : row.extension), el("td", "num", formatNumber(row.size)),
             el("td", "", row.dateText), pills, el("td", "kind", fileKindToString(row.kind)));
         tr.dataset.name = row.fullName;
+        // Light up the file's part of the space bar.
+        tr.addEventListener("mouseenter", () => lightFiles([row.fullName]));
+        tr.addEventListener("mouseleave", () => lightFiles(undefined));
         tr.addEventListener("click", event => this.onRowClick(event, row, nameCell));
         tr.addEventListener("dblclick", () => {
             this.cancelRenameTimer();

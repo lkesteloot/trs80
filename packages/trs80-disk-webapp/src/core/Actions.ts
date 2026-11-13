@@ -2,9 +2,9 @@ import type {BasicDialect, TrsdosDiskInfo, TrsdosDiskInfoChanges} from "trs80-ba
 import {
     addCommandLine, type AddCommandOptions, addFiles, type AddFilesResult, type AddFileSource, type AddOptions,
     type AddPlanItem, type AttributeChangeResult, type AttributeRequest, attribCommandLine, changeAttributes,
-    changeDiskInfo, DiskError, DiskSession, formatFloppy, formatFloppyCommandLine,
+    changeDiskInfo, DiskError, DiskSession, type DiskTemplateSource, formatFloppy, formatFloppyCommandLine,
     type FormatFloppyRequest, formatYmd, killCommandLine, killFiles, labelCommandLine, planAdd, protectCommandLine,
-    renameCommandLine, renameFile, type RenameResult, repairCommandLine, repairDisk, type RepairResult,
+    partitionCommandLine, renameCommandLine, renameFile, type RenameResult, repairCommandLine, repairDisk, type RepairResult,
     revertCommandLine, setWriteProtect, trimCommandLine, trimDisk, type TrimRequest, type TrimResult,
 } from "trs80-disk";
 
@@ -129,8 +129,18 @@ export async function repair(session: DiskSession, options: RepairOptions): Prom
  */
 function makeScratchSession(session: DiskSession): DiskSession {
     const partition = session.selectedPartitionNumber;
+    // The operations that make disks (format) need the templates, which a session may not have.
+    let templates: DiskTemplateSource | undefined = undefined;
+    try {
+        templates = session.templates;
+    } catch (e) {
+        if (!(e instanceof DiskError)) {
+            throw e;
+        }
+    }
     return DiskSession.fromBinary(session.name, new Uint8Array(session.image.binary), {
         partition: partition === undefined ? undefined : String(partition),
+        templates,
     });
 }
 
@@ -176,6 +186,31 @@ export function trimDryRun(session: DiskSession, request: TrimRequest): ActionRe
  */
 export async function format(session: DiskSession, request: FormatFloppyRequest): Promise<ActionResult<void>> {
     return runAction(session, formatFloppyCommandLine(request), () => formatFloppy(session, request));
+}
+
+/**
+ * Do a format on a copy of the disk to see whether it would be accepted, changing nothing.
+ *
+ * @param session the disk's session, which isn't changed.
+ * @param request what to make.
+ * @throws DiskError if the format would be refused.
+ */
+export function formatDryRun(session: DiskSession, request: FormatFloppyRequest): ActionResult<void> {
+    const scratch = makeScratchSession(session);
+    return {commandLine: formatFloppyCommandLine(request), result: formatFloppy(scratch, request)};
+}
+
+/**
+ * Choose the partition of a hard disk that the other actions work on. It isn't an undoable change (it doesn't
+ * change the image), so it isn't in the history.
+ *
+ * @param session the disk's session, which is a hard disk.
+ * @param wanted the partition's number, from 1.
+ * @throws DiskError if the disk isn't a hard disk or has no such partition.
+ */
+export function choosePartition(session: DiskSession, wanted: number): ActionResult<void> {
+    session.selectPartition(String(wanted));
+    return {commandLine: partitionCommandLine(wanted), result: undefined};
 }
 
 /**
