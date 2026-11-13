@@ -1,6 +1,6 @@
 
 // Handles uploading WAV files and decoding them.
-import { CassetteSpeed } from "trs80-base";
+import { CassetteSpeed, uncompressFile } from "trs80-base";
 import {
     AudioFile,
     DEFAULT_SAMPLE_RATE,
@@ -92,16 +92,26 @@ export class Uploader {
     }
 
     private handleArrayBuffer(pathname: string, arrayBuffer: ArrayBuffer) {
+        // A name ending in ".gz" is a gzipped file, and the rest of its name says what's inside.
+        let uncompressed;
+        try {
+            uncompressed = uncompressFile(pathname, new Uint8Array(arrayBuffer));
+        } catch (e: any) {
+            console.log("Error: Can't open " + pathname + ": " + (e.message ?? String(e)));
+            return;
+        }
+        pathname = uncompressed.name;
+
         let audioFile;
         if (pathname.toLowerCase().endsWith(".cas")) {
-            let bytes = new Uint8Array(arrayBuffer);
+            let bytes = uncompressed.bytes;
             const highSpeed = bytes.length > 0 && bytes[0] === 0x55;
             const audio = highSpeed
                 ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE)
                 : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE, CassetteSpeed.LOW);
             audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, audio);
         } else {
-            audioFile = readWavFile(arrayBuffer);
+            audioFile = readWavFile(uncompressed.bytes);
         }
         this.handleAudioBuffer(pathname, audioFile);
     }
