@@ -17,7 +17,6 @@ import {
     USER_DATA_ADDRESS_MARK_F9,
     USER_DATA_ADDRESS_MARK_FA,
 } from "./TrackBytes.js";
-import {TRS80_BASE_LOGGER} from "z80-logger";
 
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
 // comes a directory of these sectors, with three bytes per directory entry (cylinder,
@@ -316,6 +315,8 @@ export class Jv3FloppyDisk extends FloppyDisk {
     /**
      * Write a sector's data, and record its data address mark and good CRC in its directory
      * entry. The data must be the sector's size.
+     *
+     * @throws if the disk is write-protected, has no such sector, or the data is the wrong size.
      */
     public writeSector(sectorPosition: SectorPosition, data: SectorData) {
         if (this.isWriteProtected()) {
@@ -325,9 +326,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
 
         const sectorInfo = this.findSectorInfo(sectorPosition);
         if (sectorInfo === undefined) {
-            // Not sure how to handle this.
-            TRS80_BASE_LOGGER.warn(`JV3 write sector not found ${sectorPosition.key()}`);
-            return;
+            throw new Error(`JV3 has no sector ${sectorPosition.key()} to write`);
         }
 
         if (sectorInfo.size !== data.data.length) {

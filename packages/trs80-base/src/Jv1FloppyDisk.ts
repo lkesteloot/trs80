@@ -117,17 +117,20 @@ export class Jv1FloppyDisk extends FloppyDisk {
     /**
      * Write a sector's data. JV1 has nowhere to store the data address mark, so we remember it
      * only until the disk is reloaded.
+     *
+     * @throws if the disk is mounted write-protected, has no such sector, or the data is the wrong size.
      */
     public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
-        // Check for errors.
-        if (!this.isValidSectorPosition(sectorPosition) || data.data.length !== BYTES_PER_SECTOR) {
-            throw new Error("invalid write sector parameter");
+        if (this.isWriteProtected()) {
+            throw new Error("tried to write sector to JV1 but it's write protected");
         }
-
         // Offset straight into data.
         const offset = this.getSectorPositionOffset(sectorPosition);
-        if (offset + BYTES_PER_SECTOR > this.binary.length) {
-            throw new Error("binary too short for sector write");
+        if (!this.isValidSectorPosition(sectorPosition) || offset + BYTES_PER_SECTOR > this.binary.length) {
+            throw new Error(`JV1 has no sector ${sectorPosition.key()} to write`);
+        }
+        if (data.data.length !== BYTES_PER_SECTOR) {
+            throw new Error(`size mismatch when writing sector (${BYTES_PER_SECTOR} vs. ${data.data.length})`);
         }
 
         this.write(new FloppyWrite(data.data, offset));

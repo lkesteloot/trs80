@@ -910,6 +910,14 @@ unchanged on all 1,760 (823 writable before and after). The Genie disk in the ta
 writable one is `Macro-Mon (1981)(Jake Commander)[M3]`, a DOSPLUS 3.3 disk with 33 of its 68 free
 granules on garbled cylinders; a 35-granule file now fits, and a 36-granule one is refused up front.
 
+Under the overlay, every writable image format's `writeSector()` throws when it can't make a write: a
+sector the image doesn't have, an ID with no data field, data of the wrong size, or a write-protected
+image (`SectorWriteErrors.spec.ts`). DMK and JV3 used to log a warning and drop a write to a missing
+sector, which let an overlay that committed to the wrong positions look as if it had worked; DMK also
+padded or cut data of the wrong size, and DMK and JV1 wrote to an image mounted write-protected. The
+emulator's controller checks write protection and finds the sector first, and turns an error into a
+write fault.
+
 ### Free space past the disk's end
 
 The allocator also never gives a file a granule with a sector past the disk's proven size
