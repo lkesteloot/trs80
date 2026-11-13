@@ -258,7 +258,8 @@ export async function getDroppedInputs(dataTransfer: DataTransfer): Promise<Open
     for (const {file, handlePromise} of pending) {
         let handle: FileSystemHandle | null = null;
         try {
-            handle = handlePromise === undefined ? null : await handlePromise;
+            // Some drags (a script's DataTransfer, for one) resolve to undefined rather than null.
+            handle = handlePromise === undefined ? null : (await handlePromise) ?? null;
         } catch {
             // Fall back to the plain file.
         }

@@ -28,7 +28,8 @@ const SYSTEM_DISK_URLS: Readonly<Record<string, string>> = {
 export const TEMPLATES = new PrefetchedTemplateSource(bootSectors);
 
 /**
- * Fetch one gzipped system disk from where the build put it.
+ * Fetch one gzipped system disk from where the build put it. The browser may have unzipped it on the way in
+ * (vite's dev server sends .gz files with "Content-Encoding: gzip"), which PrefetchedTemplateSource allows for.
  *
  * @param name the template's name.
  * @throws Error if the name is unknown or the fetch fails.

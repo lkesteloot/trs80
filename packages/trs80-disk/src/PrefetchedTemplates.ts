@@ -24,17 +24,23 @@ export class PrefetchedTemplateSource implements DiskTemplateSource {
      * the disk has already been prefetched.
      *
      * @param name the template's name, such as "ldos-5.3.1-model3" (its file's name without ".dmk.gz").
-     * @param loadGzipped fetches the gzipped file's bytes for a name.
-     * @throws Error if loading fails or the bytes aren't gzip data.
+     * @param loadGzipped fetches the gzipped file's bytes for a name. Bytes that don't start with gzip's magic
+     * number are taken to be unzipped already, as when a server sends the file with "Content-Encoding: gzip"
+     * (vite's dev server does) and the browser unzips it on the way in.
+     * @throws Error if loading fails or the bytes are damaged gzip data.
      */
     public async prefetchSystemDisk(name: string, loadGzipped: (name: string) => Promise<Uint8Array>): Promise<void> {
         if (this.systemDisks.has(name)) {
             return;
         }
 
-        const gzipped = await loadGzipped(name);
-        const stream = new Blob([gzipped as BlobPart]).stream().pipeThrough(new DecompressionStream("gzip"));
-        const unzipped = new Uint8Array(await new Response(stream).arrayBuffer());
+        const loaded = await loadGzipped(name);
+        const isGzipped = loaded.length >= 2 && loaded[0] === 0x1F && loaded[1] === 0x8B;
+        let unzipped = loaded;
+        if (isGzipped) {
+            const stream = new Blob([loaded as BlobPart]).stream().pipeThrough(new DecompressionStream("gzip"));
+            unzipped = new Uint8Array(await new Response(stream).arrayBuffer());
+        }
         this.systemDisks.set(name, unzipped);
     }
 
