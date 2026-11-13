@@ -1,7 +1,7 @@
 import {
     analyzeFloppyTail, canTrimFloppy, decodeFloppyFileSystem, describeTailKeepReason, findProtectionSigns,
     findReReadCylinder, findTrsdosCylinderUse, type FloppyDisk, type FloppyFileSystem, type FloppyTail,
-    isProtectionSign, type KnownFloppyFileSystem, type ProtectionSign, ProtectionSignKind, protectionSignKindToString,
+    isFillerSector, isProtectionSign, type KnownFloppyFileSystem, type ProtectionSign, ProtectionSignKind, protectionSignKindToString,
     sectorsReadTheSame, type TailCylinder, TailTrackKind, Trsdos, TrackPosition, trimFloppy, TRIMMABLE_FLOPPY_FORMATS,
 } from "trs80-base";
 import {assertNever} from "z80-base";
@@ -149,19 +149,6 @@ function endOfCylinders(cylinders: CylinderUse[], test: (use: CylinderUse) => bo
         }
     });
     return end;
-}
-
-/**
- * Whether a sector's data is filler: the same byte throughout, or the same two bytes alternating, which
- * is how the DOSes' FORMAT fills new sectors (see "Leftovers from earlier formats" in FLOPPY_FORMATS.md).
- */
-function isFillerSector(data: Uint8Array): boolean {
-    for (let i = 2; i < data.length; i++) {
-        if (data[i] !== data[i - 2]) {
-            return false;
-        }
-    }
-    return true;
 }
 
 /**

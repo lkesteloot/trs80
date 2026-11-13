@@ -12,6 +12,10 @@ import {SectorOverlay} from "./SectorOverlay.js";
 import {type Trsdos, TrsdosVersion} from "./Trsdos.js";
 import {newdos80DirectorySizeRecorded, newdos80LayoutProblem} from "./TrsdosNewdos80.js";
 import {multidosLayoutProblem, namesMultidos} from "./TrsdosMultidos.js";
+import {findProtectionSigns} from "./CopyProtection.js";
+import {
+    analyzeFloppyTail, describeTailKeepReason, findNonBlankTailCylinder, TailKeepReason,
+} from "./FloppyTail.js";
 import {readPdriveTable} from "./Pdrive.js";
 import {type DosName, dosNameToString, isUnknownDosName} from "./DosName.js";
 import {
@@ -259,12 +263,62 @@ export function trsdosWriteAccessForBlockerKinds(kinds: TrsdosWriteBlockerKind[]
 }
 
 /**
+ * Why an image's cylinders past the disk's end keep us from writing it, or undefined if they don't. The
+ * DOS's records must prove the disk's size ({@link analyzeFloppyTail}), and every cylinder past it must be
+ * provably empty: a re-read, unformatted, or formatted like the disk with nothing but filler, and nothing on
+ * it that the DOS or a protection scheme uses (see {@link findNonBlankTailCylinder}). Since a proven size
+ * means the GAT has no free space past the end, nothing is ever allocated there. Only MultiDOS's gate uses
+ * this, since it's the only one that compares the GAT's size with the image's, and a disk whose GAT gives
+ * fewer cylinders than the image would otherwise be refused.
+ *
+ * @param trsdos the file system.
+ * @param floppy the disk it's on (not an overlay).
+ * @return a sentence for the user, ending in a period, or undefined.
+ */
+function tailProblem(trsdos: Trsdos, floppy: FloppyDisk): string | undefined {
+    const imageCylinders = floppy.getGeometry().cylinderCount;
+    const tail = analyzeFloppyTail(floppy, trsdos, findProtectionSigns(floppy, trsdos));
+    if (tail.size === undefined) {
+        return `This disk's size isn't proven (${tail.unproven}), so writing it isn't supported.`;
+    }
+    const nonBlank = findNonBlankTailCylinder(floppy, tail);
+    if (nonBlank === undefined) {
+        return undefined;
+    }
+    let clause: string;
+    switch (nonBlank.keepReason) {
+        case undefined:
+        case TailKeepReason.LIKE_DISK:
+        case TailKeepReason.LATER_CYLINDER_KEPT:
+            // Trimming would drop it or keep it only for its format, so it's its data that isn't blank.
+            clause = "it holds more than FORMAT's filler, perhaps from an earlier format";
+            break;
+        case TailKeepReason.TOO_LONG:
+        case TailKeepReason.DISK_PROTECTION_SIGN:
+        case TailKeepReason.CLAIMED:
+        case TailKeepReason.BOOT_POINTER:
+        case TailKeepReason.FREE_SPACE:
+        case TailKeepReason.PROTECTION_SIGN:
+        case TailKeepReason.FOREIGN_IDS:
+        case TailKeepReason.OTHER_FORMAT:
+            clause = describeTailKeepReason(tail, nonBlank, floppy.getGeometry().sideCount);
+            break;
+        default:
+            assertNever(nonBlank.keepReason);
+    }
+    return `The image has ${imageCylinders} cylinders, but ${tail.size.source} says the disk has ` +
+        `${tail.size.cylinderCount}, and cylinder ${nonBlank.cylinder} might not be empty (${clause}), so ` +
+        `writing it isn't supported.`;
+}
+
+/**
  * Why we have no writer for this file system's layout, or undefined if we do. (Exported for tests.)
  *
  * @param trsdos the decoded file system.
  * @param ruleSet the rules the disk would be written under, if any. Under NEWDOS/80's, lumps that aren't
  * cylinders are fine, and the disk must pass {@link newdos80LayoutProblem}. Under MultiDOS's, the disk must
- * pass {@link multidosLayoutProblem}, which allows the lumps of "P" density. A disk that names MultiDOS (or
+ * pass {@link multidosLayoutProblem}, which allows the lumps of "P" density, and any cylinders past the
+ * end that its GAT gives must be empty (see tailProblem()). A disk that names MultiDOS (or
  * MultiDOS II) is written under MultiDOS's rules or not at all, since its slots, dates and lockout table
  * differ from the other DOSes'.
  */
@@ -289,7 +343,7 @@ export function unsupportedLayoutMessage(trsdos: Trsdos, ruleSet: TrsdosRuleSet 
         return newdos80LayoutProblem(trsdos);
     }
     if (ruleSet === TrsdosRuleSet.MULTIDOS) {
-        return multidosLayoutProblem(trsdos, volume);
+        return multidosLayoutProblem(trsdos, volume) ?? tailProblem(trsdos, volume);
     }
     if (ruleSet !== undefined && namesMultidos(trsdos.dosName)) {
         return `This disk says it's ${dosNameToString(trsdos.dosName)}, which is written only under ` +

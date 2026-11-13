@@ -34,7 +34,9 @@
             their GAT, HIT and PDRIVE table disagree about the layout, or when they have more than 96 lumps, no
             PDRIVE table, and a GAT that doesn't prove the disk's size. MultiDOS 1.x and 2.00 disks (including “P” density ones) are written but not created or
             formatted, and are refused, even with <code>--force</code>, when GAT bytes 0xCC and 0xCD don’t describe
-            the image, or when the image has two sides but the disk isn’t one volume over both (MultiDOS also makes
+            the image or a smaller disk, when the image has cylinders past the end of the disk that GAT describes
+            and they aren’t provably empty (an imager’s re-reads, unformatted, or holding only FORMAT’s filler), or
+            when the image has two sides but the disk isn’t one volume over both (MultiDOS also makes
             disks with a directory on each side). Later MultiDOS releases (2.10 on), MultiDOS II, and a MultiDOS disk
             that doesn’t say which release made it aren’t written. <code>--dos</code> and <code>--force</code> below
             can relax the requirements on the disk when the tool is unsure.</p>
@@ -714,11 +716,11 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
             <ul>
                 <li>The DOS’s own records put it past the disk’s end: GAT byte 0xCC on LDOS, TRSDOS 6 and
                     LS-DOS (checked against the media block, where there is one) and DOSPLUS; the PDRIVE table
-                    of a NEWDOS/80 system disk; or the fixed 35 cylinders of TRSDOS 2.x (or more, if the GAT
-                    covers more) and 40 of TRSDOS 1.x. No file, directory, free space or boot sector pointer is on
-                    it. A disk whose DOS we can’t name, or that doesn’t record its size this way (CP/M, MultiDOS
-                    2.10 on, NEWDOS 2.1 and others), has nothing dropped, and neither does a MultiDOS 1.x or 2.00 disk,
-                    whose GAT bytes 0xCC and 0xCD count only when they describe the whole image.</li>
+                    of a NEWDOS/80 system disk; GAT bytes 0xCC and 0xCD on MultiDOS 1.x and 2.00, when they
+                    describe the disk’s layout on no more cylinders than the image has; or the fixed 35 cylinders of
+                    TRSDOS 2.x (or more, if the GAT covers more) and 40 of TRSDOS 1.x. No file, directory, free space
+                    or boot sector pointer is on it. A disk whose DOS we can’t name, or that doesn’t record its size
+                    this way (CP/M, MultiDOS 2.10 on, NEWDOS 2.1 and others), has nothing dropped.</li>
                 <li>Each of its tracks is an imager’s re-read of an earlier cylinder (every ID names that
                     cylinder and every sector reads the same as it) or is unformatted (no IDs). A track formatted
                     like the rest of the disk stays even when it holds only filler, and one formatted another way,
