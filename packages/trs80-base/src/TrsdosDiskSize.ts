@@ -1,14 +1,15 @@
 /**
  * How many cylinders a TRSDOS-family disk has by its DOS's own records, and what its file system uses on
- * each cylinder. Trimming uses the size to tell what's past the disk's end, and the copy-protection screen
- * uses it to tell leftovers past the end from the disk's own tracks. See "Tails past the disk's end" in
- * FLOPPY_FORMATS.md.
+ * each cylinder. Trimming uses the size to tell what's past the disk's end, the copy-protection screen
+ * uses it to tell leftovers past the end from the disk's own tracks, and the writer's allocator never gives
+ * a file a granule past it. See "Tails past the disk's end" in FLOPPY_FORMATS.md.
  */
 
 import {assertNever} from "z80-base";
 import {DosFamily, dosNameToString, isUnknownDosName} from "./DosName.js";
-import type {FloppyDisk} from "./FloppyDisk.js";
+import {FloppyDisk} from "./FloppyDisk.js";
 import {readPdriveTable} from "./Pdrive.js";
+import {SectorOverlay} from "./SectorOverlay.js";
 import type {Trsdos} from "./Trsdos.js";
 import {GAT_MEDIA_BLOCK_OFFSET, gatHasMediaBlock} from "./TrsdosDiskInfo.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
@@ -294,4 +295,40 @@ export function findTrsdosDiskSize(trsdos: Trsdos, floppy: FloppyDisk): DosDiskS
     }
     const use = findTrsdosCylinderUse(trsdos, granuleMap, floppy.getGeometry().cylinderCount);
     return findDosDiskSize(trsdos, floppy, use);
+}
+
+/**
+ * How many cylinders the floppy under a TRSDOS-family file system has by its DOS's own records, as
+ * findDosDiskSize() works them out, looking through an overlay if the file system is being written.
+ *
+ * @param trsdos the file system.
+ * @param granuleMap its granule map.
+ * @return the cylinder count, or undefined if the records prove no size, or the file system is on a hard
+ * disk partition, whose size is its own.
+ */
+export function findTrsdosProvenCylinderCount(trsdos: Trsdos, granuleMap: TrsdosGranuleMap): number | undefined {
+    const volume = trsdos.disk instanceof SectorOverlay ? trsdos.disk.base : trsdos.disk;
+    if (!(volume instanceof FloppyDisk)) {
+        return undefined;
+    }
+    const use = findTrsdosCylinderUse(trsdos, granuleMap, volume.getGeometry().cylinderCount);
+    const size = findDosDiskSize(trsdos, volume, use);
+    return typeof size === "string" ? undefined : size.cylinderCount;
+}
+
+/**
+ * Whether every sector of a granule is on a cylinder before a count, as from
+ * findTrsdosProvenCylinderCount(). A granule past it is outside the disk as its DOS formatted it, however
+ * free the GAT says it is (TRSDOS 1.3's GAT is zero past its 40 cylinders).
+ *
+ * @param trsdos the file system.
+ * @param lump the granule's lump.
+ * @param granule the granule within the lump.
+ * @param cylinderCount the disk's cylinders, or undefined if they aren't known, when every granule is inside.
+ */
+export function isGranuleInsideCylinders(trsdos: Trsdos, lump: number, granule: number,
+                                         cylinderCount: number | undefined): boolean {
+
+    return cylinderCount === undefined || trsdos.getGranuleSectorPositions(lump, granule)
+        .every(position => position.cylinderNumber < cylinderCount);
 }

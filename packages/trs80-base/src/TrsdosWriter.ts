@@ -16,6 +16,7 @@ import {
     TrsdosFindingSeverity, trsdosFindingKindSeverity,
 } from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
+import {findTrsdosProvenCylinderCount, isGranuleInsideCylinders} from "./TrsdosDiskSize.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
 import {hashTrsdosPasswordForVersion, trsdosBlankPasswordHash} from "./TrsdosFormat.js";
 import {type TrsdosGranule, TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
@@ -704,6 +705,12 @@ export class TrsdosWriter {
     private readonly originalGatBytes: Uint8Array;
 
     /**
+     * The disk's cylinders by its DOS's own records ({@link findTrsdosProvenCylinderCount}), past which no
+     * granule is given to a file, or undefined where they prove no size (and on hard disk partitions).
+     */
+    private readonly provenCylinderCount: number | undefined;
+
+    /**
      * Under NEWDOS/80's rules, the number of lumps the DOS allocates ({@link newdos80DosLumpCount}), worked out
      * once since it reads the PDRIVE table. The layout's lump count under other rules.
      */
@@ -773,6 +780,7 @@ export class TrsdosWriter {
         this.dosLumpCount = ruleSet === TrsdosRuleSet.NEWDOS_80 ? newdos80DosLumpCount(trsdos) : trsdos.lumpCount;
         this.newdos80WrittenBit = ruleSet === TrsdosRuleSet.NEWDOS_80 && !newdos80IsVersion1(trsdos) ?
             NEWDOS80_BYTE1_WRITTEN : 0;
+        this.provenCylinderCount = findTrsdosProvenCylinderCount(trsdos, granuleMap);
         this.freeGranules = freeGranuleFlags(granuleMap).map((free, index) => free && this.canAllocate(index));
 
         this.gat = this.copySector(trsdos.getGatPosition(), "GAT");
@@ -2817,16 +2825,21 @@ export class TrsdosWriter {
 
     /**
      * Whether a granule that the GAT and the files leave free may be given to a new file: the DOS would
-     * allocate it ({@link isNeverAllocated}), and the image holds all its sectors, so that writing them
-     * won't fail at the flush ({@link findUnwritableGranuleSectors}). A granule that the image lacks
-     * sectors of stays free in the GAT, since the real disk may well have them; "check" notes it.
+     * allocate it ({@link isNeverAllocated}), it's inside the disk's proven size, under every rule set
+     * (TRSDOS 1.3's GAT says the cylinders of a tail past its 40 are free; see
+     * {@link isGranuleInsideCylinders}), and the image holds all its sectors, so that writing them won't
+     * fail at the flush ({@link findUnwritableGranuleSectors}). A granule that the image lacks sectors of
+     * stays free in the GAT, since the real disk may well have them; "check" notes it.
      *
      * @param index the granule's linear index (lump*granulesPerLump + granule).
      */
     private canAllocate(index: number): boolean {
         const granulesPerLump = this.trsdos.granulesPerLump;
-        return !this.isNeverAllocated(index) && findUnwritableGranuleSectors(this.trsdos,
-            Math.floor(index/granulesPerLump), index % granulesPerLump).length === 0;
+        const lump = Math.floor(index/granulesPerLump);
+        const granule = index % granulesPerLump;
+        return !this.isNeverAllocated(index) &&
+            isGranuleInsideCylinders(this.trsdos, lump, granule, this.provenCylinderCount) &&
+            findUnwritableGranuleSectors(this.trsdos, lump, granule).length === 0;
     }
 
     /**

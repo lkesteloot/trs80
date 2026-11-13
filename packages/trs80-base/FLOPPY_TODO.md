@@ -631,13 +631,8 @@ or left rough:
       `FLOPPY_FORMATS.md`) are a `check` note, and the writer's allocator skips them. Left as they are:
       `free`, `info` and `map` still count them as free, so the writer's "not enough room" count can be
       lower than `free`'s; nothing marks them used in the GAT (a repair option could, but the real disk
-      may have the sectors, and the DOS would then never use them); and the note is limited to the
-      disk's proven size while the allocator isn't, which matters only on TRSDOS 1.3 (below).
-- [ ] **TRSDOS 1.3's writer may allocate past cylinder 40.** Its GAT is zero past 40, so on an image
-      with a tail the tail's granules are free, and the allocator's smallest-run-that-fits rule would
-      pick a short tail first. An unformatted tail is skipped now (its sectors are missing), but a
-      re-read tail has its sectors. Not checked against the suite; the fix would be to give TRSDOS 1.3 a
-      never-allocated rule for lumps past 40, like NEWDOS/80's PDRIVE lump count.
+      may have the sectors, and the DOS would then never use them). Granules past the disk's proven
+      size aren't noted or used, as with the allocator (see "Free space past the disk's end").
 
 ## Tails and trim
 

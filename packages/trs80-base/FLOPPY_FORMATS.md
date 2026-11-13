@@ -906,6 +906,24 @@ unchanged on all 1,760 (823 writable before and after). The Genie disk in the ta
 writable one is `Macro-Mon (1981)(Jake Commander)[M3]`, a DOSPLUS 3.3 disk with 33 of its 68 free
 granules on garbled cylinders; a 35-granule file now fits, and a 36-granule one is refused up front.
 
+### Free space past the disk's end
+
+The allocator also never gives a file a granule with a sector past the disk's proven size
+(`findTrsdosProvenCylinderCount()`, from `findDosDiskSize()`), under any rule set; where no size is
+proven, every cylinder of the image counts. Only TRSDOS 1.3 needs it: its GAT is zero past its 40
+cylinders, so a tail's granules look free, and when the tail has sectors the image-holds-it test above
+doesn't stop them. Every other DOS's GAT marks cylinders past its end used, and `findDosDiskSize()`
+refuses a size with free space past it, so no other suite disk has free granules outside its size.
+
+Measured on the suite (November 2026): 20 TRSDOS 1.3 disks have cylinders past 40, and 18 of them
+have a proven size (a corrupt one and a Model II IMD don't, since their GATs use cylinders past 40). On
+15 the image lacks the tail's sectors, so the allocator already skipped it. On three it has sectors, and the disk is writable, so the writer could have used it:
+`TRSDOS v1.3 (1981)(Tandy)[Rev 1981-07-01][80T]` (cylinders 40-79, 240 granules), `SuperScripsit
+v1.1.0 ... [Set 3]` (40-41, 10 granules) and `Xenos ... [Set 3]` (40-42, 15 granules). `trim` keeps
+all three tails as leftovers of an earlier format that may hold data, except Xenos's re-read 42. On
+Xenos a 2 KB add went to cylinder 41, its smallest free run; on the other two a small file stayed
+inside, but a large one would have run into the tail. Writability is unchanged on all 1,773 disks.
+
 ## TRSDOS 2.3B
 
 Measured on `trsdos-2.3B-sssd.dmk`, which boots on an emulator and calls itself
