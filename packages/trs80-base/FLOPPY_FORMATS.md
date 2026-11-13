@@ -4449,12 +4449,13 @@ extent holds one granule (4 sectors), so its file is a sector short (the usual
 
 `findNewdos80Partitions()` (in `Newdos80HardDisk.ts`) reads these, and
 `decodeNewdos80HardDiskPartition()` decodes each partition. Measured on the
-three NEWDOS/80 2.5 disks in the suite, and earlier on four more from the same
+three NEWDOS/80 2.5 disks first in the suite, and earlier on four more from the same
 FreHD CD (`FreHDCD.zip`: `M1 Floppy Boot images/Newdos80-25/hard4-0`,
 `M1 Quinnterface images/newdos25`, `M3 Diskless Auto Boot images/newdos3D` and
 `FreHD_Self_Boot_Start_Files.zip`'s `newdos3D`), where the rule below put a GAT
 (version 0x82, a date, and a HIT starting `A2 C4`) exactly where predicted for
-all 39 partitions on the seven. The four aren't in the suite yet. The NEWDOS/80
+all 39 partitions on the seven. The first three are in the suite now (November
+2026); the fourth isn't, since that zip isn't on the CD. The NEWDOS/80
 manual doesn't cover hard disks, but NEWDOS/80 2.5 itself, booted from
 `m3-newdos80v25.hdv` in trs80gp (below), confirms the reading.
 

@@ -696,10 +696,11 @@ are read (see "Hard disk images" in `FLOPPY_FORMATS.md`). What's left:
       the directory's 33 sectors from the HIT (see "NEWDOS/80 on hard disks" in
       `FLOPPY_FORMATS.md`). NEWDOS/80's own `FREE` agrees on every drive of the
       two auto-boot disks. Still to do:
-      - Add the four other NEWDOS/80 images from `FreHDCD.zip` (named in that
-        section) to the suite. The zip wasn't on this machine; the Wayback
-        Machine has it (61 MB) at
-        `web.archive.org/web/20230710165007id_/http://members.iinet.net.au/~ianmav/downloads/FreHDCD.zip`.
+      - The fourth NEWDOS/80 image named in that section, `newdos3D` from
+        `FreHD_Self_Boot_Start_Files.zip`, isn't in the suite: that zip isn't on
+        the FreHD CD (`FreHDCD.zip`, 61 MB, at
+        `web.archive.org/web/20230710165007id_/http://members.iinet.net.au/~ianmav/downloads/FreHDCD.zip`),
+        whose other three distinct NEWDOS/80 images are.
       - Writing, and adding, deleting or formatting partitions, are refused.
         Writing needs the NEWDOS/80 rules on a partition: the partial last lump,
         a directory that isn't a whole number of granules, and no lockout table.
