@@ -2580,7 +2580,9 @@ describe("TrsdosWriter.repair", () => {
     it("changes nothing on a healthy disk", () => {
         const {writer} = makeFixture([HELLO, WORLD]);
         const result = writer.repair();
-        expect(result).to.eql({changes: [], remaining: [], keptUnclaimed: [], freeableUnclaimed: [], fixablePrograms: []});
+        expect(result).to.eql({
+            changes: [], remaining: [], keptUnclaimed: [], freeableUnclaimed: [], fixablePrograms: [], markableMissing: [],
+        });
         expect(writer.hasChanges()).to.eql(false);
         expect(problemKinds(writer.flush())).to.eql([]);
     });

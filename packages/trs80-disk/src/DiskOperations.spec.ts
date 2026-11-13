@@ -49,7 +49,7 @@ describe("DiskCheck", () => {
     });
 
     it("has nothing to repair on a clean disk", () => {
-        const result = repairDisk(makeSession(), {freeUnclaimed: false, fixProgramSizes: false});
+        const result = repairDisk(makeSession(), {freeUnclaimed: false, fixProgramSizes: false, markMissingUsed: false});
         expect(result.repaired.changes).to.eql([]);
         expect(result.repaired.remaining).to.eql([]);
         expect(result.damagedBefore).to.equal(false);

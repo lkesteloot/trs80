@@ -490,9 +490,17 @@ partition --delete [N|NAME] [--force]</code></pre>
 
             <h3 id="free"><code>free</code></h3>
             <p>Show the space left for new files on a TRSDOS-family disk: granules that
-            the GAT says are free and that no file uses. That includes any free granules that the
-            image doesn’t fully hold, which new files skip; <a href="#check"><code>check</code></a>
-            notes them.</p>
+            the GAT says are free and that no file uses, and that a new file could be given. Free granules
+            that new files never get are counted after it: those that the image doesn’t fully hold (a sector
+            is missing, often lost by the imager, or the wrong size), which
+            <a href="#check"><code>check</code></a> notes, and those past the disk’s end, which only a
+            TRSDOS 1.3 disk’s GAT has, on an image with a tail past its 40 cylinders. <code>info</code>
+            and the one-line description count the same way. With <code>--json</code> they’re
+            <code>missingGranules</code> and <code>pastEndGranules</code>, apart from
+            <code>freeGranules</code>.</p>
+            <div><pre><code>% trs80-tool disk genie.dmk free
+568 KB free (455 granules of 1,280 bytes each); the GAT calls 2 more granules free, which aren’t fully on the image</code></pre>
+            </div>
 
             <h3 id="map"><code>map</code></h3>
             <div><pre><code>map [PATTERN...]</code></pre>
@@ -504,7 +512,10 @@ partition --delete [N|NAME] [--force]</code></pre>
             A file is a run of <code>─</code> that starts with its name, in a color of its own; the name
             repeats at the start of each cylinder (but not when a file runs from side 0 to side 1). The
             directory and the boot granule are drawn the same way. <code>·</code> is a free sector and
-            <code>x</code> a locked-out one. Damage shows in red:
+            <code>x</code> a locked-out one. A granule that the GAT says is free but that new files never get
+            is <code>_</code> if the image doesn’t fully hold it, and <code>&gt;</code> if it’s past the disk’s
+            end (see <a href="#free"><code>free</code></a>); the totals count them apart from the free
+            ones. Damage shows in red:
             <code>!</code> for a granule that two or more files claim, <code>?</code> for one that a
             file claims but the GAT says is free, and <code>u</code> for one the GAT says is used
             that no file claims. With patterns, only the matching files get names and colors, and
@@ -540,8 +551,9 @@ partition --delete [N|NAME] [--force]</code></pre>
             end of the program, which the DOS loads fine but which copy broken, and free granules that
             the image doesn’t fully hold (a sector is missing, often lost by the imager, or the wrong
             size): new files skip them, since writing there would fail, so a little less can be
-            written than <a href="#free"><code>free</code></a> says. The GAT keeps them free, since the
-            real disk may well have those sectors, and they don’t change whether the disk can be
+            written than the GAT says, and <a href="#free"><code>free</code></a> counts them apart. The GAT
+            keeps them free, since the real disk may well have those sectors (<code>repair
+            --mark-missing-used</code> marks them used), and they don’t change whether the disk can be
             written. On a floppy it lists the
             signs of copy protection, if there are any, as
             <a href="index.html#sectors"><code>sectors --protection</code></a> does (with
@@ -571,7 +583,8 @@ partition --delete [N|NAME] [--force]</code></pre>
             rules the HIT bytes of extended directory entries are left alone, since we don’t know what
             the DOS puts there. Granules that the GAT marks used but no file claims are left alone, since some programs
             keep data there. So are programs whose directory size ends before their transfer record, further
-            into their last sector, since the DOS loads them fine and many DOSes shipped files that way. Like
+            into their last sector, since the DOS loads them fine and many DOSes shipped files that way. So are
+            free granules that the image doesn’t fully hold; new files skip them anyway. Like
             any other change, a repair can be taken back
             with <code>undo</code>.</p>
 
@@ -588,6 +601,14 @@ partition --delete [N|NAME] [--force]</code></pre>
                     <td><code>--fix-program-sizes</code></td>
                     <td>Also set the size of each program whose directory size ends before its transfer record,
                         so that it reaches it, and the program copies whole.</td>
+                </tr>
+                <tr>
+                    <td><code>--mark-missing-used</code></td>
+                    <td>Also mark used in the GAT the free granules that the image doesn’t fully hold (the ones
+                        <code>check</code> notes), so that the DOS won’t hand them out either when the image is
+                        used. It isn’t the default because the real disk may well have those sectors, which the
+                        imager lost; once marked used, only <code>--free-unclaimed</code> gives them back, and not on the
+                        boot cylinder, which it never frees. Granules past the disk’s end are left alone.</td>
                 </tr>
             </table>
 

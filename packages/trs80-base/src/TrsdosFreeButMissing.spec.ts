@@ -7,7 +7,7 @@ import {SectorOverlay} from "./SectorOverlay.js";
 import {TRSDOS_13_TRACK_LAYOUT} from "./TrackLayout.js";
 import {decodeTrsdos, type Trsdos} from "./Trsdos.js";
 import {findUnwritableGranuleSectors} from "./TrsdosAllocator.js";
-import {checkTrsdos, findFreeButMissingGranules, TrsdosFindingKind} from "./TrsdosCheck.js";
+import {checkTrsdos, findUnusableFreeGranules, TrsdosFindingKind} from "./TrsdosCheck.js";
 import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
 import {formatTrsdosDataDisk, TrsdosFormatDos} from "./TrsdosFormat.js";
 import {findTrsdosProvenCylinderCount} from "./TrsdosDiskSize.js";
@@ -48,14 +48,14 @@ function decode(disk: DmkFloppyDisk): Trsdos {
 }
 
 /**
- * The granules that findFreeButMissingGranules() finds, as "lump:granule" strings.
+ * The free granules that findUnusableFreeGranules() finds the image lacks, as "lump:granule" strings.
  */
 function freeButMissing(trsdos: Trsdos): string[] {
     const map = TrsdosGranuleMap.make(trsdos);
     if (typeof map === "string") {
         throw new Error(map);
     }
-    return findFreeButMissingGranules(trsdos, map).granules.map(granule => granule.lump + ":" + granule.granule);
+    return findUnusableFreeGranules(trsdos, map).missing.map(granule => granule.lump + ":" + granule.granule);
 }
 
 /**
@@ -237,5 +237,62 @@ describe("free granules past the disk's proven size", () => {
         const tooBig = new TrsdosWriter(decode(withReReadTail()), TrsdosRuleSet.TRSDOS_1_3);
         expect(() => tooBig.addFile(name("ALL/DAT"), contents((inside + 1)*granuleBytes)))
             .to.throw(`the disk has ${inside} free`);
+    });
+});
+
+describe("repair's markMissingUsed", () => {
+    const missingPosition = SectorPosition.make(0, 0, 7);
+
+    /**
+     * The GAT's bit for a granule, as a write left it.
+     */
+    function gatUsed(trsdos: Trsdos, lump: number, granule: number): boolean {
+        const map = TrsdosGranuleMap.make(trsdos);
+        if (typeof map === "string") {
+            throw new Error(map);
+        }
+        return map.get(lump, granule)?.gatUsed === true;
+    }
+
+    it("only reports the granules without it", () => {
+        const writer = new TrsdosWriter(decode(removeDmkId(format(TrsdosFormatDos.TRSDOS_2_3, 35), missingPosition)),
+            TrsdosRuleSet.TRSDOS_2);
+        const result = writer.repair();
+        expect(result.markableMissing.map(granule => granule.lump + ":" + granule.granule)).to.eql(["0:1"]);
+        expect(result.changes).to.eql([]);
+        const after = writer.flush();
+        expect(gatUsed(after, 0, 1)).to.equal(false);
+        expect(freeButMissing(after)).to.eql(["0:1"]);
+    });
+
+    it("marks them used in the GAT, which ends the note", () => {
+        const writer = new TrsdosWriter(decode(removeDmkId(format(TrsdosFormatDos.TRSDOS_2_3, 35), missingPosition)),
+            TrsdosRuleSet.TRSDOS_2);
+        const result = writer.repair({markMissingUsed: true});
+        expect(result.markableMissing).to.eql([]);
+        expect(result.changes).to.eql(["Marked 1 granule used in the GAT that the image doesn't fully hold."]);
+        const after = writer.flush();
+        expect(gatUsed(after, 0, 1)).to.equal(true);
+        const kinds = checkTrsdos(after).findings.map(finding => finding.kind);
+        expect(kinds).to.not.include(TrsdosFindingKind.FREE_BUT_MISSING);
+        // Used, and claimed by no file, which is a note.
+        expect(kinds).to.include(TrsdosFindingKind.USED_BUT_UNCLAIMED);
+        expect(evaluateTrsdosWriteGate(after).access).to.equal(TrsdosWriteAccess.WRITABLE);
+    });
+
+    it("works beside freeUnclaimed, which doesn't free what it marked", () => {
+        const writer = new TrsdosWriter(decode(removeDmkId(format(TrsdosFormatDos.TRSDOS_2_3, 35), missingPosition)),
+            TrsdosRuleSet.TRSDOS_2);
+        writer.repair({markMissingUsed: true, freeUnclaimed: true});
+        expect(gatUsed(writer.flush(), 0, 1)).to.equal(true);
+    });
+
+    it("leaves granules past the disk's end alone", () => {
+        const disk = appendDmkTestTracks(format(TrsdosFormatDos.TRSDOS_1_3, 40), [[{kind: "unformatted"}]],
+            TRSDOS_13_TRACK_LAYOUT);
+        const writer = new TrsdosWriter(decode(disk), TrsdosRuleSet.TRSDOS_1_3);
+        const result = writer.repair({markMissingUsed: true});
+        expect(result.changes).to.eql([]);
+        expect(gatUsed(writer.flush(), 40, 0)).to.equal(false);
     });
 });

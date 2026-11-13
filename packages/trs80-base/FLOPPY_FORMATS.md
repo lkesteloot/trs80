@@ -897,7 +897,11 @@ the wrong size (a CRC error doesn't matter, since the write replaces it). So the
 free granule with such a sector (`findUnwritableGranuleSectors()`, the same test), and `check` notes
 them (`free-but-missing`, a note, so writability doesn't change). The GAT keeps them free: the disk
 itself may well have the sector, as with the late starts above, and the DOS would never use a granule
-we marked used. The note counts only granules inside the disk's proven size (see "Tails past the
+we marked used. `repair --mark-missing-used` marks them used anyway, for an image that will be used
+as it is. `free`, `info` and `map` count them apart from the free space, with the granules past the
+disk's end (below), using the same `findUnusableFreeGranules()`, so their free count is what the
+allocator can use (apart from NEWDOS/80's existence table and PDRIVE lump count, which they still
+count as free). The note counts only granules inside the disk's proven size (see "Tails past the
 disk's end"), since TRSDOS 1.3's GAT is zero past its 40 cylinders, so an unformatted tail looks free.
 
 Measured on the suite (November 2026): 34 disks have some, 11 of them writable, and writability is

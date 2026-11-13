@@ -627,12 +627,14 @@ or left rough:
 - [ ] **Recovering the sectors.** A one-revolution read loses only the last few dozen bytes of one sector
       per track, and a converter's marker hides whether the data is right. Neither is repaired; Ira's rule
       is to leave the image alone, and reimaging is the fix.
-- [ ] **Free granules the image doesn't fully hold** (see "Free space the image lacks" in
-      `FLOPPY_FORMATS.md`) are a `check` note, and the writer's allocator skips them. Left as they are:
-      `free`, `info` and `map` still count them as free, so the writer's "not enough room" count can be
-      lower than `free`'s; nothing marks them used in the GAT (a repair option could, but the real disk
-      may have the sectors, and the DOS would then never use them). Granules past the disk's proven
-      size aren't noted or used, as with the allocator (see "Free space past the disk's end").
+- [ ] **`free` still counts NEWDOS/80's never-allocated granules** (those the GAT's existence table says
+      don't exist, and lumps past the PDRIVE lump count) when the GAT leaves them free, though the writer
+      never uses them, so its "not enough room" count can still be lower than `free`'s there. The
+      granules the image doesn't fully hold and those past the disk's end are counted apart now (see
+      "Free space the image lacks" in `FLOPPY_FORMATS.md`); these depend on the rule set, which `free`
+      would have to take from the write gate. Measured (November 2026): 24 suite disks under NEWDOS/80's
+      rules have some, mostly read-only (NEWDOS/80 1.0 DoubleZap disks, Infocom games); the one writable
+      one is `G Texte v0.1 ... [Set 2]`, with 1 granule.
 
 ## Tails and trim
 

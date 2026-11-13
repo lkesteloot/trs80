@@ -566,7 +566,8 @@ describe("disk --json", () => {
         expect(aboutHello?.files[0]).to.equal("HELLO.BAS");
         expect(aboutHello?.granules[0]).to.have.keys("lump", "granule");
         expect(run.commands[1].result).to.have.keys(
-            "changes", "remaining", "freeableUnclaimedGranules", "fixablePrograms", "writable");
+            "changes", "remaining", "freeableUnclaimedGranules", "markableMissingGranules", "fixablePrograms",
+            "writable");
     });
 
     it("describes a script on standard input the same way", async () => {
