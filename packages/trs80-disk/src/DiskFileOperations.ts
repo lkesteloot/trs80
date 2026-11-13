@@ -3,7 +3,7 @@ import {
     Trsdos, trsdosBlankPasswordHash, type TrsdosVersion, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
     type TrsdosAddResult, type TrsdosDiskInfoChanges, type TrsdosFilename, trsdosFilenameFromHost,
     trsdosFilenameToString, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString,
-    type TrsdosProtectionNames,
+    type TrsdosProtectionNames, uncompressFile,
 } from "trs80-base";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
 import {checkImportOptions, importHostFile, stemOf} from "./DiskImport.js";
@@ -469,7 +469,18 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
     const existingEntries = trsdos instanceof Trsdos ? trsdos.getDirEntries(true) : [];
 
     const items: AddPlanItem[] = [];
-    for (const source of sources) {
+    for (const originalSource of sources) {
+        let source = originalSource;
+        let gzipProblem: string | undefined;
+        try {
+            // A gzipped host file is added as the file inside it, under the name without ".gz".
+            const uncompressed = uncompressFile(originalSource.name, originalSource.bytes);
+            // Keep any other properties of the source, which a caller may have added.
+            source = {...originalSource, name: uncompressed.name, bytes: uncompressed.bytes};
+        } catch (e: any) {
+            gzipProblem = "Can't read \"" + originalSource.label + "\": " + (e.message ?? String(e));
+        }
+
         const item: AddPlanItem = {
             source,
             problem: undefined,
@@ -481,6 +492,10 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
             existingName: undefined,
         };
         items.push(item);
+        if (gzipProblem !== undefined) {
+            item.problem = gzipProblem;
+            continue;
+        }
 
         // Convert before choosing the name, since the conversion can change the extension.
         let imported;

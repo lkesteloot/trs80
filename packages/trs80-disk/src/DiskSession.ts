@@ -1,7 +1,7 @@
 import {
     BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosOnOverlay,
     evaluateTrsdosWriteGate, findHardDiskPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
-    isFloppy, isHardDisk,
+    compressForName, isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type DecodedPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
     type TrsdosRuleSet, TrsdosWriteAccess, type TrsdosWriteBlocker, TrsdosWriteBlockerKind, TrsdosWriteError,
     TrsdosWriteErrorKind, type TrsdosWriteGate, TrsdosWriter, type WritableDiskVolume,
@@ -1030,7 +1030,15 @@ export class DiskSession {
     }
 
     /**
-     * Write the floppy's bytes to where the changes go (the image, or the --output file), if there are changes.
+     * The bytes of the session's file as they're saved: the image, gzipped if {@link saveName} ends in ".gz".
+     */
+    public fileBytes(): Uint8Array {
+        return compressForName(this.saveName, this.image.binary);
+    }
+
+    /**
+     * Write the file's bytes (see {@link fileBytes}, which are compressed if the save name ends in ".gz") to
+     * where the changes go (the image, or the --output file), if there are changes.
      * The write replaces the whole file at once, so a failure leaves the old file. After this, later saves go
      * to the same file. With --dry-run this writes nothing and the changes stay pending.
      *
@@ -1046,7 +1054,7 @@ export class DiskSession {
         }
 
         try {
-            write(this.saveName, this.image.binary);
+            write(this.saveName, this.fileBytes());
         } catch (e: any) {
             throw new DiskError("Can't save \"" + this.saveName + "\": " + (e.message ?? String(e)));
         }

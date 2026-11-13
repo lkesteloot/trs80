@@ -2,6 +2,7 @@ import {
     Density, densityToString, type FloppyDisk, formatLdosPartition, formatTrsdosDataDisk, hardDiskDosProblem,
     HARD_DISK_SECTOR_SIZE, HARD_DISK_SECTORS_PER_TRACK, makeBlankHdvHardDisk, PARTITION_MAX_CYLINDERS,
     PARTITION_MIN_CYLINDERS, DosFamily, Trsdos, TrsdosFormatDos, type TrsdosFormatOptions, TrsdosRuleSet,
+    withoutGzipSuffix,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError} from "./DiskError.js";
@@ -123,7 +124,7 @@ function choosesDensity(dos: TrsdosFormatDos): boolean {
  * @param session the session.
  */
 export function saveNameCanHoldDmk(session: DiskSession): boolean {
-    const extension = extensionOf(session.saveName).toLowerCase();
+    const extension = extensionOf(withoutGzipSuffix(session.saveName)).toLowerCase();
     return !OTHER_IMAGE_EXTENSIONS.includes(extension);
 }
 
@@ -220,7 +221,7 @@ export interface CreateFloppyResult {
  * disk and not a floppy.
  */
 export function isHardDiskPathname(session: DiskSession): boolean {
-    return extensionOf(session.saveName).toLowerCase() === HARD_DISK_EXTENSION;
+    return extensionOf(withoutGzipSuffix(session.saveName)).toLowerCase() === HARD_DISK_EXTENSION;
 }
 
 /**
