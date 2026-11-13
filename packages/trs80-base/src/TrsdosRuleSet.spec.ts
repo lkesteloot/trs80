@@ -71,7 +71,8 @@ const LAYOUT_2_3_NAMES: [DosName, TrsdosRuleSet | undefined][] = [
     [makeDosName(DosFamily.NEWDOS_80, "2.0"), TrsdosRuleSet.NEWDOS_80],
     [makeDosName(DosFamily.NEWDOS_80, "2.0", "2.5", "2.74"), TrsdosRuleSet.NEWDOS_80],
     [makeDosName(DosFamily.NEWDOS_80, "2.X"), TrsdosRuleSet.NEWDOS_80],
-    [makeDosName(DosFamily.NEWDOS_80, "1.0"), undefined],
+    // 1.0 has rules, which the write gate allows in one layout only; there was no 1.1.
+    [makeDosName(DosFamily.NEWDOS_80, "1.0"), TrsdosRuleSet.NEWDOS_80],
     [makeDosName(DosFamily.NEWDOS_80, "1.1"), undefined],
     [makeDosName(DosFamily.NEWDOS_80, "3.0"), undefined],
     [makeDosName(DosFamily.BFLOADER), undefined],

@@ -262,11 +262,13 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       FXDE, so we don't know what 2.7 writes in one. The writer refuses a file
       that would need one (more than four extents) and won't rename or repair
       one. A disk made by the DOS with a fragmented big file would settle it.
-- [ ] **Writing NEWDOS/80: what's left.** The writer covers version 2 disks (see "Writing NEWDOS/80" in
-      FLOPPY_FORMATS.md). Not written:
-      - Version 1.x: v1 double-sided double-density disks use a different sector order, and two NEWDOS/86 utility
-        disks are named v1.0. Ira's v1.0 write disks (see "Version 1.0's own writes" in FLOPPY_FORMATS.md) show
-        that a v1.0 writer would differ from the v2 one only in byte 1 of a new entry (0, not 0x20).
+- [ ] **Writing NEWDOS/80: what's left.** The writer covers version 2 disks, and version 1.0 disks that are single
+      density and single sided (see "Writing NEWDOS/80" in FLOPPY_FORMATS.md). Not written:
+      - Version 1.0 disks in other layouts: double density (DoubleZap and other patches; double-sided double density
+        uses a different sector order), and single density on two sides, which no disk in the collection shows.
+      - Matching the DOS's directory slot choice: it puts a new file in sector (hash mod entry sectors), and we take
+        the lowest free DEC. The first choice is easy to match; the overflow order isn't known (see "Version 1.0's
+        own writes").
       - Version 3.0 (its own Model III boot sector): a different release that we haven't studied.
       - Disks of more than 96 lumps with no PDRIVE table whose GAT doesn't prove its own size (see "More than 96
         lumps with no table" in FLOPPY_FORMATS.md): a last lump that's full, or lumps 0-95 that also fit the

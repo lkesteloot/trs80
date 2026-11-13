@@ -44,8 +44,10 @@ export enum TrsdosRuleSet {
     TRSDOS_2_7,
 
     /**
-     * NEWDOS/80 version 2.x (Apparat), on the TRSDOS 2.3 layout with its own file flags, no file
-     * dates, and a granule existence table in the GAT. See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
+     * NEWDOS/80 versions 1.0 and 2.x (Apparat), on the TRSDOS 2.3 layout with its own file flags, no file
+     * dates, and a granule existence table in the GAT. The two versions differ only in byte 1 of a new
+     * file's entry, which the writer takes from the disk, and version 1.0 only in one layout, which the
+     * write gate checks. See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
      */
     NEWDOS_80,
 
@@ -74,7 +76,7 @@ export function trsdosRuleSetToString(ruleSet: TrsdosRuleSet): string {
         case TrsdosRuleSet.TRSDOS_2_7:
             return "TRSDOS 2.7 and 2.8";
         case TrsdosRuleSet.NEWDOS_80:
-            return "NEWDOS/80 2.x";
+            return "NEWDOS/80";
         case TrsdosRuleSet.MULTIDOS:
             return "MultiDOS 1.x and 2.00";
         default:
@@ -235,10 +237,9 @@ function ruleSetForVersion(family: DosFamily, version: DosVersion): TrsdosRuleSe
             return version.major() === 3 ? TrsdosRuleSet.DOSPLUS : undefined;
 
         case DosFamily.NEWDOS_80:
-            // Only version 2: v1 double-sided double-density disks use a different sector order, the
-            // decoder can't tell v1.0 from v1.1 data disks, and two NEWDOS/86 utility disks are
-            // misnamed v1.0. Version 3.0 is a different release that we haven't studied.
-            return version.major() === 2 ? TrsdosRuleSet.NEWDOS_80 : undefined;
+            // Version 2, and 1.0 (there was no 1.1), whose disks the write gate allows in one layout only
+            // (see newdos80LayoutProblem()). Version 3.0 is a different release that we haven't studied.
+            return version.major() === 2 || version.is("1.0") ? TrsdosRuleSet.NEWDOS_80 : undefined;
 
         case DosFamily.MULTIDOS:
             // Every 1.x and 2.00, whose directory entries have the date in bytes 1 and 2 and the password

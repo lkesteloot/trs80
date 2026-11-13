@@ -25,7 +25,9 @@ import {
     type TrsdosDiskInfo, trsdosGatDateYearRange, trsdosKeepsAutoInSystemInformation, trsdosSystemInformationPosition,
 } from "./TrsdosDiskInfo.js";
 import {MULTIDOS_MARKER_RAW_FILENAME} from "./TrsdosMultidos.js";
-import {NEWDOS80_MAX_EXTENT_LUMP, newdos80DosLumpCount, newdos80GranuleNeverAllocated} from "./TrsdosNewdos80.js";
+import {
+    NEWDOS80_MAX_EXTENT_LUMP, newdos80DosLumpCount, newdos80GranuleNeverAllocated, newdos80IsVersion1,
+} from "./TrsdosNewdos80.js";
 import {TrsdosRuleSet, trsdosRuleSetLayout, trsdosRuleSetToString} from "./TrsdosRuleSet.js";
 
 /**
@@ -708,6 +710,13 @@ export class TrsdosWriter {
     private readonly dosLumpCount: number;
 
     /**
+     * Under NEWDOS/80's rules, the written bit that the disk's DOS sets in byte 1 of every file it writes: 0x20 for
+     * version 2, but nothing for version 1.0, whose files have byte 1 = 0 ({@link newdos80IsVersion1}). 0 under other
+     * rules.
+     */
+    private readonly newdos80WrittenBit: number;
+
+    /**
      * The files that {@link addFile} has added.
      */
     private readonly added: AddedFile[] = [];
@@ -762,6 +771,8 @@ export class TrsdosWriter {
         this.granuleMap = granuleMap;
         this.originalGatBytes = trsdos.disk.readSector(trsdos.getGatPosition())?.data ?? new Uint8Array(0);
         this.dosLumpCount = ruleSet === TrsdosRuleSet.NEWDOS_80 ? newdos80DosLumpCount(trsdos) : trsdos.lumpCount;
+        this.newdos80WrittenBit = ruleSet === TrsdosRuleSet.NEWDOS_80 && !newdos80IsVersion1(trsdos) ?
+            NEWDOS80_BYTE1_WRITTEN : 0;
         this.freeGranules = freeGranuleFlags(granuleMap).map((free, index) => free && this.canAllocate(index));
 
         this.gat = this.copySector(trsdos.getGatPosition(), "GAT");
@@ -1123,10 +1134,10 @@ export class TrsdosWriter {
                 break;
 
             case TrsdosRuleSet.NEWDOS_80:
-                // No file dates either, but the DOS sets the written bit on any file it writes, and bits 7 and
+                // No file dates either, but version 2 sets the written bit on any file it writes, and bits 7 and
                 // 6 stay as they were.
                 warning = this.makeDateFields(options.date).warning;
-                byte1 |= NEWDOS80_BYTE1_WRITTEN;
+                byte1 |= this.newdos80WrittenBit;
                 break;
 
             case TrsdosRuleSet.MULTIDOS:
@@ -1435,11 +1446,11 @@ export class TrsdosWriter {
             }
 
             case TrsdosRuleSet.NEWDOS_80: {
-                // NEWDOS/80 has no file dates: byte 1 holds flags, and the DOS sets the written bit on a new
-                // file. Byte 2 is reserved and zero.
+                // NEWDOS/80 has no file dates: byte 1 holds flags, and version 2 sets the written bit on a new
+                // file (version 1.0 leaves the byte 0). Byte 2 is reserved and zero.
                 const warning = date === undefined ? undefined :
                     `${trsdosRuleSetToString(this.ruleSet)} disks don't store file dates, so the date was ignored`;
-                return {byte1: NEWDOS80_BYTE1_WRITTEN, byte2: 0, timeStamp: undefined, warning};
+                return {byte1: this.newdos80WrittenBit, byte2: 0, timeStamp: undefined, warning};
             }
 
             case TrsdosRuleSet.MULTIDOS: {

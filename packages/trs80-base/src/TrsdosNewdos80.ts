@@ -1,3 +1,5 @@
+import {Density} from "./FloppyDisk.js";
+import {DosFamily} from "./DosName.js";
 import {readPdriveTable} from "./Pdrive.js";
 import {trsdos23SystemFilename, type Trsdos, TrsdosVersion} from "./Trsdos.js";
 
@@ -25,9 +27,15 @@ export const NEWDOS80_MAX_EXTENT_LUMP = 191;
  */
 export const NEWDOS80_EXTRA_DIR_SECTORS_OFFSET = 0x1F;
 
-// The GAT byte that holds the DOS's version marker, and its value for NEWDOS/80 version 2.
+// The GAT byte that holds the DOS's version marker, and its values for NEWDOS/80 versions 1.0 and 2.
 const GAT_VERSION_OFFSET = 0xCB;
+const GAT_VERSION_NEWDOS80_V1 = 0x80;
 const GAT_VERSION_NEWDOS80_V2 = 0x82;
+
+// The only layout that NEWDOS/80 version 1.0 disks are written in: single density, one side, 10 sectors and two
+// granules to a lump, which is a cylinder. See "Version 1.0's own writes" in FLOPPY_FORMATS.md.
+const NEWDOS80_V1_SECTORS_PER_CYLINDER = 10;
+const NEWDOS80_V1_GRANULES_PER_LUMP = 2;
 
 // The offset in the GAT of the granule existence table, one byte per lump.
 const GAT_EXISTENCE_OFFSET = 0x60;
@@ -134,6 +142,58 @@ function pdriveProblem(trsdos: Trsdos): string | undefined {
 }
 
 /**
+ * Whether the disk's DOS is NEWDOS/80 version 1.0, whose files are written with byte 1 = 0 rather than version
+ * 2's 0x20. The DOS the disk names decides: a version 1.0 system, or a version 2 one (on a disk that version 1.0
+ * formatted, say). A disk that names no NEWDOS/80 release (written with --dos newdos-80) goes by its GAT's byte
+ * 0xCB, which is 0x80 for version 1.0's FORMAT. See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
+ */
+export function newdos80IsVersion1(trsdos: Trsdos): boolean {
+    const name = trsdos.dosName;
+    if (name.family === DosFamily.NEWDOS_80 && name.versions.length > 0) {
+        return name.versions.every(version => version.major() === 1);
+    }
+    const gat = trsdos.disk.readSector(trsdos.getGatPosition());
+    return gat?.data[GAT_VERSION_OFFSET] === GAT_VERSION_NEWDOS80_V1;
+}
+
+/**
+ * Why a disk that NEWDOS/80 version 1.0 formatted (GAT byte 0xCB = 0x80) isn't in the one version 1.0 layout we
+ * write, or undefined if it is. That's single density and single sided, with lumps of two granules that are
+ * cylinders, starting at cylinder 0: what Ira's disks made by version 1.0 itself show. The others are refused:
+ *
+ * - Double density, which version 1.0 has only through third-party patches such as DoubleZap, and whose
+ *   double-sided disks store their sectors in an order that version 2 can't read (NEWDOS/80 Version 2.0 manual,
+ *   PDF page 189).
+ * - Single density on two sides (`SPT=20,GPL=4` by the same page), which no disk in our collection shows.
+ * - A disk with a PDRIVE table, which version 1.0 doesn't write: the disks named version 1.0 that have one are
+ *   NEWDOS/86 disks formatted by it.
+ *
+ * See "Writing NEWDOS/80" in FLOPPY_FORMATS.md.
+ */
+function version1LayoutProblem(trsdos: Trsdos): string | undefined {
+    const prefix = "This disk was formatted by NEWDOS/80 version 1.0 (GAT byte 0xCB is 0x80)";
+    const singleDensity = trsdos.geometry.modalDataDensity === Density.SINGLE && !trsdos.geometry.cylinder0Differs;
+    if (!singleDensity) {
+        return `${prefix}, but it's double density, which version 1.0 only had through patches whose layouts ` +
+            "differ, so writing it isn't supported.";
+    }
+    const isSingleSidedCylinderLayout = trsdos.allocationSides === 1 &&
+        trsdos.sectorsPerCylinder === NEWDOS80_V1_SECTORS_PER_CYLINDER &&
+        trsdos.granulesPerLump === NEWDOS80_V1_GRANULES_PER_LUMP && trsdos.lumpsAreCylinders &&
+        trsdos.firstDataCylinder === 0;
+    if (!isSingleSidedCylinderLayout) {
+        return `${prefix}, but it isn't single sided with 10 sectors and two granules to a cylinder, the one ` +
+            "version 1.0 layout we write, so writing it isn't supported.";
+    }
+    const table = readPdriveTable(trsdos.disk);
+    if (table !== undefined) {
+        return `${prefix}, but it has a PDRIVE table, which version 1.0 doesn't write, so it may be another ` +
+            "DOS's disk, and writing it isn't supported.";
+    }
+    return undefined;
+}
+
+/**
  * Whether the GAT could be that of a disk of {@link lumpCount} lumps, at most 96, that has a granule
  * existence table at 0x60, as NEWDOS/80's FORMAT writes it: every allocation byte from lump
  * {@link lumpCount} to 0x5F is 0xFF (past the formatted lumps), so is every existence byte from
@@ -232,10 +292,16 @@ export function newdos80LayoutProblem(trsdos: Trsdos): string | undefined {
 
     const gat = trsdos.disk.readSector(trsdos.getGatPosition());
     const marker = gat?.data[GAT_VERSION_OFFSET];
-    if (gat === undefined || marker !== GAT_VERSION_NEWDOS80_V2) {
+    if (gat === undefined || (marker !== GAT_VERSION_NEWDOS80_V2 && marker !== GAT_VERSION_NEWDOS80_V1)) {
         const markerText = marker === undefined ? "unreadable" : "0x" + marker.toString(16).toUpperCase().padStart(2, "0");
-        return `This disk's GAT wasn't written by NEWDOS/80 version 2 (byte 0xCB is ${markerText}), ` +
-            "and version 1 disks can differ in layout, so writing it isn't supported.";
+        return `This disk's GAT wasn't written by NEWDOS/80 version 1.0 or 2 (byte 0xCB is ${markerText}), ` +
+            "so writing it isn't supported.";
+    }
+    if (marker === GAT_VERSION_NEWDOS80_V1) {
+        const version1Message = version1LayoutProblem(trsdos);
+        if (version1Message !== undefined) {
+            return version1Message;
+        }
     }
 
     if (trsdos.sectorsPerGranule !== NEWDOS80_SECTORS_PER_GRANULE) {

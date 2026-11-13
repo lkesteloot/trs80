@@ -218,7 +218,7 @@ describe("help dos", () => {
             "  trsdos-6    TRSDOS 6 and LS-DOS 6 (also ldos-6, ls-dos-6)",
             "  dosplus     DOSPLUS 3",
             "  trsdos-2.7  TRSDOS 2.7 and 2.8 (also trsdos-2.8)",
-            "  newdos-80   NEWDOS/80 2.x (also newdos80, newdos/80)",
+            "  newdos-80   NEWDOS/80 (also newdos80, newdos/80)",
             "  multidos    MultiDOS 1.x and 2.00",
         ]);
     });

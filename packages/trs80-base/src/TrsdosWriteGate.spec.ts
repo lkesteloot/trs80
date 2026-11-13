@@ -325,9 +325,9 @@ describe("unsupportedLayoutMessage", () => {
     });
 
     it("leaves a NEWDOS/80 disk to the NEWDOS/80 checks", () => {
-        // This disk's GAT isn't NEWDOS/80 version 2's, so it's refused, but not for its lumps.
+        // This disk's GAT isn't NEWDOS/80's, so it's refused, but not for its lumps.
         const trsdos = reinterpret(decode(), TrsdosVersion.V2_3, 4, 4);
-        expect(unsupportedLayoutMessage(trsdos, TrsdosRuleSet.NEWDOS_80)).to.contain("version 2");
+        expect(unsupportedLayoutMessage(trsdos, TrsdosRuleSet.NEWDOS_80)).to.contain("version 1.0 or 2");
     });
 
     it("rejects a volume that is neither a floppy nor a hard disk partition", () => {

@@ -73,7 +73,7 @@ function newdos80SystemFileDecs(trsdos: Trsdos): number[] {
  * - TRSDOS 2.x, LDOS 5 and DOSPLUS 3: entries 0 and 1 of the first eight directory sectors (16).
  * - TRSDOS 6: those 16 on a system disk, but only DECs 0 and 1 (BOOT/SYS and DIR/SYS) on a data
  *   disk, which the GAT says with bit 7 of byte 0xCD.
- * - NEWDOS/80 2.x: DECs 0 and 1 on a data disk, and on a system disk all 32 DECs of entries 0 to 3 of
+ * - NEWDOS/80: DECs 0 and 1 on a data disk, and on a system disk all 32 DECs of entries 0 to 3 of
  *   the first eight directory sectors (the slots of BOOT/SYS, DIR/SYS and SYS0-SYS29).
  * - MultiDOS 1.x and 2.00: entries 0 and 1 of the first 16 directory sectors, and entries 6 and 7 of the
  *   last, on every disk (see {@link multidosReservedDecs}).

@@ -17,6 +17,7 @@ import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
 import {
     newdos80DirectorySizeRecorded,
     newdos80DosLumpCount,
+    newdos80IsVersion1,
     newdos80GranuleNeverAllocated,
     newdos80IsSystemDisk,
     newdos80LayoutProblem,
@@ -774,19 +775,59 @@ describe("NEWDOS/80 directory size and version", () => {
         expect(layoutBlockers(trsdos, TrsdosRuleSet.NEWDOS_80).join(" ")).to.contain("HIT");
     });
 
-    it("refuses a version 1 disk even when --dos newdos-80 is given, and can't be forced", () => {
-        const {trsdos} = makeSdFixture([], {dosVersion: 0x80});
-        expect(trsdos.nameAndVersion).to.contain("v1");
+    it("refuses a GAT that neither version wrote, even when --dos newdos-80 is given, and can't be forced", () => {
+        const {trsdos} = makeSdFixture([], {dosVersion: 0x21});
         const gate = evaluateTrsdosWriteGate(trsdos, TrsdosRuleSet.NEWDOS_80);
         const blocker = gate.blockers.find(blocker => blocker.kind === TrsdosWriteBlockerKind.UNSUPPORTED_LAYOUT);
         expect(blocker).to.not.be.undefined;
         expect(blocker!.forceable).to.be.false;
-        expect(blocker!.message).to.contain("version 2");
-        expect(blocker!.message).to.contain("0x80");
+        expect(blocker!.message).to.contain("version 1.0 or 2");
+        expect(blocker!.message).to.contain("0x21");
+    });
+});
+
+describe("NEWDOS/80 version 1.0", () => {
+    it("writes a single-density, single-sided version 1.0 disk under the NEWDOS/80 rules", () => {
+        const {trsdos} = makeSdFixture([], {dosVersion: 0x80});
+        expect(trsdos.nameAndVersion).to.equal("NEWDOS/80 v1.0");
+        expect(identifyTrsdosRuleSet(trsdos).ruleSet).to.equal(TrsdosRuleSet.NEWDOS_80);
+        expect(newdos80IsVersion1(trsdos)).to.be.true;
+        expect(layoutBlockers(trsdos)).to.eql([]);
+        expect(evaluateTrsdosWriteGate(trsdos).access).to.equal(TrsdosWriteAccess.WRITABLE);
     });
 
-    it("has no rules for version 1 or 3.0 disks by themselves", () => {
-        const {trsdos} = makeSdFixture([], {dosVersion: 0x80});
-        expect(identifyTrsdosRuleSet(trsdos).ruleSet).to.be.undefined;
+    it("gives a new file byte 1 = 0, as version 1.0 does, and keeps a replaced file's", () => {
+        const {trsdos, makeWriter} = makeSdFixture([], {dosVersion: 0x80});
+        const writer = makeWriter();
+        const contents = makeContents(888);
+        writer.addFile(name("FILE1"), contents);
+        const newTrsdos = writer.flush();
+        const entry = entryOf(newTrsdos, "FILE1").bytes;
+        expect([entry[0], entry[1], entry[2], entry[3]]).to.eql([0x10, 0, 0, 888 % 256]);
+        expect(newTrsdos.readFile(getFile(newTrsdos, "FILE1"))).to.eql(contents);
+
+        const replacer = new TrsdosWriter(newTrsdos, TrsdosRuleSet.NEWDOS_80);
+        replacer.replaceFile(getFile(replacer, "FILE1"), makeContents(300, 2));
+        expect(entryOf(replacer.flush(), "FILE1").bytes[1]).to.equal(0);
+        expect(newdos80IsVersion1(trsdos)).to.be.true;
+    });
+
+    it("goes by the DOS the disk names, so a version 2 disk keeps 0x20", () => {
+        const {trsdos} = makeSdFixture([], {dosVersion: 0x82});
+        expect(newdos80IsVersion1(trsdos)).to.be.false;
+    });
+
+    it("refuses a double-density version 1.0 disk", () => {
+        const {trsdos} = makeDdFixture({gatVersion: 0x80});
+        expect(newdos80LayoutProblem(trsdos)).to.contain("double density");
+    });
+
+    it("refuses a version 1.0 disk with a PDRIVE table, which version 1.0 doesn't write", () => {
+        // TI=A, TD=A, TC=35, SPT=10, TSR=3, GPL=2, DDSL=17, DDGA=2, 35 lumps, in sector 2 of cylinder 0.
+        const table = [0x11, 35, 0x07, 35, 10, 2, 0xFE, 0x01, 0x11, 2, 0, 0, 3, 1, 0, 0];
+        const {disk} = makeSdFixture([], {dosVersion: 0x80});
+        disk.binary.set(table, 2*256);
+        const trsdos = decodeTrsdos(new SectorOverlay(disk))!;
+        expect(newdos80LayoutProblem(trsdos)).to.contain("PDRIVE table");
     });
 });

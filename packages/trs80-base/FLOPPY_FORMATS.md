@@ -2639,8 +2639,8 @@ SYS files are not on the disk", so a NEWDOS/80 decoder must not assume entries 0
 ### Writing NEWDOS/80
 
 What the writer (`TrsdosRuleSet.NEWDOS_80`, `--dos newdos-80`) does, and the rules behind it. It covers
-version 2 disks only (GAT byte 0xCB = 0x82); version 1 (0x80) and 3.0 aren't written. Cites are to the
-NEWDOS/80 Version 2.0 manual, PDF pages 96-101, paraphrased.
+version 2 disks (GAT byte 0xCB = 0x82), and version 1.0 disks (0x80) in one layout (see "Version 1.0" below); 3.0
+isn't written. Cites are to the NEWDOS/80 Version 2.0 manual, PDF pages 96-101, paraphrased.
 
 - **New entries.** Byte 1 is 0x20 and byte 2 is 0 on about 2,000 files from NEWDOS/80 version 2 disks. NEWDOS/80
   has no file dates: byte 1 holds flags (bit 7: the file may not be extended, bit 6: CLOSE may not free the excess
@@ -2706,9 +2706,27 @@ NEWDOS/80 Version 2.0 manual, PDF pages 96-101, paraphrased.
   there: FILE1, FILE2 and FILE3 in DECs 0x05, 0x04 and 0x24. Version 2 places files the same way (1,120 of 2,544
   user entries on its disks sit in the sector their hash picks, and the rest overflow, as do 291 of 423 on version
   1 disks). The writer takes the lowest free DEC instead, which is harmless, since the DOS finds a file by its HIT
-  byte wherever it is.
-- **Not written:** create and format (there's no NEWDOS/80 boot sector to write), NEWDOS/80 version 1 and 3.0,
-  and the other NEWDOSes.
+  byte wherever it is. Where the hash's sector is full the DOS's choice isn't simply the next sector: on the
+  collection's disks the overflow lands one, two or five sectors on in about equal numbers, so matching it exactly
+  would take the DOS's code or a controlled test, not the disks we have.
+- **Version 1.0.** It's the same rule set as version 2, since the two differ only in byte 1 of a new entry, which the
+  writer takes from the disk: 0 when the DOS the disk names is 1.0 (or, for a disk that names none, when GAT byte
+  0xCB is 0x80), 0x20 otherwise; 400 of the user files on version 1.0 disks have 0 there, and the rest carry other
+  DOSes' dates. A disk that version 1.0 formatted (0xCB = 0x80) is written only in the layout Ira's disks show:
+  single density, one side, 10 sectors and two granules to a cylinder, and no PDRIVE table. That refuses the
+  DoubleZap and other double-density version 1.0 disks (third-party patches, and double-sided double density
+  stores its sectors in an order that version 2 can't read, manual PDF page 189), single density on two sides
+  (`SPT=20,GPL=4` by the same page; the one candidate, `peter/Super Dos [VDISK OK] [IRA334].dmk`, is really single
+  sided double density with a leftover directory on side 1), and the two NEWDOS/86 utility disks named v1.0 (double
+  density, with a PDRIVE table). Two extended entries on version 1.0 disks are in the form the writer uses.
+  Starting from Ira's freshly formatted disk and adding his three files gives his SAVE 3 disk's GAT, HIT bytes and
+  entries exactly, in other slots (DECs 0x02-0x04 against his 0x05, 0x04 and 0x24); killing FILE1 changes the same
+  three bytes as his KILL, and renaming it the same eight as his RENAME. The data sectors differ in two ways that
+  don't matter to the DOS: the writer zeros the end of a file's last sector, where the DOS leaves whatever its
+  buffer held, and writes zeros to the unused sectors of a file's last granule, which the DOS doesn't touch.
+  Ira's data disks also have side 1 in the ID of every sector on side 0 (see "Sector IDs that name another side").
+- **Not written:** create and format (there's no NEWDOS/80 boot sector to write), NEWDOS/80 version 3.0, version 1.0
+  disks in any other layout, and the other NEWDOSes.
 
 ## Evidence that turned out to be reliable
 
@@ -3742,6 +3760,16 @@ them with their ID-field position.
     record, and logs a warning for the rest. It doesn't set the file's error,
     because an error stops the disk from being opened at all.
 - **Not IMD:** one `.IMD` is really an HxC `HXCMFM` file.
+
+## Sector IDs that name another side
+
+A sector's ID field names its cylinder, side and number, and the side needn't be the side it's on. Ira's NEWDOS/80
+1.0 data disks have side 1 in every sector of side 0 (his system disk has 0), and so do several single-sided disks
+in the collection (an LDOS 5.1.4 disk, ST80-III, BFBDEM); a double-sided one (SuperCop) has it wrong on half its
+sectors. Readers look sectors up by where they are, and so must writers: `SectorOverlay` used to commit a change to
+the position in the changed sector's ID, so on these disks a write went to a sector that doesn't exist (and was
+lost while the command reported success) or to the other side. It commits by the position written now (November
+2026).
 
 ## Writing the image formats
 
