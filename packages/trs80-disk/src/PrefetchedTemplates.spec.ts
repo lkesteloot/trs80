@@ -88,6 +88,14 @@ describe("PrefetchedTemplateSource", () => {
         expect(source.systemDisk(SYSTEM_DISK_NAME)).to.eql(FILE_TEMPLATES.systemDisk(SYSTEM_DISK_NAME));
     });
 
+    it("takes bytes that a server already unzipped", async () => {
+        const source = new PrefetchedTemplateSource(BOOT_SECTORS_HEX);
+        const unzipped = FILE_TEMPLATES.systemDisk(SYSTEM_DISK_NAME);
+        expect(unzipped).to.not.equal(undefined);
+        await source.prefetchSystemDisk(SYSTEM_DISK_NAME, async () => unzipped as Uint8Array);
+        expect(source.systemDisk(SYSTEM_DISK_NAME)).to.eql(unzipped);
+    });
+
     it("makes the same disks as the file templates", async () => {
         const source = new PrefetchedTemplateSource(BOOT_SECTORS_HEX);
         await source.prefetchSystemDisk(SYSTEM_DISK_NAME, loadGzipped);
