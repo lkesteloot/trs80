@@ -32,8 +32,9 @@ const MEDIA_BLOCK_HIGHEST_CYLINDER = 7;
 
 /**
  * The size of a MultiDOS disk, from GAT bytes 0xCC and 0xCD, which MultiDOS keeps in one of two forms
- * (see multidosGatSize()). Only a GAT that agrees with the image's cylinders counts, since a "P" density
- * disk's 0xCC is lumps rather than cylinders, and so is a NEWDOS/80 disk's after MultiDOS's CAT (X).
+ * (see multidosGatSize()). Only a GAT that agrees with the decoded layout, on the image's cylinders or
+ * fewer, counts, since a "P" density disk's 0xCC is lumps rather than cylinders, and so is a NEWDOS/80
+ * disk's after MultiDOS's CAT (X).
  */
 function multidosDiskSize(trsdos: Trsdos): DosDiskSize | string {
     const gat = trsdos.disk.readSector(trsdos.getGatPosition());

@@ -95,42 +95,75 @@ function isPDensityLayout(trsdos: Trsdos): boolean {
 }
 
 /**
+ * How many lumps a disk of some number of cylinders has under the decoded layout.
+ */
+function lumpsForCylinders(trsdos: Trsdos, cylinderCount: number): number {
+    const sectorsPerLump = trsdos.sectorsPerGranule*trsdos.granulesPerLump;
+    return Math.floor((cylinderCount - trsdos.firstDataCylinder)*trsdos.sectorsPerCylinder/sectorsPerLump);
+}
+
+/**
  * Read GAT bytes 0xCC and 0xCD in whichever of MultiDOS's two forms agrees with the decoded layout. In the
  * "counts" form (MultiDOS 1.x, and every "P" density disk), 0xCC is the number of lumps and 0xCD the number
- * of physical cylinders. In the "ldos" form (2.0 on), 0xCC is the cylinders less 35 and 0xCD has LDOS's
- * flags: bit 6 double density, bit 5 two sides, and bits 2-0 the granules per track (or, on one 2.0 disk,
- * per cylinder) less one. Either way the cylinders must be the image's: a GAT that describes a larger disk
- * than the image, or a smaller one (an image with an extra cylinder), doesn't agree. See "Writing MultiDOS"
- * in FLOPPY_FORMATS.md.
+ * of physical cylinders, and the two must agree with each other under the layout. In the "ldos" form (2.0
+ * on), 0xCC is the cylinders less 35 and 0xCD has LDOS's flags: bit 6 double density, bit 5 two sides, and
+ * bits 2-0 the granules per track (or, on one 2.0 disk, per cylinder) less one. A GAT that describes a
+ * larger disk than the image doesn't agree. One that describes a smaller disk does, since an imager can
+ * read past a disk's last cylinder, but the cylinders past its end must then be provably empty (the write
+ * gate checks that). See "Writing MultiDOS" in FLOPPY_FORMATS.md.
  *
  * @param trsdos the file system.
  * @param gat the GAT sector's bytes.
  * @return the size, or undefined if neither form agrees with the layout.
  */
 export function multidosGatSize(trsdos: Trsdos, gat: Uint8Array): MultidosGatSize | undefined {
-    const size = gat[GAT_SIZE_OFFSET] ?? 0;
-    const flags = gat[GAT_FLAGS_OFFSET] ?? 0;
-    const cylinderCount = trsdos.geometry.cylinderCount;
+    const imageCylinders = trsdos.geometry.cylinderCount;
+    const candidates = [countsFormSize(trsdos, gat), ldosFormSize(trsdos, gat)]
+        .filter(candidate => candidate !== undefined)
+        .filter(candidate => candidate.cylinderCount > trsdos.firstDataCylinder &&
+            candidate.cylinderCount <= imageCylinders);
 
-    if (size === trsdos.lumpCount && flags === cylinderCount) {
-        return {form: "counts", cylinderCount};
+    // A form that describes the image exactly wins. Otherwise only one form may describe a smaller disk,
+    // since small bytes can read as either.
+    const exact = candidates.find(candidate => candidate.cylinderCount === imageCylinders);
+    if (exact !== undefined) {
+        return exact;
     }
+    return candidates.length === 1 ? candidates[0] : undefined;
+}
 
-    // LDOS's form doesn't describe NEWDOS/80-style lumps.
+/**
+ * Read GAT bytes 0xCC and 0xCD in the "counts" form (see {@link multidosGatSize}): 0xCD the cylinders, and
+ * 0xCC the lumps that those cylinders have under the decoded layout.
+ *
+ * @return the size, or undefined if 0xCC isn't the lump count for 0xCD's cylinders.
+ */
+function countsFormSize(trsdos: Trsdos, gat: Uint8Array): MultidosGatSize | undefined {
+    const size = gat[GAT_SIZE_OFFSET] ?? 0;
+    const cylinderCount = gat[GAT_FLAGS_OFFSET] ?? 0;
+    return size === lumpsForCylinders(trsdos, cylinderCount) ? {form: "counts", cylinderCount} : undefined;
+}
+
+/**
+ * Read GAT bytes 0xCC and 0xCD in the "ldos" form (see {@link multidosGatSize}): 0xCC the cylinders less
+ * 35, and 0xCD's flags matching the decoded layout. Only for layouts whose lumps are cylinders.
+ *
+ * @return the size, or undefined if the flags don't match the layout.
+ */
+function ldosFormSize(trsdos: Trsdos, gat: Uint8Array): MultidosGatSize | undefined {
     if (!trsdos.lumpsAreCylinders) {
         return undefined;
     }
+    const size = gat[GAT_SIZE_OFFSET] ?? 0;
+    const flags = gat[GAT_FLAGS_OFFSET] ?? 0;
     const sides = (flags & GAT_FLAG_TWO_SIDED) !== 0 ? 2 : 1;
     const density = (flags & GAT_FLAG_DOUBLE_DENSITY) !== 0 ? Density.DOUBLE : Density.SINGLE;
     const granules = (flags & GAT_FLAG_GRANULES_MASK) + 1;
     const granulesAgree = granules === trsdos.granulesPerLump/trsdos.allocationSides ||
         granules === trsdos.granulesPerLump;
-    if (size + GAT_CYLINDER_EXCESS === cylinderCount && sides === trsdos.allocationSides &&
-        density === trsdos.geometry.modalDataDensity && granulesAgree) {
-
-        return {form: "ldos", cylinderCount};
-    }
-    return undefined;
+    const flagsAgree = sides === trsdos.allocationSides && density === trsdos.geometry.modalDataDensity &&
+        granulesAgree;
+    return flagsAgree ? {form: "ldos", cylinderCount: size + GAT_CYLINDER_EXCESS} : undefined;
 }
 
 /**
@@ -161,7 +194,8 @@ function secondSideSaysSideZero(floppy: FloppyDisk): boolean {
  *   MultiDOS also makes disks with a volume on each side, which we'd write as one-sided, and those can't be
  *   told from one-volume disks whose second side we didn't see used.
  * - The layout must be one that MultiDOS makes: whole cylinders of 5- or 6-sector granules, or "P" density.
- * - GAT bytes 0xCC and 0xCD must agree with the layout (see {@link multidosGatSize}).
+ * - GAT bytes 0xCC and 0xCD must agree with the layout (see {@link multidosGatSize}), on the image's
+ *   cylinders or fewer. When fewer, the write gate also needs the cylinders past them to be provably empty.
  *
  * @param trsdos the file system.
  * @param floppy the disk it's on (not an overlay).

@@ -117,6 +117,19 @@ export interface TailTrack {
 }
 
 /**
+ * Whether a sector's data is filler: the same byte throughout, or the same two bytes alternating, which
+ * is how the DOSes' FORMAT fills new sectors (see "Leftovers from earlier formats" in FLOPPY_FORMATS.md).
+ */
+export function isFillerSector(data: Uint8Array): boolean {
+    for (let i = 2; i < data.length; i++) {
+        if (data[i] !== data[i - 2]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
  * Whether a track is a provable leftover that nothing on the disk needs: a re-read or unformatted.
  */
 export function isDroppableTailTrack(track: TailTrack): boolean {
@@ -368,6 +381,77 @@ export function analyzeFloppyTail(floppy: FloppyDisk, fileSystem: FloppyFileSyst
     }
 
     return {size, unproven: undefined, cylinders, dropFrom, diskSigns};
+}
+
+/**
+ * Whether a track past the disk's end holds nothing: it's droppable (a re-read or unformatted), or it's
+ * formatted like the disk and every sector reads, without a CRC error, as filler (see
+ * {@link isFillerSector}), as FORMAT leaves a cylinder that nothing has written to.
+ *
+ * @param floppy the disk.
+ * @param track the track, from {@link analyzeFloppyTail}.
+ */
+export function isBlankTailTrack(floppy: FloppyDisk, track: TailTrack): boolean {
+    switch (track.kind) {
+        case TailTrackKind.UNFORMATTED:
+        case TailTrackKind.RE_READ:
+            return true;
+        case TailTrackKind.FOREIGN_IDS:
+        case TailTrackKind.OTHER_FORMAT:
+            return false;
+        case TailTrackKind.LIKE_DISK:
+            break;
+        default:
+            assertNever(track.kind);
+    }
+
+    const ids = floppy.getGeometry().sectorInfos.filter(info =>
+        info.sectorPosition.trackPosition.equals(track.trackPosition));
+    return ids.every(info => {
+        if (!info.hasValidIdCrc() || !info.hasData()) {
+            return false;
+        }
+        const sector = floppy.readSector(info.sectorPosition);
+        return sector !== undefined && !sector.crcError && !sector.deleted && isFillerSector(sector.data);
+    });
+}
+
+/**
+ * The first cylinder past the disk's end that might hold something: one that a file, the directory, free
+ * space, the boot sector or a sign of copy protection keeps, or one with a track that isn't blank (see
+ * {@link isBlankTailTrack}). A cylinder that trimming keeps only because it's formatted like the disk, or
+ * because a later cylinder is kept, counts as empty if its tracks are blank. Anything that writes a disk
+ * with a tail uses this to make sure that the image's extra cylinders are leftovers that the DOS can't see.
+ *
+ * @param floppy the disk.
+ * @param tail its tail, from {@link analyzeFloppyTail}.
+ * @return the cylinder, or undefined if every cylinder of the tail is provably empty.
+ */
+export function findNonBlankTailCylinder(floppy: FloppyDisk, tail: FloppyTail): TailCylinder | undefined {
+    for (const tailCylinder of tail.cylinders) {
+        const reason = tailCylinder.keepReason;
+        switch (reason) {
+            case undefined:
+            case TailKeepReason.LATER_CYLINDER_KEPT:
+            case TailKeepReason.LIKE_DISK:
+                if (!tailCylinder.tracks.every(track => isBlankTailTrack(floppy, track))) {
+                    return tailCylinder;
+                }
+                break;
+            case TailKeepReason.TOO_LONG:
+            case TailKeepReason.DISK_PROTECTION_SIGN:
+            case TailKeepReason.CLAIMED:
+            case TailKeepReason.BOOT_POINTER:
+            case TailKeepReason.FREE_SPACE:
+            case TailKeepReason.PROTECTION_SIGN:
+            case TailKeepReason.FOREIGN_IDS:
+            case TailKeepReason.OTHER_FORMAT:
+                return tailCylinder;
+            default:
+                assertNever(reason);
+        }
+    }
+    return undefined;
 }
 
 /**

@@ -717,7 +717,9 @@ tail cylinder can go only if all of these hold:
    DOSPLUS 3.x and 4.0; TC in slot 0 of a NEWDOS/80 system disk's PDRIVE table
    (`readPdriveTable()`, which looks on cylinder 1 when cylinder 0's sector 2
    is blank; plus the opposite-density cylinder 0 that TC doesn't count), checked
-   against the decoded SPT, GPL and lump count; and the fixed 35 cylinders of
+   against the decoded SPT, GPL and lump count; MultiDOS 1.x and 2.00's GAT
+   bytes 0xCC and 0xCD, in whichever form agrees with the layout on no more
+   cylinders than the image's (see "Writing MultiDOS"); and the fixed 35 cylinders of
    TRSDOS 2.x (or the GAT's, if it covers more, as on a ZAPped disk) and 40 of
    TRSDOS 1.x (whose GAT is zero past its end, so free bits there mean
    nothing). The GAT must not use a cylinder past that end. Every other DOS,
@@ -1897,12 +1899,22 @@ measured on the 162 disks of the collection that are named MultiDOS (November 20
   `23 23`), and so does every release on a "P" density disk (`46 28`: 70 lumps, 40 cylinders; `3D 23`; `8E 50`).
   From 2.0 they're LDOS's (`05 42`, `05 65`), except that one 2.0 disk (`Bright-412`) gives granules per cylinder
   rather than per track. Ira adds that MultiDOS's `CAT (X)` writes the counts form into NEWDOS/80 disks, whose
-  writer doesn't read these bytes. The writer needs one form to describe the image exactly: the image's cylinders,
-  and in the counts form the decoded lump count, in the LDOS form the density, sides and granules. That fails on 10
-  of the 1.x and 2.00 disks: three 1.7 disks imaged with 41 cylinders, two 1.71 disks whose GAT says 40 cylinders on
-  a 35-cylinder image, a 1.3P disk whose GAT says 70 lumps on 35 cylinders, two 1.5K disks with `DD DD`, a 1.3a
-  disk with `28 45`, and a 1.6 disk with `12 12` on 40 cylinders. The disk size (`trim`) comes from the same form,
-  so it never differs from the image's.
+  writer doesn't read these bytes. The writer needs one form to agree with the decoded layout: in the counts form
+  0xCC must be the lump count for 0xCD's cylinders, and in the LDOS form the density, sides and granules must match.
+  The cylinders may be the image's or fewer, never more. A form that gives the image's wins, and two forms giving
+  two different smaller sizes count as neither. A smaller size is the disk's size for `trim` too, and the writer
+  then needs every cylinder past it to be provably empty by the tail analysis (see "Tails past the disk's end"):
+  each track a re-read, unformatted, or formatted like the disk with every sector FORMAT's filler, and no file, free
+  space, boot pointer or protection sign on it. Since the GAT has no free space past that end, nothing is ever
+  allocated there. Of the three 1.7 disks imaged with 41 cylinders (`28 28`), `MultiDOS v1.7.0 [M3][Set 4]`'s
+  cylinder 40 is 18 sectors of `6D B6`, the filler of 1.7's free sectors on every Model III 1.7 disk, so it's
+  written. MultiDOS 1.7's own DIR shows that written copy as `39 log 39 phy cyls` (the last cylinder, so 40
+  cylinders), with the free granules we count. The two `MultiDOS v1.7D [M1][DD]` disks' cylinder 40 has its own IDs
+  but holds an earlier format's data (an adventure game's room text), so they're refused, as they are for
+  damage anyway (SYSRES/SYS is missing 8 sectors). Still refused, 7 of the 1.x and 2.00 disks: two 1.71 disks whose
+  GAT says 40 cylinders on a 35-cylinder image, a 1.3P disk whose GAT says 70 lumps on 35 cylinders, two 1.5K disks
+  with `DD DD`, a 1.3a disk with `28 45`, and a 1.6 disk (`Boss`) whose `12 12` reads as 18 cylinders on a
+  40-cylinder image, with nothing in the GAT past cylinder 17, but a tail too long to call empty.
 - **Lockout table.** 0x60-0xBF is LDOS's lockout table, by granule (FORMAT locks out flawed granules), except on
   "P" density disks and hard disks, which have none (FORMAT leaves 0xFF). The granule map already ignores it where
   lumps aren't cylinders, which covers "P" density.

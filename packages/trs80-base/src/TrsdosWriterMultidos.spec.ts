@@ -201,6 +201,63 @@ interface DdOptions {
     usedGranules?: [number, number][];
     /** A change to the GAT and the HIT before they're written. */
     patch?: Patch;
+    /**
+     * A 41st cylinder past the 40 that the GAT describes, as an imager might add: formatted like the disk with
+     * filler, formatted like the disk with data in its first sector, unformatted, or a re-read of cylinder 39.
+     */
+    tail?: TailKind;
+}
+
+/**
+ * What the extra cylinder of a test disk with a tail holds (see {@link DdOptions.tail}).
+ */
+type TailKind = "blank" | "data" | "unformatted" | "reRead";
+
+/**
+ * The bytes that the "data" tail's first sector holds.
+ */
+const TAIL_DATA = new Uint8Array(256).map((_, i) => i);
+
+/**
+ * Make the tracks of a double-density test disk's image, formatted as its FORMAT would.
+ *
+ * @param layout the disk's layout.
+ * @param cylinders the cylinders that the file system covers.
+ * @param options whether side 1's IDs say side 0, and what an extra cylinder holds.
+ */
+function makeDdTracks(layout: DdLayout, cylinders: number, options: DdOptions): FormattedTrack[] {
+    const tracks: FormattedTrack[] = [];
+    const sideOneSaysSideZero = options.sideOneSaysSideZero === true;
+    const addTrack = (cylinder: number, side: number, idCylinder: number) => {
+        const trackLayout = layout.pDensity && cylinder === 0 ? LDOS_SD_TRACK_LAYOUT : LDOS_DD_TRACK_LAYOUT;
+        const track = buildFormattedTrack(trackLayout, new TrackPosition(idCylinder, sideOneSaysSideZero ? 0 : side),
+            layout.sides);
+        if (track === undefined) {
+            throw new Error("Can't make a track");
+        }
+        tracks.push({...track, trackPosition: new TrackPosition(cylinder, side)});
+    };
+    for (let cylinder = 0; cylinder < cylinders; cylinder++) {
+        for (let side = 0; side < layout.sides; side++) {
+            addTrack(cylinder, side, cylinder);
+        }
+    }
+    for (let side = 0; side < layout.sides; side++) {
+        switch (options.tail) {
+            case undefined:
+            case "unformatted":
+                break;
+            case "blank":
+            case "data":
+                addTrack(cylinders, side, cylinders);
+                break;
+            case "reRead":
+                // A drive that couldn't step past cylinder 39 read it again.
+                addTrack(cylinders, side, cylinders - 1);
+                break;
+        }
+    }
+    return tracks;
 }
 
 /**
@@ -217,18 +274,9 @@ interface DdOptions {
 function makeDdFixture(layout: DdLayout, options: DdOptions = {}) {
     const cylinders = 40;
     let disk;
-    if (options.sideOneSaysSideZero === true) {
-        const tracks: FormattedTrack[] = [];
-        for (let cylinder = 0; cylinder < cylinders; cylinder++) {
-            for (let side = 0; side < 2; side++) {
-                const track = buildFormattedTrack(LDOS_DD_TRACK_LAYOUT, new TrackPosition(cylinder, 0), 2);
-                if (track === undefined) {
-                    throw new Error("Can't make a track");
-                }
-                tracks.push({...track, trackPosition: new TrackPosition(cylinder, side)});
-            }
-        }
-        disk = makeDmkImage(tracks, cylinders, 2);
+    if (options.sideOneSaysSideZero === true || options.tail !== undefined) {
+        const imageCylinders = options.tail === undefined ? cylinders : cylinders + 1;
+        disk = makeDmkImage(makeDdTracks(layout, cylinders, options), imageCylinders, layout.sides);
     } else {
         disk = makeBlankFloppy(LDOS_DD_TRACK_LAYOUT, cylinders, layout.sides,
             {cylinder0Layout: layout.pDensity ? LDOS_SD_TRACK_LAYOUT : undefined});
@@ -315,6 +363,9 @@ function makeDdFixture(layout: DdLayout, options: DdOptions = {}) {
     dirSectors.forEach((bytes, i) => setup.writeSector(ddPosition(layout, layout.dirLump, 2 + i), bytes));
     for (const [position, bytes] of sectorData) {
         setup.writeSector(position, bytes);
+    }
+    if (options.tail === "data") {
+        setup.writeSector(SectorPosition.make(cylinders, 0, 0), TAIL_DATA);
     }
     setup.commit();
 
@@ -761,5 +812,101 @@ describe("TrsdosWriter under MultiDOS rules, P density's GAT", () => {
         }
         expect(140 - used).to.equal(freeGranules - 4);
         expect(gat.subarray(0x60, 0xC0).every(byte => byte === 0xFF)).to.be.true;
+    });
+});
+
+/**
+ * Every sector of a cylinder's tracks, keyed by position, to see whether a write changed any.
+ */
+function cylinderBytes(volume: Trsdos["disk"], cylinder: number): Map<string, string> {
+    const bytes = new Map<string, string>();
+    for (let side = 0; side < 2; side++) {
+        for (let sector = 0; sector < 18; sector++) {
+            const sectorPosition = SectorPosition.make(cylinder, side, sector);
+            const data = volume.readSector(sectorPosition)?.data;
+            if (data !== undefined) {
+                bytes.set(sectorPosition.key(), [...data].join(","));
+            }
+        }
+    }
+    return bytes;
+}
+
+describe("MultiDOS disks with a cylinder past the GAT's end", () => {
+    const layouts: [string, DdLayout, string][] = [
+        ["P density", P_LAYOUT, "GAT byte 0xCD"],
+        ["double-sided double density", DS_LAYOUT, "GAT byte 0xCC"],
+    ];
+    for (const [label, layout, source] of layouts) {
+        for (const tail of ["blank", "unformatted", "reRead"] as const) {
+            it(`writes a ${label} disk whose 41st cylinder is ${tail}, as the GAT's 40-cylinder disk`, () => {
+                const {disk, trsdos} = makeDdFixture(layout, {tail});
+                expect(trsdos.geometry.cylinderCount).to.equal(41);
+                expect(multidosGatSize(trsdos, readBytes(trsdos.disk, trsdos.getGatPosition())))
+                    .to.eql({form: layout.pDensity ? "counts" : "ldos", cylinderCount: 40});
+                expect(findTrsdosDiskSize(trsdos, disk)).to.eql({cylinderCount: 40, source});
+                const gate = evaluateTrsdosWriteGate(trsdos);
+                expect(gate.blockers).to.eql([]);
+                expect(gate.access).to.equal(TrsdosWriteAccess.WRITABLE);
+            });
+        }
+
+        it(`refuses a ${label} disk whose 41st cylinder holds data, even with --force`, () => {
+            const {trsdos} = makeDdFixture(layout, {tail: "data"});
+            expect(layoutBlockers(trsdos)).to.eql([`The image has 41 cylinders, but ${source} says the disk has 40, ` +
+                "and cylinder 40 might not be empty (it holds more than FORMAT's filler, perhaps from an earlier " +
+                "format), so writing it isn't supported."]);
+            expect(evaluateTrsdosWriteGate(trsdos).access).to.equal(TrsdosWriteAccess.READ_ONLY);
+        });
+
+        it(`refuses a ${label} disk whose GAT has free space past the end it gives`, () => {
+            // The 41st cylinder's lump free in the GAT (and not locked out), as if the DOS counted it.
+            const lastLump = layout.pDensity ? 70 : 40;
+            const freeByte = (0xFF << layout.granulesPerLump) & 0xFF;
+            const {trsdos} = makeDdFixture(layout, {tail: "blank", patch: gat => {
+                gat[lastLump] = freeByte;
+                if (!layout.pDensity) {
+                    gat[0x60 + lastLump] = freeByte;
+                }
+            }});
+            expect(layoutBlockers(trsdos)).to.eql([`This disk's size isn't proven (${source} says 40 cylinders, but ` +
+                "the GAT uses cylinder 40), so writing it isn't supported."]);
+        });
+
+        it(`never allocates past the GAT's end on a ${label} disk, even when the disk fills up`, () => {
+            const {overlay, trsdos, makeWriter} = makeDdFixture(layout, {tail: "blank"});
+            const before = cylinderBytes(overlay, 40);
+            expect(before.size).to.be.greaterThan(0);
+            const oldGat = readBytes(overlay, trsdos.getGatPosition()).slice();
+            const writer = makeWriter();
+            // Files of 16 granules until there's no room.
+            const fileSize = 16*trsdos.sectorsPerGranule*256;
+            let added = 0;
+            expect(() => {
+                for (; added < 100; added++) {
+                    writer.addFile(name(`FILL${added}/DAT`), makeContents(fileSize, added));
+                }
+            }).to.throw(TrsdosWriteError);
+            expect(added).to.be.greaterThan(3);
+            const newTrsdos = writer.flush();
+            expect(cylinderBytes(overlay, 40)).to.eql(before);
+            const gat = readBytes(newTrsdos.disk, newTrsdos.getGatPosition());
+            const gatLumps = layout.pDensity ? 70 : 40;
+            expect([...gat.subarray(gatLumps, 0x60)]).to.eql([...oldGat.subarray(gatLumps, 0x60)]);
+            expect([...gat.subarray(0xC0)]).to.eql([...oldGat.subarray(0xC0)]);
+            expect(problems(newTrsdos)).to.eql([]);
+            for (let i = 0; i < added; i++) {
+                expect(newTrsdos.readFile(getFile(newTrsdos, `FILL${i}/DAT`))).to.eql(makeContents(fileSize, i));
+            }
+        });
+    }
+
+    it("reads a counts-form GAT that describes fewer cylinders than the image", () => {
+        const {disk, trsdos} = makeSdFixture([], {patch: gat => gat.set([34, 34], 0xCC)});
+        expect(multidosGatSize(trsdos, readBytes(trsdos.disk, trsdos.getGatPosition())))
+            .to.eql({form: "counts", cylinderCount: 34});
+        // The test disk's GAT has cylinder 34 free, so the GAT contradicts that size.
+        expect(findTrsdosDiskSize(trsdos, disk)).to.equal("GAT byte 0xCD says 34 cylinders, but the GAT uses cylinder 34");
+        expect(evaluateTrsdosWriteGate(trsdos).access).to.equal(TrsdosWriteAccess.READ_ONLY);
     });
 });

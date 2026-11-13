@@ -286,15 +286,21 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       - The other NEWDOSes (NEWDOS/86, NEWDOS/90, NEWDOS+), and the German G-DOS and H-DOS.
 - [ ] **Writing MultiDOS: what's left.** The writer covers 1.x and 2.00 (see "Writing MultiDOS" in
       FLOPPY_FORMATS.md). Not written:
-      - 2.10, whose access password bytes hold a time stamp, and 4.01 on, which keep the access password in
-        bytes 1-2 and the date in bytes 16-19. The decoder doesn't read either yet: 4.01's files show the blank
-        hash as 08/06/1982 and its system files as month 15. Reading them, and telling a later release's entry on
-        a 1.x disk from a 1.x one, would also let `attrib` set passwords and dates on 1.x disks.
+      - 2.10 and 4.01 on (about 57 suite disks). What's needed, in order:
+        1. Decode their entries. 2.10's access password bytes (18-19) hold a big-endian time stamp in LDOS 5.3's
+           form; 4.01 on keep the access password in bytes 1-2 and the date in bytes 16-19. The decoder reads
+           neither: 4.01's files show the blank hash as 08/06/1982 and its system files as month 15.
+        2. Tell which release wrote each entry, since a later release's file can be copied to an earlier disk.
+           That would also let `attrib` set passwords and dates on 1.x disks, which it refuses today.
+        3. Measure the rest on those disks as for 1.x: new entries' bytes, the system files' DECs, the GAT's
+           0xCC/0xCD form, and what KILL leaves.
+        4. Then a rule set for them, or a variant of MULTIDOS.
       - Disks with a volume on each side (`SI=2`): none is in the collection, so the second volume isn't read
         either. The writer refuses a two-sided image that allocates one side, or whose side-1 IDs say side 0.
-      - GATs whose 0xCC and 0xCD don't describe the image (most are images with an extra cylinder, or of 35
-        cylinders whose GAT says 40). Those with fewer lumps in the GAT than the image could be written by never
-        allocating past the GAT's count, as for NEWDOS/80's PDRIVE count.
+      - GATs whose 0xCC and 0xCD describe more cylinders than the image (two 1.71 disks of 35 cylinders whose GAT
+        says 40, a 1.3P disk), or no layout at all (1.5K's `DD DD`, 1.3a's `28 45`). An image with cylinders past
+        the GAT's end is written only when they're provably empty, which leaves out the two 1.7D disks whose
+        cylinder 40 holds an earlier format's data, and `Boss`, whose GAT reads as 18 cylinders of 40.
       - Extended entries (one disk has one), and the AUTO command, whose leading `#` or `!` we haven't worked out.
       - A MultiDOS disk with no version (`Bright-412` is 2.0 by its label but has no banner or stub that says so),
         MultiDOS II, and the "MultiDOS or Esoteric" disks.
