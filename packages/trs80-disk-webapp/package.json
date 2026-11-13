@@ -1,0 +1,26 @@
+{
+  "name": "trs80-disk-webapp",
+  "private": true,
+  "description": "Web apps for working on TRS-80 disk images: the Disk workbench and Disk Commander.",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "updateBuildInfo": "../../printBuildInfo > src/build.ts",
+    "build": "npm run updateBuildInfo && vite build",
+    "clean": "rm -rf dist"
+  },
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^8.3.6"
+  },
+  "dependencies": {
+    "jszip": "^3.5.0",
+    "teamten-ts-utils": "^1.0.3",
+    "trs80-base": "*",
+    "trs80-disk": "*",
+    "z80-base": "*",
+    "z80-disasm": "*"
+  }
+}

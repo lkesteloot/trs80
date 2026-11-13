@@ -12,5 +12,8 @@ rm -rf site
 cp -R $packages/my-trs-80/dist site
 cp -R $packages/trs80-cassette-webapp/dist site/cassette
 cp -R $packages/trs80-ide/dist site/ide
+cp -R $packages/trs80-disk-webapp/dist/disk site/disk
+cp -R $packages/trs80-disk-webapp/dist/commander site/commander
+cp -R $packages/trs80-disk-webapp/dist/disk-assets site/disk-assets
 cp -R $packages/trs80-tool/site site/tool
 cp _redirects site
