@@ -5,7 +5,10 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 26, 2026. "Where things stand" at the end has the regression results.
+An item marked **Decided** records a choice rather than unfinished work, and says why. Revisit it when
+someone asks for it, or when the reason no longer holds.
+
+Last updated November 12, 2026. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -281,7 +284,8 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
         existence-table pattern. None in the collection.
       - GATs whose existence table is all 0xFF while lumps are free (ten Infocom-style disks in `disks/peter/`). The
         writer refuses them as inconsistent, but NEWDOS/80's DIRCHECK takes GAT byte 0x60 = 0xFF to mean there's no
-        existence table at all (manual PDF page 117), so they may well be writable. A decision for the user.
+        existence table at all (manual PDF page 117), so they may well be writable. **Decided** (November 2026):
+        keep refusing them until someone asks. Nothing we have shows NEWDOS/80 itself writing to such a disk.
       - Creating and formatting NEWDOS/80 disks (`create`, `format`): we have no NEWDOS/80 boot sector to write.
       - The other NEWDOSes (NEWDOS/86, NEWDOS/90, NEWDOS+), and the German G-DOS and H-DOS.
 - [ ] **Writing MultiDOS: what's left.** The writer covers 1.x and 2.00 (see "Writing MultiDOS" in
@@ -291,7 +295,9 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
            form; 4.01 on keep the access password in bytes 1-2 and the date in bytes 16-19. The decoder reads
            neither: 4.01's files show the blank hash as 08/06/1982 and its system files as month 15.
         2. Tell which release wrote each entry, since a later release's file can be copied to an earlier disk.
-           That would also let `attrib` set passwords and dates on 1.x disks, which it refuses today.
+           That would also let `attrib` set passwords and dates on 1.x disks. **Decided** (November 2026): until
+           then it refuses them, since an entry a later release wrote keeps its date and password in each
+           other's bytes, and overwriting them would corrupt it.
         3. Measure the rest on those disks as for 1.x: new entries' bytes, the system files' DECs, the GAT's
            0xCC/0xCD form, and what KILL leaves.
         4. Then a rule set for them, or a variant of MULTIDOS.
@@ -302,6 +308,7 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
         the GAT's end is written only when they're provably empty, which leaves out the two 1.7D disks whose
         cylinder 40 holds an earlier format's data, and `Boss`, whose GAT reads as 18 cylinders of 40.
       - Extended entries (one disk has one), and the AUTO command, whose leading `#` or `!` we haven't worked out.
+        **Decided** (November 2026): both stay refused until a disk or the manual shows what MultiDOS writes.
       - A MultiDOS disk with no version (`Bright-412` is 2.0 by its label but has no banner or stub that says so),
         MultiDOS II, and the "MultiDOS or Esoteric" disks.
       - Creating and formatting MultiDOS disks: #28 gives 1.0's FORMAT track layout (FM `0 5 1 6 2 7 3 8 4 9`,
@@ -652,17 +659,22 @@ end" in `FLOPPY_FORMATS.md`), and `repair` refuses disks with protection signs. 
       has no rule set, so it isn't covered; NEWDOS/80's derivatives (NEWDOS/86 and /90, G-DOS, H-DOS) and
       its data disks, which have no PDRIVE table, aren't either; nor are TRSDOS 2.7, NEWDOS 2.1-3.0,
       MultiDOS, DoubleDOS, VTOS, UltraDOS and the rest, or CP/M, whose size comes from our format table
-      rather than the disk. Each needs its own evidence first.
+      rather than the disk. Each needs its own evidence first. **Decided** (November 2026): until a DOS has
+      a size source, its disks' tails stay untrimmed, which is the safe side.
 - [ ] **TRSDOS 2.x's fixed 35 cylinders** come from its FORMAT; a disk ZAPped to 40 is recognized only
       when its GAT covers the extra cylinders. One whose GAT doesn't keeps its tail as "formatted like
       the disk", which is safe.
 - [ ] **Re-reads whose IDs name a later cylinder**, like cylinder 40 of `TRSDOS v6.02.01-AR ...
-      [Original][Set 5]` (IDs say 42, data matches no neighbor), aren't re-reads by rule 2 and stay. If
-      Ira's list is right that it's one, the rule needs a second form.
+      [Original][Set 5]` (IDs say 42, data matches no neighbor), aren't re-reads by rule 2 and stay.
+      **Decided** (November 2026): we don't think that one is a re-read, despite Ira's list. Its data
+      matches none of its neighbors, and its 0x6C filler is DOSPLUS's (the reasons are in a comment on
+      #47). If a disk ever shows a real re-read with later IDs, the rule needs a second form.
 - [ ] **Ira's other hands-off checks** for repair aren't done: filename tags containing "Protect", a
       JV3 file named `.dmk`, and odd image header bytes.
 - [ ] **No override.** Neither trim nor repair can be made to touch a disk with protection signs, even with
-      `--force`. If that's ever needed, it wants an option of its own.
+      `--force`. **Decided** with the user (November 2026, #47): no override. A sign may be the protection
+      itself, which trimming or repairing would destroy, and Ira's rule is never to turn a good image into a
+      bad one. If someone needs it, it wants an option of its own rather than `--force`.
 - [ ] **`check` doesn't discount re-reads.** It reports IDs naming another cylinder on re-read tails as a
       protection sign, though repair doesn't count them.
 
