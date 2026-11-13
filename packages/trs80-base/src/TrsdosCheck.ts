@@ -1,8 +1,6 @@
 import {assertNever, toHexByte} from "z80-base";
 import {CMD_TRANSFER_ADDRESS, CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 import type {FloppyFileContents} from "./FileDamage.js";
-import {FloppyDisk, type SectorPosition} from "./FloppyDisk.js";
-import {SectorOverlay} from "./SectorOverlay.js";
 import {
     hashForFilename,
     isOldDirSysHashInAnySlot,
@@ -11,7 +9,7 @@ import {
     type TrsdosDirSlot,
 } from "./Trsdos.js";
 import {findUnwritableGranuleSectors} from "./TrsdosAllocator.js";
-import {findDosDiskSize, findTrsdosCylinderUse} from "./TrsdosDiskSize.js";
+import {findTrsdosProvenCylinderCount, isGranuleInsideCylinders} from "./TrsdosDiskSize.js";
 import {type TrsdosGranule, TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 
 /**
@@ -85,7 +83,7 @@ export enum TrsdosFindingKind {
     /**
      * Granules that the GAT says are free but that the image doesn't fully hold: some of their sectors
      * have no ID, no data field, or the wrong size. New files skip them, since writing them would fail.
-     * See {@link findFreeButMissingGranules}.
+     * See {@link findUnusableFreeGranules}.
      */
     FREE_BUT_MISSING,
     /**
@@ -459,20 +457,20 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
             });
         }
 
-        const missing = findFreeButMissingGranules(trsdos, granuleMap);
-        if (missing.granules.length > 0) {
-            const count = missing.granules.length;
+        const unusable = findUnusableFreeGranules(trsdos, granuleMap);
+        if (unusable.missing.length > 0) {
+            const count = unusable.missing.length;
             const one = count === 1;
             const lostBytes = count*trsdos.sectorsPerGranule*SECTOR_SIZE;
             noteFindings.push({
                 kind: TrsdosFindingKind.FREE_BUT_MISSING,
                 message: `The GAT says ${count} ${plural(count, "granule")} ${plural(count, "is", "are")} free ` +
-                    `that the image doesn't fully hold (${formatGranules(missing.granules, lumpTerm)}): ` +
-                    `${missing.sectorCount} of ${one ? "its" : "their"} sectors ` +
-                    `${plural(missing.sectorCount, "is", "are")} missing or the wrong size. New files skip ` +
+                    `that the image doesn't fully hold (${formatGranules(unusable.missing, lumpTerm)}): ` +
+                    `${unusable.missingSectorCount} of ${one ? "its" : "their"} sectors ` +
+                    `${plural(unusable.missingSectorCount, "is", "are")} missing or the wrong size. New files skip ` +
                     `${one ? "it" : "them"}, so ${lostBytes.toLocaleString()} bytes of the free space can't be used.`,
                 dirEntries: [],
-                granules: missing.granules,
+                granules: unusable.missing,
             });
         }
     }
@@ -487,57 +485,54 @@ export function checkTrsdos(trsdos: Trsdos): TrsdosCheckResult {
 }
 
 /**
- * The free granules that the image doesn't fully hold, and so that no new file can be given, with the
- * same test the writer's allocator makes ({@link findUnwritableGranuleSectors}).
+ * The granules that the GAT and the files leave free ({@link TrsdosGranule.isFree}) but that the writer's
+ * allocator never gives a file, apart from those its DOS's rules keep (such as NEWDOS/80's existence
+ * table). See {@link findUnusableFreeGranules}.
  */
-export interface FreeButMissingGranules {
-    /** The granules, in disk order. */
-    granules: TrsdosGranule[];
+export interface UnusableFreeGranules {
+    /**
+     * The granules inside the disk's proven size that the image doesn't fully hold: some sector has no
+     * ID, no data field, or the wrong size ({@link findUnwritableGranuleSectors}), so a file given the
+     * granule would fail when saved. In disk order.
+     */
+    missing: TrsdosGranule[];
 
-    /** How many of their sectors are missing or the wrong size. */
-    sectorCount: number;
+    /** How many of the missing granules' sectors are missing or the wrong size. */
+    missingSectorCount: number;
+
+    /**
+     * The granules with a sector past the disk's proven size ({@link findTrsdosProvenCylinderCount}),
+     * whether or not the image holds them, in disk order. Only TRSDOS 1.3's GAT leaves such granules
+     * free, since it's zero past its 40 cylinders.
+     */
+    pastEnd: TrsdosGranule[];
 }
 
 /**
- * Find the granules that the GAT and the files leave free ({@link TrsdosGranule.isFree}) but that the
- * image doesn't fully hold: some sector has no ID, no data field, or the wrong size, so a file given the
- * granule would fail when saved. The writer's allocator skips them. Only granules inside the disk's
- * proven size count ({@link findDosDiskSize}), so a tail past the DOS's end doesn't, such as the
- * cylinders past TRSDOS 1.3's 40, whose GAT bytes are zero. Where the size isn't proven (and on hard
- * disk partitions), every granule counts.
+ * Find the free granules that the writer's allocator never uses, by its tests: those past the disk's
+ * proven size, and those inside it that the image doesn't fully hold. Where the size isn't proven (and
+ * on hard disk partitions), no granule is past the end.
  *
  * @param trsdos the file system.
  * @param granuleMap its granule map.
  */
-export function findFreeButMissingGranules(trsdos: Trsdos, granuleMap: TrsdosGranuleMap): FreeButMissingGranules {
-    const candidates: { granule: TrsdosGranule, sectors: SectorPosition[] }[] = [];
-    for (const granule of granuleMap.granules) {
-        if (granule.isFree()) {
+export function findUnusableFreeGranules(trsdos: Trsdos, granuleMap: TrsdosGranuleMap): UnusableFreeGranules {
+    const free = granuleMap.granules.filter(granule => granule.isFree());
+    const cylinderCount = free.length > 0 ? findTrsdosProvenCylinderCount(trsdos, granuleMap) : undefined;
+
+    const result: UnusableFreeGranules = {missing: [], missingSectorCount: 0, pastEnd: []};
+    for (const granule of free) {
+        if (!isGranuleInsideCylinders(trsdos, granule.lump, granule.granule, cylinderCount)) {
+            result.pastEnd.push(granule);
+        } else {
             const sectors = findUnwritableGranuleSectors(trsdos, granule.lump, granule.granule);
             if (sectors.length > 0) {
-                candidates.push({granule, sectors});
+                result.missing.push(granule);
+                result.missingSectorCount += sectors.length;
             }
         }
     }
-
-    // Most disks have none, so the size is worked out only when there are some.
-    let cylinderCount: number | undefined = undefined;
-    const volume = trsdos.disk instanceof SectorOverlay ? trsdos.disk.base : trsdos.disk;
-    if (candidates.length > 0 && volume instanceof FloppyDisk) {
-        const use = findTrsdosCylinderUse(trsdos, granuleMap, volume.getGeometry().cylinderCount);
-        const size = findDosDiskSize(trsdos, volume, use);
-        if (typeof size !== "string") {
-            cylinderCount = size.cylinderCount;
-        }
-    }
-
-    const inside = candidates.filter(({granule}) => cylinderCount === undefined ||
-        trsdos.getGranuleSectorPositions(granule.lump, granule.granule)
-            .every(position => position.cylinderNumber < cylinderCount));
-    return {
-        granules: inside.map(({granule}) => granule),
-        sectorCount: inside.reduce((sum, {sectors}) => sum + sectors.length, 0),
-    };
+    return result;
 }
 
 /**

@@ -90,9 +90,11 @@ export function checkDisk(session: DiskSession): CheckResult {
  * @param options.freeUnclaimed also free granules that the GAT marks used but no file claims.
  * @param options.fixProgramSizes also set the size of programs whose transfer record is past their
  * directory size.
+ * @param options.markMissingUsed also mark used in the GAT the free granules that the image doesn't fully hold.
  * @throws DiskError if the disk can't be repaired.
  */
-export function repairDisk(session: DiskSession, options: {freeUnclaimed: boolean, fixProgramSizes: boolean}): RepairResult {
+export function repairDisk(session: DiskSession,
+                           options: {freeUnclaimed: boolean, fixProgramSizes: boolean, markMissingUsed: boolean}): RepairResult {
     // A disk that is unreadable for any reason but damage can't be repaired, --force or not.
     const gate = session.getWriteGate();
     if (session.fileSystem !== undefined && gate === undefined) {
@@ -126,7 +128,11 @@ export function repairDisk(session: DiskSession, options: {freeUnclaimed: boolea
 
     let result = undefined as TrsdosRepairResult | undefined;
     session.changeTrsdos(DiskWritePurpose.REPAIR, writer => {
-        result = writer.repair({freeUnclaimed: options.freeUnclaimed, fixProgramSizes: options.fixProgramSizes});
+        result = writer.repair({
+            freeUnclaimed: options.freeUnclaimed,
+            fixProgramSizes: options.fixProgramSizes,
+            markMissingUsed: options.markMissingUsed,
+        });
     });
     if (result === undefined) {
         throw new Error("The repair didn't run");
@@ -148,6 +154,21 @@ export function describeFreeableUnclaimed(count: number): string {
         (count === 1 ? "it" : "them") + ". Use --free-unclaimed to free " +
         (count === 1 ? "it" : "them") +
         ", unless a program keeps data there.";
+}
+
+/**
+ * Describe the free granules that the image doesn't fully hold, which a repair could mark used, for the user.
+ * This names the command line's option by its name, which is fine until a page wants its own wording.
+ *
+ * @param count how many granules the GAT says are free that the image doesn't fully hold, at least 1.
+ */
+export function describeMarkableMissing(count: number): string {
+    const one = count === 1;
+    return pluralizeWithCount(count, "granule") + " that the GAT says " + (one ? "is" : "are") +
+        " free " + (one ? "isn't" : "aren't") + " fully on the image, so new files skip " + (one ? "it" : "them") +
+        ". Use --mark-missing-used to mark " + (one ? "it" : "them") + " used in the GAT, so that the DOS won't " +
+        "use " + (one ? "it" : "them") + " either, unless the real disk may still have " + (one ? "its" : "their") +
+        " sectors.";
 }
 
 /**

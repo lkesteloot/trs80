@@ -1,6 +1,6 @@
 import {
     BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosOnOverlay,
-    evaluateTrsdosWriteGate, findLdosPartitions, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
+    evaluateTrsdosWriteGate, findLdosPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type LdosPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
     type TrsdosRuleSet, TrsdosWriteAccess, type TrsdosWriteBlocker, TrsdosWriteBlockerKind, TrsdosWriteError,
@@ -15,7 +15,49 @@ import {pluralizeWithCount} from "./Plural.js";
  * The free space on a TRSDOS-family disk in whole KB, rounded down, such as "23 KB free".
  */
 function freeKilobytesText(granuleMap: TrsdosGranuleMap): string {
-    return Math.floor(granuleMap.getFreeByteCount()/1024).toLocaleString() + " KB free";
+    return Math.floor(computeFreeSpace(granuleMap).freeBytes/1024).toLocaleString() + " KB free";
+}
+
+/**
+ * The space available for new files on a TRSDOS-family disk: the granules that the GAT and the files leave
+ * free, less those that the writer never uses because the image doesn't fully hold them or they're past
+ * the disk's end (see findUnusableFreeGranules() in trs80-base), which are counted apart.
+ */
+export function computeFreeSpace(granuleMap: TrsdosGranuleMap): FreeSpace {
+    const trsdos = granuleMap.trsdos;
+    const granuleBytes = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
+    const unusable = findUnusableFreeGranules(trsdos, granuleMap);
+    const freeGranules = granuleMap.getFreeGranuleCount() - unusable.missing.length - unusable.pastEnd.length;
+    return {
+        freeGranules,
+        granuleBytes,
+        freeBytes: freeGranules*granuleBytes,
+        missingGranules: unusable.missing.length,
+        pastEndGranules: unusable.pastEnd.length,
+    };
+}
+
+/**
+ * Say what the GAT calls free beyond the free space, for the end of a line about it, such as "; the GAT calls
+ * 2 more granules free, which aren't fully on the image", or "" if there's nothing more.
+ */
+export function unusableFreeText(freeSpace: FreeSpace): string {
+    const {missingGranules, pastEndGranules} = freeSpace;
+    const more = missingGranules + pastEndGranules;
+    if (more === 0) {
+        return "";
+    }
+    const start = "; the GAT calls " + pluralizeWithCount(more, "more granule", "more granules") + " free";
+    const missingText = (missingGranules === 1 ? "isn't" : "aren't") + " fully on the image";
+    const pastEndText = (pastEndGranules === 1 ? "is" : "are") + " past the disk's end";
+    if (pastEndGranules === 0) {
+        return start + ", which " + missingText;
+    }
+    if (missingGranules === 0) {
+        return start + ", which " + pastEndText;
+    }
+    return start + ": " + missingGranules.toLocaleString() + " " + missingText + ", and " +
+        pastEndGranules.toLocaleString() + " " + pastEndText;
 }
 
 /**
@@ -28,6 +70,16 @@ export interface FreeSpace {
     granuleBytes: number;
     /** How many bytes are free in all. */
     freeBytes: number;
+    /**
+     * How many granules the GAT and the files leave free that the image doesn't fully hold, inside the disk's
+     * proven size. The writer skips them, so they aren't in freeGranules.
+     */
+    missingGranules: number;
+    /**
+     * How many granules the GAT leaves free past the disk's proven size, which the writer never uses, so they
+     * aren't in freeGranules either. Only TRSDOS 1.3's GAT has them, when the image has a tail.
+     */
+    pastEndGranules: number;
 }
 
 /**
@@ -1400,25 +1452,22 @@ export class DiskSession {
             throw new DiskError("Can't find the free space: " + granuleMap);
         }
 
-        const trsdos = granuleMap.trsdos;
-        return {
-            freeGranules: granuleMap.getFreeGranuleCount(),
-            granuleBytes: trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize,
-            freeBytes: granuleMap.getFreeByteCount(),
-        };
+        return computeFreeSpace(granuleMap);
     }
 
     /**
-     * The space available for new files, such as "112 KB free (90 granules of 1,280 bytes each)".
+     * The space available for new files, such as "112 KB free (90 granules of 1,280 bytes each)", followed by
+     * what else the GAT calls free (see {@link unusableFreeText}).
      *
      * @throws DiskError if the disk has no file system, if its file system isn't TRSDOS-family, or
      * if the granule map can't be made.
      */
     public getFreeSpaceText(): string {
-        const {freeGranules, granuleBytes, freeBytes} = this.getFreeSpace();
+        const freeSpace = this.getFreeSpace();
+        const {freeGranules, granuleBytes, freeBytes} = freeSpace;
         return Math.floor(freeBytes/1024).toLocaleString() + " KB free (" +
             pluralizeWithCount(freeGranules, "granule") + " of " + granuleBytes.toLocaleString() + " bytes" +
-            (freeGranules === 1 ? "" : " each") + ")";
+            (freeGranules === 1 ? "" : " each") + ")" + unusableFreeText(freeSpace);
     }
 
     /**

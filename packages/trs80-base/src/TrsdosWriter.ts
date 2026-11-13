@@ -12,10 +12,11 @@ import {
     allocateGranules, type AllocatedExtent, findUnwritableGranuleSectors, freeGranuleFlags, maxGranulesPerExtent,
 } from "./TrsdosAllocator.js";
 import {
-    analyzeProgramPastEof, checkHitByte, checkTrsdos, findPrimariesOfExtendedEntries, makeOrphanFinding, type TrsdosFinding, TrsdosFindingKind,
-    TrsdosFindingSeverity, trsdosFindingKindSeverity,
+    analyzeProgramPastEof, checkHitByte, checkTrsdos, findPrimariesOfExtendedEntries, findUnusableFreeGranules,
+    makeOrphanFinding, type TrsdosFinding, TrsdosFindingKind, TrsdosFindingSeverity, trsdosFindingKindSeverity,
 } from "./TrsdosCheck.js";
 import {chooseDirSlots} from "./TrsdosDirSlots.js";
+import {findTrsdosProvenCylinderCount, isGranuleInsideCylinders} from "./TrsdosDiskSize.js";
 import {trsdosFilenameToRaw, trsdosFilenameToString, type TrsdosFilename} from "./TrsdosFilename.js";
 import {hashTrsdosPasswordForVersion, trsdosBlankPasswordHash} from "./TrsdosFormat.js";
 import {type TrsdosGranule, TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
@@ -361,6 +362,13 @@ export interface TrsdosRepairOptions {
      * fine, often on factory DOS disks. See "Programs that run past their EOF byte" in FLOPPY_FORMATS.md.
      */
     fixProgramSizes?: boolean | undefined;
+
+    /**
+     * Whether to mark used in the GAT the free granules that the image doesn't fully hold (the "free-but-missing"
+     * note of {@link checkTrsdos}), so that the DOS won't hand them out either. Off by default, since the real
+     * disk may well have those sectors, which the imager lost; the writer's allocator skips them all the same.
+     */
+    markMissingUsed?: boolean | undefined;
 }
 
 /**
@@ -410,6 +418,12 @@ export interface TrsdosRepairResult {
      * {@link TrsdosRepairOptions.fixProgramSizes} would fix. Empty if it was on, since they were fixed.
      */
     fixablePrograms: TrsdosDirEntry[];
+
+    /**
+     * The free granules that the image doesn't fully hold, which {@link TrsdosRepairOptions.markMissingUsed}
+     * would mark used. Empty if it was on, since they were marked.
+     */
+    markableMissing: TrsdosGranule[];
 }
 
 /**
@@ -446,6 +460,11 @@ interface RepairExpectation {
      * Whether the repair was asked to fix the sizes of programs, so that none may remain.
      */
     fixedProgramSizes: boolean;
+
+    /**
+     * Whether the repair marked used the free granules that the image doesn't fully hold, so that none may remain.
+     */
+    markedMissingUsed: boolean;
 }
 
 /**
@@ -704,6 +723,12 @@ export class TrsdosWriter {
     private readonly originalGatBytes: Uint8Array;
 
     /**
+     * The disk's cylinders by its DOS's own records ({@link findTrsdosProvenCylinderCount}), past which no
+     * granule is given to a file, or undefined where they prove no size (and on hard disk partitions).
+     */
+    private readonly provenCylinderCount: number | undefined;
+
+    /**
      * Under NEWDOS/80's rules, the number of lumps the DOS allocates ({@link newdos80DosLumpCount}), worked out
      * once since it reads the PDRIVE table. The layout's lump count under other rules.
      */
@@ -773,6 +798,7 @@ export class TrsdosWriter {
         this.dosLumpCount = ruleSet === TrsdosRuleSet.NEWDOS_80 ? newdos80DosLumpCount(trsdos) : trsdos.lumpCount;
         this.newdos80WrittenBit = ruleSet === TrsdosRuleSet.NEWDOS_80 && !newdos80IsVersion1(trsdos) ?
             NEWDOS80_BYTE1_WRITTEN : 0;
+        this.provenCylinderCount = findTrsdosProvenCylinderCount(trsdos, granuleMap);
         this.freeGranules = freeGranuleFlags(granuleMap).map((free, index) => free && this.canAllocate(index));
 
         this.gat = this.copySector(trsdos.getGatPosition(), "GAT");
@@ -2280,6 +2306,8 @@ export class TrsdosWriter {
             this.repairUnclaimed(options.freeUnclaimed === true, changes);
         const {fixed: programsPastEof, fixable: fixablePrograms} =
             this.repairProgramsPastEof(options.fixProgramSizes === true, changes);
+        const {marked: markedMissing, markable: markableMissing} =
+            this.repairMissing(options.markMissingUsed === true, changes);
 
         // The damage that can't be fixed. The HIT mismatches that were left alone were added above, so sort
         // by kind (a stable sort) to put everything in the check's order.
@@ -2294,12 +2322,14 @@ export class TrsdosWriter {
         this.repairExpectation = {
             unfixedHitMismatches,
             unfixedOrphans,
-            keptUnclaimedGranules: keptUnclaimed.length,
+            // The granules marked used are claimed by no file, so they're unclaimed now too.
+            keptUnclaimedGranules: keptUnclaimed.length + markedMissing,
             freedUnclaimed: options.freeUnclaimed === true,
             programsPastEof,
             fixedProgramSizes: options.fixProgramSizes === true,
+            markedMissingUsed: options.markMissingUsed === true,
         };
-        return {changes, remaining, keptUnclaimed, freeableUnclaimed, fixablePrograms};
+        return {changes, remaining, keptUnclaimed, freeableUnclaimed, fixablePrograms, markableMissing};
     }
 
     /**
@@ -2571,9 +2601,36 @@ export class TrsdosWriter {
     }
 
     /**
+     * Mark used in the GAT, in memory, the free granules that the image doesn't fully hold, if asked to. They're
+     * the same granules that the check's "free-but-missing" note lists ({@link findUnusableFreeGranules}), inside
+     * the disk's proven size; those past it are left alone, since they're no part of the disk.
+     *
+     * @param mark whether to mark them, or only to report them.
+     * @param changes the user-facing lines, to which the line for this fix is added.
+     * @return the number marked, and the granules that could have been marked (none if they were).
+     */
+    private repairMissing(mark: boolean, changes: string[]): { marked: number, markable: TrsdosGranule[] } {
+        const missing = findUnusableFreeGranules(this.trsdos, this.granuleMap).missing;
+        if (!mark) {
+            return {marked: 0, markable: missing};
+        }
+
+        for (const granule of missing) {
+            this.gat.bytes[granule.lump] |= 1 << granule.granule;
+            this.gat.dirty = true;
+            this.freeGranules[granule.lump*this.trsdos.granulesPerLump + granule.granule] = false;
+        }
+        if (missing.length > 0) {
+            changes.push(`Marked ${missing.length.toLocaleString()} ${missing.length === 1 ? "granule" : "granules"} ` +
+                `used in the GAT that the image doesn't fully hold.`);
+        }
+        return {marked: missing.length, markable: []};
+    }
+
+    /**
      * Throw if the disk, decoded after a repair, doesn't show what the repair promised: no granule claimed but
-     * free, no orphaned extended entry, no HIT mismatch beyond those left alone, and no more unclaimed
-     * granules than were kept.
+     * free, no orphaned extended entry, no HIT mismatch beyond those left alone, no more unclaimed
+     * granules than were kept, and, if it marked them, no free granules that the image doesn't fully hold.
      *
      * @param newTrsdos the file system decoded after the change.
      * @param expectation what the repair promised.
@@ -2589,6 +2646,11 @@ export class TrsdosWriter {
         if (expectation.fixedProgramSizes && pastEof !== undefined) {
             throw new TrsdosWriteError("After the repair, the disk still has a problem it should have fixed: " +
                 pastEof.message);
+        }
+        const missing = findings.find(finding => finding.kind === TrsdosFindingKind.FREE_BUT_MISSING);
+        if (expectation.markedMissingUsed && missing !== undefined) {
+            throw new TrsdosWriteError("After the repair, the disk still has a problem it should have fixed: " +
+                missing.message);
         }
         const orphans = findings.filter(finding => finding.kind === TrsdosFindingKind.ORPHAN_EXTENDED_ENTRY);
         if (orphans.length !== expectation.unfixedOrphans) {
@@ -2817,16 +2879,21 @@ export class TrsdosWriter {
 
     /**
      * Whether a granule that the GAT and the files leave free may be given to a new file: the DOS would
-     * allocate it ({@link isNeverAllocated}), and the image holds all its sectors, so that writing them
-     * won't fail at the flush ({@link findUnwritableGranuleSectors}). A granule that the image lacks
-     * sectors of stays free in the GAT, since the real disk may well have them; "check" notes it.
+     * allocate it ({@link isNeverAllocated}), it's inside the disk's proven size, under every rule set
+     * (TRSDOS 1.3's GAT says the cylinders of a tail past its 40 are free; see
+     * {@link isGranuleInsideCylinders}), and the image holds all its sectors, so that writing them won't
+     * fail at the flush ({@link findUnwritableGranuleSectors}). A granule that the image lacks sectors of
+     * stays free in the GAT, since the real disk may well have them; "check" notes it.
      *
      * @param index the granule's linear index (lump*granulesPerLump + granule).
      */
     private canAllocate(index: number): boolean {
         const granulesPerLump = this.trsdos.granulesPerLump;
-        return !this.isNeverAllocated(index) && findUnwritableGranuleSectors(this.trsdos,
-            Math.floor(index/granulesPerLump), index % granulesPerLump).length === 0;
+        const lump = Math.floor(index/granulesPerLump);
+        const granule = index % granulesPerLump;
+        return !this.isNeverAllocated(index) &&
+            isGranuleInsideCylinders(this.trsdos, lump, granule, this.provenCylinderCount) &&
+            findUnwritableGranuleSectors(this.trsdos, lump, granule).length === 0;
     }
 
     /**

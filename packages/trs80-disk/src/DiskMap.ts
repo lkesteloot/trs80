@@ -1,4 +1,6 @@
-import {SectorPosition, Trsdos, TrsdosGranuleMap, type TrsdosDirEntry, type TrsdosGranule} from "trs80-base";
+import {
+    findUnusableFreeGranules, SectorPosition, Trsdos, TrsdosGranuleMap, type TrsdosDirEntry, type TrsdosGranule,
+} from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
 import type {DiskSession} from "./DiskSession.js";
@@ -21,6 +23,10 @@ const DIR_RAW_FILENAME = "DIR     SYS";
 export enum MapCellKind {
     /** Nothing uses the granule. */
     FREE,
+    /** Nothing uses the granule, but the image doesn't fully hold it, so new files skip it. */
+    NOT_ON_IMAGE,
+    /** Nothing uses the granule, but it's past the disk's proven size, so new files never get it. */
+    PAST_END,
     /** One file uses it, and the file is among those the user is looking at. */
     FILE,
     /** One file uses it, but the user asked about other files. */
@@ -47,6 +53,10 @@ export function mapCellKindToString(kind: MapCellKind): string {
     switch (kind) {
         case MapCellKind.FREE:
             return "free";
+        case MapCellKind.NOT_ON_IMAGE:
+            return "free in the GAT, but not fully on the image";
+        case MapCellKind.PAST_END:
+            return "free in the GAT, but past the disk's end";
         case MapCellKind.FILE:
             return "file";
         case MapCellKind.OTHER_FILE:
@@ -78,6 +88,8 @@ export function mapCellKindIsProblem(kind: MapCellKind): boolean {
         case MapCellKind.UNCLAIMED:
             return true;
         case MapCellKind.FREE:
+        case MapCellKind.NOT_ON_IMAGE:
+        case MapCellKind.PAST_END:
         case MapCellKind.FILE:
         case MapCellKind.OTHER_FILE:
         case MapCellKind.DIRECTORY:
@@ -156,11 +168,15 @@ export interface MapLayout {
 export interface MapTotals {
     /** The number of granules on the disk. */
     granuleCount: number;
-    /** The number of granules that the DOS could hand out. */
+    /** The number of granules that new files could be given (see FreeSpace in DiskSession.ts). */
     freeGranuleCount: number;
+    /** The number of granules that the GAT calls free but that the image doesn't fully hold. */
+    notOnImageGranuleCount: number;
+    /** The number of granules that the GAT calls free past the disk's proven size. */
+    pastEndGranuleCount: number;
     /** The number of granules that the lockout table marks as unusable. */
     lockedOutGranuleCount: number;
-    /** The number of bytes in the free granules. */
+    /** The number of bytes in the granules that new files could be given. */
     freeByteCount: number;
     /** The number of bytes in a granule. */
     granuleByteCount: number;
@@ -201,9 +217,10 @@ export function isBootOrDirFile(dirEntry: TrsdosDirEntry): boolean {
  *
  * @param granule the granule.
  * @param mapFiles the files that have colors, by directory entry.
+ * @param unusable the free granules that new files never get, and why.
  */
-function classifyGranule(granule: TrsdosGranule, mapFiles: Map<TrsdosDirEntry, MapFile | undefined>):
-    { kind: MapCellKind, file: MapFile | undefined } {
+function classifyGranule(granule: TrsdosGranule, mapFiles: Map<TrsdosDirEntry, MapFile | undefined>,
+                         unusable: Map<TrsdosGranule, MapCellKind>): { kind: MapCellKind, file: MapFile | undefined } {
 
     const realOwners = granule.owners.filter(owner => !isBootOrDirFile(owner));
     const hasBootOwner = granule.owners.some(owner => owner.rawFilename === BOOT_RAW_FILENAME);
@@ -235,7 +252,7 @@ function classifyGranule(granule: TrsdosGranule, mapFiles: Map<TrsdosDirEntry, M
         // The boot cylinder has granules that no file claims, on DOSes whose boot sector isn't a file.
         return { kind: granule.lump === 0 ? MapCellKind.BOOT : MapCellKind.UNCLAIMED, file: undefined };
     }
-    return { kind: MapCellKind.FREE, file: undefined };
+    return { kind: unusable.get(granule) ?? MapCellKind.FREE, file: undefined };
 }
 
 /**
@@ -259,6 +276,8 @@ function cellLabel(granule: TrsdosGranule, cellKind: MapCellKind, file: MapFile 
             return owner?.getFilename("/") ?? "boot";
         }
         case MapCellKind.FREE:
+        case MapCellKind.NOT_ON_IMAGE:
+        case MapCellKind.PAST_END:
         case MapCellKind.OTHER_FILE:
         case MapCellKind.LOCKED_OUT:
         case MapCellKind.SHARED:
@@ -276,9 +295,11 @@ function cellLabel(granule: TrsdosGranule, cellKind: MapCellKind, file: MapFile 
  * @param trsdos the file system, which maps the granule to its sectors.
  * @param granule the granule.
  * @param mapFiles the files that have colors, by directory entry.
+ * @param unusable the free granules that new files never get, and why.
  */
-function makeMapCell(trsdos: Trsdos, granule: TrsdosGranule, mapFiles: Map<TrsdosDirEntry, MapFile | undefined>): MapCell {
-    const {kind, file} = classifyGranule(granule, mapFiles);
+function makeMapCell(trsdos: Trsdos, granule: TrsdosGranule, mapFiles: Map<TrsdosDirEntry, MapFile | undefined>,
+                     unusable: Map<TrsdosGranule, MapCellKind>): MapCell {
+    const {kind, file} = classifyGranule(granule, mapFiles, unusable);
     const label = cellLabel(granule, kind, file);
     // Files are told apart by their position, everything else by its kind and name.
     const identity = kind + ":" + (file !== undefined ? file.index : label ?? "");
@@ -347,7 +368,13 @@ export function makeDiskMapModel(granuleMap: TrsdosGranuleMap, files: TrsdosDirE
     }
 
     // What every granule shows, and where its sectors are, using the DOS's own mapping.
-    const cells = granuleMap.granules.map(granule => makeMapCell(trsdos, granule, mapFilesByEntry));
+    // The free granules that new files never get, by the writer's own tests.
+    const {missing, pastEnd} = findUnusableFreeGranules(trsdos, granuleMap);
+    const unusable = new Map<TrsdosGranule, MapCellKind>([
+        ...missing.map(granule => [granule, MapCellKind.NOT_ON_IMAGE] as const),
+        ...pastEnd.map(granule => [granule, MapCellKind.PAST_END] as const),
+    ]);
+    const cells = granuleMap.granules.map(granule => makeMapCell(trsdos, granule, mapFilesByEntry, unusable));
     const kindCounts = new Map<MapCellKind, number>();
     let lastCylinder = trsdos.geometry.cylinderCount - 1;
     for (const cell of cells) {
@@ -365,12 +392,16 @@ export function makeDiskMapModel(granuleMap: TrsdosGranuleMap, files: TrsdosDirE
         lastCylinder,
     };
 
+    const granuleByteCount = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
+    const freeGranuleCount = granuleMap.getFreeGranuleCount() - missing.length - pastEnd.length;
     const totals: MapTotals = {
         granuleCount: granuleMap.granules.length,
-        freeGranuleCount: granuleMap.getFreeGranuleCount(),
+        freeGranuleCount,
+        notOnImageGranuleCount: missing.length,
+        pastEndGranuleCount: pastEnd.length,
         lockedOutGranuleCount: granuleMap.granules.filter(granule => granule.lockedOut).length,
-        freeByteCount: granuleMap.getFreeByteCount(),
-        granuleByteCount: trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize,
+        freeByteCount: freeGranuleCount*granuleByteCount,
+        granuleByteCount,
     };
 
     return { cells, files: mapFiles, hasSelection: selected !== undefined, kindCounts, layout, totals };
@@ -419,15 +450,22 @@ export function buildDiskMap(session: DiskSession, patterns: string[]): DiskMapM
 }
 
 /**
- * The text of the map's totals line, such as "62 of 240 granules used, 178 free (222.5 KB)".
+ * The text of the map's totals line, such as "62 of 240 granules used, 178 free (222.5 KB)". The granules that
+ * the GAT calls free but new files never get are counted apart, after the free ones, and not as used.
  */
 export function totalsText(totals: MapTotals): string {
     const total = totals.granuleCount;
     const free = totals.freeGranuleCount;
+    const notOnImage = totals.notOnImageGranuleCount;
+    const pastEnd = totals.pastEndGranuleCount;
     const lockedOut = totals.lockedOutGranuleCount;
     const freeKb = totals.freeByteCount/1024;
-    return (total - free).toLocaleString() + " of " + pluralizeWithCount(total, "granule") + " used, " +
+    const used = total - free - notOnImage - pastEnd;
+    return used.toLocaleString() + " of " + pluralizeWithCount(total, "granule") + " used, " +
         free.toLocaleString() + " free (" + freeKb.toLocaleString(undefined, { maximumFractionDigits: 1 }) +
-        " KB)" + (lockedOut > 0 ? ", " + lockedOut.toLocaleString() + " locked out" : "") +
+        " KB)" +
+        (notOnImage > 0 ? ", " + notOnImage.toLocaleString() + " free in the GAT but not fully on the image" : "") +
+        (pastEnd > 0 ? ", " + pastEnd.toLocaleString() + " free in the GAT but past the disk's end" : "") +
+        (lockedOut > 0 ? ", " + lockedOut.toLocaleString() + " locked out" : "") +
         ". A granule is " + pluralizeWithCount(totals.granuleByteCount, "byte") + ".";
 }

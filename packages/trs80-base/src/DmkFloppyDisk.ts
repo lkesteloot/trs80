@@ -607,76 +607,79 @@ export class DmkFloppyDisk extends FloppyDisk {
     /**
      * Write the data field of the sector at a physical position: its data address mark, data,
      * and a new CRC. The sector's ID field and size don't change.
+     *
+     * @throws if the disk is write-protected, has no such sector, the sector has no data field (an ID
+     * with no data after it, which we have no room to add one to), or the data is the wrong size.
      */
     public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
         TRS80_FLOPPY_LOGGER.trace(`DMK: Writing sector ${sectorPosition.key()}`);
 
+        if (this.isWriteProtected()) {
+            throw new Error("tried to write sector to DMK but it's write protected");
+        }
         const sector = this.sectorMap.get(sectorPosition.key());
         if (sector === undefined) {
-            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.key()} is missing`);
-        } else {
-            // See if we found the DAM.
-            if (sector.dataIndex === undefined) {
-                // Not sure what to do here, we can't write it and there's no way to
-                // register an error.
-                TRS80_FLOPPY_LOGGER.warn(`DMK: No space for data on ${sectorPosition.key()}`);
-                return;
+            throw new Error(`DMK has no sector ${sectorPosition.key()} to write`);
+        }
+        if (sector.dataIndex === undefined) {
+            throw new Error(`DMK sector ${sectorPosition.key()} has no data field to write`);
+        }
+        const length = sector.getSectorSize();
+        if (data.data.length !== length) {
+            throw new Error(`size mismatch when writing sector (${length} vs. ${data.data.length})`);
+        }
+
+        const byteStride = sector.getByteStride();
+        const dam = data.getDataAddressMark();
+
+        // Lay out the bytes: the DAM, the data, and the CRC (two bytes).
+        const bytes = new Uint8Array((1 + length + 2)*byteStride);
+
+        // Compute the new CRC.
+        let crc = CRC_PRESET;
+
+        // For double density, include the preceding sync bytes.
+        if (sector.density === Density.DOUBLE) {
+            for (let i = 0; i < MFM_SYNC_COUNT; i++) {
+                crc = CRC_16_CCITT.update(crc, MFM_SYNC);
             }
+        }
 
-            const byteStride = sector.getByteStride();
-            const length = sector.getSectorSize();
-
-            const dam = data.getDataAddressMark();
-
-            // Lay out the bytes: the DAM, the data, and the CRC (two bytes).
-            const bytes = new Uint8Array((1 + length + 2)*byteStride);
-
-            // Compute the new CRC.
-            let crc = CRC_PRESET;
-
-            // For double density, include the preceding sync bytes.
-            if (sector.density === Density.DOUBLE) {
-                for (let i = 0; i < MFM_SYNC_COUNT; i++) {
-                    crc = CRC_16_CCITT.update(crc, MFM_SYNC);
-                }
+        // Write "byte" the correct number of stride times at
+        // virtual (stride-less) index "index" of the "bytes" array.
+        const writeData = (index: number, byte: number): void => {
+            for (let i = 0; i < byteStride; i++) {
+                bytes[index*byteStride + i] = byte;
             }
+        };
 
-            // Write "byte" the correct number of stride times at
-            // virtual (stride-less) index "index" of the "bytes" array.
-            const writeData = (index: number, byte: number): void => {
-                for (let i = 0; i < byteStride; i++) {
-                    bytes[index*byteStride + i] = byte;
-                }
-            };
+        // Write the DAM.
+        writeData(0, dam);
+        crc = CRC_16_CCITT.update(crc, dam);
 
-            // Write the DAM.
-            writeData(0, dam);
-            crc = CRC_16_CCITT.update(crc, dam);
+        // Write the data bytes.
+        for (let i = 0; i < length; i++) {
+            const byte = data.data[i] ?? 0;
+            writeData(1 + i, byte);
+            crc = CRC_16_CCITT.update(crc, byte);
+        }
 
-            // Write the data bytes.
-            for (let i = 0; i < length; i++) {
-                const byte = data.data[i] ?? 0;
-                writeData(1 + i, byte);
-                crc = CRC_16_CCITT.update(crc, byte);
-            }
+        // Write CRC big endian.
+        writeData(1 + length, hi(crc));
+        writeData(1 + length + 1, lo(crc));
 
-            // Write CRC big endian.
-            writeData(1 + length, hi(crc));
-            writeData(1 + length + 1, lo(crc));
+        const begin = sector.track.offset + sector.offset + (sector.dataIndex - 1)*byteStride;
+        this.write(new FloppyWrite(bytes, begin));
 
-            const begin = sector.track.offset + sector.offset + (sector.dataIndex - 1)*byteStride;
-            this.write(new FloppyWrite(bytes, begin));
-
-            // Keep the geometry's copy in sync. The sector's layout didn't change, so the rest
-            // of the geometry is still right.
-            const geometrySectorInfo = this.getGeometry().sectorMap.get(sectorPosition.key());
-            if (geometrySectorInfo !== undefined) {
-                const newSectorInfo = sector.toPhysicalSectorInfo();
-                geometrySectorInfo.deleted = newSectorInfo.deleted;
-                geometrySectorInfo.dataAddressMark = newSectorInfo.dataAddressMark;
-                geometrySectorInfo.crcError = newSectorInfo.crcError;
-                geometrySectorInfo.crc = newSectorInfo.crc;
-            }
+        // Keep the geometry's copy in sync. The sector's layout didn't change, so the rest
+        // of the geometry is still right.
+        const geometrySectorInfo = this.getGeometry().sectorMap.get(sectorPosition.key());
+        if (geometrySectorInfo !== undefined) {
+            const newSectorInfo = sector.toPhysicalSectorInfo();
+            geometrySectorInfo.deleted = newSectorInfo.deleted;
+            geometrySectorInfo.dataAddressMark = newSectorInfo.dataAddressMark;
+            geometrySectorInfo.crcError = newSectorInfo.crcError;
+            geometrySectorInfo.crc = newSectorInfo.crc;
         }
     }
 

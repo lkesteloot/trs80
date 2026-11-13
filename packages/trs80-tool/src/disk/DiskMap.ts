@@ -43,6 +43,10 @@ function mapCellKindSymbol(kind: MapCellKind): string {
     switch (kind) {
         case MapCellKind.FREE:
             return "·";
+        case MapCellKind.NOT_ON_IMAGE:
+            return "_";
+        case MapCellKind.PAST_END:
+            return ">";
         case MapCellKind.FILE:
         case MapCellKind.OTHER_FILE:
         case MapCellKind.DIRECTORY:
@@ -68,8 +72,11 @@ function mapCellKindSymbol(kind: MapCellKind): string {
 function mapCellKindStyle(kind: MapCellKind): Style {
     switch (kind) {
         case MapCellKind.FREE:
+        case MapCellKind.PAST_END:
         case MapCellKind.OTHER_FILE:
             return colors.muted;
+        case MapCellKind.NOT_ON_IMAGE:
+            return colors.warning;
         case MapCellKind.FILE:
             return colors.plain;
         case MapCellKind.DIRECTORY:
@@ -161,8 +168,8 @@ function matchedFileItems(mapFiles: MapFile[]): { text: string, width: number }[
 function symbolLegendLines(counts: Map<MapCellKind, number>, width: number): string[] {
     // The kinds that are drawn with a symbol of their own, in the order they're listed in, with the problems
     // last. Files, the directory and the boot granules are named in the grid.
-    const kinds = [MapCellKind.FREE, MapCellKind.LOCKED_OUT, MapCellKind.OTHER_FILE, MapCellKind.SHARED,
-        MapCellKind.CLAIMED_BUT_FREE, MapCellKind.UNCLAIMED];
+    const kinds = [MapCellKind.FREE, MapCellKind.NOT_ON_IMAGE, MapCellKind.PAST_END, MapCellKind.LOCKED_OUT,
+        MapCellKind.OTHER_FILE, MapCellKind.SHARED, MapCellKind.CLAIMED_BUT_FREE, MapCellKind.UNCLAIMED];
 
     const lines: string[] = [];
     let line = "";
@@ -241,8 +248,10 @@ function runCharacter(kind: MapCellKind, positionInCell: number, cellWidth: numb
 
     switch (kind) {
         case MapCellKind.FREE:
+        case MapCellKind.PAST_END:
             // One mark per sector, so that free space doesn't look like a solid bar.
             return positionInCell === 0 ? mapCellKindSymbol(kind) : " ";
+        case MapCellKind.NOT_ON_IMAGE:
         case MapCellKind.FILE:
         case MapCellKind.OTHER_FILE:
         case MapCellKind.DIRECTORY:

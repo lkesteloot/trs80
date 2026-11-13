@@ -349,12 +349,22 @@ export interface ProtectResultJson {
  * The free space on a disk.
  */
 export interface FreeResultJson {
-    /** The number of free granules. */
+    /**
+     * The number of granules that new files could be given: those the GAT calls free, less the two counts
+     * below.
+     */
     freeGranules: number;
     /** The number of bytes in a granule. */
     granuleBytes: number;
-    /** The number of free bytes, in all. */
+    /** The number of bytes in the granules that new files could be given. */
     freeBytes: number;
+    /**
+     * The number of granules that the GAT calls free but that the image doesn't fully hold (some sector is
+     * missing or the wrong size), which new files skip.
+     */
+    missingGranules: number;
+    /** The number of granules that the GAT calls free past the disk's proven size, which new files never get. */
+    pastEndGranules: number;
 }
 
 /**
@@ -492,6 +502,10 @@ export interface PartitionDeleteResultJson {
 export type MapCellKindJson =
     /** Nothing uses the granule. */
     "free" |
+    /** Nothing uses the granule, but the image doesn't fully hold it, so new files skip it. */
+    "notOnImage" |
+    /** Nothing uses the granule, but it's past the disk's proven size, so new files never get it. */
+    "pastEnd" |
     /** One file uses it, and the file is one the user asked about (or the user asked about none in particular). */
     "file" |
     /** One file uses it, but the user asked about other files. */
@@ -561,11 +575,18 @@ export interface MapResultJson {
     totals: {
         /** The number of granules on the disk. */
         granuleCount: number;
-        /** The number of granules that the DOS could hand out. */
+        /**
+         * The number of granules that new files could be given: those the GAT calls free, less the two
+         * counts below.
+         */
         freeGranuleCount: number;
+        /** The number of granules that the GAT calls free but that the image doesn't fully hold. */
+        notOnImageGranuleCount: number;
+        /** The number of granules that the GAT calls free past the disk's proven size. */
+        pastEndGranuleCount: number;
         /** The number of granules that the lockout table marks as unusable. */
         lockedOutGranuleCount: number;
-        /** The number of bytes in the free granules. */
+        /** The number of bytes in the granules that new files could be given. */
         freeByteCount: number;
         /** The number of bytes in a granule. */
         granuleByteCount: number;
@@ -695,6 +716,11 @@ export interface RepairResultJson {
     remaining: RepairRemainingJson[];
     /** The number of granules that --free-unclaimed would free (0 if it was given, since they were freed). */
     freeableUnclaimedGranules: number;
+    /**
+     * The number of free granules that the image doesn't fully hold, which --mark-missing-used would mark used
+     * (0 if it was given, since they were marked).
+     */
+    markableMissingGranules: number;
     /**
      * The names of the programs that --fix-program-sizes would fix, such as "HELLO.BAS" (none if it was given,
      * since they were fixed).
@@ -879,6 +905,10 @@ export function mapCellKindToJson(kind: MapCellKind): MapCellKindJson {
     switch (kind) {
         case MapCellKind.FREE:
             return "free";
+        case MapCellKind.NOT_ON_IMAGE:
+            return "notOnImage";
+        case MapCellKind.PAST_END:
+            return "pastEnd";
         case MapCellKind.FILE:
             return "file";
         case MapCellKind.OTHER_FILE:
@@ -1054,6 +1084,8 @@ export function freeSpaceToJson(freeSpace: FreeSpace): FreeResultJson {
         freeGranules: freeSpace.freeGranules,
         granuleBytes: freeSpace.granuleBytes,
         freeBytes: freeSpace.freeBytes,
+        missingGranules: freeSpace.missingGranules,
+        pastEndGranules: freeSpace.pastEndGranules,
     };
 }
 

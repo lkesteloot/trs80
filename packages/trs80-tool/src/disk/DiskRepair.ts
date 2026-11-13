@@ -1,6 +1,6 @@
 import type {DiskCommand} from "./DiskCommands.js";
 import {findingToJson, type RepairResultJson} from "./DiskJson.js";
-import {describeFixablePrograms, describeFreeableUnclaimed, repairDisk} from "trs80-disk";
+import {describeFixablePrograms, describeFreeableUnclaimed, describeMarkableMissing, repairDisk} from "trs80-disk";
 
 /**
  * The "repair" command: fix the file system damage that "check" finds, where it can be fixed.
@@ -24,6 +24,13 @@ export const REPAIR_COMMAND: DiskCommand = {
                 description: "also set the size of programs whose transfer record is past their directory size, " +
                     "further into their last sector (the DOS loads them fine; this makes them copy whole)",
             },
+            {
+                name: "--mark-missing-used",
+                valueName: undefined,
+                description: "also mark used in the GAT the free granules that the image doesn't fully hold, so " +
+                    "that the DOS won't use them either (new files from here skip them anyway; not the default, " +
+                    "since the real disk may well have those sectors, which the imager lost)",
+            },
         ],
     },
 
@@ -37,8 +44,10 @@ export const REPAIR_COMMAND: DiskCommand = {
     run(session, command, globalOptions, out) {
         const freeUnclaimed = command.options.has("--free-unclaimed");
         const fixProgramSizes = command.options.has("--fix-program-sizes");
+        const markMissingUsed = command.options.has("--mark-missing-used");
 
-        const {repaired, damagedBefore, readOnlyReasonAfter} = repairDisk(session, {freeUnclaimed, fixProgramSizes});
+        const {repaired, damagedBefore, readOnlyReasonAfter} =
+            repairDisk(session, {freeUnclaimed, fixProgramSizes, markMissingUsed});
 
         for (const line of repaired.changes) {
             out.line(line);
@@ -59,6 +68,9 @@ export const REPAIR_COMMAND: DiskCommand = {
         if (repaired.fixablePrograms.length > 0) {
             out.line(describeFixablePrograms(fixableProgramNames));
         }
+        if (repaired.markableMissing.length > 0) {
+            out.line(describeMarkableMissing(repaired.markableMissing.length));
+        }
 
         // The gate is evaluated again, since the repair may have settled what blocked writing.
         if (damagedBefore) {
@@ -70,6 +82,7 @@ export const REPAIR_COMMAND: DiskCommand = {
             changes: repaired.changes,
             remaining: repaired.remaining.map(({finding, advice}) => ({...findingToJson(finding), advice})),
             freeableUnclaimedGranules: repaired.freeableUnclaimed.length,
+            markableMissingGranules: repaired.markableMissing.length,
             fixablePrograms: repaired.fixablePrograms.map(file => file.getFilename(".")),
             writable: readOnlyReasonAfter === undefined,
         };

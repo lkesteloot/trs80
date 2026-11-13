@@ -7,18 +7,23 @@ import {SectorOverlay} from "./SectorOverlay.js";
 import {TRSDOS_13_TRACK_LAYOUT} from "./TrackLayout.js";
 import {decodeTrsdos, type Trsdos} from "./Trsdos.js";
 import {findUnwritableGranuleSectors} from "./TrsdosAllocator.js";
-import {checkTrsdos, findFreeButMissingGranules, TrsdosFindingKind} from "./TrsdosCheck.js";
+import {checkTrsdos, findUnusableFreeGranules, TrsdosFindingKind} from "./TrsdosCheck.js";
 import {parseTrsdosFilename, type TrsdosFilename} from "./TrsdosFilename.js";
 import {formatTrsdosDataDisk, TrsdosFormatDos} from "./TrsdosFormat.js";
+import {findTrsdosProvenCylinderCount} from "./TrsdosDiskSize.js";
 import {TrsdosGranuleMap} from "./TrsdosGranuleMap.js";
 import {TrsdosRuleSet} from "./TrsdosRuleSet.js";
 import {evaluateTrsdosWriteGate, TrsdosWriteAccess} from "./TrsdosWriteGate.js";
 import {TrsdosWriter} from "./TrsdosWriter.js";
 
-// Tests of free granules that the image doesn't fully hold: "check" notes them, and the writer's allocator
-// skips them, by the same test.
+// Tests of free granules that the writer can't use: those that the image doesn't fully hold, which "check"
+// notes and the allocator skips by the same test, and those past the disk's proven size, which the
+// allocator never uses.
 
 const FORMAT_DATE = new Date(1983, 4, 17);
+
+// A TRSDOS 1.3 GAT byte with all six granules of its lump used, as FORMAT writes for the directory's.
+const TRSDOS_13_FULL_LUMP = 0x3F;
 
 /**
  * Format a blank data disk, failing the test if it can't be made.
@@ -43,14 +48,14 @@ function decode(disk: DmkFloppyDisk): Trsdos {
 }
 
 /**
- * The granules that findFreeButMissingGranules() finds, as "lump:granule" strings.
+ * The free granules that findUnusableFreeGranules() finds the image lacks, as "lump:granule" strings.
  */
 function freeButMissing(trsdos: Trsdos): string[] {
     const map = TrsdosGranuleMap.make(trsdos);
     if (typeof map === "string") {
         throw new Error(map);
     }
-    return findFreeButMissingGranules(trsdos, map).granules.map(granule => granule.lump + ":" + granule.granule);
+    return findUnusableFreeGranules(trsdos, map).missing.map(granule => granule.lump + ":" + granule.granule);
 }
 
 /**
@@ -159,5 +164,135 @@ describe("free granules that the image doesn't fully hold", () => {
 
         // The writer skips the tail's granules all the same, since it can't write them.
         expect(findUnwritableGranuleSectors(inside, 40, 0)).to.have.length(inside.sectorsPerGranule);
+    });
+});
+
+describe("free granules past the disk's proven size", () => {
+    /**
+     * A TRSDOS 1.3 disk of 40 cylinders with a tail of two cylinders that re-read its last two, as an
+     * imager that kept reading leaves them. The tail's sectors are all there, and its GAT bytes are zero.
+     * Cylinder 39 is marked used in the GAT, as if a file had it, so that the tail's free granules are a
+     * run of their own, the smallest on the disk, which the allocator would pick first for a small file.
+     */
+    function withReReadTail(): DmkFloppyDisk {
+        const formatted = format(TrsdosFormatDos.TRSDOS_1_3, 40);
+        const overlay = new SectorOverlay(formatted);
+        const gatPosition = SectorPosition.make(17, 0, 1);
+        const gat = new Uint8Array(overlay.readSector(gatPosition)?.data ?? []);
+        gat[39] = TRSDOS_13_FULL_LUMP;
+        overlay.writeSector(gatPosition, gat);
+        overlay.commit();
+        return appendDmkTestTracks(formatted,
+            [[{kind: "reRead", cylinder: 38}], [{kind: "reRead", cylinder: 39}]], TRSDOS_13_TRACK_LAYOUT);
+    }
+
+    /**
+     * The cylinders that a file's extents start on.
+     */
+    function fileCylinders(trsdos: Trsdos, filename: string): number[] {
+        const file = trsdos.getDirectory().files.find(dirEntry => dirEntry.getFilename("/") === filename);
+        if (file === undefined) {
+            throw new Error("No file " + filename);
+        }
+        return [...trsdos.getFileExtents(file)].map(extent => extent.cylinderNumber);
+    }
+
+    it("look free in the GAT, with all their sectors", () => {
+        const trsdos = decode(withReReadTail());
+        const map = TrsdosGranuleMap.make(trsdos);
+        if (typeof map === "string") {
+            throw new Error(map);
+        }
+        expect(trsdos.lumpCount).to.equal(42);
+        expect(findTrsdosProvenCylinderCount(trsdos, map)).to.equal(40);
+        expect(map.get(40, 0)?.isFree()).to.equal(true);
+        expect(map.get(39, 0)?.isFree()).to.equal(false);
+        expect(findUnwritableGranuleSectors(trsdos, 40, 0)).to.eql([]);
+        // Not a note: the image has the sectors, they're just not the disk's.
+        expect(freeButMissing(trsdos)).to.eql([]);
+        expect(evaluateTrsdosWriteGate(trsdos).access).to.equal(TrsdosWriteAccess.WRITABLE);
+    });
+
+    it("aren't given to a small file, though their run is the smallest that fits", () => {
+        const writer = new TrsdosWriter(decode(withReReadTail()), TrsdosRuleSet.TRSDOS_1_3);
+        writer.addFile(name("ONE/DAT"), contents(256));
+        const after = writer.flush();
+        expect(fileCylinders(after, "ONE/DAT").every(cylinder => cylinder < 40)).to.equal(true);
+    });
+
+    it("aren't counted as room for a big file", () => {
+        const trsdos = decode(withReReadTail());
+        const map = TrsdosGranuleMap.make(trsdos);
+        if (typeof map === "string") {
+            throw new Error(map);
+        }
+        const tailGranules = map.granules.filter(granule => granule.lump >= 40 && granule.isFree()).length;
+        const inside = map.getFreeGranuleCount() - tailGranules;
+        const granuleBytes = trsdos.sectorsPerGranule*256;
+
+        const fits = new TrsdosWriter(trsdos, TrsdosRuleSet.TRSDOS_1_3);
+        fits.addFile(name("ALL/DAT"), contents(inside*granuleBytes));
+        expect(fileCylinders(fits.flush(), "ALL/DAT").every(cylinder => cylinder < 40)).to.equal(true);
+
+        const tooBig = new TrsdosWriter(decode(withReReadTail()), TrsdosRuleSet.TRSDOS_1_3);
+        expect(() => tooBig.addFile(name("ALL/DAT"), contents((inside + 1)*granuleBytes)))
+            .to.throw(`the disk has ${inside} free`);
+    });
+});
+
+describe("repair's markMissingUsed", () => {
+    const missingPosition = SectorPosition.make(0, 0, 7);
+
+    /**
+     * The GAT's bit for a granule, as a write left it.
+     */
+    function gatUsed(trsdos: Trsdos, lump: number, granule: number): boolean {
+        const map = TrsdosGranuleMap.make(trsdos);
+        if (typeof map === "string") {
+            throw new Error(map);
+        }
+        return map.get(lump, granule)?.gatUsed === true;
+    }
+
+    it("only reports the granules without it", () => {
+        const writer = new TrsdosWriter(decode(removeDmkId(format(TrsdosFormatDos.TRSDOS_2_3, 35), missingPosition)),
+            TrsdosRuleSet.TRSDOS_2);
+        const result = writer.repair();
+        expect(result.markableMissing.map(granule => granule.lump + ":" + granule.granule)).to.eql(["0:1"]);
+        expect(result.changes).to.eql([]);
+        const after = writer.flush();
+        expect(gatUsed(after, 0, 1)).to.equal(false);
+        expect(freeButMissing(after)).to.eql(["0:1"]);
+    });
+
+    it("marks them used in the GAT, which ends the note", () => {
+        const writer = new TrsdosWriter(decode(removeDmkId(format(TrsdosFormatDos.TRSDOS_2_3, 35), missingPosition)),
+            TrsdosRuleSet.TRSDOS_2);
+        const result = writer.repair({markMissingUsed: true});
+        expect(result.markableMissing).to.eql([]);
+        expect(result.changes).to.eql(["Marked 1 granule used in the GAT that the image doesn't fully hold."]);
+        const after = writer.flush();
+        expect(gatUsed(after, 0, 1)).to.equal(true);
+        const kinds = checkTrsdos(after).findings.map(finding => finding.kind);
+        expect(kinds).to.not.include(TrsdosFindingKind.FREE_BUT_MISSING);
+        // Used, and claimed by no file, which is a note.
+        expect(kinds).to.include(TrsdosFindingKind.USED_BUT_UNCLAIMED);
+        expect(evaluateTrsdosWriteGate(after).access).to.equal(TrsdosWriteAccess.WRITABLE);
+    });
+
+    it("works beside freeUnclaimed, which doesn't free what it marked", () => {
+        const writer = new TrsdosWriter(decode(removeDmkId(format(TrsdosFormatDos.TRSDOS_2_3, 35), missingPosition)),
+            TrsdosRuleSet.TRSDOS_2);
+        writer.repair({markMissingUsed: true, freeUnclaimed: true});
+        expect(gatUsed(writer.flush(), 0, 1)).to.equal(true);
+    });
+
+    it("leaves granules past the disk's end alone", () => {
+        const disk = appendDmkTestTracks(format(TrsdosFormatDos.TRSDOS_1_3, 40), [[{kind: "unformatted"}]],
+            TRSDOS_13_TRACK_LAYOUT);
+        const writer = new TrsdosWriter(decode(disk), TrsdosRuleSet.TRSDOS_1_3);
+        const result = writer.repair({markMissingUsed: true});
+        expect(result.changes).to.eql([]);
+        expect(gatUsed(writer.flush(), 40, 0)).to.equal(false);
     });
 });
