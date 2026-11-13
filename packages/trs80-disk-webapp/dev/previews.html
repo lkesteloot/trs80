@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>File previews (dev only)</title>
+    <!-- Dev server only: vite.config.ts's build inputs leave this page out. -->
+    <style>
+        html, body { height: 100%; margin: 0; }
+        body { display: flex; flex-direction: column; font-family: system-ui, sans-serif; background: #252526; color: #ddd; }
+        header { padding: 0.5em 1em; display: flex; gap: 1em; align-items: center; flex-wrap: wrap; }
+        #main { flex: 1; display: flex; min-height: 0; }
+        #files { width: 18em; overflow: auto; margin: 0; padding: 0; list-style: none; border-right: 1px solid #444; }
+        #files li { padding: 0.2em 0.8em; cursor: pointer; font: 13px ui-monospace, Menlo, monospace; }
+        #files li:hover { background: #333; }
+        #files li.selected { background: #094771; }
+        #content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        #tabs { display: flex; gap: 0.25em; padding: 0.4em; align-items: center; }
+        #tabs button.selected { font-weight: bold; }
+        #info { color: #999; font-size: 0.9em; margin-left: 1em; }
+        #preview { flex: 1; min-height: 0; }
+    </style>
+</head>
+<body>
+<header>
+    <label>Disk image: <input type="file" id="disk-input"></label>
+    <label>BASIC: <select id="dialect">
+        <option value="">as decoded</option>
+        <option value="3">Model III</option>
+        <option value="4">Model 4</option>
+    </select></label>
+    <span id="status"></span>
+</header>
+<div id="main">
+    <ul id="files"></ul>
+    <div id="content">
+        <div id="tabs"></div>
+        <div id="preview"></div>
+    </div>
+</div>
+<script type="module" src="./previews.ts"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+/*
+ * Styles for the file previews (see Previews.ts). Each color is a CSS custom property with a default, so
+ * that a page can theme the previews by setting the properties on an ancestor. The defaults suit a dark
+ * background; a page with a light one should set them all.
+ */
+
+.preview {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    color: var(--preview-fg, #d4d4d4);
+    background: var(--preview-bg, #1e1e1e);
+    font-family: var(--preview-font, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+    font-size: var(--preview-font-size, 13px);
+}
+
+.preview-unavailable {
+    padding: 1em;
+    color: var(--preview-muted, #858585);
+}
+
+/* The scrolling body, which is the only part that grows. */
+.preview-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0.5em 0.75em;
+    overflow: auto;
+    white-space: pre;
+    tab-size: 8;
+    line-height: 1.35;
+}
+
+.preview-toolbar {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em 1.5em;
+    padding: 0.4em 0.75em;
+    border-top: 1px solid var(--preview-border, #3c3c3c);
+    font-family: var(--preview-ui-font, system-ui, sans-serif);
+    font-size: 0.9em;
+    order: 2;
+}
+
+.preview-error {
+    color: var(--preview-error, #f14c4c);
+}
+
+/* BASIC listing. */
+.preview-basic-error { color: var(--preview-error, #f14c4c); }
+.preview-basic-line-number { color: var(--preview-line-number, #858585); }
+.preview-basic-punctuation { color: var(--preview-punctuation, #d4d4d4); }
+.preview-basic-keyword { color: var(--preview-keyword, #569cd6); }
+.preview-basic-regular { color: var(--preview-regular, #9cdcfe); }
+.preview-basic-string { color: var(--preview-string, #ce9178); }
+.preview-basic-comment { color: var(--preview-comment, #6a9955); }
+
+/* EDTASM listing. */
+.preview-edtasm-line-number { color: var(--preview-line-number, #858585); }
+.preview-edtasm-regular { color: var(--preview-regular, #9cdcfe); }
+.preview-edtasm-comment { color: var(--preview-comment, #6a9955); }
+
+/* Text. */
+.preview-text-unprintable { color: var(--preview-muted, #858585); }
+
+/* Disassembly and the CMD chunk summary. */
+.preview-dis-address { color: var(--preview-address, #858585); }
+.preview-dis-hex { color: var(--preview-hex, #b5cea8); }
+.preview-dis-opcodes { color: var(--preview-opcode, #9cdcfe); }
+.preview-dis-label { color: var(--preview-label, #dcdcaa); }
+.preview-dis-punctuation { color: var(--preview-punctuation, #d4d4d4); }
+
+/* Hex dump. */
+.preview-hex-address { color: var(--preview-address, #858585); }
+.preview-hex-hex { color: var(--preview-hex, #b5cea8); }
+.preview-hex-ascii { color: var(--preview-ascii, #9cdcfe); }
+.preview-hex-ascii-unprintable { color: var(--preview-muted, #858585); }
+.preview-hex-annotation { color: var(--preview-annotation, #dcdcaa); }
+.preview-hex-outside-annotation { opacity: 0.45; }
+
+/* Picture. */
+.preview-picture-scroller {
+    padding: 0.5em;
+    background: #000;
+}
+.preview-picture-canvas {
+    display: block;
+    image-rendering: pixelated;
+    background: #000;
+}
