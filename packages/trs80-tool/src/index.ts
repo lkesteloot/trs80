@@ -36,6 +36,9 @@ import {PagerClosedError, pagerYield, startPager, stopPager} from "./pager.js";
 const PROGRAM_OPTIONS_WITH_VALUES = ["--color", "--trace", "--log-file"];
 
 const HELP_TEXT = `
+A file name ending in .gz is read decompressed and written compressed, whatever the kind of file
+(game.dmk.gz, hello.cmd.gz). The name decides, not the contents. .zip isn't supported.
+
 ${EXIT_CODES_HELP}
 
 See this page for full documentation: https://my-trs-80.com/tool

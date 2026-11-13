@@ -8,7 +8,7 @@ import {
     Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
     TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type KnownFloppyFileSystem,
     decodeTrs80CassetteFile, decodeTrs80File, findHardDiskPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, knownTrsdosPassword, microDosFileTypeToString, trsdosIIProtectionLevelToString,
-    trsdosAccessPasswordHoldsTimeStamp, trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost } from "trs80-base";
+    trsdosAccessPasswordHoldsTimeStamp, trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost, uncompressFile } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 import {assertNever} from "z80-base";
 import {
@@ -841,14 +841,23 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
     let isContainer = true;
     let os: string | undefined = undefined;
 
-    const { base, ext } = path.parse(inFilename);
-
     let buffer;
     try {
         buffer = fs.readFileSync(inFilename);
     } catch (e) {
         throw hostFileError("Can't open \"" + inFilename + "\"", e);
     }
+
+    // A ".gz" file is decompressed, and the rest of its name decides how to read it.
+    let uncompressedName: string;
+    try {
+        const uncompressed = uncompressFile(inFilename, buffer);
+        uncompressedName = uncompressed.name;
+        buffer = uncompressed.bytes;
+    } catch (e: any) {
+        throw new ToolError("Can't open \"" + inFilename + "\": " + (e.message ?? String(e)));
+    }
+    const { base, ext } = path.parse(uncompressedName);
 
     if (ext.toLowerCase() === ".wav") {
         // Parse a cassette WAV file.
@@ -860,7 +869,7 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
             inFiles.push(new WavInputFile(program));
         }
     } else {
-        const trs80File = decodeTrs80File(buffer, { filename: inFilename });
+        const trs80File = decodeTrs80File(buffer, { filename: uncompressedName });
         if (trs80File.error !== undefined) {
             throw new ToolError("Can't open \"" + inFilename + "\": " + trs80File.error);
         }

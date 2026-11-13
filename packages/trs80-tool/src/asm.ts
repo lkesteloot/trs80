@@ -1,12 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import {colors} from "./colors.js";
-import {pluralizeWithCount, ToolError} from "./utils.js";
+import {pluralizeWithCount, ToolError, writeOutputFile} from "./utils.js";
 import {Z80_KNOWN_LABELS, toHex, toHexWord } from "z80-base";
 import { asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary } from "trs80-asm";
 import {Asm, FileSystem} from "z80-asm";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio, writeWavFile } from "trs80-cassette";
-import {CassetteSpeed, TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base";
+import {CassetteSpeed, TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS, withoutGzipSuffix } from "trs80-base";
 import {ModelType, modelTypeAsmConstants} from "trs80-emulator";
 import {assertNever} from "z80-base";
 
@@ -97,7 +97,8 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
 
     // Generate listing.
     if (lstPathname !== undefined) {
-        const lstFd = fs.openSync(lstPathname, "w");
+        // Collect the listing, since a name ending in ".gz" is written compressed, all at once.
+        const lstLines: string[] = [];
 
         for (const line of asm.assembledLines) {
             if (line.binary.length !== 0) {
@@ -112,17 +113,17 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
                     if (i === 0) {
                         result = result.padEnd(24, " ") + line.line;
                     }
-                    fs.writeSync(lstFd, result + "\n");
+                    lstLines.push(result + "\n");
                 }
             } else {
-                fs.writeSync(lstFd, " ".repeat(24) + line.line + "\n");
+                lstLines.push(" ".repeat(24) + line.line + "\n");
             }
             if (line.error !== undefined) {
-                fs.writeSync(lstFd, "error: " + line.error + "\n");
+                lstLines.push("error: " + line.error + "\n");
             }
         }
 
-        fs.closeSync(lstFd);
+        writeOutputFile(lstPathname, Buffer.from(lstLines.join("")));
     }
 
     // Show errors.
@@ -153,7 +154,7 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
 
     // Generate output.
     let binary: Uint8Array;
-    const extension = path.parse(outPathname).ext.toUpperCase();
+    const extension = path.parse(withoutGzipSuffix(outPathname)).ext.toUpperCase();
     switch (extension) {
         case ".CMD": {
             // Convert to CMD file.
@@ -197,7 +198,5 @@ export function asm(srcPathname: string, outPathname: string, speed: CassetteSpe
     }
 
     // Write output.
-    const binFd = fs.openSync(outPathname, "w");
-    fs.writeSync(binFd, binary);
-    fs.closeSync(binFd);
+    writeOutputFile(outPathname, binary);
 }

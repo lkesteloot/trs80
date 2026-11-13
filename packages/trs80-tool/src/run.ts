@@ -6,10 +6,10 @@ import {BasicLevel, Config, ConsolePrinter, FLOPPY_DRIVE_COUNT, Keyboard,
     LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen,
     model1ScreenCodeToModel3 } from "trs80-emulator";
 import {connectXray} from "./xray.js";
-import {FloppyDisk, TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
+import {FloppyDisk, TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy, isGzipName } from "trs80-base";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
-import { readTrs80File, wrapText } from "./utils.js";
+import { readTrs80File, wrapText, writeOutputFile } from "./utils.js";
 import { word } from "z80-base";
 import {LogLevel, TRS80_FLOPPY_LOGGER, MAIN_SINK, makeBatchingSink } from "z80-logger";
 
@@ -599,7 +599,14 @@ function setUpFloppy(floppy: FloppyDisk, pathname: string, writable: boolean): v
         return;
     }
 
+    // A gzipped image can't be patched at an offset, so write the whole image, compressed again.
+    const compressed = isGzipName(pathname);
     floppy.onWrite.subscribe(floppyWrite => {
+        if (compressed) {
+            writeOutputFile(pathname, floppy.binary);
+            return;
+        }
+
         const fd = fs.openSync(pathname, "r+");
         fs.writeSync(fd, floppyWrite.data, 0, floppyWrite.data.length, floppyWrite.offset);
         fs.closeSync(fd);

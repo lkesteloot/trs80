@@ -153,7 +153,9 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
     // Decode the floppy.
     const file = decodeTrs80File(buffer, { filename });
     if (!isFloppy(file)) {
-        console.log("Not a recognized floppy file: " + filename);
+        // A ".gz" that isn't valid gzip data has an error, which is more helpful than the general complaint.
+        console.log(file.error !== undefined ? filename + ": " + file.error :
+            "Not a recognized floppy file: " + filename);
         return;
     }
 
@@ -385,7 +387,7 @@ function sectorsFileJson(filename: string, showContents: boolean, onlyShowBad: b
 
     const file = decodeTrs80File(buffer, { filename });
     if (!isFloppy(file)) {
-        return { infile: filename, sectors: [], error: "Not a recognized floppy file" };
+        return { infile: filename, sectors: [], error: file.error ?? "Not a recognized floppy file" };
     }
     if (file.error !== undefined) {
         return { infile: filename, sectors: [], error: file.error };

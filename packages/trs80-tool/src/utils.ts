@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import {
     ModelIITrsdosDirEntry, Trs80File, TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, XenixTarFile,
-    decodeTrs80File } from "trs80-base";
+    compressForName, decodeTrs80File, uncompressFile, withoutGzipSuffix } from "trs80-base";
 import {DiskError as ToolError, DiskErrorKind as ToolErrorKind} from "trs80-disk";
 import {assertNever} from "z80-base";
 import { AudioFile, readWavFile } from "trs80-cassette";
@@ -133,6 +133,36 @@ export function loadFile(filename: string): Uint8Array | string {
 }
 
 /**
+ * Load a file and return its bytes decompressed, or an error. A file whose name ends in ".gz" (the name
+ * decides, not the contents) is gunzipped; any other is returned as it is. {@link loadFile} returns the raw
+ * bytes instead.
+ */
+export function loadUncompressedFile(filename: string): Uint8Array | string {
+    const binary = loadFile(filename);
+    if (typeof binary === "string") {
+        return binary;
+    }
+
+    try {
+        return uncompressFile(filename, binary).bytes;
+    } catch (e: any) {
+        return `Can't open "${filename}": ${e.message ?? String(e)}`;
+    }
+}
+
+/**
+ * Write a file that the user named, compressed if the name ends in ".gz" (the name decides), and
+ * otherwise as it is. The write is atomic, as {@link writeFileAtomically}'s is.
+ *
+ * @param pathname the file to create or replace.
+ * @param binary the uncompressed bytes to write.
+ * @throws the file system's error if the write or the rename fails.
+ */
+export function writeOutputFile(pathname: string, binary: Uint8Array): void {
+    writeFileAtomically(pathname, compressForName(pathname, binary));
+}
+
+/**
  * Write a file so that an interrupted write can't leave half a file: write the bytes to a new file in
  * the same directory (so that the rename can't cross file systems), then rename it over the target.
  * If the target exists, the new file gets its permission bits, and if the target is a symbolic link
@@ -183,12 +213,14 @@ export function writeFileAtomically(pathname: string, binary: Uint8Array): void 
  * TODO: This pattern appears several times in this file.
  */
 export function readTrs80File(filename: string): Trs80File | AudioFile | string {
-    const binary = loadFile(filename);
+    const binary = loadUncompressedFile(filename);
     if (typeof binary === "string") {
         return binary;
     }
 
-    const extension = path.parse(filename).ext.toUpperCase();
+    // Decompressed above, so decode by the rest of the name.
+    const uncompressedName = withoutGzipSuffix(filename);
+    const extension = path.parse(uncompressedName).ext.toUpperCase();
     if (extension === ".WAV") {
         try {
             return readWavFile(binary);
@@ -201,7 +233,7 @@ export function readTrs80File(filename: string): Trs80File | AudioFile | string 
         }
     }
 
-    const trs80File = decodeTrs80File(binary, { filename });
+    const trs80File = decodeTrs80File(binary, { filename: uncompressedName });
     if (trs80File.error !== undefined) {
         return filename + ": " + trs80File.error;
     }

@@ -1,12 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import { expandFile } from "./InputFile.js";
-import {pluralizeWithCount, ToolError} from "./utils.js";
+import {pluralizeWithCount, ToolError, writeOutputFile} from "./utils.js";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio,
     concatAudio, writeWavFile } from "trs80-cassette";
 import {
     CassetteSpeed, decodeTrs80File, floppyImageFormatFromExtension, isFloppy, Trs80File, Trs80Floppy,
-    hiResScreenFormatToString, whyNotHiResScreen,
+    hiResScreenFormatToString, whyNotHiResScreen, withoutGzipSuffix,
 } from "trs80-base";
 import {convertFloppyFile} from "./convertDisk.js";
 import {encodeBlackAndWhitePng} from "./png.js";
@@ -39,7 +39,8 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
     }
 
     // Floppy images convert to other floppy images as a whole, not file by file.
-    const outExtension = path.parse(outFilename).ext.toLowerCase();
+    // A trailing ".gz" says to compress the output, and the extension before it says what kind of file.
+    const outExtension = path.parse(withoutGzipSuffix(outFilename)).ext.toLowerCase();
     if (convertDisk(inFilenames, outFilename, outExtension, force)) {
         return;
     }
@@ -73,7 +74,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
     }
 
     // Output is a file. Its extension will help us determine how to convert the input files.
-    const outExt = path.parse(outFilename).ext.toLowerCase();
+    const outExt = path.parse(withoutGzipSuffix(outFilename)).ext.toLowerCase();
     if (outExt === "") {
         throw new ToolError("No file extension on output file \"" + outFilename + "\", don't know how to convert");
     }
@@ -322,7 +323,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                 break;
         }
 
-        fs.writeFileSync(outFilename, outBinary);
+        writeOutputFile(outFilename, outBinary);
         console.log("Wrote " + outFilename + ": " + description);
     } else {
         // Make archive.
@@ -382,7 +383,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
             }
 
             if (outExt === ".cas") {
-                fs.writeFileSync(outFilename, concatByteArrays(outCasFiles.map(outCas => outCas.cas)));
+                writeOutputFile(outFilename, concatByteArrays(outCasFiles.map(outCas => outCas.cas)));
                 console.log("Wrote " + outFilename + ": CAS file with " +
                     pluralizeWithCount(outCasFiles.length, "file"));
             } else {
@@ -401,7 +402,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                 }
 
                 const wavBinary = writeWavFile(concatAudio(audioParts), DEFAULT_SAMPLE_RATE);
-                fs.writeFileSync(outFilename, wavBinary);
+                writeOutputFile(outFilename, wavBinary);
                 console.log("Wrote " + outFilename + ": WAV file with " +
                     pluralizeWithCount(outCasFiles.length, "file"));
             }
@@ -433,7 +434,7 @@ function convertDisk(inFilenames: string[], outFilename: string, outExtension: s
 
     // A single input might be a floppy image.
     let floppy: Trs80Floppy | undefined = undefined;
-    if (inFilenames.length === 1 && path.parse(inFilenames[0]).ext.toLowerCase() !== ".wav") {
+    if (inFilenames.length === 1 && path.parse(withoutGzipSuffix(inFilenames[0])).ext.toLowerCase() !== ".wav") {
         let binary: Uint8Array;
         try {
             binary = fs.readFileSync(inFilenames[0]);

@@ -40,6 +40,7 @@ import {
     ucsdPascalFileKindToString,
     XenixTar,
     XenixTarFile,
+    uncompressFile,
 } from "trs80-base";
 import {LogLevel, MAIN_SINK} from "z80-logger";
 import {imagingArtifactKindToJson, type ImagingArtifactKindJson} from "./artifacts.js";
@@ -836,11 +837,21 @@ function reportFile(filename: string): DiskReport {
     });
 
     try {
-        const binary = fs.readFileSync(filename);
+        // The size and hash are of the file inside a ".gz", so that compressing an image doesn't change its
+        // report. If the ".gz" isn't valid gzip, they're of the file, and decoding it reports the error.
+        let binary: Uint8Array = fs.readFileSync(filename);
+        let decodeName = filename;
+        try {
+            const uncompressed = uncompressFile(filename, binary);
+            binary = uncompressed.bytes;
+            decodeName = uncompressed.name;
+        } catch (e) {
+            // decodeTrs80File() fails the same way, and says so.
+        }
         report.size = binary.length;
         report.sha256 = sha256(binary);
 
-        const trs80File = decodeTrs80File(binary, { filename });
+        const trs80File = decodeTrs80File(binary, { filename: decodeName });
         report.type = trs80File.className;
         report.description = trs80File.getDescription();
         if (trs80File.error !== undefined) {

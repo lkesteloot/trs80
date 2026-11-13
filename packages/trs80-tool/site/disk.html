@@ -26,6 +26,12 @@
             <code>create</code> and <code>format</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command: if any
             command in the chain or any line of a script fails, nothing is saved.</p>
+            <p>An image whose name ends in <code>.gz</code> (<code>games.dmk.gz</code>) is gzipped: it’s read
+            decompressed and, when changed, written back compressed. The name decides, so
+            <code>-o out.dmk.gz</code> compresses and <code>-o out.dmk</code> doesn’t, and so does a host file
+            given to <code>add</code>, which is added decompressed under its name without <code>.gz</code>
+            (<code>add hello.bas.gz</code> adds <code>HELLO/BAS</code>). See
+            <a href="index.html#gzip">Gzipped files</a>.</p>
             <p>Only some disks can be changed: floppies of the TRSDOS family whose DOS is TRSDOS 2.x,
             TRSDOS 1.3, LDOS 5, TRSDOS 6 / LS-DOS 6, DOSPLUS 3, TRSDOS 2.7 / 2.8, NEWDOS/80 version 2 (and 1.0, single density and single sided only), or MultiDOS 1.x
             and 2.00, and LDOS 5 and LS-DOS 6 partitions of

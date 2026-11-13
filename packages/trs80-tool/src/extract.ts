@@ -5,6 +5,7 @@ import { expandContainer, type InputFile, selectInputFiles, XenixTarInputFile } 
 import { filesInfileJson, printInfilesJson } from "./json.js";
 import {
     DAMAGED_SUFFIX, outputPathComponents, pluralizeWithCount, safeOutputPath, systemWildcardHint, ToolError, ToolErrorKind,
+    writeOutputFile,
 } from "./utils.js";
 
 /**
@@ -337,7 +338,8 @@ export function extractOneInputFile(allFiles: InputFile[], containerName: string
         throw new ToolError("\"" + outPathname + "\" is a directory");
     }
     fs.mkdirSync(path.dirname(outPathname), { recursive: true });
-    fs.writeFileSync(outPathname, binary);
+    // The name is the user's, so a ".gz" name compresses.
+    writeOutputFile(outPathname, binary);
     const date = infile.getDate();
     if (date !== undefined) {
         fs.utimesSync(outPathname, date, date);

@@ -1,11 +1,10 @@
-import * as fs from "fs";
 import * as path from "path";
 import {
     compareFloppies, compareFloppyFileSystems, convertFloppy, type FloppyComparison, floppyDifferenceKindIsLoss,
     floppyDifferenceKindToString, type FloppyDisk, type FloppyImageFormat, floppyImageFormatToString, TrackPosition,
 } from "trs80-base";
 import {colors} from "./colors.js";
-import {pluralizeWithCount, ToolError} from "./utils.js";
+import {pluralizeWithCount, ToolError, writeOutputFile} from "./utils.js";
 
 /**
  * The most examples of each kind of difference to show.
@@ -104,7 +103,7 @@ export function convertFloppyFile(floppy: FloppyDisk, inFilename: string, outFil
         throw new ToolError("Nothing was written to \"" + outFilename + "\". Use --force to write it anyway.");
     }
 
-    fs.writeFileSync(outFilename, result.binary);
+    writeOutputFile(outFilename, result.binary);
 
     const geometry = result.getGeometry();
     const description = `${formatName} floppy, ${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +

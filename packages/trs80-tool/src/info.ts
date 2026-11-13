@@ -8,7 +8,7 @@ import {
     Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findHardDiskPartitions, getFloppyDetails, isFloppy,
     isHardDisk, knownTrsdosPassword, MicroDos,
     modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, pdriveSettingsToString, pdriveSourceToString, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
-    UcsdPascal, XenixTar} from "trs80-base";
+    UcsdPascal, uncompressFile, XenixTar} from "trs80-base";
 import {assertNever} from "z80-base";
 import {
     captureLogs, type ContentType, contentTypeOf, floppyFormatOf, type FloppyFormat, type InfileJson,
@@ -50,20 +50,30 @@ export function floppyDetailLines(floppy: FloppyDisk, fileSystem: KnownFloppyFil
 /**
  * Print one-line string description of the input file, and more if verbose.
  */
-function printInfoForFile(filename: string, verbose: boolean): void {
-    const {base, ext} = path.parse(filename);
-
+function printInfoForFile(inFilename: string, verbose: boolean): void {
     let description: string;
     const verboseLines: string[] = [];
     // One line for each partition of a hard disk, shown whether verbose or not.
     const partitionLines: string[] = [];
     let buffer;
     try {
-        buffer = fs.readFileSync(filename);
+        buffer = fs.readFileSync(inFilename);
     } catch (e: any) {
-        console.log(filename + ": Can't open file: " + e.message);
+        console.log(inFilename + ": Can't open file: " + e.message);
         return;
     }
+
+    // A ".gz" file is shown as the file inside it, decoded by the rest of its name.
+    let filename: string;
+    try {
+        const uncompressed = uncompressFile(inFilename, buffer);
+        filename = uncompressed.name;
+        buffer = uncompressed.bytes;
+    } catch (e: any) {
+        console.log(inFilename + ": Can't open file: " + e.message);
+        return;
+    }
+    const {base, ext} = path.parse(filename);
 
     if (ext.toLowerCase() == ".wav") {
         // Parse a cassette WAV file.
@@ -124,7 +134,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
         }
     }
 
-    console.log(filename + ": " + description);
+    console.log(inFilename + ": " + description);
     for (const line of partitionLines) {
         console.log("    " + line);
     }
@@ -600,18 +610,27 @@ function hardDiskToInfoJson(hardDisk: Trs80HardDisk, verbose: boolean): HardDisk
  * Decode one input file and convert what we know about it to JSON. Never throws because of the contents
  * of the file; problems are in the "error" field.
  */
-function infoFileToJson(filename: string, verbose: boolean): Omit<InfoJson, "warnings"> {
-    const {base, ext} = path.parse(filename);
-
+function infoFileToJson(inFilename: string, verbose: boolean): Omit<InfoJson, "warnings"> {
     let buffer;
     try {
-        buffer = fs.readFileSync(filename);
+        buffer = fs.readFileSync(inFilename);
     } catch (e) {
-        return { infile: filename, ...infileErrorJson(hostFileError("Can't open file", e)) };
+        return { infile: inFilename, ...infileErrorJson(hostFileError("Can't open file", e)) };
     }
 
+    // A ".gz" file is described as the file inside it, decoded by the rest of its name.
+    let filename: string;
+    try {
+        const uncompressed = uncompressFile(inFilename, buffer);
+        filename = uncompressed.name;
+        buffer = uncompressed.bytes;
+    } catch (e) {
+        return { infile: inFilename, ...infileErrorJson(hostFileError("Can't open file", e)) };
+    }
+    const {base, ext} = path.parse(filename);
+
     const json: Omit<InfoJson, "warnings"> = {
-        infile: filename,
+        infile: inFilename,
         size: buffer.length,
         sha256: sha256(buffer),
     };
