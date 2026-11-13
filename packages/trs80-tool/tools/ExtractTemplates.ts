@@ -81,7 +81,7 @@ const BOOT_SECTORS: BootSectorSource[] = [
     {key: "ldos-5.3-double", source: "formatted/m3-ldos-blank.dmk", nameAndVersion: "LDOS 5.3.1", sectors: [0, 1]},
     {key: "lsdos-6.3", source: "formatted/m4-lsdos-blank.dmk", nameAndVersion: "LS-DOS 6.3.1", sectors: [0, 1]},
     {key: "trsdos-6.2", source: "formatted/m4-trsdos-blank.dmk", nameAndVersion: "TRSDOS 6.2", sectors: [0, 1]},
-    {key: "trsdos-1.3", source: "formatted/m3-trsdos-blank.dmk", nameAndVersion: "TRSDOS 1.3", sectors: [1, 2]},
+    {key: "trsdos-1.3", source: "formatted/m3-trsdos-blank.dmk", nameAndVersion: "TRSDOS 1.3.2, 1.3I or 1.4", sectors: [1, 2]},
     {key: "trsdos-2.3", source: "TRSDOS23.DSK", nameAndVersion: "TRSDOS 2.3", sectors: [0]},
 ];
 
@@ -106,9 +106,9 @@ interface HardBootSectorSource {
  * sectors 0 and 1 of the partition. See templates/README.md.
  */
 const HARD_BOOT_SECTORS: HardBootSectorSource[] = [
-    {key: "ldos-5.3-hard-model1", source: "m1-ldos531-keil.hdv", head: 1, diskName: "M1LDVOL2", nameAndVersion: "LDOS 5.3"},
-    {key: "ldos-5.3-hard-model3", source: "m3-ldos531.hdv", head: 3, diskName: "LDM3HDD", nameAndVersion: "LDOS 5.3"},
-    {key: "lsdos-6.3-hard", source: "m4-lsdos631.hdv", head: 2, diskName: "M4LSDOSC", nameAndVersion: "LS-DOS 6.3"},
+    {key: "ldos-5.3-hard-model1", source: "m1-ldos531-keil.hdv.gz", head: 1, diskName: "M1LDVOL2", nameAndVersion: "LDOS 5.3"},
+    {key: "ldos-5.3-hard-model3", source: "m3-ldos531.hdv.gz", head: 3, diskName: "LDM3HDD", nameAndVersion: "LDOS 5.3"},
+    {key: "lsdos-6.3-hard", source: "m4-lsdos631.hdv.gz", head: 2, diskName: "M4LSDOSC", nameAndVersion: "LS-DOS 6.3"},
 ];
 
 /**
@@ -146,7 +146,7 @@ function loadAndCheck(sourceDir: string, source: string, nameAndVersion: string)
 function loadHardBootSectors(sourceDir: string, source: HardBootSectorSource): Uint8Array[] {
     const pathname = path.join(sourceDir, source.source);
     const binary = new Uint8Array(fs.readFileSync(pathname));
-    const trs80File = decodeTrs80File(binary, {filename: "x.hdv"});
+    const trs80File = decodeTrs80File(binary, {filename: pathname});
     if (!isHardDisk(trs80File)) {
         throw new Error(pathname + " isn't a hard disk image");
     }

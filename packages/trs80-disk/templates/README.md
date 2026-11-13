@@ -44,11 +44,11 @@ directory cylinder at byte 2 is patched in when a partition is written, so they 
 
 | Key | DOS | Taken from |
 |---|---|---|
-| `ldos-5.3-hard-model1` | LDOS 5.3 for the Model I (`--model 1`) | partition M1LDVOL2 (head 1) of `m1-ldos531-keil.hdv` |
-| `ldos-5.3-hard-model3` | LDOS 5.3 for the Model III (any other `--model`) | partition LDM3HDD (head 3) of `m3-ldos531.hdv` |
-| `lsdos-6.3-hard` | LS-DOS 6.3 | partition M4LSDOSC (head 2) of `m4-lsdos631.hdv` |
+| `ldos-5.3-hard-model1` | LDOS 5.3 for the Model I (`--model 1`) | partition M1LDVOL2 (head 1) of `m1-ldos531-keil.hdv.gz` |
+| `ldos-5.3-hard-model3` | LDOS 5.3 for the Model III (any other `--model`) | partition LDM3HDD (head 3) of `m3-ldos531.hdv.gz` |
+| `lsdos-6.3-hard` | LS-DOS 6.3 | partition M4LSDOSC (head 2) of `m4-lsdos631.hdv.gz` |
 
-The images are in the regression collection's `disks/hard/`. There are none for TRSDOS 6.2, which hard
+The images are in the regression collection's `disks/hard/`, gzipped. There are none for TRSDOS 6.2, which hard
 disks don't support here.
 
 ## Regenerating
