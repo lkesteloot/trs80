@@ -925,10 +925,35 @@ vtos301.dmk: Floppy disk (DMK), VTOS 3.0.1
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
-            <h3 id="2026-11-11">November 11, 2026</h3>
+
+            <h3 id="2026-11-12">November 12, 2026</h3>
             <ul>
                 <li><code>trs80-tool</code> v5.1.0:
                     <ul>
+                        <li><a href="disk.html"><code>disk</code></a> writes to TRSDOS 2.7 and
+                            2.8, NEWDOS/80, and MultiDOS 1.x and 2.00 disks.</li>
+                        <li><a href="#convert-hires"><code>convert</code></a> turns hi-res screen dumps
+                            (<code>.hr</code>, <code>.hrg</code>, <code>.hrx</code>, <code>.chr</code>,
+                            <code>.shr</code>) into PNGs, and <code>dir</code> and <code>info</code>
+                            describe them.</li>
+                        <li><a href="#sectors"><code>sectors --protection</code></a> lists a floppy’s
+                            signs of copy protection, and <code>disk check</code> lists them too.
+                            <code>disk repair</code> refuses to touch a disk that shows any.</li>
+                        <li><code>sectors --bad</code> and <code>disk check</code> point out bad sectors
+                            that the imaging likely caused, such as sectors the imager lost or cut short,
+                            since reimaging the disk may read them.</li>
+                        <li><a href="disk.html#trim"><code>disk trim</code></a> drops only the
+                            cylinders it can prove are past the end of the disk, and says why it kept
+                            the others.</li>
+                        <li><a href="disk.html#free"><code>disk free</code></a>, <code>map</code> and
+                            <code>info</code> count apart the free granules that new files can’t use,
+                            and <code>disk repair --mark-missing-used</code> marks those the image
+                            doesn’t fully hold as used. <code>disk map --json</code> names every file
+                            that claims a granule.</li>
+                        <li>The <a href="#mcp">MCP server</a> runs <code>dir</code>, <code>info</code>,
+                            <code>sectors</code>, and <code>disk</code> on disk images on your computer,
+                            and only its <code>disk_write</code> tool changes them.</li>
+                        <li>Names more DOS releases, from what each DOS’s FORMAT writes.</li>
                         <li><a href="disk.html#create"><code>disk create</code></a> makes HDV hard
                             disks, blank or with LDOS 5.3 or LS-DOS 6.3 partitions, and
                             <code>disk partition</code> adds and deletes partitions.</li>
@@ -953,6 +978,9 @@ vtos301.dmk: Floppy disk (DMK), VTOS 3.0.1
                         <li>Files whose directory entry has a month of 0 are shown with no date.</li>
                     </ul>
                 </li>
+                <li>Emulator: Read Track returns a whole turn of the track as the DMK or HFE image
+                    holds it, so copy-protected programs that check its length, like Big Five’s,
+                    load from those images.</li>
             </ul>
 
             <h3 id="2026-11-07">November 7, 2026</h3>
