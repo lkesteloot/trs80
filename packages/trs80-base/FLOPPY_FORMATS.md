@@ -858,8 +858,8 @@ The rest of `ira/odderrors-420/`:
 Five more artifacts from Ira's DMK repair work (GitHub issue #48), besides the stale IDAM tables,
 noise IDs, re-reads, 80-track stepping and pointers past the track end above. Each leaves a sector
 missing or bad in the image, but says nothing about the disk, which reimaging may well read
-cleanly. `findImagingArtifacts()` (`ImagingArtifacts.ts`) recognizes three of them, and `sectors
---bad` and `disk check` label them. They stay damage to the image: `check` still reports the files
+cleanly. `findImagingArtifacts()` (`ImagingArtifacts.ts`) recognizes three of them, `sectors
+--bad` and `disk check` label them, and `info --report` lists them (report version 8). They stay damage to the image: `check` still reports the files
 they spoil, and whether a disk may be written doesn't change. The other two never show up as damage
 in our readers. Positions below are logical bytes from the start of the track, counting a doubled
 single-density byte once.

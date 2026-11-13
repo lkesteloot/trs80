@@ -4,9 +4,10 @@ import path from "path";
 import {formatTrsdosDataDisk, SectorPosition, setDmkConverterCrcMarker, TrsdosFormatDos} from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {disk} from "./disk/disk.js";
+import {infoJson, type ReportOutput} from "./report.js";
 import {sectorsJsonInfiles} from "./sectors.js";
 
-describe("imaging artifacts in sectors and check", () => {
+describe("imaging artifacts in sectors, check and info --report", () => {
     let dir = "";
     let imagePathname = "";
 
@@ -53,5 +54,24 @@ describe("imaging artifacts in sectors and check", () => {
         expect(lines.some(line => line.startsWith("  Converter's CRC marker: The stored CRC of sector 2 of cylinder 5")))
             .to.equal(true);
         expect(lines.at(-1)).to.equal("Safe to write.");
+    });
+
+    it("lists the artifact in info --report, and leaves the field out when there are none", () => {
+        const cleanPathname = path.join(dir, "clean.dmk");
+        const floppy = formatTrsdosDataDisk({dos: TrsdosFormatDos.TRSDOS_2_3, cylinders: 40, sides: 1});
+        if (typeof floppy === "string") {
+            throw new Error(floppy);
+        }
+        fs.writeFileSync(cleanPathname, floppy.binary);
+        const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+        let output: ReportOutput;
+        try {
+            infoJson([imagePathname, cleanPathname]);
+            output = JSON.parse(spy.mock.calls[0][0] as string) as ReportOutput;
+        } finally {
+            spy.mockRestore();
+        }
+        expect(output.reports[0].imagingArtifacts).to.eql([{kind: "converterCrcMarker", sectors: [[5, 0, 2]]}]);
+        expect(output.reports[1]).not.to.have.property("imagingArtifacts");
     });
 });

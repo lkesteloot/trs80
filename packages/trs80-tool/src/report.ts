@@ -14,6 +14,7 @@ import {
     Density,
     FloppyDirEntry,
     FloppyDisk,
+    findImagingArtifacts,
     findLdosPartitions,
     FloppyFileSystem,
     isFloppy,
@@ -41,6 +42,7 @@ import {
     XenixTarFile,
 } from "trs80-base";
 import {LogLevel, MAIN_SINK} from "z80-logger";
+import {imagingArtifactKindToJson, type ImagingArtifactKindJson} from "./artifacts.js";
 import {version} from "./version.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {
@@ -49,7 +51,7 @@ import {
 
 // Bump when the structure of the report changes in a way that consumers must know about.
 // The trs80-floppy-regress repo keeps a copy of the types below; update it too.
-export const REPORT_VERSION = 7;
+export const REPORT_VERSION = 8;
 
 export type DensityName = "single" | "double";
 
@@ -229,6 +231,16 @@ export interface FileReport {
 }
 
 /**
+ * One kind of imaging artifact on a floppy, which findImagingArtifacts() in trs80-base finds:
+ * sectors that the imager lost or cut short, or whose CRC a converter made up.
+ */
+export interface ImagingArtifactReport {
+    kind: ImagingArtifactKindJson;
+    // The bad or missing sectors that the artifact explains, as cylinder, side, and sector number, in order.
+    sectors: [number, number, number][];
+}
+
+/**
  * The physical layout of a hard disk.
  */
 export interface HardDiskReport {
@@ -276,6 +288,8 @@ export interface DiskReport extends FileSystemReport {
     geometry?: GeometryReport;
     // First three bytes of the boot sector, or null if it can't be read.
     bootSectorPrefix?: number[] | null;
+    // For floppies only, and missing if there are none.
+    imagingArtifacts?: ImagingArtifactReport[];
     // For hard disks only. The top-level "os" and "files" are missing for them; each partition has its own.
     hardDisk?: HardDiskReport;
     partitions?: PartitionReport[];
@@ -576,6 +590,15 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
     report.bootSectorPrefix = bootSector === undefined
         ? null
         : Array.from(bootSector.data.subarray(0, 3));
+
+    const artifacts = findImagingArtifacts(disk);
+    if (artifacts.length > 0) {
+        report.imagingArtifacts = artifacts.map(artifact => ({
+            kind: imagingArtifactKindToJson(artifact.kind),
+            sectors: artifact.sectors.map(position =>
+                [position.cylinderNumber, position.side, position.sectorNumber] as [number, number, number]),
+        }));
+    }
 
     // In the order of decodeFloppyFileSystem().
     const trsdosII = decodeTrsdosII(disk);
