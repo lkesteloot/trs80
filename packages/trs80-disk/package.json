@@ -1,7 +1,10 @@
 {
   "name": "trs80-disk",
   "description": "The open-disk engine behind trs80-tool's disk command: sessions, undo, and the write rules, for Node and browsers",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./templates/*": "./templates/*"
+  },
   "type": "module",
   "private": true,
   "scripts": {

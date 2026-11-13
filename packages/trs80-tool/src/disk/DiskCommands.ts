@@ -22,7 +22,7 @@ import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {
     type AddFileSource, type AddOptions, addFiles, type AttributeRequest, changeAttributes, changeDiskInfo,
     checkDisk, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
-    findingSeverityHeading, getWriteProtect, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
+    findingSeverityHeading, formatCommandLine, getWriteProtect, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
 } from "trs80-disk";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
@@ -1082,11 +1082,11 @@ export const DISK_COMMANDS: DiskCommand[] = [
 
 /**
  * The text of a command as the user typed it, such as "add hello.bas --binary", for saying which
- * command "undo" undid, and for --json. Arguments with spaces in them are put in double quotes.
+ * command "undo" undid, and for --json. Words that need it are put in double quotes (see
+ * {@link quoteCommandWord}), so that the text splits back into the same words.
  */
-function commandLineText(command: ParsedDiskCommand): string {
-    const words = [command.name, ...command.args, ...command.options.toWords()];
-    return words.map(word => word === "" || /\s/.test(word) ? JSON.stringify(word) : word).join(" ");
+export function commandLineText(command: ParsedDiskCommand): string {
+    return formatCommandLine([command.name, ...command.args, ...command.options.toWords()]);
 }
 
 /**

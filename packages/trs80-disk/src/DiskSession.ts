@@ -310,6 +310,25 @@ interface DiskState {
 }
 
 /**
+ * The undo and redo history of a session, for showing it and for moving through it. See
+ * {@link DiskSession.getHistory}.
+ */
+export interface DiskHistory {
+    /**
+     * The label of every entry, oldest first: the undo stack's labels, then the redo stack's in the order
+     * that they would be redone.
+     */
+    entries: string[];
+    /** How many entries are applied (the undo stack's length), so entries[position - 1] is the latest one. */
+    position: number;
+    /**
+     * The position whose disk is what was last saved, or undefined if that disk isn't in the history any
+     * more (its state was dropped for size, or the history never held it).
+     */
+    savedPosition: number | undefined;
+}
+
+/**
  * A step in the undo or redo history: a state to go back to, and the command that changed the disk
  * between that state and the one on the other side of it.
  */
@@ -402,6 +421,12 @@ export class DiskSession {
     private undoStack: DiskHistoryEntry[] = [];
     /** The states that {@link redo} goes forward to, most recently undone last. */
     private redoStack: DiskHistoryEntry[] = [];
+    /** The functions to call when the session changes, in the order they subscribed. */
+    private changeListeners: (() => void)[] = [];
+    /** How many holds are active (see {@link holdNotifications}). Notifications wait while it's above zero. */
+    private notificationHoldCount = 0;
+    /** Whether a change happened during a hold, so that releasing the last hold sends a notification. */
+    private notificationPending = false;
     /**
      * The interactive shell's hold on the terminal, or undefined when there's no shell (a chain of commands on
      * the command line, or a script), when the terminal is free for a command to use.
@@ -430,6 +455,66 @@ export class DiskSession {
     }
 
     /**
+     * Ask to be told whenever something changes that a view of the session would show: the disk's
+     * contents, undo, redo, revert, saving, a new image, a new file system decoding, the selected partition
+     * and abort. A change inside {@link runUndoable} is announced once, when the command is done and its
+     * history entry is recorded. A listener that throws doesn't stop the others.
+     *
+     * @param listener called after each change, with no arguments.
+     * @returns a function that removes the listener.
+     */
+    public onChange(listener: () => void): () => void {
+        this.changeListeners.push(listener);
+
+        return () => {
+            const index = this.changeListeners.indexOf(listener);
+            if (index >= 0) {
+                this.changeListeners.splice(index, 1);
+            }
+        };
+    }
+
+    /**
+     * Tell the listeners that the session changed, or if notifications are held then remember to
+     * tell them when the last hold is released.
+     */
+    private notifyChange(): void {
+        if (this.notificationHoldCount > 0) {
+            this.notificationPending = true;
+            return;
+        }
+
+        // Copy the list, so that a listener can unsubscribe (itself or another) while we call them.
+        for (const listener of [...this.changeListeners]) {
+            try {
+                listener();
+            } catch (e) {
+                console.error("Error in a disk session change listener:", e);
+            }
+        }
+    }
+
+    /**
+     * Hold back notifications until the matching {@link releaseNotifications}, so that many changes
+     * make one notification, sent after the state is consistent.
+     */
+    private holdNotifications(): void {
+        this.notificationHoldCount++;
+    }
+
+    /**
+     * End a hold from {@link holdNotifications}. When the last hold ends, send one notification if
+     * anything changed during the holds.
+     */
+    private releaseNotifications(): void {
+        this.notificationHoldCount--;
+        if (this.notificationHoldCount === 0 && this.notificationPending) {
+            this.notificationPending = false;
+            this.notifyChange();
+        }
+    }
+
+    /**
      * Note a change to the floppy or hard disk whenever it's written.
      */
     private watchImage(image: DiskImage): void {
@@ -437,6 +522,7 @@ export class DiskSession {
             if (image === this.currentImage) {
                 this.changed = true;
                 this.modificationCount++;
+                this.notifyChange();
             }
         };
         // The two kinds of disk have dispatchers of different types.
@@ -605,6 +691,7 @@ export class DiskSession {
         this.granuleMap = null;
         this.writeGate = null;
         this.forceWarningShown = false;
+        this.notifyChange();
     }
 
     /**
@@ -805,6 +892,7 @@ export class DiskSession {
         this.changed = true;
         this.modificationCount++;
         this.watchImage(floppy);
+        this.notifyChange();
     }
 
     /**
@@ -821,6 +909,7 @@ export class DiskSession {
         this.modificationCount++;
         this.watchImage(hardDisk);
         this.findPartitions(undefined);
+        this.notifyChange();
     }
 
     /**
@@ -873,6 +962,7 @@ export class DiskSession {
             this.clearWriteProtection();
         }
 
+        this.holdNotifications();
         try {
             change(hardDisk);
         } finally {
@@ -886,6 +976,8 @@ export class DiskSession {
                     this.currentFileSystem = this.partitions[index].trsdos;
                 }
             }
+            this.notificationPending = true;
+            this.releaseNotifications();
         }
     }
 
@@ -899,6 +991,7 @@ export class DiskSession {
         this.granuleMap = null;
         this.writeGate = null;
         this.forceWarningShown = false;
+        this.notifyChange();
     }
 
     /**
@@ -972,6 +1065,7 @@ export class DiskSession {
         this.changed = false;
         this.savedRevision = this.currentRevision;
         this.savedState = this.captureState();
+        this.notifyChange();
     }
 
     /**
@@ -983,6 +1077,7 @@ export class DiskSession {
         const discardedPathname = this.changed ? this.currentSaveName : undefined;
         this.aborted = true;
         this.changed = false;
+        this.notifyChange();
 
         return discardedPathname;
     }
@@ -1073,6 +1168,7 @@ export class DiskSession {
         this.forceWarningShown = false;
         this.changed = true;
         this.modificationCount++;
+        this.notifyChange();
     }
 
     /**
@@ -1109,6 +1205,8 @@ export class DiskSession {
     public async runUndoable(label: string, run: () => void | Promise<void>): Promise<void> {
         const before = this.captureState();
         const modificationCountBefore = this.modificationCount;
+        // Hold notifications so that a listener sees the history entry along with the change.
+        this.holdNotifications();
         try {
             await run();
         } finally {
@@ -1116,6 +1214,7 @@ export class DiskSession {
             if (modified) {
                 this.pushUndoState(label, before);
             }
+            this.releaseNotifications();
         }
     }
 
@@ -1180,6 +1279,7 @@ export class DiskSession {
 
         this.redoStack.push({ label: entry.label, state: this.captureState() });
         this.restoreState(entry.state);
+        this.notifyChange();
 
         return entry.label;
     }
@@ -1197,6 +1297,7 @@ export class DiskSession {
 
         this.undoStack.push({ label: entry.label, state: this.captureState() });
         this.restoreState(entry.state);
+        this.notifyChange();
 
         return entry.label;
     }
@@ -1214,8 +1315,71 @@ export class DiskSession {
 
         this.pushUndoState("revert", this.captureState());
         this.restoreState(this.savedState);
+        this.notifyChange();
 
         return true;
+    }
+
+    /**
+     * The undo and redo history, for showing it. Entries are in the order they happened, and the redo stack
+     * follows the undo stack.
+     */
+    public getHistory(): DiskHistory {
+        const entries = [...this.undoStack, ...[...this.redoStack].reverse()].map(entry => entry.label);
+
+        // Positions run from 0 (before every entry) to entries.length (after all). The disk at position i,
+        // for i below the undo count, is the state stored in undoStack[i]. The current disk is at the undo
+        // count. Redo entry j (counting from the next one to redo) stores the disk after it was applied,
+        // which is position undoCount + j + 1.
+        let savedPosition: number | undefined = undefined;
+        const undoCount = this.undoStack.length;
+        if (this.currentRevision === this.savedRevision) {
+            savedPosition = undoCount;
+        } else {
+            for (let i = 0; i < undoCount; i++) {
+                if (this.undoStack[i].state.revision === this.savedRevision) {
+                    savedPosition = i;
+                    break;
+                }
+            }
+            if (savedPosition === undefined) {
+                for (let j = 0; j < this.redoStack.length; j++) {
+                    const entry = this.redoStack[this.redoStack.length - 1 - j];
+                    if (entry.state.revision === this.savedRevision) {
+                        savedPosition = undoCount + j + 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return { entries, position: undoCount, savedPosition };
+    }
+
+    /**
+     * Undo or redo until exactly the given number of history entries are applied, and send one
+     * notification.
+     *
+     * @param position the number of entries to have applied, from 0 to the history's length.
+     * @throws DiskError if position is out of range.
+     */
+    public goToHistoryPosition(position: number): void {
+        const length = this.undoStack.length + this.redoStack.length;
+        if (!Number.isInteger(position) || position < 0 || position > length) {
+            throw new DiskError("History position " + position + " is out of range (0 to " + length + ").");
+        }
+
+        this.holdNotifications();
+        try {
+            while (this.undoStack.length > position) {
+                this.undo();
+            }
+            while (this.undoStack.length < position) {
+                this.redo();
+            }
+        } finally {
+            this.releaseNotifications();
+        }
     }
 
     /**
@@ -1319,6 +1483,19 @@ export class DiskSession {
      * which case the disk is unchanged.
      */
     public changeTrsdos(purpose: DiskWritePurpose, change: (writer: TrsdosWriter) => void): void {
+        // The commit writes many sectors; announce them once, with the new file system in place.
+        this.holdNotifications();
+        try {
+            this.changeTrsdosHeld(purpose, change);
+        } finally {
+            this.releaseNotifications();
+        }
+    }
+
+    /**
+     * The body of {@link changeTrsdos}, run with notifications held.
+     */
+    private changeTrsdosHeld(purpose: DiskWritePurpose, change: (writer: TrsdosWriter) => void): void {
         this.requireWritable(purpose);
         this.clearWriteProtection();
 

@@ -1,4 +1,5 @@
 export * from "./DiskCheck.js";
+export * from "./DiskCommandLine.js";
 export * from "./DiskCreate.js";
 export * from "./DiskError.js";
 export * from "./DiskFileOperations.js";
@@ -12,3 +13,4 @@ export * from "./DiskTemplates.js";
 export * from "./DiskTrim.js";
 export * from "./Patterns.js";
 export * from "./Plural.js";
+export * from "./PrefetchedTemplates.js";

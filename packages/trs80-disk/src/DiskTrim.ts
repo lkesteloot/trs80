@@ -606,6 +606,18 @@ export interface TrimNothingResult {
 export type TrimResult = TrimNothingResult | TrimDoneResult;
 
 /**
+ * What the user asked "trim" to drop.
+ */
+export interface TrimRequest {
+    /** The number of cylinders to keep (--cylinders), or undefined to choose. */
+    cylinders: number | undefined;
+    /** Whether to drop side 1, keeping only side 0 (--side 0). */
+    dropSide: boolean;
+    /** Whether to drop tracks that hold data we can't prove is unused, or trim a write-protected image (--force). */
+    force: boolean;
+}
+
+/**
  * Rebuild the image without the tracks that nothing needs, and replace the session's disk with it, so that
  * the change is saved like any other. With no options, drops only cylinders at the end that the DOS's own
  * records put past the disk's end and that hold nothing but re-reads of earlier cylinders and unformatted
@@ -624,7 +636,7 @@ export type TrimResult = TrimNothingResult | TrimDoneResult;
  * write-protected image.
  * @throws DiskError if the request is invalid, or would drop something that's needed.
  */
-export function trimDisk(session: DiskSession, options: {cylinders: number | undefined, dropSide: boolean, force: boolean}): TrimResult {
+export function trimDisk(session: DiskSession, options: TrimRequest): TrimResult {
     const {cylinders: requestedCylinders, dropSide, force} = options;
     if (requestedCylinders === 0) {
         throw new DiskError("Invalid --cylinders \"0\": a disk needs at least 1");

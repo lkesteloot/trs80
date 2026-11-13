@@ -1,4 +1,4 @@
-// One-off script that fills packages/trs80-tool/templates/ from disk images: it gzips the six
+// One-off script that fills packages/trs80-disk/templates/ from disk images: it gzips the six
 // bootable system disks, and copies the DOSes' own boot sectors for data disks out of DOS-formatted
 // blank disks into data-disk-boot-sectors.json. The templates are committed, so this only needs to
 // run again when a template is added or replaced; templates/README.md says what each one is.
@@ -32,7 +32,7 @@ const DEFAULT_HARD_SOURCE_DIR = path.join(os.homedir(), "mine", "trs80-floppy-re
 /**
  * Where the output goes.
  */
-const TEMPLATES_DIR = fileURLToPath(new URL("../templates", import.meta.url));
+const TEMPLATES_DIR = fileURLToPath(new URL("../../trs80-disk/templates", import.meta.url));
 
 /**
  * A bootable system disk to copy into the templates directory.

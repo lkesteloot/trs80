@@ -2,8 +2,8 @@
  * The templates that ship inside the tool: the DOSes' own data-disk boot sectors, which make "create" and
  * "format" disks (and hard disk partitions) that match what each DOS's FORMAT makes, and six bootable system
  * disks for "create --system".
- * The files are in trs80-tool's templates/ (see its README.md), and its tools/GenerateTemplates.ts embeds them in
- * Templates.ts. Here the templates come through a {@link DiskTemplateSource}, so that a browser can fetch them as
+ * The files are in trs80-disk's templates/ (see its README.md), and trs80-tool's tools/GenerateTemplates.ts embeds
+ * them in its Templates.ts. Here the templates come through a {@link DiskTemplateSource}, so that a browser can fetch them as
  * files instead.
  */
 

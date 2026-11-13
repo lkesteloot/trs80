@@ -1,8 +1,9 @@
 # Templates
 
-Disk images and boot sectors that trs80-tool embeds, so that its `disk create` command can make disks
-like the ones the DOSes make. `tools/GenerateTemplates.ts` embeds everything in this directory in the
-gitignored `src/disk/Templates.ts` at build time, and `src/disk/DiskTemplates.ts` is the API to it.
+Disk images and boot sectors for making disks like the ones the DOSes make, which the `disk create` command
+uses. trs80-tool's `tools/GenerateTemplates.ts` embeds everything in this directory in its gitignored
+`src/disk/Templates.ts` at build time, and a web page can fetch the files through the `./templates/*` export
+of this package. `src/DiskTemplates.ts` here is the API to them.
 
 These are the DOSes' own software, not ours. They are shipped inside the tool as the trs80gp emulator
 ships them, and will be taken down on request.

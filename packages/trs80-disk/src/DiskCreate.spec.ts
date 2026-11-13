@@ -13,8 +13,8 @@ import {addPartition, deletePartition} from "./DiskPartition.js";
 import {DiskSession} from "./DiskSession.js";
 import type {DiskTemplateSource} from "./DiskTemplates.js";
 
-/** The folder with trs80-tool's templates, which these tests read as a browser would fetch them. */
-const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../trs80-tool/templates");
+/** The folder with the engine's templates, which these tests read as a browser would fetch them. */
+const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../templates");
 
 /**
  * Templates from the real files, as a browser page would get them from the server.
