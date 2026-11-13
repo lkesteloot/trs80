@@ -2705,10 +2705,24 @@ isn't written. Cites are to the NEWDOS/80 Version 2.0 manual, PDF pages 96-101, 
   HIT byte, keeping the slot. Each new file went in directory sector (hash mod 8), entry 0, or the next free entry
   there: FILE1, FILE2 and FILE3 in DECs 0x05, 0x04 and 0x24. Version 2 places files the same way (1,120 of 2,544
   user entries on its disks sit in the sector their hash picks, and the rest overflow, as do 291 of 423 on version
-  1 disks). The writer takes the lowest free DEC instead, which is harmless, since the DOS finds a file by its HIT
-  byte wherever it is. Where the hash's sector is full the DOS's choice isn't simply the next sector: on the
-  collection's disks the overflow lands one, two or five sectors on in about equal numbers, so matching it exactly
-  would take the DOS's code or a controlled test, not the disks we have.
+  1 disks). Where the hash's sector is full the DOS's choice isn't simply the next sector: on the collection's
+  disks the overflow lands one, two or five sectors on in about equal numbers, so matching it would take the DOS's
+  code or a controlled test, not the disks we have.
+- **Where a new file goes.** The writer follows the DOS's first choice: a new file's primary entry goes in the lowest
+  free, unreserved entry of directory sector ((hash & 0x1F) mod the number of entry sectors). On 8-sector directories
+  that's hash mod 8, which 67% of the 1,988 user files on NEWDOS/80 disks match; with 13, 18 and 28 entry sectors the
+  same formula fits 32%, 31% and 23% of them (chance would be 8%, 6% and 4%), far better than hash mod the sector
+  count (12%, 6%, 10%) or hash & 7 (22%, 28%, 14%), since bigger directories fill up and overflow more. When that
+  sector is full, the writer takes the lowest free slot anywhere, as it does for the other DOSes: the DOS's own
+  next choice isn't known, and the lowest free slot is the rule already tested, where "the next sector" would be
+  as much a guess. Extended entries keep taking the lowest free slots: 13 of the 27 FXDEs on NEWDOS/80 disks are in
+  their primary's hash sector, which doesn't show a rule. A replaced file keeps its slot. Since the DOS finds a file
+  by its HIT byte, any free slot works; this is for matching the DOS's own disks. Starting from Ira's freshly
+  formatted 1.0 disk, adding his three files now gives his SAVE 3 disk's directory, GAT and HIT byte for byte
+  (FILE1, FILE2 and FILE3 in DECs 0x05, 0x04 and 0x24), and killing or renaming FILE1 gives his KILL and RENAME disks'.
+  No other DOS places files this way: across the collection's 2.3-layout disks, LDOS, LS-DOS, TRSDOS, DOSPLUS,
+  MultiDOS, Super Utility+ and the rest sit in the hash's sector 2-12% of the time, about chance, with NEWDOS 2.x
+  (18%), VTOS (16%) and NEWDOS/90 (15%) a little above it.
 - **Version 1.0.** It's the same rule set as version 2, since the two differ only in byte 1 of a new entry, which the
   writer takes from the disk: 0 when the DOS the disk names is 1.0 (or, for a disk that names none, when GAT byte
   0xCB is 0x80), 0x20 otherwise; 400 of the user files on version 1.0 disks have 0 there, and the rest carry other
@@ -2719,9 +2733,9 @@ isn't written. Cites are to the NEWDOS/80 Version 2.0 manual, PDF pages 96-101, 
   (`SPT=20,GPL=4` by the same page; the one candidate, `peter/Super Dos [VDISK OK] [IRA334].dmk`, is really single
   sided double density with a leftover directory on side 1), and the two NEWDOS/86 utility disks named v1.0 (double
   density, with a PDRIVE table). Two extended entries on version 1.0 disks are in the form the writer uses.
-  Starting from Ira's freshly formatted disk and adding his three files gives his SAVE 3 disk's GAT, HIT bytes and
-  entries exactly, in other slots (DECs 0x02-0x04 against his 0x05, 0x04 and 0x24); killing FILE1 changes the same
-  three bytes as his KILL, and renaming it the same eight as his RENAME. The data sectors differ in two ways that
+  Starting from Ira's freshly formatted disk and adding his three files gives his SAVE 3 disk's GAT, HIT and
+  directory exactly (see "Where a new file goes"), and killing or renaming FILE1 his KILL and RENAME disks'. The data
+  sectors differ in two ways that
   don't matter to the DOS: the writer zeros the end of a file's last sector, where the DOS leaves whatever its
   buffer held, and writes zeros to the unused sectors of a file's last granule, which the DOS doesn't touch.
   Ira's data disks also have side 1 in the ID of every sector on side 0 (see "Sector IDs that name another side").

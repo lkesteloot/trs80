@@ -1355,7 +1355,9 @@ export class TrsdosWriter {
             }
             decs.push(...sameSectorDecs);
         } else if (moreEntriesNeeded > 0) {
-            const moreDecs = chooseDirSlots(trsdos, this.ruleSet, this.hit.bytes, moreEntriesNeeded);
+            // A new primary entry may go where its hash says (NEWDOS/80); a replaced file keeps its old slot.
+            const primaryHash = reusedDecs.length === 0 ? hashForFilename(rawFilename) : undefined;
+            const moreDecs = chooseDirSlots(trsdos, this.ruleSet, this.hit.bytes, moreEntriesNeeded, false, primaryHash);
             if (typeof moreDecs === "string") {
                 const reason = `${moreDecs.charAt(0).toLowerCase()}${moreDecs.substring(1)}`;
                 const fragmentation = extentGroups.length > 1 ?

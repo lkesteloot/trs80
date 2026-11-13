@@ -266,9 +266,15 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       density and single sided (see "Writing NEWDOS/80" in FLOPPY_FORMATS.md). Not written:
       - Version 1.0 disks in other layouts: double density (DoubleZap and other patches; double-sided double density
         uses a different sector order), and single density on two sides, which no disk in the collection shows.
-      - Matching the DOS's directory slot choice: it puts a new file in sector (hash mod entry sectors), and we take
-        the lowest free DEC. The first choice is easy to match; the overflow order isn't known (see "Version 1.0's
-        own writes").
+      - The DOS's directory slot choice when the hash's sector is full. The writer matches its first choice (see
+        "Where a new file goes" in FLOPPY_FORMATS.md) and then takes the lowest free slot; the DOS goes one, two or
+        five sectors on, in about equal numbers on our disks. A test disk from Ira would settle it: on a freshly
+        formatted 8-sector data disk, save nine or more small files whose names hash to the same sector (we can
+        supply the names), then a few that hash to the sectors after it, imaging after each save, so that where
+        each overflowing file lands, and whether it depends on what's free nearby, can be read off. The same for
+        a file big enough to need an extended entry would show where FXDEs go.
+      - NEWDOS 2.x (18%), VTOS (16%) and NEWDOS/90 (15%) put files in their hash's sector a little more often than
+        chance; worth a look if their writers are added.
       - Version 3.0 (its own Model III boot sector): a different release that we haven't studied.
       - Disks of more than 96 lumps with no PDRIVE table whose GAT doesn't prove its own size (see "More than 96
         lumps with no table" in FLOPPY_FORMATS.md): a last lump that's full, or lumps 0-95 that also fit the

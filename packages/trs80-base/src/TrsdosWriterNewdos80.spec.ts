@@ -22,6 +22,7 @@ import {
     newdos80IsSystemDisk,
     newdos80LayoutProblem,
 } from "./TrsdosNewdos80.js";
+import {chooseDirSlots} from "./TrsdosDirSlots.js";
 import {identifyTrsdosRuleSet, TrsdosRuleSet} from "./TrsdosRuleSet.js";
 import {makeTrsdos23TestDisk, type TestFile} from "./TrsdosTestDisk.js";
 import {evaluateTrsdosWriteGate, TrsdosWriteAccess, TrsdosWriteBlockerKind} from "./TrsdosWriteGate.js";
@@ -581,20 +582,106 @@ describe("NEWDOS/80 directory slots", () => {
         }
         const dec = entryOf(newTrsdos, "USER/DAT").dec;
         expect(reserved.has(dec)).to.be.false;
-        // Entry 4 of the first directory sector is the first slot past the four rows.
-        expect(dec).to.equal(0x80);
+        // Entry 4 of its hash's sector is the first slot there past the four reserved rows.
+        expect(dec).to.equal(0x80 | hashSector("USER    DAT"));
     });
 
-    it("puts the first file on a data disk in DEC 2", () => {
+    it("puts a new file in the lowest free slot of the sector its hash picks", () => {
         for (const [, make] of FIXTURES) {
             const {trsdos, makeWriter} = make();
             expect(newdos80IsSystemDisk(trsdos)).to.be.false;
+            const expected = lowestFreeInSector(trsdos, hashSector("FIRST   DAT"));
             const writer = makeWriter();
             writer.addFile(name("FIRST/DAT"), makeContents(100));
-            expect(entryOf(writer.flush(), "FIRST/DAT").dec).to.equal(2);
+            expect(entryOf(writer.flush(), "FIRST/DAT").dec).to.equal(expected);
         }
     });
+
+    it("puts Ira's three version 1.0 files in the DECs that NEWDOS/80 1.0 did", () => {
+        // FILE1, FILE2 and FILE3 hash to 0x9D, 0x1C and 0x9C, so sectors 5, 4 and 4.
+        const {makeWriter} = makeSdFixture([], {dosVersion: 0x80});
+        const writer = makeWriter();
+        for (const fileName of ["FILE1", "FILE2", "FILE3"]) {
+            writer.addFile(name(fileName), makeContents(888));
+        }
+        const newTrsdos = writer.flush();
+        expect(["FILE1", "FILE2", "FILE3"].map(fileName => entryOf(newTrsdos, fileName).dec)).to.eql([0x05, 0x04, 0x24]);
+    });
+
+    it("falls back to the lowest free slot when the hash's sector is full", () => {
+        const {trsdos, makeWriter} = makeDdFixture();
+        // Nine names whose hash picks the same sector, which holds eight.
+        const sector = hashSector("FIRST   DAT");
+        const names: string[] = [];
+        for (let i = 0; names.length < 9; i++) {
+            const candidate = "F" + i;
+            if (hashSector(candidate.padEnd(8, " ") + "DAT") === sector) {
+                names.push(candidate + "/DAT");
+            }
+        }
+        const lowestFree = lowestFreeInDirectory(trsdos);
+        const writer = makeWriter();
+        for (const fileName of names) {
+            writer.addFile(name(fileName), makeContents(10));
+        }
+        const newTrsdos = writer.flush();
+        const decs = names.map(fileName => entryOf(newTrsdos, fileName).dec);
+        expect(decs.slice(0, 8).every(dec => (dec & 0x1F) === sector)).to.be.true;
+        expect(decs[8]).to.equal(lowestFree);
+        expect(problems(newTrsdos)).to.eql([]);
+    });
+
+    it("keeps a replaced file's slot, and other DOSes' rules take the lowest free slot", () => {
+        const {trsdos, makeWriter} = makeSdFixture();
+        const hello = entryOf(trsdos, "HELLO/BAS").dec;
+        const writer = makeWriter();
+        writer.replaceFile(getFile(writer, "HELLO/BAS"), makeContents(300));
+        expect(entryOf(writer.flush(), "HELLO/BAS").dec).to.equal(hello);
+
+        const trsdos2 = makeTrsdos23TestDisk([]);
+        const decoded = decodeTrsdos(new SectorOverlay(trsdos2))!;
+        const hit = readBytes(decoded.disk, decoded.getHitPosition());
+        expect(chooseDirSlots(decoded, TrsdosRuleSet.TRSDOS_2, hit, 1, false, hashForFilename("FIRST   DAT")))
+            .to.eql(chooseDirSlots(decoded, TrsdosRuleSet.TRSDOS_2, hit, 1));
+    });
 });
+
+/**
+ * The directory sector that NEWDOS/80 puts a file in, for an eight-sector directory: its hash's low five bits,
+ * modulo eight.
+ *
+ * @param rawName the 11-character name.
+ */
+function hashSector(rawName: string): number {
+    return (hashForFilename(rawName) & 0x1F) % 8;
+}
+
+/**
+ * The lowest free DEC in a directory sector of a data disk (where only DECs 0 and 1 are reserved).
+ */
+function lowestFreeInSector(trsdos: Trsdos, sector: number): number {
+    const hit = readBytes(trsdos.disk, trsdos.getHitPosition());
+    for (let entry = 0; entry < 8; entry++) {
+        const dec = (entry << 5) | sector;
+        if (dec > 1 && hit[dec] === 0) {
+            return dec;
+        }
+    }
+    throw new Error("No free slot in sector " + sector);
+}
+
+/**
+ * The lowest free DEC in an eight-sector directory of a data disk.
+ */
+function lowestFreeInDirectory(trsdos: Trsdos): number {
+    const hit = readBytes(trsdos.disk, trsdos.getHitPosition());
+    for (let dec = 2; dec < 256; dec++) {
+        if ((dec & 0x1F) < 8 && hit[dec] === 0) {
+            return dec;
+        }
+    }
+    throw new Error("The directory is full");
+}
 
 describe("NEWDOS/80 granule existence table", () => {
     it("refuses a disk whose existence table has a bit that the allocation table doesn't", () => {

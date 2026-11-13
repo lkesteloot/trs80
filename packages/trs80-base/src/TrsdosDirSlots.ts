@@ -112,6 +112,37 @@ export function reservedDecs(trsdos: Trsdos, ruleSet: TrsdosRuleSet): Set<number
 }
 
 /**
+ * The bits of a file's name hash that pick the directory sector its primary entry goes in under NEWDOS/80's rules,
+ * before they're taken modulo the number of entry sectors.
+ */
+const NEWDOS80_HASH_SECTOR_MASK = 0x1F;
+
+/**
+ * Whether a rule set's DOS puts a new file's primary entry in the directory sector that its name's hash picks,
+ * rather than in the lowest free slot. Only NEWDOS/80 (1.0 and 2) is known to: its files sit in sector
+ * ((hash & 0x1F) mod the number of entry sectors) far more often than chance, where the other DOSes' don't (see
+ * "Writing NEWDOS/80" in FLOPPY_FORMATS.md).
+ */
+function placesFilesByHash(ruleSet: TrsdosRuleSet): boolean {
+    switch (ruleSet) {
+        case TrsdosRuleSet.NEWDOS_80:
+            return true;
+
+        case TrsdosRuleSet.TRSDOS_2:
+        case TrsdosRuleSet.TRSDOS_1_3:
+        case TrsdosRuleSet.LDOS_5:
+        case TrsdosRuleSet.TRSDOS_6:
+        case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.TRSDOS_2_7:
+        case TrsdosRuleSet.MULTIDOS:
+            return false;
+
+        default:
+            assertNever(ruleSet);
+    }
+}
+
+/**
  * Choose directory slots for the entries of a new file: the lowest free DECs that aren't reserved.
  * (In the 2.3 family the lowest DEC is entry 2 of each directory sector in turn before entry 3 of
  * any, which is how the DOS's own search runs; in TRSDOS 1.3's dense HIT it's sector by sector.)
@@ -130,11 +161,17 @@ export function reservedDecs(trsdos: Trsdos, ruleSet: TrsdosRuleSet): Set<number
  * has {@link count} free slots, and the lowest free slots in it. This is for a file's primary entry
  * and its FXDEs on a hard disk partition, where LS-DOS's DIR fails if an FXDE is in another sector
  * ("Writing to partitions" in FLOPPY_FORMATS.md).
- * @return the DECs in increasing order, or a message saying that the directory is full or, with
- * sameSector, that no sector has room.
+ * @param primaryHash the name hash of a new file whose primary entry is the first of these, or undefined. Under
+ * NEWDOS/80's rules ({@link placesFilesByHash}) the primary entry then goes in the lowest free slot of the directory
+ * sector that the hash picks, as the DOS's own first choice does, and the rest (its FXDEs) in the lowest free slots
+ * elsewhere. If that sector is full it falls back to the lowest free slot, as for the other DOSes: where the DOS
+ * goes next isn't known. Ignored with sameSector.
+ * @return the DECs in increasing order (apart from a primary entry placed by its hash, which comes first), or a
+ * message saying that the directory is full or, with sameSector, that no sector has room.
  */
 export function chooseDirSlots(trsdos: Trsdos, ruleSet: TrsdosRuleSet, hit: Uint8Array,
-                               count: number, sameSector: boolean = false): number[] | string {
+                               count: number, sameSector: boolean = false,
+                               primaryHash: number | undefined = undefined): number[] | string {
 
     const hitInfo = trsdos.getHitInfo();
     if (typeof hitInfo === "string") {
@@ -174,6 +211,14 @@ export function chooseDirSlots(trsdos: Trsdos, ruleSet: TrsdosRuleSet, hit: Uint
     if (freeDecs.length < count) {
         const entryWord = count === 1 ? "entry" : "entries";
         return `The directory is full: the file needs ${count} ${entryWord} and there are ${freeDecs.length} free`;
+    }
+
+    if (primaryHash !== undefined && placesFilesByHash(ruleSet)) {
+        const hashSector = (primaryHash & NEWDOS80_HASH_SECTOR_MASK) % freeDecsBySector.length;
+        const primaryDec = freeDecsBySector[hashSector]?.reduce((a, b) => Math.min(a, b), Infinity);
+        if (primaryDec !== undefined && primaryDec !== Infinity) {
+            return [primaryDec, ...freeDecs.filter(dec => dec !== primaryDec).slice(0, count - 1)];
+        }
     }
     return freeDecs.slice(0, count);
 }
