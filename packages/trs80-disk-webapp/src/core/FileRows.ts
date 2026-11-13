@@ -5,6 +5,7 @@ import {
 } from "trs80-base";
 import {formatYmd, type DiskSession, selectByPatterns, trsdosPasswordIsSet} from "trs80-disk";
 import {assertNever} from "z80-base";
+import {looksLikeText} from "./preview/TextPreview.js";
 
 /**
  * What a file on a disk is, going by its bytes (not by its name's extension alone).
@@ -119,48 +120,6 @@ export interface FileRow {
  */
 const BASIC_DISK_HEADER_BYTE = 0xFF;
 const BASIC_TAPE_HEADER_BYTE = 0xD3;
-
-/**
- * The byte that ends a CP/M text file, and that pads out the last sector of one.
- */
-const CTRL_Z = 0x1A;
-
-/**
- * The largest share of a file's bytes, as one in this many, that can be unprintable for the file to still
- * count as text. This is what trs80-tool's "list" uses.
- */
-const TEXT_BAD_BYTE_DIVISOR = 20;
-
-/**
- * Whether the bytes are text: after removing trailing Ctrl-Z and NUL padding there must be no NULs, and at
- * most one byte in twenty can be other than printable ASCII, tab, CR or LF. An empty file counts as text,
- * but one of nothing but padding doesn't.
- *
- * @param binary the bytes.
- */
-export function looksLikeText(binary: Uint8Array): boolean {
-    let end = binary.length;
-    while (end > 0 && (binary[end - 1] === CTRL_Z || binary[end - 1] === 0)) {
-        end--;
-    }
-    if (end === 0) {
-        return binary.length === 0;
-    }
-
-    let badCount = 0;
-    for (let i = 0; i < end; i++) {
-        const c = binary[i];
-        if (c === 0) {
-            return false;
-        }
-        const isOk = c === 0x09 || c === 0x0A || c === 0x0D || (c >= 0x20 && c < 0x7F);
-        if (!isOk) {
-            badCount++;
-        }
-    }
-
-    return badCount*TEXT_BAD_BYTE_DIVISOR <= end;
-}
 
 /**
  * What kind of file a decoded file is.

@@ -220,7 +220,7 @@ export function revert(session: DiskSession): ActionResult<boolean> {
 
 /**
  * Undo or redo until a given number of history entries are applied. The command line has one "undo" or "redo"
- * per step, each on its own line.
+ * per step, chained with " : " as on the CLI.
  *
  * @param session the disk's session.
  * @param position the number of entries to have applied, from 0 to the history's length.
