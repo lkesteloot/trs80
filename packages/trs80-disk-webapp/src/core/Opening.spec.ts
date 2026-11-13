@@ -1,8 +1,10 @@
 import JSZip from "jszip";
+import {gunzipBytes, gzipBytes} from "trs80-base";
 import {describe, expect, it} from "vitest";
 import {DiskStore} from "./DiskStore.js";
 import {OpenDisk, SaveKind, saveKindToString} from "./OpenDisk.js";
 import {openFiles} from "./Opening.js";
+import {saveDisk} from "./Saving.js";
 import {makeBlankDisk, makeDiskWithFiles, textFile} from "./TestHelpers.js";
 
 /**
@@ -14,11 +16,30 @@ async function makeImageBytes(): Promise<Uint8Array> {
 }
 
 /**
- * Gzip some bytes.
+ * A file handle that remembers what's written through it, for testing saves.
  */
-async function gzip(bytes: Uint8Array): Promise<Uint8Array> {
-    const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream("gzip"));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
+class FakeHandle {
+    public readonly name: string;
+    public written: Uint8Array | undefined;
+
+    /**
+     * @param name the file's name.
+     */
+    constructor(name: string) {
+        this.name = name;
+    }
+
+    /**
+     * A writable stream that keeps the last thing written to it.
+     */
+    public async createWritable(): Promise<{write: (bytes: Uint8Array) => Promise<void>, close: () => Promise<void>}> {
+        return {
+            write: async (bytes: Uint8Array) => {
+                this.written = bytes;
+            },
+            close: async () => {},
+        };
+    }
 }
 
 describe("newDisk", () => {
@@ -64,14 +85,42 @@ describe("openFiles", () => {
         expect(result.unopened[0].message).to.contain("readme.txt");
     });
 
-    it("unzips a .gz file and drops the extension from the name", async () => {
+    it("opens a .gz file under its own name, and saves it gzipped through its handle", async () => {
         const bytes = await makeImageBytes();
-        const gzipped = await gzip(bytes);
+        const gzipped = gzipBytes(bytes);
+        const handle = new FakeHandle("mine.dmk.gz");
 
-        const result = await openFiles([{file: new File([gzipped as BlobPart], "mine.dmk.gz")}]);
+        const result = await openFiles([{
+            file: new File([gzipped as BlobPart], "mine.dmk.gz"),
+            handle: handle as unknown as FileSystemFileHandle,
+        }]);
         expect(result.unopened).to.eql([]);
-        expect(result.disks.map(disk => disk.name)).to.eql(["mine.dmk"]);
+        expect(result.disks.map(disk => disk.name)).to.eql(["mine.dmk.gz"]);
+        expect(result.disks[0].saveKind).to.equal(SaveKind.WRITE_BACK);
         expect(result.disks[0].session.image.binary.length).to.equal(bytes.length);
+
+        await saveDisk(result.disks[0]);
+        expect(handle.written).to.not.equal(undefined);
+        expect(Array.from(gunzipBytes(handle.written!))).to.eql(Array.from(bytes));
+    });
+
+    it("opens a .gz file inside a ZIP", async () => {
+        const bytes = await makeImageBytes();
+        const zip = new JSZip();
+        zip.file("one.dmk.gz", gzipBytes(bytes));
+        const zipBytes = await zip.generateAsync({type: "uint8array"});
+
+        const result = await openFiles([{file: new File([zipBytes as BlobPart], "set.zip")}]);
+        expect(result.unopened).to.eql([]);
+        expect(result.disks.map(disk => disk.name)).to.eql(["one.dmk.gz"]);
+    });
+
+    it("reports a .gz file that isn't gzip data", async () => {
+        const bytes = await makeImageBytes();
+        const result = await openFiles([{file: new File([bytes as BlobPart], "bad.dmk.gz")}]);
+        expect(result.disks).to.eql([]);
+        expect(result.unopened.length).to.equal(1);
+        expect(result.unopened[0].message).to.contain("gzip");
     });
 
     it("returns a file that isn't a disk, with its contents", async () => {

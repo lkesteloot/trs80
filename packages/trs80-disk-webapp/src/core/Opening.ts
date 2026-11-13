@@ -40,7 +40,7 @@ export interface OpenResult {
 }
 
 /**
- * How deep archives are opened: a ZIP of GZ files of images is as far as we go.
+ * How deep archives are opened: a ZIP of ZIPs of images is as far as we go.
  */
 const MAX_ARCHIVE_DEPTH = 2;
 
@@ -49,13 +49,6 @@ const MAX_ARCHIVE_DEPTH = 2;
  */
 function hasZipSignature(bytes: Uint8Array): boolean {
     return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04;
-}
-
-/**
- * Whether the bytes start with the signature of a gzip file.
- */
-function hasGzipSignature(bytes: Uint8Array): boolean {
-    return bytes.length >= 2 && bytes[0] === 0x1F && bytes[1] === 0x8B;
 }
 
 /**
@@ -73,31 +66,14 @@ function isZip(name: string, bytes: Uint8Array): boolean {
 }
 
 /**
- * Whether the file is gzipped, by its extension or by its signature.
- */
-function isGzip(name: string, bytes: Uint8Array): boolean {
-    return name.toLowerCase().endsWith(".gz") || hasGzipSignature(bytes);
-}
-
-/**
- * Unzip gzip data.
- *
- * @param bytes the gzip file's contents.
- * @throws Error if they aren't gzip data.
- */
-async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
-    const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream("gzip"));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-/**
- * Open one file's bytes: a ZIP opens each file inside it, a gzip file is unzipped and its contents opened, and
- * anything else is tried as a disk image.
+ * Open one file's bytes: a ZIP opens each file inside it, and anything else is tried as a disk image. A name that
+ * ends in ".gz" is a gzipped image: the engine decompresses it (the name decides, not the contents), and the disk
+ * keeps the ".gz" name, so saving it compresses again.
  *
  * @param name the file's name.
  * @param bytes its contents.
  * @param lastModified its modification time, for a file that goes in the unopened list.
- * @param handle its handle, if it's a plain file that we may write back to.
+ * @param handle its handle, if it's a file that we may write back to (a file inside a ZIP has none).
  * @param depth how many archives we're inside.
  * @param result where the results go.
  */
@@ -131,22 +107,6 @@ async function openBytes(name: string, bytes: Uint8Array, lastModified: number, 
         return;
     }
 
-    if (depth < MAX_ARCHIVE_DEPTH && isGzip(name, bytes)) {
-        let unzipped: Uint8Array;
-        try {
-            unzipped = await gunzip(bytes);
-        } catch (e: any) {
-            unopened("Can't unzip the file: " + (e.message ?? String(e)));
-            return;
-        }
-
-        const lowerName = name.toLowerCase();
-        const innerName = lowerName.endsWith(".gz") ? name.substring(0, name.length - 3) : name;
-        // The handle is of the .gz file, so saving can't write through it.
-        await openBytes(innerName, unzipped, lastModified, undefined, depth + 1, result);
-        return;
-    }
-
     const displayName = baseName(name);
     try {
         const session = DiskSession.fromBinary(displayName, bytes, {templates: TEMPLATES});
@@ -157,10 +117,10 @@ async function openBytes(name: string, bytes: Uint8Array, lastModified: number, 
 }
 
 /**
- * Open files as disks. A ZIP opens each image inside it, a .gz file is unzipped (and its name loses the ".gz"),
- * and the rest are read as disk images. Files that can't be opened come back separately with the engine's
- * message, so that a page can offer to add them to a disk. A disk from a ZIP or a .gz file has no handle, so
- * saving it downloads.
+ * Open files as disks. A ZIP opens each image inside it, and the rest are read as disk images, a name ending
+ * in ".gz" being a gzipped one that keeps its name and saves compressed. Files that can't be opened come back
+ * separately with the engine's message, so that a page can offer to add them to a disk. A disk from a ZIP has
+ * no handle, so saving it downloads.
  *
  * @param inputs the files, each with its handle if the browser gave one.
  */

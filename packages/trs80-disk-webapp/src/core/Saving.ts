@@ -1,5 +1,5 @@
-import {convertFloppy, floppyImageFormatExtension, floppyImageFormatOf, floppyImageFormatToString,
-    type FloppyImageFormat} from "trs80-base";
+import {compressForName, convertFloppy, floppyImageFormatExtension, floppyImageFormatOf, floppyImageFormatToString,
+    type FloppyImageFormat, GZIP_SUFFIX, isGzipName, withoutGzipSuffix} from "trs80-base";
 import {DiskError} from "trs80-disk";
 import type {DiskStore} from "./DiskStore.js";
 import {type OpenDisk, SaveKind} from "./OpenDisk.js";
@@ -104,14 +104,15 @@ async function writeThroughHandle(handle: FileSystemFileHandle, bytes: Uint8Arra
 /**
  * Save an open disk: write its current image back through its handle if it has one, and otherwise download it.
  * The session is marked saved only after the bytes have really been written (or the download has been
- * started), which is why this doesn't use DiskSession.save().
+ * started), which is why this doesn't use DiskSession.save(). A name that ends in ".gz" saves compressed.
  *
  * @param openDisk the disk.
  * @throws DiskError if the file can't be written.
  */
 export async function saveDisk(openDisk: OpenDisk): Promise<SaveResult> {
     const session = openDisk.session;
-    const bytes = session.image.binary;
+    // The disk's name, not the session's save name, decides: "Save as" renames the disk and not the session.
+    const bytes = compressForName(openDisk.name, session.image.binary);
     const handle = openDisk.handle;
 
     if (handle === undefined) {
@@ -125,14 +126,16 @@ export async function saveDisk(openDisk: OpenDisk): Promise<SaveResult> {
 }
 
 /**
- * Replace a file name's extension.
+ * Replace a file name's extension. A trailing ".gz" is kept, so "foo.dmk.gz" becomes "foo.jv3.gz".
  *
  * @param name the file name.
  * @param extension the new extension, with its dot.
  */
 function replaceExtension(name: string, extension: string): string {
-    const dot = name.lastIndexOf(".");
-    return (dot > 0 ? name.substring(0, dot) : name) + extension;
+    const suffix = isGzipName(name) ? GZIP_SUFFIX : "";
+    const stem = withoutGzipSuffix(name);
+    const dot = stem.lastIndexOf(".");
+    return (dot > 0 ? stem.substring(0, dot) : stem) + extension + suffix;
 }
 
 /**
@@ -163,10 +166,12 @@ export async function saveDiskAs(openDisk: OpenDisk, format: FloppyImageFormat):
         bytes = converted.binary;
     }
     const name = replaceExtension(openDisk.name, floppyImageFormatExtension(format));
+    // The new name decides whether the file is compressed.
+    const fileBytes = compressForName(name, bytes);
 
     const picker = (window as unknown as SavePickerWindow).showSaveFilePicker;
     if (picker === undefined) {
-        downloadBytes(bytes, name);
+        downloadBytes(fileBytes, name);
         if (sameFormat) {
             session.markSaved();
         }
@@ -179,7 +184,7 @@ export async function saveDiskAs(openDisk: OpenDisk, format: FloppyImageFormat):
             suggestedName: name,
             types: [{
                 description: floppyImageFormatToString(format) + " disk image",
-                accept: {"application/octet-stream": [floppyImageFormatExtension(format)]},
+                accept: {"application/octet-stream": [floppyImageFormatExtension(format), GZIP_SUFFIX]},
             }],
         });
     } catch (e: any) {
@@ -189,7 +194,8 @@ export async function saveDiskAs(openDisk: OpenDisk, format: FloppyImageFormat):
         throw e;
     }
 
-    await writeThroughHandle(handle, bytes);
+    // The user may have changed the name, and the name that was picked decides.
+    await writeThroughHandle(handle, compressForName(handle.name, bytes));
     if (sameFormat) {
         session.markSaved();
         openDisk.setFile(handle.name, handle);
