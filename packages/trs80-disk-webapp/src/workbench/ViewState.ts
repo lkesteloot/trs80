@@ -78,6 +78,8 @@ export class DiskViewState {
     public anchor: string | undefined = undefined;
     /** Whether system files are listed. */
     public showSystem = false;
+    /** Whether hidden (invisible) files are listed. */
+    public showHidden = false;
     /** The wildcard filter, or "" for none. */
     public filter = "";
     /** The file being renamed in place, by its name as the disk shows it, or undefined. */

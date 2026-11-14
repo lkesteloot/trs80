@@ -1,8 +1,9 @@
 import {
-    canTrimFloppy, Trsdos, type TrsdosDiskInfo, type TrsdosDiskInfoChanges, TRIMMABLE_FLOPPY_FORMATS,
+    canTrimFloppy, hashTrsdosPasswordForVersion, knownTrsdosPassword, Trsdos, type TrsdosDiskInfo,
+    type TrsdosDiskInfoChanges, TRIMMABLE_FLOPPY_FORMATS, type TrsdosVersion,
 } from "trs80-base";
 import {
-    DiskError, describeAutoCommand, describeMasterPassword, getWriteProtect, readDiskInfo, type DiskSession,
+    DiskError, describeAutoCommand, getWriteProtect, readDiskInfo, type DiskSession,
 } from "trs80-disk";
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {getDiskDetails} from "../core/DiskFacts.js";
@@ -28,6 +29,34 @@ export interface InfoViewHost {
     trim(): void;
     /** Show the sheet that saves the disk in another format. */
     saveAs(): void;
+}
+
+/**
+ * The master passwords that the user has typed in this page session, by layout and hash. The disk keeps only the
+ * hash, so this is how we can show the password again later, even on another disk with the same one. It's in
+ * memory only, and so is gone when the page is closed.
+ */
+const typedPasswords = new Map<string, string>();
+
+/**
+ * The key in {@link typedPasswords} for a hash, which depends on the layout because TRSDOS 1.3 hashes differently.
+ */
+function passwordKey(version: TrsdosVersion, hash: number): string {
+    return String(version) + ":" + hash;
+}
+
+/**
+ * Remember a password that the user typed.
+ *
+ * @param password the password.
+ * @param version the disk's layout.
+ */
+function rememberPassword(password: string, version: TrsdosVersion): void {
+    try {
+        typedPasswords.set(passwordKey(version, hashTrsdosPasswordForVersion(password, version)), password);
+    } catch {
+        // The DOS wouldn't take it, so it can't be on a disk.
+    }
 }
 
 /**
@@ -119,36 +148,38 @@ export class InfoView {
 
         const autoInput = el("input", "mono");
         autoInput.value = info.autoCommand ?? "";
-        autoInput.placeholder = "none";
+        autoInput.placeholder = "None";
         autoInput.spellcheck = false;
         autoInput.style.width = "min(100%, 320px)";
         if (limits.autoLength !== undefined) {
             autoInput.maxLength = limits.autoLength;
         }
 
+        // The disk keeps only the password's hash, so we can show the password only if we know it: it's blank or
+        // the default, or the user typed it earlier in this page session. Otherwise the field is empty and says so.
+        const knownPassword = knownTrsdosPassword(info.passwordHash, info.version) ??
+            typedPasswords.get(passwordKey(info.version, info.passwordHash));
         const passwordInput = el("input", "mono");
         passwordInput.maxLength = limits.passwordLength;
-        passwordInput.placeholder = "blank";
+        passwordInput.value = knownPassword ?? "";
+        passwordInput.placeholder = knownPassword === undefined ? "Unknown" : "None";
         passwordInput.style.width = "130px";
         passwordInput.spellcheck = false;
-        passwordInput.hidden = true;
-        let changingPassword = false;
-        const passwordText = el("span", "mono", describeMasterPassword(info.passwordHash, info.version));
-        passwordText.style.color = "var(--fg-strong)";
-        const passwordButton = makeButton("Change…", () => {
-            changingPassword = !changingPassword;
-            passwordInput.hidden = !changingPassword;
-            passwordButton.textContent = changingPassword ? "Keep it" : "Change…";
-            if (changingPassword) {
-                passwordInput.focus();
-            }
-            update();
-        });
-        passwordButton.style.marginLeft = "8px";
-        passwordButton.style.padding = "2px 8px";
+        const passwordHashNote = el("span", "note", "hash 0x" + info.passwordHash.toString(16).toUpperCase().padStart(4, "0"));
+        passwordHashNote.hidden = knownPassword !== undefined;
+        let passwordEdited = false;
 
-        const saveButton = makeButton("Save label", () => void save(), "primary");
+        const saveButton = makeButton("Save", () => void save(), "primary");
         const status = el("span", "note");
+
+        /** The hash of what's in the password field, or undefined if the DOS wouldn't take it. */
+        const passwordHash = (): number | undefined => {
+            try {
+                return hashTrsdosPasswordForVersion(passwordInput.value, info.version);
+            } catch {
+                return undefined;
+            }
+        };
 
         /** What the fields hold that differs from the disk. */
         const pendingChanges = (): TrsdosDiskInfoChanges => {
@@ -163,7 +194,7 @@ export class InfoView {
                     changes.date = date;
                 }
             }
-            if (changingPassword) {
+            if (passwordEdited && passwordHash() !== info.passwordHash) {
                 changes.masterPassword = passwordInput.value;
             }
             if (limits.autoLength !== undefined && autoInput.value.trim() !== (info.autoCommand ?? "")) {
@@ -183,6 +214,12 @@ export class InfoView {
             if (/^\d/.test(passwordInput.value)) {
                 // A password starts with a letter.
                 passwordInput.value = passwordInput.value.replace(/^\d+/, "");
+            }
+
+            if (passwordEdited) {
+                // What was typed is the password as far as we know, so remember it for when it comes back.
+                rememberPassword(passwordInput.value, info.version);
+                passwordHashNote.hidden = true;
             }
 
             const changed = Object.values(pendingChanges()).some(value => value !== undefined);
@@ -209,7 +246,10 @@ export class InfoView {
             input.addEventListener("input", update);
         }
         autoInput.disabled = readOnly || limits.autoLength === undefined;
-        passwordButton.disabled = readOnly;
+        passwordInput.addEventListener("input", () => {
+            passwordEdited = true;
+            update();
+        });
         for (const input of [nameInput, autoInput, passwordInput]) {
             input.addEventListener("keydown", event => {
                 if (event.key === "Enter" && !saveButton.disabled) {
@@ -224,7 +264,7 @@ export class InfoView {
                 el("span", "note", "up to " + limits.nameLength + " characters")),
             el("label", "", "Date"), el("div", "", dateInput, " ",
                 el("span", "note", limits.firstYear + " to " + limits.lastYear + " on this DOS")),
-            el("label", "", "Master password"), el("div", "", passwordText, passwordButton, " ", passwordInput),
+            el("label", "", "Master password"), el("div", "", passwordInput, " ", passwordHashNote),
             el("label", "", "AUTO command"), el("div", "", autoInput, " ",
                 el("span", "note", limits.autoLength === undefined ?
                     "this disk has no place to keep one that we can change (" + describeAutoCommand(info.autoCommand) + ")" :
@@ -251,8 +291,16 @@ export class InfoView {
         }, unsupported ?? "The image's write-protect flag, which emulators honor (protect on or off)");
         input.disabled = unsupported !== undefined;
         const note = el("span", "hint", unsupported ?? "The flag in the image file, which emulators honor. It doesn't stop this page from changing the disk.");
-        note.style.margin = "0 0 0 10px";
-        return el("div", "card", el("h4", "", "Write protection"), el("div", "", element, note));
+        note.style.margin = "0";
+        // The switch centers its label in the track's 20px, so the note's lines are 20px too, which puts its first
+        // line level with the label. The switch never wraps.
+        element.style.flex = "none";
+        note.style.lineHeight = "20px";
+        const row = el("div", "", element, note);
+        row.style.display = "flex";
+        row.style.alignItems = "flex-start";
+        row.style.gap = "10px";
+        return el("div", "card", el("h4", "", "Write protection"), row);
     }
 
     /**

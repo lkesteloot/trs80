@@ -2,7 +2,7 @@ import {assertNever} from "z80-base";
 import {formatNumber, el, formatKilobytes} from "../core/Dom.js";
 import {getDiskFacts} from "../core/DiskFacts.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {attributeText, type DiskFileItem, type HostFileItem, isMarkable, type Item, ItemKind} from "./Items.js";
+import {attributeText, attributeTitle, type DiskFileItem, type HostFileItem, isMarkable, type Item, ItemKind} from "./Items.js";
 
 // One of the commander's two panels: what it shows, its cursor and marks, and how it draws its file list.
 
@@ -66,13 +66,30 @@ export enum HostKind {
     FOLDER,
     /** The files that were dropped or chosen with a file input, in a list of their own. */
     YOUR_FILES,
+    /** A ZIP file that held several files, which the panel shows as a folder. */
+    ARCHIVE,
 }
 
 /**
- * Where a panel is on the user's computer: in a folder, or in "Your files". A panel that shows a disk keeps this,
- * to go back to.
+ * A ZIP file that a panel shows as a folder, named after the ZIP.
  */
-export type HostView = {kind: HostKind.FOLDER, path: FileSystemDirectoryHandle[]} | {kind: HostKind.YOUR_FILES};
+export interface ArchiveHost {
+    kind: HostKind.ARCHIVE;
+    /** A number that no other archive of this page load has, which tells their disks apart. */
+    id: number;
+    /** The ZIP's file name, which is the folder's name. */
+    name: string;
+    /** The files that the ZIP held, by their paths in it. */
+    files: ReadonlyMap<string, File>;
+    /** Where the panel was before it showed the ZIP, which going out of the ZIP returns to, or undefined for nowhere. */
+    parent: HostView | undefined;
+}
+
+/**
+ * Where a panel is on the user's computer: in a folder, in "Your files", or in a ZIP. A panel that shows a disk
+ * keeps this, to go back to.
+ */
+export type HostView = {kind: HostKind.FOLDER, path: FileSystemDirectoryHandle[]} | {kind: HostKind.YOUR_FILES} | ArchiveHost;
 
 /**
  * What a disk's panel shows besides its rows.
@@ -102,6 +119,8 @@ export interface PanelRenderContext {
     reopenFolder(): void;
     /** Ask the user for files to show in "Your files". */
     chooseFiles(): void;
+    /** Ask the user for disk image files to open. */
+    openDisk(): void;
     /** Show a new disk dialog. */
     newDisk(): void;
     /** The disk open for a file in a panel's host listing, or undefined. */
@@ -116,6 +135,15 @@ const DISK_COLUMNS = "diskcols";
 const HOST_COLUMNS = "hostcols";
 /** The columns of a partition listing. */
 const PARTITION_COLUMNS = "partcols";
+
+/**
+ * How many cells a row has in a set of columns.
+ *
+ * @param columns the columns, as the CSS names them.
+ */
+function columnCount(columns: string): number {
+    return columns === DISK_COLUMNS ? 5 : 3;
+}
 
 /**
  * Make one cell of a row.
@@ -150,6 +178,8 @@ export class Panel {
     public cursor = 0;
     /** The keys of the marked items. */
     public readonly marks = new Set<string>();
+    /** The key of the item that Shift-click marks a range from: the last one clicked or marked. */
+    public anchorKey: string | undefined = undefined;
     /** What the panel shows: its own list, or a view of the other panel. */
     public mode = PanelMode.FILES;
 
@@ -226,6 +256,8 @@ export class Panel {
                 return host.path.map(folder => folder.name).join("/");
             case HostKind.YOUR_FILES:
                 return "Your files";
+            case HostKind.ARCHIVE:
+                return host.name;
             default:
                 assertNever(host);
         }
@@ -294,11 +326,7 @@ export class Panel {
         switch (item.kind) {
             case ItemKind.UP:
                 row.classList.add("up");
-                if (columns === DISK_COLUMNS || columns === PARTITION_COLUMNS) {
-                    row.append(cell(" " + item.name), cell(""), cell("UP--DIR", "r"), cell(""), cell(""));
-                } else {
-                    row.append(cell(" " + item.name), cell("UP--DIR", "r"), cell(""));
-                }
+                row.append(cell(" " + item.name), ...Array.from({length: columnCount(columns) - 1}, () => cell("")));
                 break;
             case ItemKind.FOLDER:
                 row.classList.add("dir");
@@ -328,6 +356,8 @@ export class Panel {
             default:
                 assertNever(item);
         }
+        // A file can be dragged to the other panel, to copy it there.
+        row.draggable = isMarkable(item);
         return row;
     }
 
@@ -343,8 +373,10 @@ export class Panel {
             row.classList.add("bad");
             row.title = file.damage.toString();
         }
+        const attributeCell = cell(attributeText(file));
+        attributeCell.title = attributeTitle(file);
         row.append(cell(" " + file.name, "mk"), cell(file.extension), cell(formatNumber(file.size), "r"),
-            cell(file.dateText), cell(attributeText(file)));
+            cell(file.dateText), attributeCell);
     }
 
     /**
@@ -422,7 +454,7 @@ export class Panel {
         const body = el("div", "pempty");
         body.append(el("p", "", "Nothing here yet. Fill this panel with:"));
         const list = el("ul");
-        list.append(el("li", "", "a disk image: drop it here, or press Ctrl-O to choose one;"));
+        list.append(el("li", "", "a disk image: drop it here, or press Ctrl-O (Cmd-O on a Mac) to choose one;"));
         list.append(el("li", "", "a new disk: press F7;"));
         if (context.canPickFolder) {
             list.append(el("li", "", "a folder on your computer, to browse and save disk images in (Alt-O)."));
@@ -442,11 +474,12 @@ export class Panel {
             if (context.rememberedFolderName !== undefined) {
                 makeButton("Reopen " + context.rememberedFolderName, context.reopenFolder);
             }
-            makeButton("Choose folder", context.chooseFolder);
+            makeButton("Choose Folder", context.chooseFolder);
         } else {
-            makeButton("Choose files", context.chooseFiles);
+            makeButton("Choose Files", context.chooseFiles);
         }
-        makeButton("New disk (F7)", context.newDisk);
+        makeButton("Open Disk", context.openDisk);
+        makeButton("New Disk (F7)", context.newDisk);
         body.append(buttons);
         if (context.canPickFolder && context.rememberedFolderName !== undefined) {
             body.append(el("p", "muted", "Enter reopens " + context.rememberedFolderName + ", which the browser asks you to allow again."));

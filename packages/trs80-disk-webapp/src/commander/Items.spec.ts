@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import {getFileRows} from "../core/FileRows.js";
 import {makeSampleDisk} from "../workbench/Samples.js";
-import {attributeText, diskItems, isMarkable, ItemKind, makeUpItem, wildcardTest, yourFilesItems} from "./Items.js";
+import {attributeText, attributeTitle, diskItems, isMarkable, ItemKind, makeUpItem, wildcardTest, yourFilesItems} from "./Items.js";
 
 describe("wildcardTest", () => {
     it("matches * and ? ignoring case, and treats / as the dot", () => {
@@ -37,10 +37,21 @@ describe("items", () => {
         expect(items.map(item => item.key).length).to.equal(new Set(items.map(item => item.key)).size);
     });
 
-    it("shows a file with full access as three dashes", async () => {
+    it("shows a file with full access as nothing", async () => {
         const disk = await makeSampleDisk(new Date(2026, 10, 12));
         const rows = getFileRows(disk.session, false);
-        expect(attributeText(rows[0])).to.equal("---");
+        expect(attributeText(rows[0])).to.equal("");
+        expect(attributeTitle(rows[0])).to.equal("");
+    });
+
+    it("spells attributes as short words, with a tooltip that spells them out", async () => {
+        const disk = await makeSampleDisk(new Date(2026, 10, 12));
+        const row = getFileRows(disk.session, false)[0];
+        const attributes = row.attributes;
+        expect(attributes).not.to.equal(undefined);
+        const changed = {...row, attributes: {...attributes!, system: true, invisible: true, hasPasswords: true}};
+        expect(attributeText(changed)).to.equal("sys hid pw");
+        expect(attributeTitle(changed)).to.equal("System file, hidden, password-protected");
     });
 
     it("sorts Your files by name ignoring case", () => {

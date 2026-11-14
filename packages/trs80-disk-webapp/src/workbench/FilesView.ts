@@ -1,8 +1,8 @@
 import {TrsdosProtectionLevel} from "trs80-base";
-import {fileKindToString, type FileRow, filterRows} from "../core/FileRows.js";
+import {fileKindToString, type FileRow, filterRows, omitHiddenRows} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {el, formatNumber, makeButton, makeCheckbox, makeSwitch} from "../core/Dom.js";
-import {lightFiles} from "./Highlight.js";
+import {lightFiles, ownerKey} from "./Highlight.js";
 import type {DiskViewState} from "./ViewState.js";
 
 /**
@@ -74,6 +74,7 @@ export class FilesView {
     private readonly buttons = new Map<string, ActionButton>();
     private readonly filterInput = el("input");
     private readonly systemSwitch: {element: HTMLLabelElement, input: HTMLInputElement};
+    private readonly hiddenSwitch: {element: HTMLLabelElement, input: HTMLInputElement};
     private readonly lowercaseBox: {element: HTMLLabelElement, input: HTMLInputElement};
     private readonly markDamagedBox: {element: HTMLLabelElement, input: HTMLInputElement};
     private readonly tableWrap = el("div", "tablewrap");
@@ -126,14 +127,21 @@ export class FilesView {
                 this.host.selectionChanged();
             }
         });
-        this.systemSwitch = makeSwitch("System files", false, checked => {
+        this.systemSwitch = makeSwitch("Show system files", false, checked => {
             if (this.state !== undefined && this.disk !== undefined) {
                 this.state.showSystem = checked;
                 this.render(this.disk, this.state);
                 this.host.selectionChanged();
             }
         }, "Also list system files");
-        bar.append(this.filterInput, this.systemSwitch.element);
+        this.hiddenSwitch = makeSwitch("Show hidden files", false, checked => {
+            if (this.state !== undefined && this.disk !== undefined) {
+                this.state.showHidden = checked;
+                this.render(this.disk, this.state);
+                this.host.selectionChanged();
+            }
+        }, "Also list files with the invisible attribute");
+        bar.append(this.filterInput, this.systemSwitch.element, this.hiddenSwitch.element);
 
         const table = el("table", "files", el("thead", "", el("tr", "",
             el("th", "", "Name"), el("th", "", "Ext"), el("th", "num", "Size"), el("th", "", "Date"),
@@ -155,10 +163,7 @@ export class FilesView {
                 this.state.extractMarkDamaged = checked;
             }
         });
-        const hint = el("div", "hint",
-            "Click to select, ", el("kbd", "", "Shift"), " or ", el("kbd", "", "⌘"), " to extend. Double-click to view. " +
-            "Drop files from your computer here to add them. ", el("kbd", "", "Delete"), " removes, ",
-            el("kbd", "", "⌘Z"), " undoes.");
+        const hint = el("div", "hint", "Drop files from your computer here to add them.");
         const extractOptions = el("div", "hint extractopts", "When extracting: ", this.lowercaseBox.element, " ",
             this.markDamagedBox.element);
         this.element.append(bar, this.tableWrap, hint, extractOptions);
@@ -200,6 +205,7 @@ export class FilesView {
         this.state = state;
         this.filterInput.value = state.filter;
         this.systemSwitch.input.checked = state.showSystem;
+        this.hiddenSwitch.input.checked = state.showHidden;
         this.lowercaseBox.input.checked = state.extractLowercase;
         this.markDamagedBox.input.checked = state.extractMarkDamaged;
         this.renderTable();
@@ -218,7 +224,7 @@ export class FilesView {
         const hadFocus = this.tableWrap.contains(document.activeElement) && document.activeElement !== this.tableWrap &&
             !(document.activeElement instanceof HTMLInputElement);
         const allRows = this.host.getRows(disk, state.showSystem);
-        this.visibleRows = filterRows(allRows, state.filter);
+        this.visibleRows = filterRows(omitHiddenRows(allRows, state.showHidden), state.filter);
 
         // Keep only the selected files that are still showing.
         const names = new Set(this.visibleRows.map(row => row.fullName));
@@ -294,6 +300,7 @@ export class FilesView {
             nameCell, el("td", "mono", renaming ? "" : row.extension), el("td", "num", formatNumber(row.size)),
             el("td", "", row.dateText), pills, el("td", "kind", fileKindToString(row.kind)));
         tr.dataset.name = row.fullName;
+        tr.dataset.fo = ownerKey(row.fullName);
         // Light up the file's part of the space bar.
         tr.addEventListener("mouseenter", () => lightFiles([row.fullName]));
         tr.addEventListener("mouseleave", () => lightFiles(undefined));

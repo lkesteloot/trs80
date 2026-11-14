@@ -91,7 +91,7 @@ export class TrimSheet {
         this.trimButton = makeButton("Trim", () => void this.perform(), "primary");
         this.sheet = new Sheet({
             title: "Trim " + options.disk.name,
-            subtitle: "Drops the tracks that nothing needs. Nothing changes until you press Trim, and Trim can be undone.",
+            subtitle: "Drops the tracks that nothing needs. This can be undone.",
             content: el("div", "", form, el("h4", "", "Trim would"), this.plan,
                 el("p", "hint", "The command line: ", this.commandElement)),
             buttons: [makeButton("Cancel", () => this.sheet.close()), this.trimButton],

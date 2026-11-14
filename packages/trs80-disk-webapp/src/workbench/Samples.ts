@@ -71,7 +71,7 @@ export const SAMPLE_PROGRAMS: readonly SampleProgram[] = [
 
 /**
  * Make the sample disk: an LDOS 5.3 data disk, with the sample programs added through the same actions that the
- * Add sheet uses, so that they're in its history. The disk isn't yet in any store.
+ * Add sheet uses, so that they're in its history. The disk isn't yet in any store, and counts as unmodified.
  *
  * The files get no date, since LDOS 5.3 can't store a year after 2011. The disk gets the date it was made.
  *
@@ -94,5 +94,8 @@ export async function makeSampleDisk(now = new Date()): Promise<OpenDisk> {
     };
     const plan = await planAddFiles(disk.session, files, options);
     await addPlanned(disk.session, plan, options);
+    // The sample is what the page offers, not the user's work, so it starts out clean. The adds stay in the undo
+    // history, so undoing them is still possible (and then counts as a change).
+    disk.session.markSaved();
     return disk;
 }

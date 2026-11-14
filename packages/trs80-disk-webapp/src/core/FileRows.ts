@@ -282,6 +282,18 @@ export function getFileRows(session: DiskSession, includeSystemFiles: boolean): 
 }
 
 /**
+ * Leave out the hidden (invisible) files, unless they're wanted. A hidden file that is also a system file stays,
+ * since the rows are already the ones that the page chose to show: someone who asked for system files wants to
+ * see them, and the DOS's own system files are usually invisible too.
+ *
+ * @param rows the rows.
+ * @param showHidden whether hidden files are wanted, in which case all the rows are kept.
+ */
+export function omitHiddenRows(rows: FileRow[], showHidden: boolean): FileRow[] {
+    return showHidden ? rows : rows.filter(row => !row.isHidden || row.isSystem);
+}
+
+/**
  * Keep the rows whose names match a filter, with the wildcards of the "dir" command: "*" matches any run of
  * characters, "?" one character, case doesn't matter, and a "/" in the pattern stands for the ".". Several
  * patterns separated by spaces match a row that any of them matches. A pattern without wildcards names one file

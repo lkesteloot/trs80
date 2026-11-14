@@ -2,7 +2,7 @@ import {DiskError, getWriteProtect, readDiskInfo} from "trs80-disk";
 import {SaveKind, type OpenDisk} from "../core/OpenDisk.js";
 import {getDiskFacts, getSpaceUse} from "../core/DiskFacts.js";
 import {countOf, el, formatKilobytes, formatNumber, makeButton, makeSwitch} from "../core/Dom.js";
-import {ownerKey} from "./Highlight.js";
+import {lightFiles, ownerKey} from "./Highlight.js";
 
 /**
  * What the disk header asks of the page.
@@ -150,6 +150,9 @@ export class DiskHeader {
             if (fileName !== undefined) {
                 // Lights up when the file is hovered in the list or the map.
                 segment.dataset.o = ownerKey(fileName);
+                // And lights up the file's rows in the list, and its cells in the map, when it is hovered.
+                segment.addEventListener("mouseenter", () => lightFiles([fileName]));
+                segment.addEventListener("mouseleave", () => lightFiles(undefined));
             }
             bar.append(segment);
         };

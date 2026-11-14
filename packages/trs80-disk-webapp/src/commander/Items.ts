@@ -29,7 +29,7 @@ export interface UpItem {
     kind: ItemKind.UP;
     /** The key, which no other item has. */
     key: string;
-    /** What the row says: "/.." on a disk and ".." in a folder. */
+    /** What the row says: "..". */
     name: string;
 }
 
@@ -147,12 +147,31 @@ export function yourFilesItems(files: ReadonlyMap<string, File>): Item[] {
 }
 
 /**
+ * The items for the files of a ZIP that the panel shows as a folder, after the item that goes back out.
+ *
+ * @param files the files, by their path in the ZIP.
+ */
+export function archiveItems(files: ReadonlyMap<string, File>): Item[] {
+    const items: Item[] = [...files.entries()].sort((a, b) => a[0].toLowerCase().localeCompare(b[0].toLowerCase()))
+        .map(([path, file]) => ({
+            kind: ItemKind.HOST_FILE as const,
+            key: "f:" + path,
+            name: path,
+            size: file.size,
+            date: file.lastModified > 0 ? new Date(file.lastModified) : undefined,
+            file,
+            handle: undefined,
+        }));
+    return [makeUpItem(".."), ...items];
+}
+
+/**
  * The items for a disk's file rows, after the item that goes back out.
  *
  * @param rows the rows.
  */
 export function diskItems(rows: readonly FileRow[]): Item[] {
-    return [makeUpItem("/.."), ...rows.map(row => ({kind: ItemKind.DISK_FILE as const, key: "r:" + row.fullName, row}))];
+    return [makeUpItem(".."), ...rows.map(row => ({kind: ItemKind.DISK_FILE as const, key: "r:" + row.fullName, row}))];
 }
 
 /**
@@ -195,19 +214,53 @@ export function isMarkable(item: Item): boolean {
 }
 
 /**
- * A disk file's attributes as the listing shows them: three letters for system (S), invisible (I) and passwords
- * (P), then the protection level's name if the file isn't fully accessible.
+ * The attributes that a disk file has, in the words that the listing and its tooltip use: "sys" (system file),
+ * "hid" (hidden, which TRSDOS calls invisible) and "pw" (has passwords).
+ *
+ * @param row the file.
+ */
+function attributeWords(row: FileRow): {short: string, long: string}[] {
+    const attributes = row.attributes;
+    const system = attributes === undefined ? row.isSystem : attributes.system;
+    const hidden = attributes === undefined ? row.isHidden : attributes.invisible;
+    const passwords = attributes !== undefined && attributes.hasPasswords;
+
+    const words: {short: string, long: string}[] = [];
+    if (system) {
+        words.push({short: "sys", long: "System file"});
+    }
+    if (hidden) {
+        words.push({short: "hid", long: "hidden"});
+    }
+    if (passwords) {
+        words.push({short: "pw", long: "password-protected"});
+    }
+    if (attributes !== undefined && attributes.protectionLevel !== TrsdosProtectionLevel.FULL) {
+        words.push({short: attributes.protection, long: "protection level " + attributes.protection});
+    }
+    return words;
+}
+
+/**
+ * A disk file's attributes as the listing shows them: "sys" for a system file, "hid" for a hidden (invisible) one,
+ * and "pw" if it has passwords, separated by spaces, then the protection level's name if the file isn't fully
+ * accessible. Empty for a plain file.
  *
  * @param row the file.
  */
 export function attributeText(row: FileRow): string {
-    const attributes = row.attributes;
-    if (attributes === undefined) {
-        return (row.isSystem ? "S" : "-") + (row.isHidden ? "I" : "-") + "-";
-    }
+    return attributeWords(row).map(word => word.short).join(" ");
+}
 
-    return (attributes.system ? "S" : "-") + (attributes.invisible ? "I" : "-") + (attributes.hasPasswords ? "P" : "-") +
-        (attributes.protectionLevel === TrsdosProtectionLevel.FULL ? "" : " " + attributes.protection);
+/**
+ * The tooltip for a disk file's attributes, which spells them out, such as "System file, hidden,
+ * password-protected". Empty for a plain file.
+ *
+ * @param row the file.
+ */
+export function attributeTitle(row: FileRow): string {
+    const text = attributeWords(row).map(word => word.long).join(", ");
+    return text === "" ? "" : text.charAt(0).toUpperCase() + text.substring(1);
 }
 
 /**

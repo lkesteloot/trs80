@@ -16,5 +16,6 @@ describe("makeSampleDisk", () => {
         const history = disk.session.getHistory();
         expect(history.entries.length).to.equal(1);
         expect(history.entries[0]).to.contain("add");
+        expect(disk.session.hasChanges()).to.equal(false);
     });
 });

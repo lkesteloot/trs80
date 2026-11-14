@@ -84,13 +84,16 @@ button.primary.danger-fill { background: var(--danger); border-color: var(--dang
 
 /* Top bar */
 .topbar {
-    display: flex; align-items: center; gap: 16px; padding: 8px 16px;
-    border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: flex-end; gap: 16px; padding: 8px 16px 0;
+    background: var(--panel); position: sticky; top: 0; z-index: 5;
 }
+/* The bar's bottom line is drawn under the tabs, so that the active tab can cover it and join the page below. */
+.topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--line); }
+.topbar .brand, .topbar .top-actions { padding-bottom: 8px; align-self: center; }
 .brand { font-size: 15px; white-space: nowrap; }
 .brand .site { color: var(--fg-muted); }
 .brand b { color: var(--fg-strong); }
-.tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+.tabs { display: flex; align-items: flex-end; gap: 4px; flex: 1; overflow-x: auto; }
 .tab {
     border-radius: 7px 7px 0 0; border: 1px solid transparent; border-bottom: none; background: transparent; color: var(--fg);
     display: flex; align-items: center; gap: 2px; white-space: nowrap; font-family: var(--mono); font-size: 13px;
@@ -99,7 +102,10 @@ button.primary.danger-fill { background: var(--danger); border-color: var(--dang
 .tab .tablabel { display: flex; align-items: center; gap: 6px; padding-left: 10px; }
 .tab .tabclose { color: var(--fg-muted); padding: 2px 7px; margin-right: 4px; font-size: 15px; line-height: 1; }
 .tab .tabclose:hover { background: var(--hl); color: var(--fg-strong); }
-.tab.active { background: var(--bg); color: var(--fg-strong); border-color: var(--line); }
+.tab.active {
+    background: var(--bg); color: var(--fg-strong); border-color: var(--line); border-bottom: 1px solid var(--bg);
+    position: relative; z-index: 1;
+}
 .tab .dot { width: 7px; height: 7px; border-radius: 50%; background: transparent; }
 .tab.dirty .dot { background: var(--warn); }
 .top-actions { display: flex; gap: 6px; }
@@ -153,7 +159,12 @@ main { max-width: 1400px; margin: 0 auto; padding: 16px; }
     background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
     align-self: start; position: sticky; top: 64px; max-height: calc(100vh - 130px); overflow: auto;
 }
-.inspector h3 { margin: 0; font: 600 17px var(--mono); color: var(--fg-strong); }
+.inspector .fullscreen-btn {
+    position: absolute; top: 8px; right: 8px; border: none; background: none; padding: 4px; color: var(--fg-muted);
+    line-height: 0; border-radius: 6px;
+}
+.inspector .fullscreen-btn:hover:not(:disabled) { color: var(--fg-strong); background: var(--hl); }
+.inspector h3 { margin: 0; padding-right: 28px; font: 600 17px var(--mono); color: var(--fg-strong); }
 .inspector .sub { color: var(--fg-muted); font-size: 12.5px; margin: 2px 0 10px; }
 @media (max-width: 960px) {
     .body { grid-template-columns: 1fr; }
@@ -191,7 +202,8 @@ table.files { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 
 /* Highlight across views */
 body.hlmode [data-o]:not(.hl) { opacity: .22; }
-body.hlmode .files tr[data-f]:not(.hl) td { opacity: .45; }
+body.hlmode .files tr[data-fo]:not(.hl) td { opacity: .45; }
+.files tbody tr.hl { background: color-mix(in srgb, var(--hl) 60%, transparent); }
 .spacebar span.hl, .cell.hl { opacity: 1 !important; }
 
 /* Map */
@@ -207,7 +219,9 @@ body.hlmode .files tr[data-f]:not(.hl) td { opacity: .45; }
 .cell.picked { outline: 2px solid var(--fg-strong); outline-offset: 1px; z-index: 2; }
 .runlabel {
     grid-row: 1; pointer-events: none; color: #fff; font-weight: 600; font-size: 10.5px; padding-left: 4px;
-    overflow: hidden; white-space: nowrap; text-overflow: clip; text-shadow: 0 1px 1px rgba(0,0,0,.35); z-index: 1;
+    overflow: hidden; white-space: nowrap; text-overflow: clip; text-shadow: 0 1px 1px rgba(0,0,0,.35);
+    /* Above the picked cell (z-index 2), whose background would otherwise cover the name written across it. */
+    z-index: 3;
 }
 .legend { min-width: 220px; flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 13px; }
 .legend h4 { margin: 0 0 8px; font-size: 12px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .06em; }
@@ -367,7 +381,9 @@ table.addplan { width: 100%; border-collapse: collapse; font-size: 13px; }
 .files td.empty { padding: 20px; }
 .tablewrap:focus { outline: none; }
 .tablewrap:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 1px; }
-.extractopts label { margin-right: 10px; }
+.extractopts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.extractopts label { display: inline-flex; align-items: center; gap: 4px; }
+.extractopts input { margin: 0; }
 .card.comingsoon { color: var(--fg-muted); }
 .inspector .filelist { line-height: 1.8; }
 .inspector .previewbox, .fullscreen .previewbox { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }

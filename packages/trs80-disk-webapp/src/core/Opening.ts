@@ -152,8 +152,23 @@ export async function openFromHandles(handles: readonly FileSystemFileHandle[]):
  * The parts of the File System Access API that TypeScript's DOM types don't have yet.
  */
 interface FileSystemAccessWindow {
-    showOpenFilePicker?(options: {multiple: boolean}): Promise<FileSystemFileHandle[]>;
+    showOpenFilePicker?(options: {
+        multiple: boolean,
+        types?: {description: string, accept: Record<string, string[]>}[],
+    }): Promise<FileSystemFileHandle[]>;
 }
+
+/**
+ * The extensions (without the dot) of files that we open as disk images, or archives of them. A ".gz" of any
+ * of them is opened too.
+ */
+export const DISK_IMAGE_EXTENSIONS = ["dmk", "dsk", "jv1", "jv3", "hfe", "imd", "scp", "hdv", "img", "zip", "gz"];
+
+/**
+ * The extensions, with dots, to give a file input's "accept" attribute or a file picker so that it shows disk
+ * images and dims everything else.
+ */
+export const DISK_IMAGE_ACCEPT = DISK_IMAGE_EXTENSIONS.map(extension => "." + extension);
 
 /**
  * Whether the browser has showOpenFilePicker() (Chromium does), so that opened files come with handles.
@@ -163,7 +178,8 @@ export function supportsFilePicker(): boolean {
 }
 
 /**
- * Let the user choose files with the browser's file picker, if it has one.
+ * Let the user choose disk images with the browser's file picker, if it has one. It shows disk images (and
+ * gzipped files, which covers ".dmk.gz" and the rest), and the user can switch it to all files.
  *
  * @returns the handles chosen, or an empty array if the user cancelled or there's no picker.
  */
@@ -174,7 +190,13 @@ export async function pickFiles(): Promise<FileSystemFileHandle[]> {
     }
 
     try {
-        return await picker.call(window, {multiple: true});
+        return await picker.call(window, {
+            multiple: true,
+            types: [{
+                description: "Disk images",
+                accept: {"application/octet-stream": DISK_IMAGE_ACCEPT},
+            }],
+        });
     } catch (e: any) {
         if (e?.name === "AbortError") {
             return [];

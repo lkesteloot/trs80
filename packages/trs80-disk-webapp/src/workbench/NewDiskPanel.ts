@@ -1,7 +1,26 @@
 import {TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosToString} from "trs80-base";
-import {createCommandLine, type CreateFloppyRequest} from "trs80-disk";
+import {
+    createCommandLine, type CreateFloppyRequest, findSystemDiskTemplate, loadSystemDiskTemplate,
+} from "trs80-disk";
 import {el, makeButton} from "../core/Dom.js";
 import {type DosOptions, getDosOptions, hasSystemDisk} from "../core/DosOptions.js";
+import {ensureSystemDisk, TEMPLATES} from "../core/Templates.js";
+
+/**
+ * The shape of a system disk template.
+ */
+interface SystemShape {
+    /** The cylinder count. */
+    cylinders: number;
+    /** The side count. */
+    sides: number;
+}
+
+/**
+ * The shapes of the system disk templates found so far, by template name. A template is fetched and decoded
+ * once, the first time that its shape is wanted.
+ */
+const systemShapes = new Map<string, SystemShape>();
 
 /**
  * What the New Disk panel reports when the user presses Create.
@@ -36,6 +55,7 @@ export class NewDiskPanel {
     private model: 1 | 3 = 3;
     private nameEdited = false;
     private modelRow: HTMLElement[] = [];
+    private readonly shapeNote = el("div", "note", "A system disk's shape is fixed.");
 
     /**
      * Fill in the panel.
@@ -45,6 +65,9 @@ export class NewDiskPanel {
     constructor(onCreate: (choice: NewDiskChoice) => void) {
         this.onCreate = onCreate;
         this.options.hidden = true;
+        this.shapeNote.style.gridColumn = "2";
+        this.shapeNote.hidden = true;
+        this.sideChoice.after(this.shapeNote);
 
         for (const dos of TRSDOS_FORMAT_DOSES) {
             const card = el("button", "doscard", el("b", "", trsdosFormatDosToString(dos)),
@@ -83,9 +106,9 @@ export class NewDiskPanel {
     private chooseDos(dos: TrsdosFormatDos): void {
         this.dos = dos;
         const options = getDosOptions(dos);
-        this.cylinders = options.cylinders[0];
+        this.cylinders = options.initialCylinders;
         this.sides = options.sides[0];
-        this.model = options.models.length > 0 ? options.models[0] : 3;
+        this.model = options.defaultModel;
         if (!hasSystemDisk(dos)) {
             this.system = false;
         }
@@ -133,21 +156,31 @@ export class NewDiskPanel {
             button.title = isSystemButton && !canSystem ? "There's no system disk for this DOS" : "";
         }
 
-        // A system disk has the shape of the DOS's own disk, so its shape isn't a choice.
-        this.fillSegments(this.cylinderChoice, options.cylinders, this.cylinders, String, value => {
-            this.cylinders = value;
-            this.update();
-        });
-        this.fillSegments(this.sideChoice, options.sides, this.sides, String, value => {
-            this.sides = value;
-            this.update();
-        });
+        // A system disk has the shape of the DOS's own disk, so its shape isn't a choice: show that shape, and
+        // bring the user's own choices back when they return to a data disk.
+        const systemShape = this.system ? this.getSystemShape(dos) : undefined;
+        if (this.system) {
+            const unknown = systemShape === undefined;
+            this.fillSegments(this.cylinderChoice, [0], 0, () => unknown ? "…" : String(systemShape.cylinders),
+                () => {});
+            this.fillSegments(this.sideChoice, [0], 0, () => unknown ? "…" : String(systemShape.sides), () => {});
+        } else {
+            this.fillSegments(this.cylinderChoice, options.cylinders, this.cylinders, String, value => {
+                this.cylinders = value;
+                this.update();
+            });
+            this.fillSegments(this.sideChoice, options.sides, this.sides, String, value => {
+                this.sides = value;
+                this.update();
+            });
+        }
         for (const container of [this.cylinderChoice, this.sideChoice]) {
             for (const button of Array.from(container.children) as HTMLButtonElement[]) {
                 button.disabled = this.system;
             }
             container.title = this.system ? "A system disk has the shape of the DOS's own disk" : "";
         }
+        this.shapeNote.hidden = !this.system;
         this.updateModelRow(options);
 
         if (!this.nameEdited) {
@@ -156,6 +189,28 @@ export class NewDiskPanel {
         const name = this.diskName();
         this.createButton.disabled = name === "";
         this.commandElement.textContent = createCommandLine(this.makeRequest());
+    }
+
+    /**
+     * The shape of the system disk that would be copied for a DOS (and, for LDOS, the chosen model), or undefined
+     * if it hasn't been loaded yet, in which case it's loaded in the background and the panel is redrawn when
+     * it's ready.
+     */
+    private getSystemShape(dos: TrsdosFormatDos): SystemShape | undefined {
+        const template = findSystemDiskTemplate(dos, this.model);
+        const known = systemShapes.get(template.name);
+        if (known !== undefined) {
+            return known;
+        }
+
+        ensureSystemDisk(template.name)
+            .then(() => {
+                const geometry = loadSystemDiskTemplate(TEMPLATES, template).getGeometry();
+                systemShapes.set(template.name, {cylinders: geometry.cylinderCount, sides: geometry.sideCount});
+                this.update();
+            })
+            .catch(e => console.error("Can't load the system disk " + template.name + ":", e));
+        return undefined;
     }
 
     /**
@@ -213,10 +268,10 @@ export class NewDiskPanel {
         return {
             format: {
                 dos,
-                cylinders: useShape && this.cylinders !== options.cylinders[0] ? this.cylinders : undefined,
+                cylinders: useShape && this.cylinders !== options.defaultCylinders ? this.cylinders : undefined,
                 sides: useShape && this.sides !== 1 ? this.sides : undefined,
                 density: undefined,
-                model: options.models.length > 0 && this.model !== options.models[0] ? this.model : undefined,
+                model: options.models.length > 0 && this.model !== options.defaultModel ? this.model : undefined,
                 name: undefined,
                 date: undefined,
             },

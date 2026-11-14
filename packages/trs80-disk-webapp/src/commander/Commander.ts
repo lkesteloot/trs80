@@ -11,7 +11,7 @@ import {
 import {type FileRow, getFileRows} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {
-    getDroppedInputs, openFiles, openFromHandles, type OpenInput, type OpenResult, pickFiles, supportsFilePicker,
+    DISK_IMAGE_ACCEPT, getDroppedInputs, openFiles, type OpenInput, type OpenResult, pickFiles, supportsFilePicker,
 } from "../core/Opening.js";
 import {
     availablePreviews, type PreviewFile, renderPreview,
@@ -23,6 +23,7 @@ import {
     type ActionHost, openAddPlanDialog, openAttribDialog, openExtractDialog, openLabelDialog, openNewDiskDialog,
     openPatternDialog, openRenameDialog, type RunOutcome,
 } from "./ActionDialogs.js";
+import {type ArchiveListing, readArchive} from "./Archive.js";
 import {DialogLayer} from "./Dialogs.js";
 import {
     ensureFolderPermission, listFolder, looksLikeDiskImage, pickFolder, recallFolder, rememberFolder,
@@ -30,7 +31,7 @@ import {
 } from "./HostFolder.js";
 import {infoHtmlOf} from "./InfoText.js";
 import {
-    type DiskFileItem, diskItems, folderItems, type HostFileItem, isMarkable, type Item, ItemKind, makeUpItem,
+    archiveItems, type DiskFileItem, diskItems, folderItems, type HostFileItem, isMarkable, type Item, ItemKind, makeUpItem,
     type PartitionItem, wildcardTest, yourFilesItems,
 } from "./Items.js";
 import {mapHtmlOf} from "./MapText.js";
@@ -45,6 +46,12 @@ import {Viewer} from "./Viewer.js";
  * The most bytes of a file on the user's computer that we read to preview it.
  */
 const MAX_PREVIEW_BYTES = 4*1024*1024;
+
+/**
+ * The data type of a drag that starts on a panel's file row, so that the panels can tell it from files dragged in
+ * from the desktop.
+ */
+const DRAG_TYPE = "application/x-disk-commander-files";
 
 /**
  * What the commander says when a command is typed, until typed commands work.
@@ -65,28 +72,101 @@ interface KeyState {
 const FUNCTION_KEY_LABELS = ["Help", "Attrib", "View", "Label", "Copy", "Rename", "NewDisk", "Delete", "Panel", "Undo"];
 
 /**
- * The help text, a paragraph each.
+ * One section of the help: a heading, and either a paragraph or a list of keys and what they do.
  */
-const HELP_PARAGRAPHS = [
-    "Disk Commander shows two panels side by side. Each can show a folder on your computer (or, in browsers that " +
-        "can't open folders, a list called Your files) or a TRS-80 disk image, which opens like a folder. " +
-        "Drop a disk image on a panel to open it there.",
-    "Up, Down, Page Up, Page Down, Home and End move. Tab switches panels. Space or Insert marks a file and moves " +
-        "down. + and - mark and unmark by a pattern, and * inverts the marks. Enter opens a disk image, or a folder, " +
-        "or views a file; the /.. row at the top of a disk goes back out. Alt-H shows or hides system files.",
-    "F2 changes the attributes of the marked files. F3 views the file under the cursor (in the viewer: F2 hex, F4 " +
-        "listing, F5 disassembly, F6 text, F7 picture, Escape closes). F4 edits the disk's label. F5 copies the " +
-        "marked files to the other panel: from a folder to a disk is add, from a disk to a folder is extract, and " +
-        "disk to disk is both. F6 renames, F7 makes a new disk, and F8 or Delete deletes the marked files. F9 " +
-        "changes what the other panel shows: a quick view of the file under the cursor, the disk's info, the " +
-        "map, and back to its files.",
-    "F10 or Ctrl-Z undoes the last change to the disk in the active panel, and Shift-F10 or Shift-Ctrl-Z redoes it. " +
-        "Changes stay in memory until Ctrl-S saves the disk: back to its file where the browser allows it, into the " +
-        "folder for a new disk, and as a download otherwise. Ctrl-O opens disk image files, and Alt-O chooses a folder " +
-        "(or, in a browser that can't, files for Your files, where Enter downloads the file under the cursor).",
-    "Under the panels, the message area shows the trs80-tool command that each action equals. Typed commands are " +
-        "coming soon.",
+interface HelpSection {
+    /** The heading. */
+    heading: string;
+    /** A paragraph under the heading, or undefined for none. */
+    paragraph?: string | undefined;
+    /** Each entry's keys (or name) and what it does. */
+    entries?: [string, string][] | undefined;
+}
+
+/**
+ * The help text.
+ */
+const HELP_SECTIONS: HelpSection[] = [
+    {
+        heading: "Panels",
+        paragraph: "Disk Commander shows two panels side by side. Each can show a folder on your computer (or, in " +
+            "browsers that can't open folders, a list called Your files), a ZIP file, or a TRS-80 disk image. A disk " +
+            "image or a ZIP opens like a folder.",
+    },
+    {
+        heading: "Moving and marking",
+        entries: [
+            ["Tab, Left, Right", "Switch panels. Left and Right work while the command line is empty."],
+            ["Up, Down, Page Up, Page Down, Home, End", "Move the cursor."],
+            ["Space, Insert", "Mark the file under the cursor and move down. Shift-click marks a range, and " +
+                "Cmd-click or Ctrl-click marks one file."],
+            ["+, -, *", "Mark by a pattern, unmark by a pattern, or invert the marks."],
+            ["Enter", "Open a disk image, a ZIP, or a folder, or view a file."],
+            ["Backspace", "Go back out of a disk, a ZIP, or a folder, like Enter on the .. row."],
+            ["Alt-H", "Show or hide system files."],
+        ],
+    },
+    {
+        heading: "Opening",
+        entries: [
+            ["Ctrl-O, Cmd-O", "Choose disk image files to open in the active panel, as [Open Disk] does. Dropping " +
+                "a disk image on a panel opens it there too. A ZIP of several disks opens as a folder of them."],
+            ["Alt-O", "Choose a folder on your computer, as [Open Folder] does (or, in a browser that can't, files " +
+                "for Your files, where Enter downloads the file under the cursor). Chrome won't open some " +
+                "folders itself (Downloads, Desktop, Documents, or your home folder), but it will open a folder " +
+                "inside them."],
+        ],
+    },
+    {
+        heading: "Function keys",
+        entries: [
+            ["F1", "This help."],
+            ["F2", "Change the attributes of the marked files."],
+            ["F3", "View the file under the cursor. In the viewer: F2 hex, F4 listing, F5 disassembly, F6 text, " +
+                "F7 picture, Escape closes."],
+            ["F4", "Edit the disk's label."],
+            ["F5", "Copy the marked files to the other panel: from a folder to a disk is add, from a disk to a " +
+                "folder is extract, and disk to disk is both. Dragging files to the other panel copies them too."],
+            ["F6", "Rename the file under the cursor."],
+            ["F7", "Make a new disk."],
+            ["F8, Delete", "Delete the marked files."],
+            ["F9", "Change what the other panel shows: a quick view of the file under the cursor, the disk's info, " +
+                "the map, and back to its files."],
+            ["F10, Ctrl-Z", "Undo the last change to the disk in the active panel. Shift-F10 or Shift-Ctrl-Z redoes it."],
+            ["Ctrl-S", "Save the disk: back to its file where the browser allows it, into the folder for a new " +
+                "disk, and as a download otherwise. Changes stay in memory until then."],
+        ],
+    },
+    {
+        heading: "The listing",
+        entries: [
+            ["Attr", "sys is a system file, hid is hidden, and pw has passwords. A protection level such as READ " +
+                "follows when the file isn't fully accessible."],
+        ],
+    },
+    {
+        heading: "Commands",
+        paragraph: "Under the panels, the message area shows the trs80-tool command that each action equals. " +
+            "Typed commands are coming soon.",
+    },
 ];
+
+/**
+ * Build the body of the help dialog from the sections: each has a heading, and a paragraph or a list of keys.
+ */
+function makeHelpBody(): HTMLElement {
+    const body = el("div", "help");
+    for (const section of HELP_SECTIONS) {
+        body.append(el("h3", "", section.heading));
+        if (section.paragraph !== undefined) {
+            body.append(el("p", "wrap", section.paragraph));
+        }
+        if (section.entries !== undefined) {
+            body.append(el("dl", "", ...section.entries.flatMap(([keys, text]) => [el("dt", "", keys), el("dd", "", text)])));
+        }
+    }
+    return body;
+}
 
 /**
  * The commander page: two panels, the message area and command line, the function-key bar, and the viewer, with
@@ -105,6 +185,7 @@ export class Commander implements ActionHost {
     private readonly functionBar = document.getElementById("fkeys") as HTMLElement;
     private readonly panelsElement = document.getElementById("panels") as HTMLElement;
     private readonly fileInput = el("input");
+    private readonly diskInput = el("input");
 
     private activeIndex = 0;
     private showSystem = false;
@@ -118,6 +199,7 @@ export class Commander implements ActionHost {
     private readonly homeFolders = new Map<OpenDisk, FileSystemDirectoryHandle>();
     private readonly listings = new Map<number, {rows: FileRow[], info: DiskListingInfo}>();
     private nextDropId = 1;
+    private dragged: {panel: Panel, items: Item[]} | undefined = undefined;
 
     /**
      * Build the page's behavior on the static HTML (commander/index.html).
@@ -142,11 +224,28 @@ export class Commander implements ActionHost {
         });
         document.body.append(this.fileInput);
 
+        // The way to open disk images in a browser that has no file picker.
+        this.diskInput.type = "file";
+        this.diskInput.multiple = true;
+        this.diskInput.accept = DISK_IMAGE_ACCEPT.join(",");
+        this.diskInput.hidden = true;
+        this.diskInput.addEventListener("change", () => {
+            const files = Array.from(this.diskInput.files ?? []);
+            this.diskInput.value = "";
+            void this.handleDrop(this.active, files.map(file => ({file})));
+        });
+        document.body.append(this.diskInput);
+        const folderButton = document.querySelector<HTMLElement>("[data-act=folder]");
+        if (folderButton !== null && !supportsDirectoryPicker()) {
+            folderButton.textContent = "[Choose Files]";
+        }
+
         this.store.onChanged(() => this.scheduleRefresh());
         installUnsavedChangesWarning(this.store);
         this.installEvents();
 
-        this.log.out("Fill a panel: drop a disk image on it, press F7 for a new disk, or choose a folder (Alt-O). F1 is help.");
+        this.log.out("Fill a panel: drop a disk image on it, press Ctrl-O to open one, press F7 for a new disk, or choose a " +
+            "folder (Alt-O). Tab switches panels. F1 is help.");
         this.renderAll();
         void recallFolder().then(handle => {
             this.rememberedFolder = handle;
@@ -191,6 +290,8 @@ export class Commander implements ActionHost {
                 return "folder:" + host.path.map(folder => folder.name).join("/");
             case HostKind.YOUR_FILES:
                 return "files";
+            case HostKind.ARCHIVE:
+                return "archive:" + host.id;
             default:
                 assertNever(host);
         }
@@ -213,6 +314,7 @@ export class Commander implements ActionHost {
             chooseFolder: () => void this.chooseFolder(),
             reopenFolder: () => void this.reopenFolder(),
             chooseFiles: () => this.fileInput.click(),
+            openDisk: () => void this.openImageFiles(),
             newDisk: () => this.newDiskDialog(),
             openDiskOf: item => this.openDiskOf(panel, item),
         };
@@ -280,7 +382,7 @@ export class Commander implements ActionHost {
         }
 
         if (panel.choosingPartition) {
-            panel.items = [makeUpItem("/.."), ...this.partitionItems(disk)];
+            panel.items = [makeUpItem(".."), ...this.partitionItems(disk)];
             panel.diskInfo = {freeBytes: undefined, fileCount: 0, note: "Choose the partition to work on", readOnlyReason: undefined};
         } else {
             const listing = this.listingOf(disk);
@@ -316,6 +418,9 @@ export class Commander implements ActionHost {
                 }
                 case HostKind.YOUR_FILES:
                     items = yourFilesItems(this.yourFiles);
+                    break;
+                case HostKind.ARCHIVE:
+                    items = archiveItems(host.files);
                     break;
                 default:
                     assertNever(host);
@@ -721,13 +826,29 @@ export class Commander implements ActionHost {
                 void this.enter();
             }
         });
+        document.addEventListener("dragstart", event => this.onDragStart(event));
+        document.addEventListener("dragend", () => {
+            this.dragged = undefined;
+            this.panels.forEach(panel => panel.element.classList.remove("over"));
+        });
         document.addEventListener("dragover", event => {
-            if (event.dataTransfer !== null && Array.from(event.dataTransfer.types).includes("Files")) {
+            const target = this.dropTargetOf(event);
+            if (this.dragged !== undefined && event.dataTransfer !== null &&
+                Array.from(event.dataTransfer.types).includes(DRAG_TYPE)) {
+
+                // Files dragged from a panel: the other panel takes them as a copy.
+                if (target !== undefined && target !== this.dragged.panel) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "copy";
+                }
+                for (const panel of this.panels) {
+                    panel.element.classList.toggle("over", panel === target && target !== this.dragged.panel);
+                }
+            } else if (event.dataTransfer !== null && Array.from(event.dataTransfer.types).includes("Files")) {
                 // Without this, the browser would navigate to the file.
                 event.preventDefault();
-                const panelElement = (event.target as HTMLElement).closest<HTMLElement>(".panel");
                 for (const panel of this.panels) {
-                    panel.element.classList.toggle("over", panel.element === panelElement);
+                    panel.element.classList.toggle("over", panel === this.panelOfElement(event.target));
                 }
             }
         });
@@ -738,15 +859,77 @@ export class Commander implements ActionHost {
         });
         document.addEventListener("drop", event => {
             this.panels.forEach(panel => panel.element.classList.remove("over"));
+            const dragged = this.dragged;
+            if (dragged !== undefined && event.dataTransfer !== null &&
+                Array.from(event.dataTransfer.types).includes(DRAG_TYPE)) {
+
+                event.preventDefault();
+                this.dragged = undefined;
+                const target = this.dropTargetOf(event);
+                if (target !== undefined && target !== dragged.panel && !this.dialogs.isOpen && !this.viewer.isOpen &&
+                    this.busy === 0) {
+
+                    // Dropping on the other panel is F5: the same dialogs, and never a move.
+                    if (this.activeIndex !== dragged.panel.index) {
+                        this.setActive(dragged.panel.index);
+                    }
+                    void this.copyItems(dragged.panel, target, dragged.items);
+                }
+                return;
+            }
             if (event.dataTransfer === null || !Array.from(event.dataTransfer.types).includes("Files")) {
                 return;
             }
             event.preventDefault();
-            const panelElement = (event.target as HTMLElement).closest<HTMLElement>(".panel");
-            const targetPanel = this.panels.find(panel => panel.element === panelElement) ?? this.active;
+            const targetPanel = this.panelOfElement(event.target) ?? this.active;
             // The drop's data is only good until this handler returns, so ask for everything now.
             void getDroppedInputs(event.dataTransfer).then(inputs => this.handleDrop(targetPanel, inputs));
         });
+    }
+
+    /**
+     * The panel that an element is in.
+     *
+     * @param target an event's target.
+     * @returns the panel, or undefined if the element isn't in one.
+     */
+    private panelOfElement(target: EventTarget | null): Panel | undefined {
+        const panelElement = target instanceof Element ? target.closest<HTMLElement>(".panel") : null;
+        return this.panels.find(panel => panel.element === panelElement);
+    }
+
+    /**
+     * The panel that a drag event is over, if it can take a drop: one that shows files.
+     */
+    private dropTargetOf(event: DragEvent): Panel | undefined {
+        const panel = this.panelOfElement(event.target);
+        return panel !== undefined && panel.mode === PanelMode.FILES ? panel : undefined;
+    }
+
+    /**
+     * A drag starts on a file's row: remember what's dragged, which is the marked files if the dragged file is one
+     * of them and otherwise just the dragged file.
+     */
+    private onDragStart(event: DragEvent): void {
+        const rowElement = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-row]") : null;
+        const panel = this.panelOfElement(event.target);
+        if (rowElement === null || panel === undefined || panel.mode !== PanelMode.FILES) {
+            return;
+        }
+        if (this.dialogs.isOpen || this.viewer.isOpen || this.busy > 0) {
+            event.preventDefault();
+            return;
+        }
+
+        const item = panel.items[Number(rowElement.dataset.row)];
+        if (item === undefined || !isMarkable(item) || event.dataTransfer === null) {
+            event.preventDefault();
+            return;
+        }
+        const items = panel.marks.has(item.key) ? panel.chosenItems() : [item];
+        this.dragged = {panel, items};
+        event.dataTransfer.setData(DRAG_TYPE, String(items.length));
+        event.dataTransfer.effectAllowed = "copy";
     }
 
     /**
@@ -758,6 +941,13 @@ export class Commander implements ActionHost {
             return;
         }
 
+        const actionButton = target.closest<HTMLElement>("[data-act]");
+        if (actionButton !== null) {
+            if (!this.viewer.isOpen && this.busy === 0) {
+                void (actionButton.dataset.act === "open" ? this.openImageFiles() : this.chooseFolderOrFiles());
+            }
+            return;
+        }
         const keyButton = target.closest<HTMLElement>("[data-fk]");
         if (keyButton !== null) {
             void this.pressFunctionKey(Number(keyButton.dataset.fk), false);
@@ -775,10 +965,17 @@ export class Commander implements ActionHost {
                 this.setActive(panel.index);
             }
             if (rowElement !== null && this.active === panel) {
+                const previous = panel.currentItem();
                 panel.cursor = Number(rowElement.dataset.row);
                 const item = panel.currentItem();
-                if ((event.metaKey || event.ctrlKey) && item !== undefined && isMarkable(item)) {
+                if (event.shiftKey && item !== undefined) {
+                    // Mark everything from the last one clicked or marked to this one.
+                    this.markRange(panel, panel.anchorKey ?? previous?.key, item);
+                } else if ((event.metaKey || event.ctrlKey) && item !== undefined && isMarkable(item)) {
                     this.toggleMark(panel, item);
+                    panel.anchorKey = item.key;
+                } else if (item !== undefined) {
+                    panel.anchorKey = item.key;
                 }
                 panel.updateCursor();
                 this.afterCursorMove();
@@ -875,7 +1072,7 @@ export class Commander implements ActionHost {
         }
         if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === "KeyO") {
             event.preventDefault();
-            void (supportsDirectoryPicker() ? this.chooseFolder() : this.fileInput.click());
+            void this.chooseFolderOrFiles();
             return true;
         }
         if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === "KeyH") {
@@ -887,6 +1084,17 @@ export class Commander implements ActionHost {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Alt-O and [Open Folder]: choose a folder, or in a browser that can't, files for Your files.
+     */
+    private async chooseFolderOrFiles(): Promise<void> {
+        if (supportsDirectoryPicker()) {
+            await this.chooseFolder();
+        } else {
+            this.fileInput.click();
+        }
     }
 
     /**
@@ -912,11 +1120,7 @@ export class Commander implements ActionHost {
 
         if (event.key === "Tab") {
             event.preventDefault();
-            if (this.other.mode === PanelMode.FILES) {
-                this.setActive(1 - this.activeIndex);
-            } else {
-                this.log.error("The other panel is showing " + panelModeToString(this.other.mode) + ". F9 brings its files back.");
-            }
+            this.switchPanel(1 - this.activeIndex);
             return;
         }
         if (event.key === "Enter") {
@@ -945,6 +1149,11 @@ export class Commander implements ActionHost {
         }
 
         switch (event.key) {
+            case "ArrowLeft":
+            case "ArrowRight":
+                event.preventDefault();
+                this.switchPanel(event.key === "ArrowLeft" ? 0 : 1);
+                break;
             case "ArrowUp":
                 event.preventDefault();
                 this.moveCursor(-1);
@@ -999,6 +1208,23 @@ export class Commander implements ActionHost {
     }
 
     /**
+     * Tab, Left and Right: make a panel the active one, unless the panel that's now active is showing a view of the
+     * other, which has no files to switch between.
+     *
+     * @param index the panel to switch to, 0 on the left and 1 on the right.
+     */
+    private switchPanel(index: number): void {
+        if (index === this.activeIndex) {
+            return;
+        }
+        if (this.other.mode === PanelMode.FILES) {
+            this.setActive(index);
+        } else {
+            this.log.error("The other panel is showing " + panelModeToString(this.other.mode) + ". F9 brings its files back.");
+        }
+    }
+
+    /**
      * How many rows a Page Up or Page Down moves: a screenful of the active panel.
      */
     private pageSize(): number {
@@ -1031,12 +1257,35 @@ export class Commander implements ActionHost {
     }
 
     /**
+     * Mark the files from one item to another, in either order, as Shift-click does (and unmark the rest, as the
+     * workbench does).
+     *
+     * @param panel the panel.
+     * @param anchorKey the key of the item to start from, or undefined to mark just the clicked one.
+     * @param item the item that was clicked.
+     */
+    private markRange(panel: Panel, anchorKey: string | undefined, item: Item): void {
+        const index = panel.items.indexOf(item);
+        const anchorIndex = anchorKey === undefined ? -1 : panel.items.findIndex(candidate => candidate.key === anchorKey);
+        const from = anchorIndex < 0 ? index : anchorIndex;
+        panel.marks.clear();
+        for (let i = Math.min(from, index); i <= Math.max(from, index); i++) {
+            if (isMarkable(panel.items[i])) {
+                panel.marks.add(panel.items[i].key);
+            }
+        }
+        panel.anchorKey = anchorKey ?? item.key;
+        panel.updateMarks();
+    }
+
+    /**
      * Space and Insert: mark the item under the cursor and move down.
      */
     private markAndMoveDown(panel: Panel): void {
         const item = panel.currentItem();
         if (item !== undefined && isMarkable(item)) {
             this.toggleMark(panel, item);
+            panel.anchorKey = item.key;
         }
         this.moveCursor(1);
     }
@@ -1148,7 +1397,7 @@ export class Commander implements ActionHost {
     }
 
     /**
-     * Backspace and the "/.." row: go back out of a disk, or up a folder.
+     * Backspace and the ".." row: go back out of a disk, out of a ZIP, or up a folder.
      */
     private async goUp(): Promise<void> {
         const panel = this.active;
@@ -1158,6 +1407,17 @@ export class Commander implements ActionHost {
         }
 
         const host = panel.host;
+        if (host !== undefined && host.kind === HostKind.ARCHIVE) {
+            // Out of a ZIP: back to where the panel was before it, with the cursor on the ZIP if it's there.
+            panel.host = host.parent;
+            panel.marks.clear();
+            panel.anchorKey = undefined;
+            await this.rebuildHostItems(panel);
+            const zipIndex = panel.items.findIndex(item => item.key === "f:" + host.name);
+            panel.cursor = zipIndex < 0 ? 0 : zipIndex;
+            this.renderAll();
+            return;
+        }
         if (host !== undefined && host.kind === HostKind.FOLDER && host.path.length > 1) {
             const left = host.path.pop();
             panel.marks.clear();
@@ -1180,11 +1440,57 @@ export class Commander implements ActionHost {
         }
 
         try {
+            const archive = await readArchive(item.file);
+            if (archive !== undefined) {
+                await this.showArchive(panel, archive);
+                return;
+            }
             const result = await openFiles([{file: item.file, handle: item.handle}]);
             await this.adoptOpenResult(panel, result, key);
         } catch (e) {
             this.reportFailure(undefined, e);
         }
+    }
+
+    /**
+     * Open files that were dropped or chosen. A ZIP that holds several files is shown in the panel as a folder named
+     * after it, with a row for each file; everything else is opened as disks.
+     *
+     * @param panel the panel that gets the result.
+     * @param inputs the files.
+     * @returns what opening gave, or undefined if the panel was given a ZIP's folder instead.
+     */
+    private async openInputs(panel: Panel, inputs: OpenInput[]): Promise<OpenResult | undefined> {
+        if (inputs.length === 1) {
+            const archive = await readArchive(inputs[0].file);
+            if (archive !== undefined) {
+                await this.showArchive(panel, archive);
+                return undefined;
+            }
+        }
+        return openFiles(inputs);
+    }
+
+    /**
+     * Show a ZIP's files in a panel as a folder. Going out of it returns to where the panel was.
+     *
+     * @param panel the panel.
+     * @param archive what the ZIP held.
+     */
+    private async showArchive(panel: Panel, archive: ArchiveListing): Promise<void> {
+        const closed = await this.closePanelDisk(panel);
+        if (!closed) {
+            return;
+        }
+        panel.host = {
+            kind: HostKind.ARCHIVE, id: this.nextDropId++, name: archive.name, files: archive.files, parent: panel.host,
+        };
+        // The cursor starts on the first file, below the row that goes back out.
+        panel.cursor = 1;
+        panel.marks.clear();
+        panel.anchorKey = undefined;
+        this.log.out(archive.name + " holds " + countOf(archive.files.size, "file") + ". Enter opens a disk, and Backspace goes back out.");
+        await this.refreshPanel(panel);
     }
 
     /**
@@ -1349,7 +1655,8 @@ export class Commander implements ActionHost {
             return;
         }
         await this.rebuildHostItems(panel);
-        const name = key === undefined ? undefined : key.substring(key.indexOf("/") + 1);
+        const prefix = this.locationKey(panel) + "/";
+        const name = key !== undefined && key.startsWith(prefix) ? key.substring(prefix.length) : undefined;
         const index = panel.items.findIndex(item => item.kind === ItemKind.HOST_FILE && item.name === name);
         panel.cursor = index < 0 ? 0 : index;
         this.renderAll();
@@ -1393,8 +1700,13 @@ export class Commander implements ActionHost {
             void rememberFolder(folder);
             await this.showFolder(folder);
         } catch (e: any) {
-            // The picker refuses (a SecurityError) when it wasn't started by a click or a key.
+            // The picker refuses (a SecurityError) when it wasn't started by a click or a key, and Chrome also
+            // refuses folders that hold system files.
             this.log.error("Can't open a folder: " + (e?.message ?? String(e)));
+            if (e?.name === "SecurityError") {
+                this.log.error("Chrome won't open some folders itself (Downloads, Desktop, Documents, or your home " +
+                    "folder), but it will open a folder inside them. To open a disk image, use Ctrl-O.");
+            }
         }
     }
 
@@ -1431,19 +1743,28 @@ export class Commander implements ActionHost {
     }
 
     /**
-     * Ctrl-O: choose disk image files and open the first in the active panel. Browsers without a file picker use
-     * the file input, which fills "Your files".
+     * Ctrl-O and [Open Disk]: choose disk image files and open the first in the active panel. Browsers without a
+     * file picker use a file input that shows disk images.
      */
     private async openImageFiles(): Promise<void> {
         if (!supportsFilePicker()) {
-            this.fileInput.click();
+            this.diskInput.click();
             return;
         }
 
         try {
             const handles = await pickFiles();
-            if (handles.length > 0) {
-                await this.adoptOpenResult(this.active, await openFromHandles(handles), undefined);
+            if (handles.length === 0) {
+                return;
+            }
+            const inputs: OpenInput[] = [];
+            for (const handle of handles) {
+                inputs.push({file: await handle.getFile(), handle});
+            }
+            const panel = this.active;
+            const result = await this.openInputs(panel, inputs);
+            if (result !== undefined) {
+                await this.adoptOpenResult(panel, result, undefined);
             }
         } catch (e) {
             this.reportFailure(undefined, e);
@@ -1493,7 +1814,10 @@ export class Commander implements ActionHost {
         }
 
         try {
-            const result = await openFiles(inputs);
+            const result = await this.openInputs(target, inputs);
+            if (result === undefined) {
+                return;
+            }
             if (result.disks.length > 0) {
                 await this.adoptOpenResult(target, result, undefined);
             }
@@ -1626,7 +1950,7 @@ export class Commander implements ActionHost {
      * F1: show the help.
      */
     private showHelp(): void {
-        this.dialogs.alert("Help", HELP_PARAGRAPHS);
+        this.dialogs.open({title: "Help", body: [makeHelpBody()], buttons: [{label: "OK", action: () => undefined}], cancelLabel: ""});
     }
 
     /**
@@ -1800,10 +2124,20 @@ export class Commander implements ActionHost {
      * and a disk to a disk copies the files' bytes and adds them.
      */
     private async copy(): Promise<void> {
-        const source = this.active;
-        const destination = this.other;
-        const items = source.chosenItems();
+        await this.copyItems(this.active, this.other, this.active.chosenItems());
+    }
 
+    /**
+     * Copy items from one panel to the other, as F5 does. Dragging files from one panel to the other does this too.
+     *
+     * @param source the panel that has the items.
+     * @param destination the other panel.
+     * @param items the items to copy.
+     */
+    private async copyItems(source: Panel, destination: Panel, items: Item[]): Promise<void> {
+        if (items.length === 0) {
+            return;
+        }
         if (source.disk === undefined) {
             const files = items.filter((item): item is HostFileItem => item.kind === ItemKind.HOST_FILE);
             if (files.some(file => looksLikeDiskImage(file.name))) {
@@ -1850,7 +2184,7 @@ export class Commander implements ActionHost {
             disk,
             files,
             title: "Copy " + countOf(files.length, "file") + " to " + disk.name,
-            subtitle: "From " + from + ". Here's what will happen to each file. Nothing changes until you press Add.",
+            subtitle: "From " + from + ". Here's what will happen to each file. This can be undone.",
             copyMode: false,
             afterAdd: result => {
                 sourcePanel?.marks.clear();
@@ -1882,8 +2216,8 @@ export class Commander implements ActionHost {
             disk,
             files,
             title: "Copy " + countOf(files.length, "file") + " to " + disk.name,
-            subtitle: "From " + sourceDisk.name + ", byte for byte. Here's what will happen to each file. Nothing " +
-                "changes until you press Add, and Add can be undone on " + disk.name + ".",
+            subtitle: "From " + sourceDisk.name + ", byte for byte. Here's what will happen to each file. " +
+                "This can be undone.",
             copyMode: true,
             afterAdd: result => {
                 source.marks.clear();

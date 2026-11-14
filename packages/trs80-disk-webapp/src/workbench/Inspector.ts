@@ -78,11 +78,25 @@ export class Inspector {
         const preview = el("div");
         renderPreviewPanel(preview, row, {state});
         this.container.replaceChildren(
+            this.makeFullScreenButton(row),
             el("h3", "", ...this.swatch(disk, row.fullName), row.fullName),
             el("div", "sub", describeRow(row)),
             preview,
-            el("div", "actions", makeButton("Extract", () => this.host.extract([row])),
-                makeButton("Open full screen", () => this.host.openFullScreen(row))));
+            el("div", "actions", makeButton("Extract", () => this.host.extract([row]))));
+    }
+
+    /**
+     * Make the icon button in the panel's upper-right corner that opens the file full screen: two arrows, one
+     * pointing to the lower left and one to the upper right.
+     */
+    private makeFullScreenButton(row: FileRow): HTMLElement {
+        const button = makeButton("", () => this.host.openFullScreen(row), "fullscreen-btn");
+        button.title = "Open full screen";
+        button.setAttribute("aria-label", "Open full screen");
+        button.innerHTML = "<svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" " +
+            "stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">" +
+            "<path d=\"M10 2h4v4M14 2L9.5 6.5M6 14H2v-4M2 14l4.5-4.5\"/></svg>";
+        return button;
     }
 
     /**
@@ -145,7 +159,7 @@ export class Inspector {
             add("Date", diskDate);
         }
         if (autoCommand !== undefined) {
-            add("AUTO", autoCommand === "" ? "none" : autoCommand, "mono");
+            add("AUTO", autoCommand === "" ? "None" : autoCommand, "mono");
         }
         add("Changes", session.hasChanges() ? "Unsaved" : "None unsaved");
 

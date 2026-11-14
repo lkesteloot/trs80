@@ -77,8 +77,7 @@ export class FormatSheet {
         this.formatButton = makeButton("Format", () => void this.perform(), "primary danger-fill");
         this.sheet = new Sheet({
             title: "Format " + options.disk.name,
-            subtitle: "This replaces the disk with a blank data disk, as New Disk makes one. Nothing changes until you " +
-                "press Format, and Format can be undone.",
+            subtitle: "This replaces the disk with a blank data disk, as New Disk makes one. This can be undone.",
             content: this.body,
             buttons: [makeButton("Cancel", () => this.sheet.close()), this.formatButton],
         });
@@ -97,7 +96,7 @@ export class FormatSheet {
      */
     private resetShape(): void {
         const dosOptions = getDosOptions(this.dos);
-        this.cylinders = dosOptions.cylinders.includes(this.currentCylinders) ? this.currentCylinders : dosOptions.cylinders[0];
+        this.cylinders = dosOptions.cylinders.includes(this.currentCylinders) ? this.currentCylinders : dosOptions.initialCylinders;
         this.sides = dosOptions.sides.includes(this.currentSides) ? this.currentSides : dosOptions.sides[0];
         this.model = undefined;
     }
@@ -165,7 +164,7 @@ export class FormatSheet {
         if (dosOptions.models.length > 0) {
             const models: ModelChoice[] = [undefined, ...dosOptions.models];
             form.append(el("label", "", "Density"), makeSegments(models, this.model, value =>
-                value === undefined ? "Keep the disk's" : "Model " + (value === 1 ? "I" : "III"), value => {
+                value === undefined ? "Keep the disk's" : (value === 1 ? "Single" : "Double"), value => {
                 this.model = value;
                 this.draw();
             }));

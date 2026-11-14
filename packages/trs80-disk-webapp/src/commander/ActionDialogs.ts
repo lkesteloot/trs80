@@ -1,10 +1,10 @@
 import {
-    BasicDialect, TRSDOS_FORMAT_DOSES, Trsdos, type TrsdosDiskInfo, type TrsdosDiskInfoChanges, type TrsdosProtectionLevel,
+    BasicDialect, decodeTrs80File, TRSDOS_FORMAT_DOSES, Trsdos, type TrsdosDiskInfo, type TrsdosDiskInfoChanges, type TrsdosProtectionLevel,
     trsdosFormatDosToString, trsdosProtectionLevels, trsdosProtectionLevelToString, TrsdosFormatDos,
 } from "trs80-base";
 import {
     type AddFilesResult, type AddPlanItem, type AttributeRequest, createCommandLine, type CreateFloppyRequest, DiskError,
-    describeChanges, getWriteProtect, readDiskInfo,
+    describeChanges, findSystemDiskTemplate, formatCommandLine, getWriteProtect, loadSystemDiskTemplate, readDiskInfo,
 } from "trs80-disk";
 import {
     type ActionResult, type AddActionOptions, addPlanned, attrib, label as changeLabel, planAddFiles, protect, rename,
@@ -17,6 +17,7 @@ import type {FileRow} from "../core/FileRows.js";
 import {gatDateToInputValue, getLabelLimits, inputValueToDate} from "../core/LabelLimits.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {newDisk, type NewDiskResult} from "../core/Opening.js";
+import {ensureSystemDisk, TEMPLATES} from "../core/Templates.js";
 import {type DialogLayer, formRow, makeCheck, makeRadio, makeText} from "./Dialogs.js";
 
 // The dialogs of the commander's actions. Each one gathers the choices and then hands the action to the page,
@@ -86,6 +87,24 @@ function describePlanItem(item: AddPlanItem, overwrite: boolean): {text: string,
 }
 
 /**
+ * Whether a file could be BASIC, so that the choice of BASIC matters: a ".bas" or ".cas" file (which the engine
+ * converts by its name), or any file that decodes as a BASIC program.
+ *
+ * @param name the file's name.
+ * @param bytes the file's contents.
+ */
+function couldBeBasic(name: string, bytes: Uint8Array): boolean {
+    const lower = name.toLowerCase();
+    return lower.endsWith(".bas") || lower.endsWith(".cas") ||
+        decodeTrs80File(bytes, {filename: name}).className === "BasicProgram";
+}
+
+/**
+ * How the add plan converts files: as the engine decides, or not at all for BASIC text, or not at all.
+ */
+type Conversion = "auto" | "ascii" | "binary";
+
+/**
  * What the Add dialog needs to start.
  */
 export interface AddDialogOptions {
@@ -112,8 +131,7 @@ export interface AddDialogOptions {
  */
 export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): void {
     const {disk, files, copyMode} = options;
-    let ascii = false;
-    let binary = copyMode;
+    let conversion: Conversion = copyMode ? "binary" : "auto";
     let overwrite = false;
     let useFileDates = copyMode && files.every(file => file.lastModified > 0);
     let basic: BasicDialect | undefined = undefined;
@@ -132,14 +150,13 @@ export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): 
     const nameRow = el("div", "grid", ...formRow("Name on the disk", nameInput));
     nameRow.hidden = files.length !== 1;
 
-    const asciiCheck = makeCheck("Keep BASIC as text (--ascii)", ascii, checked => {
-        ascii = checked;
-        void replan();
-    });
-    const binaryCheck = makeCheck("No conversion (--binary)", binary, checked => {
-        binary = checked;
-        void replan();
-    });
+    const conversionChoices = (["auto", "ascii", "binary"] as Conversion[]).map(choice => makeRadio("conversion",
+        choice === "auto" ? "Auto" : choice === "ascii" ? "ASCII (--ascii)" : "Binary (--binary)", choice === conversion,
+        () => {
+            conversion = choice;
+            void replan();
+        }).element);
+    const conversionRow = el("div", "grid", ...formRow("Convert", el("div", "", ...conversionChoices)));
     const overwriteCheck = makeCheck("Replace files that are already on the disk (--overwrite)", overwrite, checked => {
         overwrite = checked;
         void replan();
@@ -149,6 +166,7 @@ export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): 
         void replan();
     });
     const basicSelect = el("select");
+    basicSelect.hidden = true;
     for (const [value, text] of [["", "BASIC: the disk's"], ["3", "Model I/III BASIC"], ["4", "Model 4 BASIC"]]) {
         const option = el("option", "", text);
         option.value = value;
@@ -161,7 +179,7 @@ export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): 
 
     const handle = host.dialogs.open({
         title: options.title,
-        body: [el("p", "wrap", options.subtitle), table, nameRow, asciiCheck.element, binaryCheck.element,
+        body: [el("p", "wrap", options.subtitle), table, nameRow, conversionRow,
             overwriteCheck.element, datesCheck.element, basicSelect],
         buttons: [{
             label: "Add",
@@ -185,7 +203,7 @@ export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): 
     function makeOptions(): AddActionOptions {
         return {
             as: files.length === 1 && asName.trim() !== "" ? asName.trim() : undefined,
-            ascii, binary, text: false, basic, system: false, invisible: false, overwrite, date: undefined, useFileDates,
+            ascii: conversion === "ascii", binary: conversion === "binary", text: false, basic, system: false, invisible: false, overwrite, date: undefined, useFileDates,
         };
     }
 
@@ -231,13 +249,15 @@ export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): 
         }
         plan = newPlan;
         planError = error;
+        // The choice of BASIC only matters if a file could be BASIC.
+        basicSelect.hidden = !plan.some(item => couldBeBasic(item.source.name, item.source.bytes));
         tableBody.replaceChildren(...plan.map(item => {
             const what = describePlanItem(item, overwrite);
             return el("tr", "", el("td", "", item.source.label), el("td", "r", formatNumber(item.source.bytes.length)),
                 el("td", "", item.name === "" ? "(no name)" : item.name), el("td", what.className, what.text));
         }));
         const problem = addProblem();
-        handle.setStatus(problem ?? "Tab moves between the fields. Enter adds. Add can be undone.", problem !== undefined);
+        handle.setStatus(problem ?? "", problem !== undefined);
         handle.setButtonEnabled(0, problem === undefined);
     }
 
@@ -556,6 +576,22 @@ export function openPatternDialog(host: ActionHost, adding: boolean, apply: (pat
 }
 
 /**
+ * The shape of a system disk template.
+ */
+interface SystemShape {
+    /** The cylinder count. */
+    cylinders: number;
+    /** The side count. */
+    sides: number;
+}
+
+/**
+ * The shapes of the system disk templates found so far, by template name. A template is fetched and decoded once,
+ * the first time its shape is wanted.
+ */
+const systemShapes = new Map<string, SystemShape>();
+
+/**
  * Ask what kind of disk to make, then make it.
  *
  * @param host the page.
@@ -565,9 +601,9 @@ export function openPatternDialog(host: ActionHost, adding: boolean, apply: (pat
 export function openNewDiskDialog(host: ActionHost, where: string, created: (made: NewDiskResult) => void): void {
     let dos: TrsdosFormatDos = TrsdosFormatDos.LDOS_5_3;
     let system = false;
-    let cylinders = getDosOptions(dos).cylinders[0];
+    let cylinders = getDosOptions(dos).initialCylinders;
     let sides = 1;
-    let model: 1 | 3 = 3;
+    let model: 1 | 3 = getDosOptions(dos).defaultModel;
     let name = "new.dmk";
     let nameEdited = false;
 
@@ -579,6 +615,32 @@ export function openNewDiskDialog(host: ActionHost, where: string, created: (mad
         refresh();
     });
     const commandLine = el("p", "muted");
+    const shapeNote = el("p", "muted", "A system disk has the shape of the DOS's own disk.");
+    let closed = false;
+
+    /**
+     * The shape of the system disk that would be copied (for LDOS, the one for the chosen model), or undefined if
+     * it hasn't been loaded yet, in which case it's loaded in the background and the dialog is redrawn when it's
+     * ready.
+     */
+    function getSystemShape(): SystemShape | undefined {
+        const template = findSystemDiskTemplate(dos, model);
+        const known = systemShapes.get(template.name);
+        if (known !== undefined) {
+            return known;
+        }
+
+        ensureSystemDisk(template.name)
+            .then(() => {
+                const geometry = loadSystemDiskTemplate(TEMPLATES, template).getGeometry();
+                systemShapes.set(template.name, {cylinders: geometry.cylinderCount, sides: geometry.sideCount});
+                if (!closed) {
+                    refresh();
+                }
+            })
+            .catch(e => console.error("Can't load the system disk " + template.name + ":", e));
+        return undefined;
+    }
 
     /**
      * The "create" request that the choices equal. Choices that equal the DOS's defaults are left undefined, so that
@@ -590,10 +652,10 @@ export function openNewDiskDialog(host: ActionHost, where: string, created: (mad
         return {
             format: {
                 dos,
-                cylinders: useShape && cylinders !== options.cylinders[0] ? cylinders : undefined,
+                cylinders: useShape && cylinders !== options.defaultCylinders ? cylinders : undefined,
                 sides: useShape && sides !== 1 ? sides : undefined,
                 density: undefined,
-                model: options.models.length > 0 && model !== options.models[0] ? model : undefined,
+                model: options.models.length > 0 && model !== options.defaultModel ? model : undefined,
                 name: undefined,
                 date: undefined,
             },
@@ -643,9 +705,9 @@ export function openNewDiskDialog(host: ActionHost, where: string, created: (mad
                 candidate === dos, () => {
                     dos = candidate;
                     const candidateOptions = getDosOptions(candidate);
-                    cylinders = candidateOptions.cylinders[0];
+                    cylinders = candidateOptions.initialCylinders;
                     sides = candidateOptions.sides[0];
-                    model = candidateOptions.models.length > 0 ? candidateOptions.models[0] : 3;
+                    model = candidateOptions.defaultModel;
                     refresh();
                 });
             return radio.element;
@@ -664,12 +726,20 @@ export function openNewDiskDialog(host: ActionHost, where: string, created: (mad
             kindSystem.element.title = "There's no system disk for this DOS";
         }
 
-        const shapeRows: Node[] = [
-            ...formRow("Cylinders", makeSelect(options.cylinders, cylinders, String, system, value => {
+        // A system disk's shape is the template's, which the choices don't change: show that shape, disabled, and
+        // keep the user's choices for when they go back to a data disk.
+        const systemShape = system ? getSystemShape() : undefined;
+        const shapeRows: Node[] = system ? [
+            ...formRow("Cylinders", makeSelect([0], 0, () => systemShape === undefined ? "…" : String(systemShape.cylinders),
+                true, () => undefined)),
+            ...formRow("Sides", makeSelect([0], 0, () => systemShape === undefined ? "…" : String(systemShape.sides),
+                true, () => undefined)),
+        ] : [
+            ...formRow("Cylinders", makeSelect(options.cylinders, cylinders, String, false, value => {
                 cylinders = value;
                 refresh();
             })),
-            ...formRow("Sides", makeSelect(options.sides, sides, String, system, value => {
+            ...formRow("Sides", makeSelect(options.sides, sides, String, false, value => {
                 sides = value;
                 refresh();
             })),
@@ -682,19 +752,23 @@ export function openNewDiskDialog(host: ActionHost, where: string, created: (mad
                 })));
         }
         shapeBox.replaceChildren(...shapeRows);
+        shapeNote.hidden = !system;
         kindBox.replaceChildren(kindData.element, kindSystem.element);
 
         if (!nameEdited) {
             name = system ? trsdosFormatDosToString(dos).toLowerCase().replace(/[^a-z0-9.]+/g, "-") + "-system.dmk" : "new.dmk";
             nameInput.value = name;
         }
-        commandLine.textContent = "= " + createCommandLine(makeRequest());
+        // The command that the choices equal, in the form that the message area shows commands.
+        commandLine.textContent = "Same as: " +
+            formatCommandLine(["trs80-tool", "disk", diskName() === "" ? "new.dmk" : diskName()]) + " " +
+            createCommandLine(makeRequest());
     }
 
     const kindBox = el("div");
     host.dialogs.open({
         title: "New disk",
-        body: [el("p", "", where + ", a new DMK image:"), doseBox, el("p", ""), kindBox, shapeBox,
+        body: [el("p", "", where + ", a new DMK image:"), doseBox, el("p", ""), kindBox, shapeBox, shapeNote,
             el("div", "grid", ...formRow("File name", nameInput)), commandLine],
         buttons: [{
             label: "Create",
@@ -714,6 +788,7 @@ export function openNewDiskDialog(host: ActionHost, where: string, created: (mad
                 return undefined;
             },
         }],
+        onClosed: () => closed = true,
     });
     refresh();
 }

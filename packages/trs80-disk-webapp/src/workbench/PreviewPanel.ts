@@ -62,22 +62,22 @@ function renderInfo(row: FileRow): HTMLElement {
 
     add("Name", row.fullName, "mono");
     add("Size", formatNumber(row.size) + " bytes");
-    add("Date", row.dateText === "" ? "none" : row.dateText);
+    add("Date", row.dateText === "" ? "None" : row.dateText);
     add("Kind", fileKindToString(row.kind) + " (" + row.trs80File.getDescription() + ")");
     const attributes = row.attributes;
     if (attributes === undefined) {
-        const flags = [row.isSystem ? "system" : "", row.isHidden ? "invisible" : ""].filter(flag => flag !== "");
-        add("Attributes", flags.length === 0 ? "none" : flags.join(", "));
+        const flags = [row.isSystem ? "System" : "", row.isHidden ? "Invisible" : ""].filter(flag => flag !== "");
+        add("Attributes", flags.length === 0 ? "None" : flags.join(", "));
     } else {
-        const flags = [attributes.system ? "system" : "", attributes.invisible ? "invisible" : ""]
+        const flags = [attributes.system ? "System" : "", attributes.invisible ? "Invisible" : ""]
             .filter(flag => flag !== "");
-        add("Attributes", flags.length === 0 ? "none" : flags.join(", "));
+        add("Attributes", flags.length === 0 ? "None" : flags.join(", "));
         add("Protection", attributes.protection);
-        const passwords = [attributes.hasUpdatePassword ? "update" : "", attributes.hasAccessPassword ? "access" : ""]
+        const passwords = [attributes.hasUpdatePassword ? "Update" : "", attributes.hasAccessPassword ? "Access" : ""]
             .filter(password => password !== "");
-        add("Passwords", passwords.length === 0 ? "none" : passwords.join(" and "));
+        add("Passwords", passwords.length === 0 ? "None" : passwords.join(" and "));
     }
-    add("Damage", row.damage === undefined ? "none" : row.damage.toString());
+    add("Damage", row.damage === undefined ? "None" : row.damage.toString());
     return list;
 }
 
@@ -117,7 +117,7 @@ export function renderPreviewPanel(container: HTMLElement, row: FileRow, options
         const select = el("select", "dialect");
         select.title = "Which BASIC to read the program as";
         const choices: [DialectChoice, string][] = [
-            [DialectChoice.AUTO, "BASIC: from the file"], [DialectChoice.MODEL_III, "Model I/III BASIC"],
+            [DialectChoice.AUTO, "Auto-detect"], [DialectChoice.MODEL_III, "Model I/III BASIC"],
             [DialectChoice.MODEL_4, "Model 4 BASIC"],
         ];
         const currentChoice = state.basicDialect === undefined ? DialectChoice.AUTO :

@@ -11,12 +11,12 @@ import {
 import {
     downloadFile, downloadZip, extractToFolder, type ExtractOptions, type ExtractResult,
 } from "../core/Extracting.js";
-import {type FileRow, filterRows, getFileRows} from "../core/FileRows.js";
+import {type FileRow, filterRows, getFileRows, omitHiddenRows} from "../core/FileRows.js";
 import {installUndoKeys} from "../core/Keys.js";
 import {DiskStore} from "../core/DiskStore.js";
 import {type OpenDisk, SaveKind} from "../core/OpenDisk.js";
 import {
-    getDroppedInputs, newDisk, openFiles, openFromHandles, type OpenInput, type OpenResult, pickFiles,
+    DISK_IMAGE_ACCEPT, getDroppedInputs, newDisk, openFiles, openFromHandles, type OpenInput, type OpenResult, pickFiles,
     supportsFilePicker, type UnopenedFile,
 } from "../core/Opening.js";
 import {installUnsavedChangesWarning, saveDisk, saveDiskAs} from "../core/Saving.js";
@@ -180,6 +180,8 @@ export class Workbench implements FilesViewHost {
             },
         });
 
+        // The fallback for browsers without a file picker. The input for adding files takes any file, so isn't filtered.
+        this.openInput.accept = DISK_IMAGE_ACCEPT.join(",");
         this.addInput.type = "file";
         this.addInput.multiple = true;
         this.addInput.addEventListener("change", () => {
@@ -439,7 +441,7 @@ export class Workbench implements FilesViewHost {
      * The selected rows of a disk, in table order, whichever view is showing.
      */
     private selectedRows(disk: OpenDisk, state: DiskViewState): FileRow[] {
-        const rows = filterRows(this.getRows(disk, state.showSystem), state.filter);
+        const rows = filterRows(omitHiddenRows(this.getRows(disk, state.showSystem), state.showHidden), state.filter);
         return rows.filter(row => state.selected.has(row.fullName));
     }
 
@@ -639,7 +641,7 @@ export class Workbench implements FilesViewHost {
                 title: "Add files to " + disk.name,
                 subtitle: countOf(unopened.length, "file") + " " + (unopened.length === 1 ? "isn't a disk image" :
                     "aren't disk images") + ", so you can add " + (unopened.length === 1 ? "it" : "them") + " to " +
-                    disk.name + ". Nothing changes until you press Add.",
+                    disk.name + ".",
                 copyMode: false,
             });
             return;
@@ -938,7 +940,7 @@ export class Workbench implements FilesViewHost {
         }
         this.openAddSheet(disk, files, {
             title: "Add files to " + disk.name,
-            subtitle: "Here's what will happen to each file. Nothing changes until you press Add, and Add can be undone.",
+            subtitle: "Here's what will happen to each file. This can be undone.",
             copyMode: false,
         });
     }
@@ -1128,8 +1130,7 @@ export class Workbench implements FilesViewHost {
             {lastModified: row.date?.getTime() ?? 0}));
         this.openAddSheet(target, files, {
             title: "Copy " + countOf(rows.length, "file") + " to " + target.name,
-            subtitle: "From " + source.name + ". Here's what will happen to each file. Nothing changes until you " +
-                "press Add, and Add can be undone on " + target.name + ".",
+            subtitle: "From " + source.name + ". Here's what will happen to each file. This can be undone.",
             copyMode: true,
         }, () => this.messages.toast("Copied " + countOf(rows.length, "file") + " to " + target.name + "."));
     }

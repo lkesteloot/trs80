@@ -1,4 +1,5 @@
 import {DiskError} from "trs80-disk";
+import {DISK_IMAGE_EXTENSIONS} from "../core/Opening.js";
 
 // The folder on the user's computer that a panel can show: Chromium's File System Access API, with the chosen
 // folder's handle remembered in IndexedDB so that the next visit can offer to reopen it.
@@ -186,11 +187,6 @@ export async function listFolder(folder: FileSystemDirectoryHandle): Promise<Hos
     });
     return entries;
 }
-
-/**
- * The extensions of files that Enter opens as disk images (or archives of them).
- */
-const DISK_IMAGE_EXTENSIONS = ["dmk", "dsk", "jv1", "jv3", "hfe", "imd", "scp", "hdv", "img", "zip", "gz"];
 
 /**
  * Whether a host file's name says it's probably a disk image, which Enter opens like a folder.
