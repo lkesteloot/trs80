@@ -133,8 +133,7 @@ export class Workbench implements FilesViewHost {
         this.topBar = new TopBar({
             selectDisk: disk => this.showDisk(disk),
             closeDisk: disk => void this.closeDisk(disk),
-            open: () => void this.chooseFiles(),
-            newDisk: () => this.showNewDiskPanel(),
+            showStart: () => this.showStart(),
             undo: () => this.undoCurrent(),
             redo: () => this.redoCurrent(),
         });
@@ -251,12 +250,11 @@ export class Workbench implements FilesViewHost {
     }
 
     /**
-     * Show the start screen, with the New Disk panel in view.
+     * Show the start screen, where the user opens or makes a disk.
      */
-    private showNewDiskPanel(): void {
+    private showStart(): void {
         this.showingStart = true;
         this.renderAll();
-        this.newDiskPanel.focus();
     }
 
     /**

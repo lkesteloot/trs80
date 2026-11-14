@@ -93,14 +93,6 @@ export class NewDiskPanel {
     }
 
     /**
-     * Bring the panel into view and put the cursor where the user can go on.
-     */
-    public focus(): void {
-        document.getElementById("newDisk")?.scrollIntoView({block: "nearest"});
-        (this.grid.querySelector("button") as HTMLElement | null)?.focus();
-    }
-
-    /**
      * Choose a DOS, which resets the choices to its defaults.
      */
     private chooseDos(dos: TrsdosFormatDos): void {

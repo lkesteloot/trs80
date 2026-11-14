@@ -13,6 +13,7 @@
     --cursor-bg: #2aa198; --cursor-fg: #002b36; --cursor-dim: #0a4555;
     --mark: #b58900; --disk: #268bd2; --head: #2aa198; --dlg: #073642;
     --key-bg: #2aa198; --key-fg: #002b36;
+    --emu-photo-filter: brightness(0.75);
     color-scheme: dark;
 }
 * { box-sizing: border-box; }

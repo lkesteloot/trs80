@@ -1,17 +1,21 @@
 import type {FloppyDisk} from "trs80-base";
 import type {BootModel, BootModelChoice} from "trs80-disk";
 import {BasicLevel, CassettePlayer, Config, ModelType, RunningState, Trs80} from "trs80-emulator";
-import {CanvasScreen, ControlPanel, DriveIndicators, WebKeyboard, WebSoundPlayer} from "trs80-emulator-web";
+import {
+    Bezel, CanvasScreen, ControlPanel, DriveIndicators, FlipCard, loadTrs80Config, PanelType, saveTrs80Config,
+    SettingsPanel, WebKeyboard, WebSoundPlayer,
+} from "trs80-emulator-web";
 import {assertNever} from "z80-base";
 import {modelName} from "./Booting.js";
 import {el, makeButton, makeCheckbox} from "./Dom.js";
 import "./emulator.css";
 
 // The emulator's panel, which slides over the page while a disk is booted. This module pulls in the emulator and
-// its ROMs, so Booting.ts loads it only when a disk is booted.
+// its ROMs, so Booting.ts loads it only when a disk is booted. The machine is set up as my-trs-80's is: a photo of
+// the computer around the screen, and the settings on the screen's hover buttons, kept in local storage.
 
-/** The models that the panel offers, in menu order. */
-const BOOT_MODELS: BootModel[] = [1, 3, 4];
+/** The local storage key of the emulator's settings, which both pages share. */
+const CONFIG_KEY = "trs80-disk-emulator-config";
 
 /**
  * What the panel runs.
@@ -51,40 +55,85 @@ function bootModelToModelType(model: BootModel): ModelType {
 }
 
 /**
+ * The model number of the emulator's model type.
+ */
+function modelTypeToBootModel(modelType: ModelType): BootModel {
+    switch (modelType) {
+        case ModelType.MODEL1:
+            return 1;
+        case ModelType.MODEL3:
+            return 3;
+        case ModelType.MODEL4:
+            return 4;
+        default:
+            assertNever(modelType);
+    }
+}
+
+/**
  * The emulated machine, with its screen and keyboard. A page makes one, the first time it boots a disk, and keeps
  * it: the keyboard listens on the page for good, so a second machine would get the keys too.
  */
 class Machine {
-    /** The screen, whose node holds the canvas, the control panel, and the drive lights. */
-    public readonly screen: CanvasScreen;
+    /** Holds the photo of the computer and the screen, which fit themselves to its size. */
+    public readonly node: HTMLElement;
     /** The machine. */
     public readonly trs80: Trs80;
     /** Whether the panel is open, which is when the keyboard sends keys to the machine. */
     public isOpen = false;
 
     /**
-     * Make the machine, stopped, with a screen sized to fit the window.
+     * Make the machine, stopped, with the settings that the user last chose.
      */
     constructor() {
-        // Fit the screen in the window, leaving room for the panel's header, in steps of a quarter.
-        const fit = Math.min((window.innerWidth - 48)/640, (window.innerHeight - 180)/400);
-        const scale = Math.max(0.5, Math.min(2, Math.floor(fit*4)/4));
-        this.screen = new CanvasScreen(scale);
+        this.node = el("div", "emu-screen");
+        const config = loadTrs80Config(CONFIG_KEY, Config.makeDefault().edit().withBezel(true).build());
+        const screen = new CanvasScreen(1.5);
         const keyboard = new WebKeyboard();
         const soundPlayer = new WebSoundPlayer();
-        this.trs80 = new Trs80(Config.makeDefault(), this.screen, keyboard, new CassettePlayer(), soundPlayer);
+        this.trs80 = new Trs80(config, screen, keyboard, new CassettePlayer(), soundPlayer);
         keyboard.configureKeyboard();
-        keyboard.addInterceptKeys(() => this.isOpen);
+        this.trs80.onConfig.subscribe(change => saveTrs80Config(change.newConfig, CONFIG_KEY));
 
-        const controlPanel = new ControlPanel(this.screen.getNode());
+        const flipCard = new FlipCard(screen);
+        flipCard.setFront(screen);
+        const bezel = new Bezel(this.node, screen, flipCard, this.trs80);
+        this.node.append(bezel.node);
+
+        // The hover buttons on the screen. The model is the hardware panel's.
+        const hardwarePanel = new SettingsPanel(screen.getNode(), this.trs80, PanelType.HARDWARE);
+        const viewPanel = new SettingsPanel(screen.getNode(), this.trs80, PanelType.VIEW, {bezel: true});
+        const controlPanel = new ControlPanel(screen.getNode());
         controlPanel.addResetButton(() => this.reboot());
+        controlPanel.addSettingsButton(hardwarePanel);
+        controlPanel.addSettingsButton(viewPanel);
         controlPanel.addMuteButton(soundPlayer);
-        const driveIndicators = new DriveIndicators(this.screen.getNode(), this.trs80.getMaxDrives());
-        this.trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
+        keyboard.addInterceptKeys(() => this.isOpen && !hardwarePanel.isOpen() && !viewPanel.isOpen());
+
+        // The bezel lights the drive's LED where its photo shows the drives, and the screen's indicators otherwise.
+        const driveIndicators = new DriveIndicators(screen.getNode(), this.trs80.getMaxDrives());
+        let activeDrive: number | undefined = undefined;
+        const updateDriveIndicators = (): void => {
+            const shownByBezel = bezel.setActiveDrive(activeDrive);
+            driveIndicators.setActiveDrive(shownByBezel ? undefined : activeDrive);
+        };
+        this.trs80.onMotorOn.subscribe(drive => {
+            activeDrive = drive;
+            updateDriveIndicators();
+        });
+        // The bezel and the model can change while a drive is on.
+        this.trs80.onConfig.subscribe(updateDriveIndicators);
     }
 
     /**
-     * Switch to a model, Level II Basic, and reboot.
+     * The model that the machine is now.
+     */
+    public getModel(): BootModel {
+        return modelTypeToBootModel(this.trs80.getConfig().modelType);
+    }
+
+    /**
+     * Switch to a model and Level II Basic, keeping the user's other settings, and reboot.
      */
     public setModel(model: BootModel): void {
         const config = this.trs80.getConfig().edit()
@@ -147,23 +196,6 @@ export function runEmulator(request: EmulatorRequest): Promise<void> {
         title.textContent = request.name + " on a Model " + modelName(model);
     };
 
-    const modelSelect = el("select");
-    modelSelect.title = "The TRS-80 to boot on. Changing it reboots.";
-    for (const option of BOOT_MODELS) {
-        const element = el("option", "", "Model " + modelName(option) +
-            (option === request.choice.model ? " (Default)" : ""));
-        element.value = String(option);
-        element.selected = option === model;
-        modelSelect.append(element);
-    }
-    modelSelect.addEventListener("change", () => {
-        model = Number(modelSelect.value) as BootModel;
-        setTitle();
-        theMachine.setModel(model);
-        tellSettings();
-        blurFocus();
-    });
-
     const protect = makeCheckbox("Write-protected", writeProtected, checked => {
         writeProtected = checked;
         floppy.setMountedWriteProtected(checked);
@@ -173,12 +205,6 @@ export function runEmulator(request: EmulatorRequest): Promise<void> {
     protect.input.disabled = imageWriteProtected;
     protect.element.title = imageWriteProtected ? "The image is marked write-protected, or its format can't be written." :
         "Mount the disk write-protected, so that the DOS can't write to it.";
-
-    const reset = makeButton("Reset", () => {
-        theMachine.reboot();
-        blurFocus();
-    });
-    reset.title = "Press the machine's reset button.";
 
     const notes = [request.choice.reason + ".",
         "The DOS's writes go to the disk on this page; closing shows them, as one change that Undo takes back."];
@@ -194,8 +220,19 @@ export function runEmulator(request: EmulatorRequest): Promise<void> {
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-label", "TRS-80 emulator");
 
+    // The user changes the model with the screen's hardware settings.
+    const unsubscribeConfig = trs80.onConfig.subscribe(() => {
+        const newModel = theMachine.getModel();
+        if (newModel !== model) {
+            model = newModel;
+            setTitle();
+            tellSettings();
+        }
+    });
+
     return new Promise<void>(resolve => {
         const close = (): void => {
+            unsubscribeConfig();
             trs80.setRunningState(RunningState.STOPPED);
             trs80.ejectAllFloppyDisks();
             theMachine.isOpen = false;
@@ -210,9 +247,9 @@ export function runEmulator(request: EmulatorRequest): Promise<void> {
 
         setTitle();
         overlay.append(
-            el("div", "emu-head", title, el("span", "grow"), modelSelect, protect.element, reset, closeButton),
+            el("div", "emu-head", title, el("span", "grow"), protect.element, closeButton),
             el("div", "emu-notes", ...notes.map(note => el("span", "", note))),
-            el("div", "emu-screen", theMachine.screen.getNode()));
+            theMachine.node);
         document.body.append(overlay);
         document.body.addEventListener("keydown", stopKey);
         document.body.addEventListener("keyup", stopKey);

@@ -1,5 +1,77 @@
 import {Config, DisplayType, ModelType, Trs80} from "trs80-emulator";
-import {CanvasScreen, FlipCard, type ScreenFrame} from "trs80-emulator-web";
+import {CanvasScreen, type ScreenFrame} from "./CanvasScreen.js";
+import {FlipCard} from "./FlipCard.js";
+import {CSS_PREFIX} from "./Utils.js";
+
+const gCssPrefix = CSS_PREFIX + "-bezel";
+const gBezelCssClass = gCssPrefix;
+const gShownCssClass = gCssPrefix + "-shown";
+/** The class of the photo, so that a page can dim it in a dark theme. */
+export const BEZEL_PHOTO_CSS_CLASS = gCssPrefix + "-photo";
+const gScreenCssClass = gCssPrefix + "-screen";
+const gLedCssClass = gCssPrefix + "-led";
+const gLedOffCssClass = gCssPrefix + "-led-off";
+const gLedOnCssClass = gCssPrefix + "-led-on";
+const gLedLitCssClass = gCssPrefix + "-led-lit";
+
+const GLOBAL_CSS = `
+.${gBezelCssClass} {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.${BEZEL_PHOTO_CSS_CLASS} {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    transition: filter .25s ease-in-out;
+}
+
+.${gShownCssClass} .${BEZEL_PHOTO_CSS_CLASS} {
+    display: block;
+}
+
+.${gShownCssClass} > .${gScreenCssClass} {
+    position: absolute;
+}
+
+/* Clip the screen to the photo's hole: everywhere the photo is transparent. The custom
+   properties line the photo up with the screen. */
+.${gScreenCssClass} canvas,
+.${gScreenCssClass} textarea {
+    mask-image: linear-gradient(black, black), var(--bezel-mask-image);
+    mask-size: 100% 100%, var(--bezel-mask-size);
+    mask-position: 0 0, var(--bezel-mask-position);
+    mask-repeat: no-repeat;
+    mask-composite: exclude;
+}
+
+.${gLedCssClass} {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Covers an LED that's lit in the photo. */
+.${gLedOffCssClass} {
+    background: radial-gradient(circle at 40% 35%, #7a2a2a 0%, #3a0505 50%, #1a0000 100%);
+}
+
+.${gLedOnCssClass} {
+    background: radial-gradient(circle at 40% 35%, #ffe8e8 0%, #ff3030 30%, #b00000 100%);
+    box-shadow: 0 0 0.5em 0.15em rgba(255, 30, 30, 0.7);
+    opacity: 0;
+    transition: opacity .20s ease-in-out;
+}
+
+.${gLedOnCssClass}.${gLedLitCssClass} {
+    opacity: 1;
+}
+`;
 
 /**
  * A photo of a computer, with a transparent hole where the screen goes. The photos are
@@ -26,7 +98,7 @@ interface BezelPhoto {
 }
 
 const MODEL1_PHOTO: BezelPhoto = {
-    url: "/bezels/M1.webp",
+    url: new URL("./bezels/M1.webp", import.meta.url).href,
     width: 1968,
     height: 1864,
     holeLeft: 306,
@@ -41,7 +113,7 @@ const MODEL1_PHOTO: BezelPhoto = {
 };
 
 const MODEL3_PHOTO: BezelPhoto = {
-    url: "/bezels/M3.webp",
+    url: new URL("./bezels/M3.webp", import.meta.url).href,
     width: 2198,
     height: 1605,
     holeLeft: 317,
@@ -56,7 +128,7 @@ const MODEL3_PHOTO: BezelPhoto = {
 };
 
 const MODEL4_PHOTO: BezelPhoto = {
-    url: "/bezels/M4.webp",
+    url: new URL("./bezels/M4.webp", import.meta.url).href,
     width: 2150,
     height: 1644,
     holeLeft: 208,
@@ -153,15 +225,16 @@ export class Bezel {
      * @param container the node that we're centered in, and that limits our size.
      */
     constructor(container: HTMLElement, screen: CanvasScreen, flipCard: FlipCard, trs80: Trs80) {
+        Bezel.configureStyle();
         this.container = container;
         this.screen = screen;
         this.flipCardNode = flipCard.node;
 
         this.node = document.createElement("div");
-        this.node.classList.add("bezel");
+        this.node.classList.add(gBezelCssClass);
 
         this.photoNode = document.createElement("img");
-        this.photoNode.classList.add("bezel-photo");
+        this.photoNode.classList.add(BEZEL_PHOTO_CSS_CLASS);
         this.photoNode.alt = "";
         this.photoNode.draggable = false;
 
@@ -199,8 +272,8 @@ export class Bezel {
         }
         this.photo = photo;
 
-        this.node.classList.toggle("bezel-shown", photo !== undefined);
-        this.flipCardNode.classList.toggle("bezel-screen", photo !== undefined);
+        this.node.classList.toggle(gShownCssClass, photo !== undefined);
+        this.flipCardNode.classList.toggle(gScreenCssClass, photo !== undefined);
         for (const led of this.leds) {
             led.node.remove();
         }
@@ -235,7 +308,7 @@ export class Bezel {
      */
     private addLed(drive: number, on: boolean): void {
         const node = document.createElement("div");
-        node.classList.add("bezel-led", on ? "bezel-led-on" : "bezel-led-off");
+        node.classList.add(gLedCssClass, on ? gLedOnCssClass : gLedOffCssClass);
         this.node.append(node);
         this.leds.push({node, drive, on});
     }
@@ -246,7 +319,7 @@ export class Bezel {
     private updateLeds(): void {
         for (const led of this.leds) {
             if (led.on) {
-                led.node.classList.toggle("bezel-led-lit", led.drive === this.activeDrive);
+                led.node.classList.toggle(gLedLitCssClass, led.drive === this.activeDrive);
             }
         }
     }
@@ -334,5 +407,20 @@ export class Bezel {
                 `scale(${frame.width/oldFrame.width}, ${frame.height/oldFrame.height})`;
             this.resizeTimer = window.setTimeout(apply, RESIZE_DELAY_MS);
         }
+    }
+
+    /**
+     * Make a global stylesheet for all bezels on this page.
+     */
+    private static configureStyle(): void {
+        if (document.getElementById(gCssPrefix) !== null) {
+            // Already created.
+            return;
+        }
+
+        const node = document.createElement("style");
+        node.id = gCssPrefix;
+        node.innerHTML = GLOBAL_CSS;
+        document.head.appendChild(node);
     }
 }

@@ -6,6 +6,7 @@ export {ControlPanel} from "./ControlPanel.js";
 export {SettingsPanel, PanelType, type SettingsPanelFeatures} from "./SettingsPanel.js";
 export {WebProgressBar} from "./WebProgressBar.js";
 export {DriveIndicators} from "./DriveIndicators.js";
+export {Bezel, BEZEL_PHOTO_CSS_CLASS} from "./Bezel.js";
 export {BasicEditor} from "./BasicEditor.js";
 export {WebKeyboard} from "./WebKeyboard.js";
 export {downloadBlob} from "./Download.js";

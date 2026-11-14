@@ -46,13 +46,15 @@
         --bg: #00212b; --panel: #002b36; --hl: #073642; --line: #0f4351;
         --fg: #93a1a1; --fg-strong: #eee8d5; --fg-muted: #5d7a80;
         --accent: #2aa198; --accent-fg: #002b36; --sys: #4f6a70; --free: #06333f;
-        color-scheme: dark;
+        --emu-photo-filter: brightness(0.75);
+    color-scheme: dark;
     }
 }
 :root[data-theme="dark"] {
     --bg: #00212b; --panel: #002b36; --hl: #073642; --line: #0f4351;
     --fg: #93a1a1; --fg-strong: #eee8d5; --fg-muted: #5d7a80;
     --accent: #2aa198; --accent-fg: #002b36; --sys: #4f6a70; --free: #06333f;
+    --emu-photo-filter: brightness(0.75);
     color-scheme: dark;
 }
 
@@ -95,7 +97,7 @@ button.primary.danger-fill { background: var(--danger); border-color: var(--dang
 .brand b { color: var(--fg-strong); }
 .tabs { display: flex; align-items: flex-end; gap: 4px; flex: 1; overflow-x: auto; }
 .tab {
-    border-radius: 7px 7px 0 0; border: 1px solid transparent; border-bottom: none; background: transparent; color: var(--fg);
+    border-radius: 7px 7px 0 0; border: 1px solid var(--line); border-bottom: none; background: transparent; color: var(--fg);
     display: flex; align-items: center; gap: 2px; white-space: nowrap; font-family: var(--mono); font-size: 13px;
 }
 .tab button { border: none; background: none; padding: 5px 6px; border-radius: 6px; font: inherit; color: inherit; }
@@ -108,6 +110,9 @@ button.primary.danger-fill { background: var(--danger); border-color: var(--dang
 }
 .tab .dot { width: 7px; height: 7px; border-radius: 50%; background: transparent; }
 .tab.dirty .dot { background: var(--warn); }
+.tab.start { font-family: var(--sans); color: var(--fg-muted); }
+.tab.start .tablabel { padding-right: 10px; }
+.tab.start.active { color: var(--fg-strong); }
 .top-actions { display: flex; gap: 6px; }
 .mock-note {
     font-size: 12px; color: var(--fg-muted); text-align: center; padding: 4px 16px;

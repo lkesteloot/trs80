@@ -1,6 +1,7 @@
 import {Config, RunningState, Trs80} from "trs80-emulator";
 import {
     BasicEditor,
+    Bezel,
     CanvasScreen,
     ControlPanel,
     DriveIndicators,
@@ -25,7 +26,6 @@ import {Context} from "./Context";
 import {Library} from "./Library";
 import {File, FileBuilder} from "./File";
 import {DialogBox} from "./DialogBox";
-import {Bezel} from "./Bezel.js";
 import {AuthUser} from "./User";
 import {Database} from "./Database";
 import {isRegisterSetField, toHexWord} from "z80-base";
