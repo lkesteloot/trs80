@@ -5,7 +5,7 @@ import {
     trsdosProtectionLevelToString, type TrsdosRuleSet, type TrsdosVersion,
 } from "trs80-base";
 import {
-    type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind, trsdosPasswordIsSet,
+    type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind, mapGridToString, trsdosPasswordIsSet,
     TrimCylindersReason, type TrimDoneResult, TrimNothingReason, type TrimNothingResult,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
@@ -593,6 +593,11 @@ export interface MapResultJson {
     };
     /** The shape of the disk's sectors. */
     layout: {
+        /**
+         * How the map is drawn: "sectors" for a row per side of each cylinder and a cell per sector (floppies),
+         * or "granules" for a row per lump and a cell per granule (hard disk partitions).
+         */
+        grid: "sectors" | "granules";
         /** The number of sectors per track that the file system uses. */
         sectorsPerTrack: number;
         /** The number of the first sector on a track (0 or 1). */
@@ -603,6 +608,12 @@ export interface MapResultJson {
         imageSideCount: number;
         /** The last cylinder to show: the image's last, or a later one that a granule is on. */
         lastCylinder: number;
+        /** The number of granules in a lump. */
+        granulesPerLump: number;
+        /** The number of lumps that have granules. */
+        lumpCount: number;
+        /** The word for a lump: "cylinder" where lumps are cylinders, otherwise "lump". */
+        lumpTerm: string;
     };
 }
 
@@ -1161,6 +1172,6 @@ export function mapToJson(model: DiskMapModel): MapResultJson {
         }),
         kindCounts,
         totals: {...model.totals},
-        layout: {...model.layout},
+        layout: {...model.layout, grid: mapGridToString(model.layout.grid)},
     };
 }

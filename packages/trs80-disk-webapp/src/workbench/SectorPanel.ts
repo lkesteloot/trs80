@@ -1,11 +1,11 @@
 import {
-    type CrcInfo, densityToString, type FloppyFileSystem, describeSectorArtifact, findImagingArtifacts, findSectorArtifactKind, SectorPosition,
-    type SectorData, type SectorInfo,
+    type CrcInfo, densityToString, type FloppyDisk, type FloppyFileSystem, describeSectorArtifact, findImagingArtifacts,
+    findSectorArtifactKind, SectorPosition, type SectorData, type SectorInfo,
 } from "trs80-base";
 import type {DiskSession} from "trs80-disk";
 import {toHexByte, toHexWord} from "z80-base";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {el, formatNumber} from "../core/Dom.js";
+import {el, formatNumber, makeButton} from "../core/Dom.js";
 import type {PickedSector} from "./ViewState.js";
 
 /**
@@ -81,51 +81,123 @@ function makeHexDump(bytes: Uint8Array): HTMLElement {
 }
 
 /**
+ * Add a floppy sector's recording details to the inspector's list: density, size, address mark, CRCs and any
+ * imaging artifact.
+ *
+ * @param add adds a line to the list.
+ * @param floppy the floppy.
+ * @param position the sector's position.
+ * @param info what the image says about the sector, or undefined if it has none there.
+ */
+function addFloppySectorDetails(add: (term: string, value: string) => void, floppy: FloppyDisk,
+                                position: SectorPosition, info: SectorInfo | undefined): void {
+    if (info === undefined) {
+        add("Sector", "The image has no sector here.");
+        return;
+    }
+
+    add("Density", densityToString(info.density));
+    add("Size", formatNumber(info.sectorSize) + " bytes");
+    add("Address mark", toHexByte(info.getDataAddressMark()) + ", " + describeDataAddressMark(info.getDataAddressMark()));
+    if (!info.hasData()) {
+        add("Data field", "the ID is there, but no data follows it");
+    }
+    add("ID CRC", describeCrc(info.crc?.idCrc, false));
+    add("Data CRC", describeCrc(info.crc?.dataCrc, info.crcError));
+
+    const artifactKind = findSectorArtifactKind(findImagingArtifacts(floppy), position);
+    if (artifactKind !== undefined) {
+        add("Imaging", describeSectorArtifact(artifactKind));
+    }
+}
+
+/**
+ * Make the buttons that step through the sectors of the picked cell, which is a whole granule in a hard disk
+ * partition's map, or undefined if the cell is one sector.
+ *
+ * @param picked the picked sector.
+ * @param position its position.
+ * @param onPick called with the sector to show instead.
+ */
+function makeSectorStepper(picked: PickedSector, position: SectorPosition,
+                           onPick: (picked: PickedSector) => void): HTMLElement | undefined {
+
+    const sectors = picked.cellSectors;
+    const index = sectors.findIndex(candidate => candidate.equals(position));
+    if (sectors.length <= 1 || index < 0) {
+        return undefined;
+    }
+
+    const step = (delta: number): void => {
+        const next = sectors[index + delta];
+        onPick({...picked, cylinder: next.cylinderNumber, side: next.side, sector: next.sectorNumber});
+    };
+    const previous = makeButton("Previous", () => step(-1));
+    previous.disabled = index === 0;
+    const next = makeButton("Next", () => step(1));
+    next.disabled = index === sectors.length - 1;
+    return el("div", "sectorstep", previous,
+        el("span", "hint", "Sector " + formatNumber(index + 1) + " of " + formatNumber(sectors.length) + " in this granule"),
+        next);
+}
+
+/**
  * Fill the inspector with a sector that the user picked in the Map view: where it is and what uses it, how it's
  * marked and whether its CRCs are good, and its bytes. The sector is read from the disk as it is now, so that an
- * edit shows.
+ * edit shows. On a hard disk the sector is the chosen partition's, and the map's cell was a whole granule, so
+ * buttons step through the granule's sectors.
  *
  * @param container the inspector's element.
- * @param disk the disk, which must be a floppy.
+ * @param disk the disk.
  * @param picked the sector.
+ * @param onPick called with another sector of the picked cell to show instead.
  */
-export function renderSectorPanel(container: HTMLElement, disk: OpenDisk, picked: PickedSector): void {
+export function renderSectorPanel(container: HTMLElement, disk: OpenDisk, picked: PickedSector,
+                                  onPick: (picked: PickedSector) => void): void {
+
     const session = disk.session;
-    const floppy = session.floppy;
     const position = SectorPosition.make(picked.cylinder, picked.side, picked.sector);
-    const sector: SectorData | undefined = floppy.readSector(position);
-    const info: SectorInfo | undefined = sector ?? floppy.getGeometry().sectorMap.get(position.key());
 
     const list = el("dl", "kv");
     const add = (term: string, value: string, className = ""): void => {
         list.append(el("dt", "", term), el("dd", className, value));
     };
 
-    const where = "Cylinder " + picked.cylinder + ", side " + picked.side + ", sector " + picked.sector;
     const names = filesAtSector(session, position);
     add(names.length > 1 ? "Files" : "File", names.length === 0 ? "none uses this sector" : names.join(", "), "mono");
-    if (info === undefined) {
-        add("Sector", "The image has no sector here.");
-    } else {
-        add("Density", densityToString(info.density));
-        add("Size", formatNumber(info.sectorSize) + " bytes");
-        add("Address mark", toHexByte(info.getDataAddressMark()) + ", " + describeDataAddressMark(info.getDataAddressMark()));
-        if (!info.hasData()) {
-            add("Data field", "the ID is there, but no data follows it");
-        }
-        add("ID CRC", describeCrc(info.crc?.idCrc, false));
-        add("Data CRC", describeCrc(info.crc?.dataCrc, info.crcError));
 
-        const artifactKind = findSectorArtifactKind(findImagingArtifacts(floppy), position);
-        if (artifactKind !== undefined) {
-            add("Imaging", describeSectorArtifact(artifactKind));
+    let where: string;
+    let sector: SectorData | undefined;
+    if (session.isHardDisk()) {
+        // The position is the partition's logical one, which runs across all its heads.
+        const partition = session.getSelectedPartition().partition;
+        where = "Cylinder " + picked.cylinder + ", sector " + picked.sector;
+        sector = partition.readSector(position);
+        const physical = partition.toPhysical(position);
+        add("On the disk", physical === undefined ? "outside the partition" :
+            "cylinder " + physical.cylinder + ", head " + physical.head + ", sector " + physical.sector);
+        if (sector === undefined) {
+            add("Sector", "The image has no sector here.");
+        } else {
+            add("Size", formatNumber(sector.data.length) + " bytes");
+            add("CRCs", "not recorded: a hard disk image holds only the sectors' data");
         }
+    } else {
+        const floppy = session.floppy;
+        where = "Cylinder " + picked.cylinder + ", side " + picked.side + ", sector " + picked.sector;
+        sector = floppy.readSector(position);
+        addFloppySectorDetails(add, floppy, position, sector ?? floppy.getGeometry().sectorMap.get(position.key()));
     }
 
-    const children: Node[] = [el("h3", "", where), el("div", "sub", picked.note), list];
+    const children: Node[] = [el("h3", "", where), el("div", "sub", picked.note)];
+    const stepper = makeSectorStepper(picked, position, onPick);
+    if (stepper !== undefined) {
+        children.push(stepper);
+    }
+    children.push(list);
     if (sector !== undefined) {
         children.push(makeHexDump(sector.data));
     }
-    children.push(el("p", "hint", "Click another sector to see it."));
+    children.push(el("p", "hint", session.isHardDisk() ? "Click another granule to see it." : "Click another sector to see it."));
     container.replaceChildren(...children);
 }

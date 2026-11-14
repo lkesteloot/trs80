@@ -46,9 +46,12 @@ export class Inspector {
      * @param selected the selected files, in table order.
      */
     public render(disk: OpenDisk, state: DiskViewState, selected: FileRow[]): void {
-        const showingSector = state.view === ViewKind.MAP && state.pickedSector !== undefined && !disk.session.isHardDisk();
+        const showingSector = state.view === ViewKind.MAP && state.pickedSector !== undefined;
         if (showingSector && state.pickedSector !== undefined) {
-            renderSectorPanel(this.container, disk, state.pickedSector);
+            renderSectorPanel(this.container, disk, state.pickedSector, picked => {
+                state.pickedSector = picked;
+                this.render(disk, state, selected);
+            });
         } else if (selected.length === 0) {
             this.renderDetails(disk);
         } else if (selected.length === 1) {

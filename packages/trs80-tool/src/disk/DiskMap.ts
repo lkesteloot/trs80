@@ -1,6 +1,6 @@
 import {SectorPosition} from "trs80-base";
 import {
-    buildDiskMap, MapCellKind, mapCellKindIsProblem, mapCellKindToString, totalsText, type DiskMapModel, type DiskSession,
+    buildDiskMap, MapCellKind, mapCellKindIsProblem, MapGrid, mapCellKindToString, totalsText, type DiskMapModel, type DiskSession,
     type MapCell, type MapFile,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
@@ -34,6 +34,21 @@ const WIDE_CELL_WIDTH = 3;
  * The least characters a cell has, used when the wide cells don't fit the terminal.
  */
 const NARROW_CELL_WIDTH = 2;
+
+/**
+ * The least characters a granule's cell has in a grid of granules: a symbol, a blank, and the granule's end.
+ */
+const MIN_GRANULE_CELL_WIDTH = 3;
+
+/**
+ * The most characters a granule's cell has in a grid of granules, which is room for most file names.
+ */
+const MAX_GRANULE_CELL_WIDTH = 14;
+
+/**
+ * The fewest neighboring lumps, all free, that a grid of granules draws as one row.
+ */
+const MIN_COLLAPSED_FREE_ROWS = 3;
 
 /**
  * The symbol that a kind of cell is drawn with. It's the only character of a free sector's cell, and the
@@ -203,12 +218,12 @@ function symbolLegendLines(counts: Map<MapCellKind, number>, width: number): str
 }
 
 /**
- * Where one sector of a granule sits in the grid.
+ * One cell of the grid: a sector of a granule, or in a grid of granules, a whole granule.
  */
 interface SectorSlot {
-    /** The index of the sector's granule in the granule map. */
+    /** The index of the granule in the granule map. */
     granuleIndex: number;
-    /** Whether the sector is the last of its granule. */
+    /** Whether the cell is the end of its granule (always, in a grid of granules). */
     endsGranule: boolean;
 }
 
@@ -267,11 +282,11 @@ function runCharacter(kind: MapCellKind, positionInCell: number, cellWidth: numb
 }
 
 /**
- * Draw the sectors of one line of the grid (one side of one cylinder). Neighboring sectors that show the
- * same thing form a run, and the run of a file (or of the directory or boot) starts with its name, unless it
- * continues the previous line's last run.
+ * Draw the cells of one line of the grid: the sectors of one side of one cylinder, or the granules of one lump.
+ * Neighboring cells that show the same thing form a run, and the run of a file (or of the directory or boot)
+ * starts with its name, unless it continues the previous line's last run.
  *
- * @param slots the line's sectors, in sector order, with undefined for those that no granule covers.
+ * @param slots the line's cells, in order, with undefined for sectors that no granule covers.
  * @param cells how every granule is drawn.
  * @param cellWidth the number of characters in a cell.
  * @param previousIdentity the identity of the last cell of the line before this one in the same cylinder
@@ -358,15 +373,14 @@ function styledCharsToString(chars: StyledChar[]): string {
 }
 
 /**
- * Draw the map of a TRSDOS disk: a grid with a line for each side of each cylinder and a cell for each of
- * its sectors, in the cell's granule's color, with the files' names written in, then a legend of the symbols
- * and the totals.
+ * Draw the grid of a floppy's map: a line for each side of each cylinder and a cell for each of its sectors,
+ * in the cell's granule's color, with the files' names written in.
  *
  * @param model the map's data.
  * @param width the width of the terminal.
  * @return the lines.
  */
-export function drawGranuleMap(model: DiskMapModel, width: number): string[] {
+function drawSectorGrid(model: DiskMapModel, width: number): string[] {
     const cells = model.cells;
     const {sectorsPerTrack, firstSectorNumber, allocationSides, imageSideCount, lastCylinder} = model.layout;
 
@@ -447,6 +461,106 @@ export function drawGranuleMap(model: DiskMapModel, width: number): string[] {
             ", but the file system uses only " + allocationSides + "."));
     }
 
+    return lines;
+}
+
+/**
+ * Draw the grid of a hard disk partition's map: a line for each lump and a cell for each of its granules, in
+ * the granule's color, with the files' names written in. A partition's logical track runs across all its
+ * heads, which is too many sectors to draw one by one. Neighboring lumps that are entirely free are drawn
+ * as one line, labeled with their range.
+ *
+ * @param model the map's data.
+ * @param width the width of the terminal.
+ * @return the lines.
+ */
+function drawGranuleGrid(model: DiskMapModel, width: number): string[] {
+    const cells = model.cells;
+    const {granulesPerLump, lumpCount, lumpTerm} = model.layout;
+
+    // Each lump's granules, in order.
+    const rows: (SectorSlot | undefined)[][] = [];
+    for (let lump = 0; lump < lumpCount; lump++) {
+        rows.push(Array.from({length: granulesPerLump}, () => undefined));
+    }
+    for (let granuleIndex = 0; granuleIndex < cells.length; granuleIndex++) {
+        const cell = cells[granuleIndex];
+        rows[cell.lump][cell.granule] = { granuleIndex, endsGranule: true };
+    }
+
+    // Group the lumps into lines, with long stretches of free lumps on one line.
+    const isFreeRow = (row: (SectorSlot | undefined)[]): boolean =>
+        row.every(slot => slot !== undefined && cells[slot.granuleIndex].kind === MapCellKind.FREE);
+    const groups: { first: number, last: number }[] = [];
+    let first = 0;
+    while (first < lumpCount) {
+        let last = first;
+        if (isFreeRow(rows[first])) {
+            while (last + 1 < lumpCount && isFreeRow(rows[last + 1])) {
+                last++;
+            }
+            if (last - first + 1 < MIN_COLLAPSED_FREE_ROWS) {
+                last = first;
+            }
+        }
+        groups.push({ first, last });
+        first = last + 1;
+    }
+
+    // The layout: a gutter with the lump, then a cell for each granule, as wide as fits.
+    const header = lumpTerm === "cylinder" ? "cyl" : lumpTerm;
+    const groupLabel = (group: { first: number, last: number }): string =>
+        group.first === group.last ? String(group.first) : group.first + "-" + group.last;
+    const gutterWidth = Math.max(header.length, ...groups.map(group => groupLabel(group).length));
+    const makeGutter = (text: string): string => text.padStart(gutterWidth) + "  ";
+    const cellWidth = Math.max(MIN_GRANULE_CELL_WIDTH, Math.min(MAX_GRANULE_CELL_WIDTH,
+        Math.floor((width - gutterWidth - 2)/Math.max(1, granulesPerLump))));
+
+    const lines: string[] = [];
+
+    // The ruler of granule numbers, at the start of their cells, where the names start.
+    let ruler = makeGutter(header);
+    for (let granule = 0; granule < granulesPerLump; granule++) {
+        ruler += String(granule).padEnd(cellWidth);
+    }
+    lines.push(colors.muted(ruler.trimEnd()));
+
+    for (const group of groups) {
+        const gutter = makeGutter(groupLabel(group));
+        const row = rows[group.first];
+        if (row.every(slot => slot === undefined)) {
+            lines.push(colors.muted(gutter + "not in the file system"));
+            continue;
+        }
+        const body = styledCharsToString(drawSectorRuns(row, cells, cellWidth, undefined));
+        lines.push(colors.muted(gutter) + body);
+    }
+
+    return lines;
+}
+
+/**
+ * Draw the map of a TRSDOS disk: a grid of its sectors (or of its granules, for a hard disk partition), in
+ * the colors of the granules' files, with the files' names written in, then a legend of the symbols and the
+ * totals.
+ *
+ * @param model the map's data.
+ * @param width the width of the terminal.
+ * @return the lines.
+ */
+export function drawGranuleMap(model: DiskMapModel, width: number): string[] {
+    const lines: string[] = [];
+    switch (model.layout.grid) {
+        case MapGrid.SECTORS:
+            lines.push(...drawSectorGrid(model, width));
+            break;
+        case MapGrid.GRANULES:
+            lines.push(...drawGranuleGrid(model, width));
+            break;
+        default:
+            assertNever(model.layout.grid);
+    }
+
     // Below the grid.
     lines.push("");
     if (model.hasSelection && model.files.length > 0) {
@@ -483,12 +597,15 @@ export const MAP_COMMAND: DiskCommand = {
                 "show one, give its name.",
             "Damage shows in the error color: \"!\" for a granule that two or more files claim, \"?\" for one " +
                 "that a file claims but the GAT says is free, and \"u\" for one the GAT says is used but no file claims.",
-            "This works on TRSDOS-family disks only, and changes nothing.",
+            "On a hard disk the map is of the chosen partition. Its tracks run across all its heads, too many " +
+                "sectors to draw one by one, so each line is a cylinder (a lump, on NEWDOS/80) and each cell is a " +
+                "whole granule, numbered by the ruler above. Cylinders in a row that are entirely free share one " +
+                "line, labeled with their range.",
+            "This works on TRSDOS-family disks and partitions only, and changes nothing.",
         ],
     },
 
     endsSession: false,
-    floppyOnly: true,
 
     /**
      * Draw the map, through the pager if it's taller than the screen. It only reads, so it works on any

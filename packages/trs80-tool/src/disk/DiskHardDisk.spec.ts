@@ -283,9 +283,22 @@ describe("disk on hard disk images", () => {
         expect(new Uint8Array(fs.readFileSync(imagePathname))).to.eql(original);
     });
 
+    it("draws a partition's map with a cell per granule", async () => {
+        makeImage([{}]);
+        const lines = await runDisk("map");
+        // A line per cylinder and a cell per granule, with the free cylinders in a row on one line.
+        expect(lines[0]).to.match(/^ +cyl {2}0 +1 +2 +3 +4 +5 +6 +7$/);
+        expect(lines[1]).to.match(/^ +0 {2}BOOT\/SYS/);
+        expect(lines[2]).to.match(/^ 1-19 {2}·/);
+        expect(lines[3]).to.match(/^ +20 {2}DIR\/SYS/);
+        expect(lines[4]).to.match(/^ +21 {2}HELLO\/TX/);
+        expect(lines[5]).to.match(/^22-39 {2}·/);
+        expect(lines[lines.length - 1]).to.equal("10 of 320 granules used, 310 free (620 KB). A granule is 2,048 bytes.");
+    });
+
     it("refuses the floppy-only commands on a hard disk", async () => {
         makeImage([{}]);
-        for (const command of ["map", "trim", "boot"]) {
+        for (const command of ["trim", "boot"]) {
             await expect(runDisk(command), command).rejects.toThrow(command + " works on floppy images, not hard disks");
         }
         const session = openDiskSession(imagePathname);

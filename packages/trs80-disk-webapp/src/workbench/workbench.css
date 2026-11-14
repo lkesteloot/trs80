@@ -214,6 +214,10 @@ body.hlmode .files tr[data-fo]:not(.hl) td { opacity: .45; }
 .ruler .r { color: var(--fg-muted); text-align: center; }
 .cell { height: 16px; margin-right: 1px; border-radius: 2px; background: var(--free); position: relative; cursor: pointer; }
 .cell.gend { margin-right: 5px; }
+/* A hard disk partition's map has a cell for each granule, wide enough for a name. */
+.map.granules .maprow { grid-template-columns: 54px repeat(var(--spt), 76px); }
+.map.granules .cell { margin-right: 3px; }
+.sectorstep { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
 .cell.sys { background: var(--sys); }
 .cell.u { background: repeating-linear-gradient(45deg, var(--danger) 0 3px, color-mix(in srgb, var(--danger) 45%, transparent) 3px 6px); }
 .cell.picked { outline: 2px solid var(--fg-strong); outline-offset: 1px; z-index: 2; }

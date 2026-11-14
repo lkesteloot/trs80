@@ -341,18 +341,13 @@ export class Workbench implements FilesViewHost {
             return;
         }
 
-        // The Map isn't offered for a hard disk, so a view of it falls back to the files.
-        if (state.view === ViewKind.MAP && disk.session.isHardDisk()) {
-            state.view = ViewKind.FILES;
-        }
         this.renderViewTabs(disk, state);
         this.renderPane(disk, state);
         this.renderInspector(disk, state);
     }
 
     /**
-     * Draw the row of view tabs. The Health tab has a badge with the number of problems, and the Map tab is
-     * disabled, with its reason, for a hard disk.
+     * Draw the row of view tabs. The Health tab has a badge with the number of problems.
      */
     private renderViewTabs(disk: OpenDisk, state: DiskViewState): void {
         this.viewsElement.replaceChildren(...VIEW_KINDS.map(kind => {
@@ -361,12 +356,6 @@ export class Workbench implements FilesViewHost {
                 this.renderDisk(disk);
             }, state.view === kind ? "active" : "");
             switch (kind) {
-                case ViewKind.MAP:
-                    if (disk.session.isHardDisk()) {
-                        button.disabled = true;
-                        button.title = "The map isn't offered for a hard disk image.";
-                    }
-                    break;
                 case ViewKind.HEALTH: {
                     const problems = countProblems(disk.session);
                     if (problems !== undefined) {
@@ -376,6 +365,7 @@ export class Workbench implements FilesViewHost {
                     break;
                 }
                 case ViewKind.FILES:
+                case ViewKind.MAP:
                 case ViewKind.HISTORY:
                 case ViewKind.INFO:
                     break;
