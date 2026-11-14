@@ -1,4 +1,4 @@
-import type {BasicDialect} from "trs80-base";
+import type {BasicDialect, SectorPosition} from "trs80-base";
 import type {RepairOptions} from "../core/Actions.js";
 import {assertNever} from "z80-base";
 import type {PreviewTab} from "./PreviewPanel.js";
@@ -53,6 +53,11 @@ export interface PickedSector {
     sector: number;
     /** What the map said about the sector when it was picked, such as "granule 1 of cylinder 5, HELLO/BAS", or "". */
     note: string;
+    /**
+     * The sectors of the cell that was clicked, in order, which the inspector can step through: only the
+     * picked one, except in a hard disk partition's map, whose cells are whole granules.
+     */
+    cellSectors: readonly SectorPosition[];
 }
 
 /**

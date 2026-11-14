@@ -529,7 +529,8 @@ partition --delete [N|NAME] [--force]</code></pre>
             that no file claims. With patterns, only the matching files get names and colors, and
             the rest show as a plain <code>─</code>; the matching files are listed below the map.
             A wildcard never matches a system file; to show one, name it.
-            It changes nothing, so it works on a read-only disk, and only on TRSDOS-family disks.
+            It changes nothing, so it works on a read-only disk, and only on TRSDOS-family disks and
+            hard disk partitions.
             With <a href="#json"><code>--json</code></a>, each granule’s cell has its <code>kind</code> and, in
             <code>owners</code>, the names of every file that claims it, so a granule that two files share
             names both.</p>
@@ -549,6 +550,17 @@ partition --delete [N|NAME] [--force]</code></pre>
 
 · free
 9 of 36 granules used, 27 free (33.8 KB). A granule is 1,280 bytes.</code></pre>
+            </div>
+            <p>On a hard disk, <code>map</code> draws the chosen partition. Its tracks run across all its
+            heads, too many sectors to draw one by one, so each line is a cylinder (a lump, on NEWDOS/80)
+            and each cell a whole granule, numbered by the ruler on top. Cylinders in a row that are
+            entirely free share one line, labeled with their range.</p>
+            <div><pre><code>   cyl  0           1           2           3           4           5
+     0  BOOT/SYS ──│·          │·          │·          │·          │·          │
+     1  HELLO/BAS ─│───────────│WORLD/BAS ─│·          │·          │·          │
+  2-69  ·          │·          │·          │·          │·          │·          │
+    70  DIR/SYS ───│───────────│───────────│───────────│───────────│───────────│
+71-139  ·          │·          │·          │·          │·          │·          │</code></pre>
             </div>
 
             <h3 id="check"><code>check</code></h3>
@@ -1039,8 +1051,7 @@ Deleted partition 1 (HARDA). Its space (cylinders 0-139, heads 0-5) is free. The
 
             <p>What isn’t supported: TRSDOS 2.3, TRSDOS 1.3 and TRSDOS 6.2 hard disks (the first two have no hard disk
             support, and we have no sample of a TRSDOS 6.2 hard disk partition to check against);
-            <code>trim</code>, <code>boot</code>, and <code>map</code>, which work on floppy images and
-            say so; DOSPLUS 3 partitions, which are read but never written, because their GAT doesn’t record how many
+            <code>trim</code> and <code>boot</code>, which work on floppy images and say so; DOSPLUS 3 partitions, which are read but never written, because their GAT doesn’t record how many
             granules each cylinder has; NEWDOS/80 hard disks, whose partitions (one for each head that its PDRIVE
             table names) are read but never written, and can’t be added, deleted or formatted; CP/M hard disks, which
             aren’t read at all yet; and the HDV

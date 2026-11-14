@@ -119,9 +119,9 @@ export class HardDiskPartition implements WritableDiskVolume {
     /**
      * Map a logical position in the partition to the cylinder, head and sector on the disk, or
      * undefined if the position is outside the partition. This is the one place that does the
-     * mapping, for reading and writing.
+     * mapping, for reading and writing, and for showing where a sector is.
      */
-    private toPhysical(sectorPosition: SectorPosition): {cylinder: number, head: number, sector: number} | undefined {
+    public toPhysical(sectorPosition: SectorPosition): {cylinder: number, head: number, sector: number} | undefined {
         const logicalCylinder = sectorPosition.cylinderNumber;
         const sectorNumber = sectorPosition.sectorNumber;
         if (sectorPosition.side !== 0 ||

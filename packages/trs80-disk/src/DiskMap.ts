@@ -1,5 +1,5 @@
 import {
-    findUnusableFreeGranules, SectorPosition, Trsdos, TrsdosGranuleMap, type TrsdosDirEntry, type TrsdosGranule,
+    findUnusableFreeGranules, HardDiskPartition, SectorPosition, Trsdos, TrsdosGranuleMap, type TrsdosDirEntry, type TrsdosGranule,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
@@ -147,9 +147,39 @@ export interface MapCell {
 }
 
 /**
+ * How a drawing of the map lays out its grid.
+ */
+export enum MapGrid {
+    /** A row for each side of each cylinder, and a cell for each sector on it. Used for floppies. */
+    SECTORS,
+    /**
+     * A row for each lump, and a cell for each granule in it. Used for hard disk partitions, whose logical
+     * tracks run across all their heads (up to 256 sectors), too many to draw one by one, and whose lumps
+     * on NEWDOS/80 aren't cylinders.
+     */
+    GRANULES,
+}
+
+/**
+ * The name of a grid layout, for JSON.
+ */
+export function mapGridToString(grid: MapGrid): "sectors" | "granules" {
+    switch (grid) {
+        case MapGrid.SECTORS:
+            return "sectors";
+        case MapGrid.GRANULES:
+            return "granules";
+        default:
+            assertNever(grid);
+    }
+}
+
+/**
  * The shape of the disk's sectors, which a drawing lays out its grid by.
  */
 export interface MapLayout {
+    /** How to lay out the grid. */
+    grid: MapGrid;
     /** The number of sectors per track that the file system uses. */
     sectorsPerTrack: number;
     /** The number of the first sector on a track (0 or 1). */
@@ -160,6 +190,12 @@ export interface MapLayout {
     imageSideCount: number;
     /** The last cylinder to show: the image's last, or a later one that a granule is on. */
     lastCylinder: number;
+    /** The number of granules in a lump, which is the number of cells in a row of a GRANULES grid. */
+    granulesPerLump: number;
+    /** The number of lumps that have granules, which is the number of rows in a GRANULES grid. */
+    lumpCount: number;
+    /** The word for a lump: "cylinder" where lumps are cylinders, otherwise "lump". */
+    lumpTerm: string;
 }
 
 /**
@@ -384,12 +420,18 @@ export function makeDiskMapModel(granuleMap: TrsdosGranuleMap, files: TrsdosDirE
         }
     }
 
+    // A hard disk partition's logical track runs across all its heads, so it's drawn by granule instead.
+    const grid = trsdos.disk instanceof HardDiskPartition ? MapGrid.GRANULES : MapGrid.SECTORS;
     const layout: MapLayout = {
+        grid,
         sectorsPerTrack: trsdos.geometry.modalDataSectorSpan,
         firstSectorNumber: trsdos.firstSectorNumber,
         allocationSides: trsdos.allocationSides,
         imageSideCount: trsdos.geometry.sideCount,
         lastCylinder,
+        granulesPerLump: trsdos.granulesPerLump,
+        lumpCount: Math.max(0, ...cells.map(cell => cell.lump + 1)),
+        lumpTerm: trsdos.lumpTerm,
     };
 
     const granuleByteCount = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;

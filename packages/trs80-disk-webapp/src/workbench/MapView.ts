@@ -1,7 +1,7 @@
 import {Density, densityToString, SectorPosition, type SectorInfo, TrackPosition, Trsdos} from "trs80-base";
 import {
     buildDiskMap, DiskError, type DiskMapModel, type MapCell, MapCellKind, mapCellKindIsProblem, mapCellKindToString,
-    type DiskSession, totalsText,
+    MapGrid, type DiskSession, totalsText,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
 import type {OpenDisk} from "../core/OpenDisk.js";
@@ -26,8 +26,10 @@ export interface MapViewHost {
  * One cell of a row of the grid, before it's made into an element.
  */
 interface GridCell {
-    /** The sector that the cell stands for, which a click picks. */
+    /** The sector that the cell stands for, which a click picks: in a grid of granules, the granule's first. */
     sector: SectorPosition;
+    /** Every sector that the cell stands for, in order: only {@link sector}, except in a grid of granules. */
+    sectors: SectorPosition[];
     /** CSS classes that say what the cell shows. */
     className: string;
     /** The cell's own background, or undefined to leave it to the class. */
@@ -47,7 +49,7 @@ interface GridCell {
 }
 
 /**
- * One row of the grid: a track, with its label and its cells in order of position.
+ * One row of the grid: a track, or a lump in a grid of granules, with its label and its cells in order of position.
  */
 interface GridRow {
     /** The label at the left, such as "12" or "12·1". */
@@ -60,6 +62,25 @@ interface GridRow {
  * The fewest sectors in a run of one file's cells that get the file's name written across them.
  */
 const MIN_LABEL_RUN = 3;
+
+/**
+ * What a grid's cells stand for, which changes its words and its cells' width.
+ */
+interface GridStyle {
+    /** The heading of the column of row labels, such as "cyl". */
+    rulerHeader: string;
+    /** What a cell is, for the hints: "sector" or "granule". */
+    unit: string;
+    /** The fewest cells in a run of one file's that get the file's name written across them. */
+    minLabelRun: number;
+    /** A class for the grid's element that sizes its cells, or "" for the sector size. */
+    className: string;
+}
+
+/**
+ * How a grid of sectors is drawn: a floppy's granule map, or its sector map.
+ */
+const SECTOR_GRID_STYLE: GridStyle = {rulerHeader: "cyl", unit: "sector", minLabelRun: MIN_LABEL_RUN, className: ""};
 
 /**
  * The token that Highlight.ts uses for all the cells and legend items of a kind.
@@ -148,10 +169,12 @@ function describeCell(cell: MapCell): string {
 }
 
 /**
- * The Map view: the picture of where everything is on a floppy. For a TRSDOS-family disk it's the granule map,
- * with a row for each track and a cell for each sector, colored by the file that owns it. For a disk with no file
- * system that we understand, it's the sector map instead, colored by density and by which sectors have problems.
- * It's drawn with one DOM element per sector, which stays fast enough for an 80-cylinder two-sided disk (about 3,000).
+ * The Map view: the picture of where everything is on a floppy or a hard disk partition. For a TRSDOS-family
+ * floppy it's the granule map, with a row for each track and a cell for each sector, colored by the file that owns
+ * it. A partition's logical track runs across all its heads, up to 256 sectors, so its map has a row for each lump
+ * and a cell for each granule instead. For a floppy with no file system that we understand, it's the sector map,
+ * colored by density and by which sectors have problems. It's drawn with one DOM element per cell, which stays fast
+ * enough for an 80-cylinder two-sided disk (about 3,000) and for a big partition (a few thousand granules).
  */
 export class MapView {
     /** The view's root element, which the page puts in its main pane. */
@@ -172,9 +195,9 @@ export class MapView {
     }
 
     /**
-     * Draw the map of a floppy.
+     * Draw the map of a floppy, or of a hard disk's chosen partition.
      *
-     * @param disk the disk, which must be a floppy.
+     * @param disk the disk.
      * @param state its view state.
      */
     public render(disk: OpenDisk, state: DiskViewState): void {
@@ -198,6 +221,9 @@ export class MapView {
 
         if (model !== undefined) {
             this.renderGranuleMap(session, model, state);
+        } else if (session.isHardDisk()) {
+            // A partition has no recording details to fall back to.
+            this.element.replaceChildren(el("p", "hint", whyNoGranuleMap + "."));
         } else {
             this.renderSectorMap(session, whyNoGranuleMap);
         }
@@ -216,17 +242,38 @@ export class MapView {
             }
         }
 
-        const rows: GridRow[] = [];
-        for (let cylinder = 0; cylinder <= layout.lastCylinder; cylinder++) {
-            for (let side = 0; side < layout.allocationSides; side++) {
-                const cells: (GridCell | undefined)[] = [];
-                for (let i = 0; i < layout.sectorsPerTrack; i++) {
-                    const sectorNumber = layout.firstSectorNumber + i;
-                    const position = SectorPosition.make(cylinder, side, sectorNumber);
-                    cells.push(this.makeGranuleGridCell(trsdos, position, cellBySector.get(position.key()), model));
+        let rows: GridRow[];
+        let style: GridStyle;
+        let firstNumber: number;
+        switch (layout.grid) {
+            case MapGrid.SECTORS:
+                rows = [];
+                for (let cylinder = 0; cylinder <= layout.lastCylinder; cylinder++) {
+                    for (let side = 0; side < layout.allocationSides; side++) {
+                        const cells: (GridCell | undefined)[] = [];
+                        for (let i = 0; i < layout.sectorsPerTrack; i++) {
+                            const sectorNumber = layout.firstSectorNumber + i;
+                            const position = SectorPosition.make(cylinder, side, sectorNumber);
+                            cells.push(this.makeGranuleGridCell(trsdos, position, cellBySector.get(position.key()), model));
+                        }
+                        rows.push({label: layout.allocationSides > 1 ? cylinder + "·" + side : String(cylinder), cells});
+                    }
                 }
-                rows.push({label: layout.allocationSides > 1 ? cylinder + "·" + side : String(cylinder), cells});
-            }
+                style = SECTOR_GRID_STYLE;
+                firstNumber = layout.firstSectorNumber;
+                break;
+            case MapGrid.GRANULES:
+                rows = this.makeGranuleRows(trsdos, model);
+                style = {
+                    rulerHeader: trsdos.lumpsAreCylinders ? "cyl" : trsdos.lumpTerm,
+                    unit: "granule",
+                    minLabelRun: 1,
+                    className: "granules",
+                };
+                firstNumber = 0;
+                break;
+            default:
+                assertNever(layout.grid);
         }
 
         const legend = el("div", "legend");
@@ -251,12 +298,45 @@ export class MapView {
         }
         const problemCount = [...model.kindCounts].filter(([kind]) => mapCellKindIsProblem(kind))
             .reduce((sum, [, count]) => sum + count, 0);
-        legend.append(el("p", "hint", "Hover a file to light up its sectors. Click a sector to see its bytes. " +
+        const clickHint = style.unit === "granule" ?
+            "Click a granule to see its sectors. Each row is a " + trsdos.lumpTerm + " of the partition. " :
+            "Click a sector to see its bytes. ";
+        legend.append(el("p", "hint", "Hover a file to light up its " + style.unit + "s. " + clickHint +
             "A granule is " + formatNumber(trsdos.sectorsPerGranule) + " sectors (" +
             formatNumber(model.totals.granuleByteCount) + " bytes)." +
             (problemCount > 0 ? " Red cells are damage; the Health view says what." : "")));
 
-        this.finish(state, rows, layout.firstSectorNumber, legend, totalsText(model.totals));
+        this.finish(state, rows, firstNumber, legend, totalsText(model.totals), style);
+    }
+
+    /**
+     * Make the rows of a grid of granules: one for each lump, with a cell for each of its granules.
+     *
+     * @param trsdos the file system, for the word for a lump.
+     * @param model the map.
+     */
+    private makeGranuleRows(trsdos: Trsdos, model: DiskMapModel): GridRow[] {
+        const layout = model.layout;
+        const rows: GridRow[] = [];
+        for (let lump = 0; lump < layout.lumpCount; lump++) {
+            rows.push({label: String(lump), cells: new Array<GridCell | undefined>(layout.granulesPerLump).fill(undefined)});
+        }
+
+        const lumpWord = trsdos.lumpTerm.charAt(0).toUpperCase() + trsdos.lumpTerm.substring(1);
+        for (const cell of model.cells) {
+            const first = cell.sectors[0];
+            const last = cell.sectors[cell.sectors.length - 1];
+            if (first === undefined || last === undefined) {
+                continue;
+            }
+            const where = lumpWord + " " + cell.lump + ", granule " + cell.granule + " · sectors " +
+                first.sectorNumber + "-" + last.sectorNumber;
+            rows[cell.lump].cells[cell.granule] = {
+                ...this.describeGranule(cell, first, where),
+                sectors: cell.sectors,
+            };
+        }
+        return rows;
     }
 
     /**
@@ -274,26 +354,38 @@ export class MapView {
             (model.layout.imageSideCount > 1 ? ", side " + position.side : "") + ", sector " + position.sectorNumber;
         if (cell === undefined) {
             return {
-                sector: position, className: "empty", background: undefined, owners: [], identity: undefined,
+                sector: position, sectors: [position], className: "empty", background: undefined, owners: [], identity: undefined,
                 label: undefined, granule: undefined, tip: where + ": not in any granule", isEmpty: true,
             };
         }
 
+        const granuleText = "granule " + cell.granule + " of " + trsdos.lumpTerm + " " + cell.lump;
+        return this.describeGranule(cell, position, where + " · " + granuleText);
+    }
+
+    /**
+     * Describe a cell that shows a granule, or one of its sectors.
+     *
+     * @param cell the granule.
+     * @param position the sector that a click on the cell picks.
+     * @param where where the cell is, for the start of its tooltip.
+     */
+    private describeGranule(cell: MapCell, position: SectorPosition, where: string): GridCell {
         const owners = ownerNames(cell).map(ownerKey);
         if (cell.kind === MapCellKind.FILE && cell.file !== undefined) {
             owners.push(ownerKey(cell.file.name));
         }
         owners.push(kindToken(cell.kind));
-        const granuleText = "granule " + cell.granule + " of " + trsdos.lumpTerm + " " + cell.lump;
         return {
             sector: position,
+            sectors: [position],
             className: kindClassName(cell.kind),
             background: cell.kind === MapCellKind.FILE && cell.file !== undefined ? fileColor(cell.file) : undefined,
             owners: [...new Set(owners)],
             identity: cell.identity,
             label: cell.label,
             granule: cell.lump + ":" + cell.granule,
-            tip: where + " · " + granuleText + " · " + describeCell(cell),
+            tip: where + " · " + describeCell(cell),
             isEmpty: false,
         };
     }
@@ -387,7 +479,7 @@ export class MapView {
 
         const total = counts.single + counts.double;
         this.finish(state, rows, firstNumber, legend, formatNumber(total) + " sectors on " +
-            formatNumber(byTrack.size) + " tracks.");
+            formatNumber(byTrack.size) + " tracks.", SECTOR_GRID_STYLE);
     }
 
     /**
@@ -433,7 +525,7 @@ export class MapView {
 
         const where = "Cylinder " + position.cylinderNumber + ", side " + position.side + ", sector " + position.sectorNumber;
         return {
-            sector: position, className, background: undefined, owners: [], identity: undefined, label: undefined,
+            sector: position, sectors: [position], className, background: undefined, owners: [], identity: undefined, label: undefined,
             granule: undefined, tip: where + " · " + notes.join(", "), isEmpty: false,
         };
     }
@@ -446,25 +538,29 @@ export class MapView {
      * @param firstNumber the number of the first sector column, for the ruler.
      * @param legend the legend's element.
      * @param summary the line under the grid that says what it holds.
+     * @param style what the grid's cells stand for.
      */
     private finish(state: DiskViewState, rows: GridRow[], firstNumber: number, legend: HTMLElement,
-                   summary: string): void {
+                   summary: string, style: GridStyle): void {
 
         const columns = Math.max(0, ...rows.map(row => row.cells.length));
         const grid = el("div", "map");
+        if (style.className !== "") {
+            grid.classList.add(style.className);
+        }
         grid.style.setProperty("--spt", String(columns));
         const focus = state.mapFocus;
         if (focus !== undefined) {
             grid.classList.add("focusing");
         }
 
-        const ruler = el("div", "maprow ruler", el("span", "lbl", "cyl"));
+        const ruler = el("div", "maprow ruler", el("span", "lbl", style.rulerHeader));
         for (let i = 0; i < columns; i++) {
             ruler.append(el("span", "r", String(firstNumber + i)));
         }
         grid.append(ruler);
         for (const row of rows) {
-            grid.append(this.makeRowElement(row, state));
+            grid.append(this.makeRowElement(row, state, style));
         }
 
         grid.addEventListener("mouseover", event => {
@@ -503,14 +599,14 @@ export class MapView {
     /**
      * Make the element of one row: its label, its cells, and the names written across runs of cells.
      */
-    private makeRowElement(row: GridRow, state: DiskViewState): HTMLElement {
+    private makeRowElement(row: GridRow, state: DiskViewState, style: GridStyle): HTMLElement {
         const rowElement = el("div", "maprow", el("span", "lbl", row.label));
         const focus = state.mapFocus;
 
         let runStart = 0;
         const endRun = (end: number): void => {
             const first = row.cells[runStart];
-            if (first?.label !== undefined && end - runStart >= MIN_LABEL_RUN) {
+            if (first?.label !== undefined && end - runStart >= style.minLabelRun) {
                 const label = el("span", "runlabel", first.label);
                 label.style.gridColumn = (runStart + 2) + " / span " + (end - runStart);
                 rowElement.append(label);
@@ -556,7 +652,9 @@ export class MapView {
                 cellElement.dataset.g = cell.granule;
             }
             this.cellsByElement.set(cellElement, cell);
-            this.cellElements.set(cell.sector.key(), cellElement);
+            for (const sector of cell.sectors) {
+                this.cellElements.set(sector.key(), cellElement);
+            }
             rowElement.append(cellElement);
         }
         return rowElement;
@@ -586,7 +684,8 @@ export class MapView {
     }
 
     /**
-     * Pick a sector, so that the inspector shows its bytes.
+     * Pick a cell's sector, so that the inspector shows its bytes. In a grid of granules that's the granule's
+     * first sector, and the inspector can step through the rest.
      */
     private pick(cellElement: HTMLElement, cell: GridCell): void {
         const state = this.state;
@@ -602,6 +701,7 @@ export class MapView {
             side: cell.sector.side,
             sector: cell.sector.sectorNumber,
             note: cell.tip,
+            cellSectors: cell.sectors,
         };
         this.host.sectorPicked();
     }
