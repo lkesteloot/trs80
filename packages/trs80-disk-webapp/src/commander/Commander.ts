@@ -3,6 +3,7 @@ import {DiskError, extractCommandLine, partitionDisplayName} from "trs80-disk";
 import {assertNever} from "z80-base";
 import {type ActionResult, choosePartition, redo, undo, kill} from "../core/Actions.js";
 import {getDiskFacts, needsPartitionChoice} from "../core/DiskFacts.js";
+import {boot, describeBoot} from "../core/Booting.js";
 import {DiskStore} from "../core/DiskStore.js";
 import {countOf, el} from "../core/Dom.js";
 import {
@@ -104,6 +105,15 @@ const HELP_SECTIONS: HelpSection[] = [
             ["Enter", "Open a disk image, a ZIP, or a folder, or view a file."],
             ["Backspace", "Go back out of a disk, a ZIP, or a folder, like Enter on the .. row."],
             ["Alt-H", "Show or hide system files."],
+        ],
+    },
+    {
+        heading: "Booting",
+        entries: [
+            ["Alt-B", "Boot the floppy in the active panel in the TRS-80 emulator, as [Boot] does, on the model that " +
+                "its DOS is for. The other panel's floppy goes in drive 1, and other open floppies in drives 2 and " +
+                "3, write-protected. The DOS's writes stay in memory, as one change that Ctrl-Z undoes, until you " +
+                "save. The emulator's panel has the model, a write-protect switch, Reset, and Close."],
         ],
     },
     {
@@ -944,7 +954,7 @@ export class Commander implements ActionHost {
         const actionButton = target.closest<HTMLElement>("[data-act]");
         if (actionButton !== null) {
             if (!this.viewer.isOpen && this.busy === 0) {
-                void (actionButton.dataset.act === "open" ? this.openImageFiles() : this.chooseFolderOrFiles());
+                void this.pressActionButton(actionButton.dataset.act);
             }
             return;
         }
@@ -1048,7 +1058,7 @@ export class Commander implements ActionHost {
     }
 
     /**
-     * The keys with Ctrl, Cmd or Alt: undo, redo, save, open and the toggle for system files.
+     * The keys with Ctrl, Cmd or Alt: undo, redo, save, open, boot and the toggle for system files.
      *
      * @returns whether the key was one of them.
      */
@@ -1075,6 +1085,11 @@ export class Commander implements ActionHost {
             void this.chooseFolderOrFiles();
             return true;
         }
+        if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === "KeyB") {
+            event.preventDefault();
+            void this.bootActive();
+            return true;
+        }
         if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === "KeyH") {
             event.preventDefault();
             this.showSystem = !this.showSystem;
@@ -1084,6 +1099,48 @@ export class Commander implements ActionHost {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Do what a button in the title bar does.
+     *
+     * @param act the button's data-act.
+     */
+    private async pressActionButton(act: string | undefined): Promise<void> {
+        switch (act) {
+            case "open":
+                await this.openImageFiles();
+                break;
+            case "folder":
+                await this.chooseFolderOrFiles();
+                break;
+            case "boot":
+                await this.bootActive();
+                break;
+            default:
+                console.error("Unknown title bar button: " + act);
+                break;
+        }
+    }
+
+    /**
+     * Alt-B and [Boot]: boot the floppy in the active panel in the emulator, and wait until the user closes it. The
+     * other panel's disk goes in drive 1, and the other open disks after it.
+     */
+    private async bootActive(): Promise<void> {
+        const disk = this.active.disk;
+        if (disk === undefined) {
+            this.log.error("Boot works on the disk in the active panel, and this panel isn't showing one. " +
+                "Enter opens the disk image under the cursor.");
+            return;
+        }
+
+        const otherDisk = this.other.disk;
+        const others = this.store.list().filter(open => open !== otherDisk);
+        if (otherDisk !== undefined) {
+            others.unshift(otherDisk);
+        }
+        await this.run(disk, () => boot(disk, others), describeBoot);
     }
 
     /**

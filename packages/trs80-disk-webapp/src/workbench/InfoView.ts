@@ -8,6 +8,7 @@ import {
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {getDiskDetails} from "../core/DiskFacts.js";
 import {gatDateToInputValue, getLabelLimits, inputValueToDate} from "../core/LabelLimits.js";
+import {bootBlocker} from "../core/Booting.js";
 import {el, formatNumber, makeButton, makeSwitch, withDisabledReason} from "../core/Dom.js";
 
 /**
@@ -29,6 +30,8 @@ export interface InfoViewHost {
     trim(): void;
     /** Show the sheet that saves the disk in another format. */
     saveAs(): void;
+    /** Boot the disk in the emulator. */
+    boot(): void;
 }
 
 /**
@@ -327,6 +330,11 @@ export class InfoView {
         const saveAs = makeButton("Save as another format…", () => this.host.saveAs());
         saveAs.disabled = saveAsReason !== undefined;
         row.append(withDisabledReason(saveAs, saveAsReason));
+
+        const bootReason = bootBlocker(disk);
+        const boot = makeButton("Boot in the Emulator", () => this.host.boot());
+        boot.disabled = bootReason !== undefined;
+        row.append(withDisabledReason(boot, bootReason));
 
         return el("div", "card", el("h4", "", "Do something with the whole disk"), row);
     }

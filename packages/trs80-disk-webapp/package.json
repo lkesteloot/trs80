@@ -4,9 +4,10 @@
   "description": "Web apps for working on TRS-80 disk images: the Disk workbench and Disk Commander.",
   "type": "module",
   "scripts": {
+    "prestart": "npm run generateRoms -w trs80-emulator",
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && vite build",
+    "build": "npm run generateRoms -w trs80-emulator && npm run updateBuildInfo && vite build",
     "clean": "rm -rf dist"
   },
   "repository": "https://github.com/lkesteloot/trs80.git",
@@ -20,6 +21,8 @@
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "*",
     "trs80-disk": "*",
+    "trs80-emulator": "*",
+    "trs80-emulator-web": "*",
     "z80-base": "*",
     "z80-disasm": "*"
   }

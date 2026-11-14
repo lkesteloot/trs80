@@ -1,4 +1,5 @@
 import {DiskError, getWriteProtect, readDiskInfo} from "trs80-disk";
+import {bootBlocker} from "../core/Booting.js";
 import {SaveKind, type OpenDisk} from "../core/OpenDisk.js";
 import {getDiskFacts, getSpaceUse} from "../core/DiskFacts.js";
 import {countOf, el, formatKilobytes, formatNumber, makeButton, makeSwitch} from "../core/Dom.js";
@@ -14,10 +15,12 @@ export interface DiskHeaderHost {
     saveAs(disk: OpenDisk): void;
     /** Set or clear the image's write-protect flag. */
     setWriteProtect(disk: OpenDisk, writeProtected: boolean): void;
+    /** Boot the disk in the emulator. */
+    boot(disk: OpenDisk): void;
 }
 
 /**
- * The disk header: the disk's name, its chips, the write-protect switch, Save and Save as, the space bar, and
+ * The disk header: the disk's name, its chips, the write-protect switch, Boot, Save and Save as, the space bar, and
  * the read-only banner.
  */
 export class DiskHeader {
@@ -71,7 +74,8 @@ export class DiskHeader {
         }
 
         const left = el("div", "", el("h1", "diskname", diskName, el("small", "", disk.name)), chips);
-        const right = el("div", "headactions", this.makeWriteProtect(disk), this.makeSaveAs(disk), this.makeSave(disk));
+        const right = el("div", "headactions", this.makeWriteProtect(disk), this.makeBoot(disk),
+            this.makeSaveAs(disk), this.makeSave(disk));
         this.header.replaceChildren(left, right, this.makeSpace(disk, fileCount));
 
         this.banner.replaceChildren();
@@ -92,6 +96,17 @@ export class DiskHeader {
         }, unsupported ?? "The image's write-protect flag, which emulators honor (protect on or off)");
         input.disabled = unsupported !== undefined;
         return element;
+    }
+
+    /**
+     * Make the Boot button, which is disabled, with the reason, for a hard disk.
+     */
+    private makeBoot(disk: OpenDisk): HTMLElement {
+        const button = makeButton("Boot", () => this.host.boot(disk));
+        const reason = bootBlocker(disk);
+        button.disabled = reason !== undefined;
+        button.title = reason ?? "Boot the disk in the TRS-80 emulator. The DOS's writes are one change that Undo takes back.";
+        return button;
     }
 
     /**

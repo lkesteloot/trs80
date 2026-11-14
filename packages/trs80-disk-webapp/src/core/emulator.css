@@ -1,0 +1,22 @@
+/* The emulator's panel, which slides over the page while a disk is booted. The colors are the page's own tokens,
+   which both pages define; each page's CSS styles the buttons and the select its own way. */
+.emu {
+    position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; gap: 8px;
+    padding: 12px 16px; background: var(--bg); color: var(--fg);
+    animation: emu-slide-in 0.2s ease-out;
+}
+@keyframes emu-slide-in {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .emu { animation: none; }
+}
+.emu-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.emu-head h2 { margin: 0; font-size: 18px; color: var(--fg-strong); overflow-wrap: anywhere; }
+.emu-head .grow { flex: 1; }
+.emu-head label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.emu-notes { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--fg-muted); }
+.emu-screen {
+    flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto;
+}

@@ -2,6 +2,7 @@ import {BasicDialect, Density, trsdosFormatDosCliName, type TrsdosDiskInfoChange
 import {assertNever} from "z80-base";
 import type {CreateFloppyRequest, CreateHardDiskRequest, FormatFloppyRequest, FormatHardDiskRequest, FormatRequest} from "./DiskCreate.js";
 import {type AddOptions, type AttributeRequest, formatYmd} from "./DiskFileOperations.js";
+import type {BootModel} from "./DiskBoot.js";
 import type {AddPartitionRequest} from "./DiskPartition.js";
 import type {TrimRequest} from "./DiskTrim.js";
 
@@ -441,4 +442,17 @@ export function mapCommandLine(patterns: readonly string[] = []): string {
  */
 export function revertCommandLine(): string {
     return makeLine("revert", [], new OptionWords());
+}
+
+/**
+ * "boot": run the disk in the emulator.
+ *
+ * @param model the model to boot on (--model), or undefined for the one that the disk's DOS is for.
+ * @param writeProtected whether the disk is mounted write-protected (--write-protected).
+ */
+export function bootCommandLine(model: BootModel | undefined, writeProtected: boolean): string {
+    const words = new OptionWords();
+    words.value("--model", model);
+    words.flag("--write-protected", writeProtected);
+    return makeLine("boot", [], words);
 }
