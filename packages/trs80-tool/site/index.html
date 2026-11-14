@@ -921,15 +921,39 @@ vtos301.dmk: Floppy disk (DMK), VTOS 3.0.1
             </div>
 
             <h2 id="limitations">Limitations</h2>
+            <p>The tool reads floppy disks and HDV hard disks. Which DOS wrote a disk decides whether the tool can
+                read its files, and whether <a href="disk.html"><code>disk</code></a> can change them:</p>
             <ul>
-                <li>The tool reads floppy disks and hard disks. It changes floppies and the LDOS 5 and LS-DOS 6
-                    partitions of HDV hard disks, with <a href="disk.html"><code>disk</code></a>, and writes files only
-                    on the TRSDOS-family DOSes listed there. It can’t create or format a hard disk.</li>
+                <li><strong>Read and written:</strong> on floppies, TRSDOS 2.x for the Model I (2.0 through 2.3),
+                    TRSDOS 2.7 and 2.8, TRSDOS 1.3 for the Model III, LDOS 5, TRSDOS 6 and LS-DOS 6, DOSPLUS 3,
+                    NEWDOS/80 version 2 (and 1.0 on single-density, single-sided disks), and MultiDOS 1.x and 2.00;
+                    on hard disks, LDOS 5 and LS-DOS 6 partitions. A disk that doesn’t say which DOS wrote it is
+                    written only when you name its DOS with <a href="disk.html#options"><code>--dos</code></a>.</li>
+                <li><strong>Created and formatted:</strong> only some of those.
+                    <a href="disk.html#create"><code>disk create</code></a> and <code>format</code> make floppies for
+                    TRSDOS 2.3, TRSDOS 1.3, LDOS 5.3, TRSDOS 6.2, and LS-DOS 6.3, and hard disk partitions for
+                    LDOS 5.3 and LS-DOS 6.3. TRSDOS 2.7 and 2.8, DOSPLUS 3, NEWDOS/80, and MultiDOS disks are
+                    written but not made.</li>
+                <li><strong>Read but not written:</strong>
+                    <ul>
+                        <li>On Model I and III floppies: VTOS; NEWDOS 2.1 through 3.0, NEWDOS+, and NEWDOS/80
+                            releases other than 1.0 and 2; NEWDOS/86 and NEWDOS/90; G-DOS and H-DOS; DoubleDOS;
+                            MultiDOS 2.10 and later, MultiDOS II, Z’DOS, and Esoteric; UltraDOS, RAPIDOS, SuperDOS,
+                            and DOS500; Percom MicroDOS; and FMG’s UCSD Pascal.</li>
+                        <li>On Model 4 floppies: DOSPLUS IV.</li>
+                        <li>On Model II floppies: Model II TRSDOS 1.x and 2.0, TRSDOS-II, DOSPLUS II, and Xenix
+                            disks that hold a <code>tar</code> archive.</li>
+                        <li>CP/M floppies, in the formats of Digital Research, Montezuma Micro, Lifeboat, Aton,
+                            Holmes Engineering, LNW Research, Pickles &amp; Trout, and the standard 8-inch format.</li>
+                        <li>On hard disks: DOSPLUS 3 and NEWDOS/80 partitions.</li>
+                    </ul>
+                </li>
+                <li><strong>Not read:</strong> CP/M and Xenix hard disks, version 2 HDV images, and any disk
+                    whose file system the tool doesn’t recognize, though <a href="#sectors"><code>sectors</code></a>
+                    still shows a floppy’s sectors.</li>
                 <li>Hard disks can’t be mounted in the emulator (<a href="#run"><code>run</code></a>
                     and <a href="#mcp"><code>mcp</code></a>), and the
                     <a href="#sectors"><code>sectors</code></a> command shows only floppies.</li>
-                <li>On hard disks, only LDOS 5, LS-DOS 6, DOSPLUS 3, and NEWDOS/80 partitions are read, and
-                    DOSPLUS 3 and NEWDOS/80 ones aren’t written.</li>
             </ul>
 
             <h2 id="change-log">Change log</h2>
