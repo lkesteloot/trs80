@@ -1,3 +1,4 @@
+export * from "./DiskBoot.js";
 export * from "./DiskCheck.js";
 export * from "./DiskCommandLine.js";
 export * from "./DiskCreate.js";

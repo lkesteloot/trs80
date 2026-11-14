@@ -11,10 +11,10 @@ import {
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {pressTerminalKey} from "../run.js";
 import {ToolError} from "../utils.js";
-import {BOOT_COMMAND, type BootEnvironment, bootEnvironment, chooseBootModel} from "./DiskBoot.js";
+import {BOOT_COMMAND, type BootEnvironment, bootEnvironment} from "./DiskBoot.js";
 import {disk} from "./disk.js";
 import {DiskOptionValues} from "./DiskCommandParser.js";
-import {DiskSession, type DiskShellTerminal} from "trs80-disk";
+import {chooseBootModel, DiskSession, type DiskShellTerminal} from "trs80-disk";
 import {runDiskLine} from "./DiskShell.js";
 import {openDiskSession, saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 

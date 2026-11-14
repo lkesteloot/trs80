@@ -1204,13 +1204,15 @@ export class DiskSession {
      * if it then fails, since the disk is left however it got to) then the state from before it is put on the
      * undo stack and the redo stack is cleared. If it changes nothing then nothing is recorded.
      *
-     * @param label the command line, to say what {@link undo} undid, such as "add hello.bas".
+     * @param label the command line, to say what {@link undo} undid, such as "add hello.bas", or a function that
+     * gives it once the command is done (for a command whose options can change while it runs, such as booting
+     * in a page, where the model can be changed in the emulator's panel).
      * @param run runs the command. If it returns a promise (as a command that runs the emulator does) then
      * the whole time until the promise settles is one step.
      * @returns a promise that resolves when the command is done.
      * @throws whatever run() throws, or rejects with.
      */
-    public async runUndoable(label: string, run: () => void | Promise<void>): Promise<void> {
+    public async runUndoable(label: string | (() => string), run: () => void | Promise<void>): Promise<void> {
         const before = this.captureState();
         const modificationCountBefore = this.modificationCount;
         // Hold notifications so that a listener sees the history entry along with the change.
@@ -1220,7 +1222,7 @@ export class DiskSession {
         } finally {
             const modified = this.modificationCount !== modificationCountBefore;
             if (modified) {
-                this.pushUndoState(label, before);
+                this.pushUndoState(typeof label === "string" ? label : label(), before);
             }
             this.releaseNotifications();
         }

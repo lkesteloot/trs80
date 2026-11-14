@@ -213,3 +213,11 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 .help dt { color: var(--fg-strong); font-weight: 600; white-space: normal; }
 .help dd { margin: 0; white-space: normal; }
 @media (max-width: 800px) { .help dl { grid-template-columns: 1fr; gap: 0; } .help dd { margin-bottom: 6px; } }
+
+/* The emulator's panel (core/emulator.css lays it out), in this page's style. */
+.emu-head h2 { font: inherit; font-weight: bold; }
+.emu-head button { color: var(--head); }
+.emu-head button::before { content: "[ "; } .emu-head button::after { content: " ]"; }
+.emu-head button:hover { background: var(--cursor-bg); color: var(--cursor-fg); }
+.emu-head select { background: var(--bg); color: var(--fg-strong); border: none; border-bottom: 1px solid var(--head); font: inherit; outline: none; }
+.emu-head input[type=checkbox] { accent-color: var(--head); margin: 0 2px 0 0; }

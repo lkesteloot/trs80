@@ -12,6 +12,7 @@ import {
     downloadFile, downloadZip, extractToFolder, type ExtractOptions, type ExtractResult,
 } from "../core/Extracting.js";
 import {type FileRow, filterRows, getFileRows, omitHiddenRows} from "../core/FileRows.js";
+import {boot, describeBoot} from "../core/Booting.js";
 import {installUndoKeys} from "../core/Keys.js";
 import {DiskStore} from "../core/DiskStore.js";
 import {type OpenDisk, SaveKind} from "../core/OpenDisk.js";
@@ -142,6 +143,7 @@ export class Workbench implements FilesViewHost {
                 save: disk => void this.save(disk),
                 saveAs: disk => this.saveAs(disk),
                 setWriteProtect: (disk, writeProtected) => void this.setWriteProtect(disk, writeProtected),
+                boot: disk => void this.bootDisk(disk),
             });
         this.filesView = new FilesView(this);
         this.inspector = new Inspector(document.getElementById("inspector") as HTMLElement, {
@@ -179,6 +181,12 @@ export class Workbench implements FilesViewHost {
                 const disk = this.currentDisk();
                 if (disk !== undefined) {
                     this.saveAs(disk);
+                }
+            },
+            boot: () => {
+                const disk = this.currentDisk();
+                if (disk !== undefined) {
+                    void this.bootDisk(disk);
                 }
             },
         });
@@ -840,6 +848,15 @@ export class Workbench implements FilesViewHost {
             // The switch moved, but nothing changed.
             this.renderDisk(disk);
         }
+    }
+
+    /**
+     * Boot a floppy in the emulator, with the other open floppies in drives 1 to 3 in tab order, and wait until the
+     * user closes it. The DOS's writes are one change in the history.
+     */
+    private async bootDisk(disk: OpenDisk): Promise<void> {
+        const others = this.store.list().filter(other => other !== disk);
+        await this.run(disk, () => boot(disk, others), describeBoot);
     }
 
     // ------------------------------------------------------------------ The other views' actions.

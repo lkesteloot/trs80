@@ -1,6 +1,6 @@
 import {BasicDialect, Density, TrsdosFormatDos} from "trs80-base";
 import {
-    addCommandLine, attribCommandLine, checkCommandLine, createCommandLine, createHardDiskCommandLine,
+    addCommandLine, attribCommandLine, bootCommandLine, checkCommandLine, createCommandLine, createHardDiskCommandLine,
     dirCommandLine, extractCommandLine, formatCommandLine, formatFloppyCommandLine, formatHardDiskCommandLine,
     freeCommandLine, infoCommandLine, killCommandLine, labelCommandLine, mapCommandLine, partitionAddCommandLine,
     partitionCommandLine, partitionDeleteCommandLine, protectCommandLine, quoteCommandWord, renameCommandLine,
@@ -121,6 +121,11 @@ describe("DiskCommandLine builders", () => {
         check(protectCommandLine(), "protect", [], []);
         check(protectCommandLine(true), "protect", ["on"], []);
         check(protectCommandLine(false), "protect", ["off"], []);
+    });
+
+    it("boot", () => {
+        check(bootCommandLine(undefined, false), "boot", [], []);
+        check(bootCommandLine(4, true), "boot", [], ["--model", "4", "--write-protected"]);
     });
 
     it("check and repair", () => {
