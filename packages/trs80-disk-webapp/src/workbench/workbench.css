@@ -458,3 +458,13 @@ pre.preview.sectorbytes { font-size: 11.5px; max-height: 420px; margin-top: 10px
 .doscard.partition span { display: block; }
 .form > .segmented { justify-self: start; }
 .doscard.partition span.pill { display: inline-block; font-size: 10.5px; color: var(--fg-strong); }
+
+.legend .item.clickable { cursor: pointer; }
+.kv a.filelink { color: var(--accent, inherit); text-decoration: underline; }
+.openprogress { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.35); cursor: progress; }
+.openprogress .box { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 8px;
+    background: var(--bg, #fff); color: var(--fg-strong); box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3); font-size: 14px; }
+.openprogress .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--fg-muted);
+    border-top-color: transparent; animation: openspin 0.8s linear infinite; }
+@keyframes openspin { to { transform: rotate(360deg); } }

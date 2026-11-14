@@ -16,7 +16,7 @@ import {installUndoKeys} from "../core/Keys.js";
 import {DiskStore} from "../core/DiskStore.js";
 import {type OpenDisk, SaveKind} from "../core/OpenDisk.js";
 import {
-    DISK_IMAGE_ACCEPT, getDroppedInputs, newDisk, openFiles, openFromHandles, type OpenInput, type OpenResult, pickFiles,
+    DISK_IMAGE_ACCEPT, getDroppedInputs, newDisk, openFiles, openFromHandles, type OpenInput, type OpenProgress, type OpenResult, pickFiles,
     supportsFilePicker, type UnopenedFile,
 } from "../core/Opening.js";
 import {installUnsavedChangesWarning, saveDisk, saveDiskAs} from "../core/Saving.js";
@@ -104,6 +104,7 @@ export class Workbench implements FilesViewHost {
     private currentId: number | undefined = undefined;
     private showingStart = true;
     private busy = 0;
+    private openCount = 0;
 
     private readonly startElement = document.getElementById("start") as HTMLElement;
     private readonly workElement = document.getElementById("work") as HTMLElement;
@@ -148,6 +149,7 @@ export class Workbench implements FilesViewHost {
             openFullScreen: row => this.openFullScreen(row),
             extract: rows => void this.extract(rows),
             countFiles: disk => this.countFiles(disk),
+            showFile: name => this.showFile(name),
         });
         this.newDiskPanel = new NewDiskPanel(choice => void this.createDisk(choice));
         this.partitionPicker = new PartitionPicker(document.getElementById("partitions") as HTMLElement, {
@@ -156,6 +158,7 @@ export class Workbench implements FilesViewHost {
         this.mapView = new MapView({
             sectorPicked: () => this.renderCurrentInspector(),
             clearFocus: () => this.showMapFocus(undefined),
+            showFile: name => this.showFile(name),
         });
         this.healthView = new HealthView({
             repair: options => this.repairCurrent(options),
@@ -596,7 +599,7 @@ export class Workbench implements FilesViewHost {
         try {
             const handles = await pickFiles();
             if (handles.length > 0) {
-                this.showOpenResult(await openFromHandles(handles));
+                this.showOpenResult(await this.withOpenProgress(progress => openFromHandles(handles, progress)));
             }
         } catch (e) {
             this.reportFailure(undefined, e);
@@ -608,10 +611,70 @@ export class Workbench implements FilesViewHost {
      */
     private async openInputs(inputs: OpenInput[]): Promise<void> {
         try {
-            this.showOpenResult(await openFiles(inputs));
+            this.showOpenResult(await this.withOpenProgress(progress => openFiles(inputs, progress)));
         } catch (e) {
             this.reportFailure(undefined, e);
         }
+    }
+
+    /**
+     * Run the opening of files while a "Opening…" overlay shows, so that the user can see that work is happening.
+     * The overlay is painted before the work starts, and its text follows the progress.
+     *
+     * @param open starts the opening, given the progress callback to pass on.
+     */
+    private async withOpenProgress(open: (progress: OpenProgress) => Promise<OpenResult>): Promise<OpenResult> {
+        const text = el("div", "text", "Opening…");
+        const overlay = el("div", "openprogress", el("div", "box", el("div", "spinner"), text));
+        document.body.append(overlay);
+        this.openCount++;
+        try {
+            // Let the browser paint the overlay before decoding blocks it.
+            await new Promise<void>(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+            return await open(message => {
+                text.textContent = message;
+            });
+        } finally {
+            this.openCount--;
+            overlay.remove();
+        }
+    }
+
+    /**
+     * Show a file in the Files view with the file selected, from a link in the Map view or the sector panel. A
+     * system or hidden file is hidden by default, so the switch that lists it is turned on, and the filter is
+     * cleared if it would hide the file.
+     *
+     * @param name the file's name as the disk shows it, such as "DIRPROG/SYS".
+     */
+    private showFile(name: string): void {
+        const disk = this.currentDisk();
+        if (disk === undefined) {
+            return;
+        }
+
+        const state = this.stateOf(disk);
+        const wanted = name.toUpperCase();
+        const row = this.getRows(disk, true).find(candidate => candidate.fullName.toUpperCase() === wanted ||
+            candidate.hostName.toUpperCase() === wanted);
+        if (row === undefined) {
+            this.messages.toast("Can't find " + name + " in the Files view.");
+            return;
+        }
+
+        if (row.isSystem) {
+            state.showSystem = true;
+        } else if (row.isHidden) {
+            state.showHidden = true;
+        }
+        if (!filterRows([row], state.filter).includes(row)) {
+            state.filter = "";
+        }
+        state.selected.clear();
+        state.selected.add(row.fullName);
+        state.anchor = row.fullName;
+        state.view = ViewKind.FILES;
+        this.renderDisk(disk);
     }
 
     /**
@@ -619,6 +682,7 @@ export class Workbench implements FilesViewHost {
      */
     private showOpenResult(result: OpenResult): void {
         for (const disk of result.disks) {
+            this.selectFirstPartition(disk);
             this.store.add(disk);
         }
         if (result.disks.length > 0) {
@@ -627,6 +691,22 @@ export class Workbench implements FilesViewHost {
         }
         if (result.unopened.length > 0) {
             this.handleUnopened(result.disks.length > 0, result.unopened);
+        }
+    }
+
+    /**
+     * Choose the first partition of a hard disk with several, so that one is always chosen and the views have
+     * something to show. The partition picker lets the user switch.
+     */
+    private selectFirstPartition(disk: OpenDisk): void {
+        if (!needsPartitionChoice(disk.session)) {
+            return;
+        }
+        try {
+            choosePartition(disk.session, 1);
+        } catch (e) {
+            // The picker stays up, and the user can try the others.
+            console.error(e);
         }
     }
 
@@ -704,6 +784,10 @@ export class Workbench implements FilesViewHost {
                 return;
             }
             event.preventDefault();
+            if (this.openCount > 0) {
+                // Already opening something; the drop would pile up behind it.
+                return;
+            }
             // The drop's data is only good until this handler returns, so ask for everything now.
             void getDroppedInputs(event.dataTransfer).then(inputs => this.openInputs(inputs));
         });

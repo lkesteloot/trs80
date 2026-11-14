@@ -6,6 +6,7 @@ import {
     DiskError, describeAutoCommand, getWriteProtect, readDiskInfo, type DiskSession,
 } from "trs80-disk";
 import type {OpenDisk} from "../core/OpenDisk.js";
+import {capitalize} from "./Text.js";
 import {getDiskDetails} from "../core/DiskFacts.js";
 import {gatDateToInputValue, getLabelLimits, inputValueToDate} from "../core/LabelLimits.js";
 import {el, formatNumber, makeButton, makeSwitch, withDisabledReason} from "../core/Dom.js";
@@ -102,7 +103,7 @@ export class InfoView {
 
         const list = el("dl", "kv facts");
         for (const [term, value] of getDiskDetails(disk)) {
-            list.append(el("dt", "", term), el("dd", "", value));
+            list.append(el("dt", "", term), el("dd", term === "File" ? "mono" : "", term === "File" ? value : capitalize(value)));
         }
         cards.push(el("div", "card", el("h4", "", "Details"), list));
         this.element.replaceChildren(...cards);
@@ -124,7 +125,7 @@ export class InfoView {
             info = readDiskInfo(session);
         } catch (e) {
             if (e instanceof DiskError) {
-                return el("div", "card", el("h4", "", "Label"), el("p", "kind", e.message));
+                return el("div", "card", el("p", "kind", e.message));
             }
             throw e;
         }
@@ -273,7 +274,7 @@ export class InfoView {
         const footer = el("div", "btnrow", withDisabledReason(saveButton, readOnly ? readOnlyReason : undefined), status);
         footer.style.marginTop = "12px";
         update();
-        const card = el("div", "card", el("h4", "", "Label"), form, footer);
+        const card = el("div", "card", form, footer);
         if (readOnlyReason !== undefined) {
             card.append(el("p", "hint", "The label can't be changed: " + readOnlyReason));
         }

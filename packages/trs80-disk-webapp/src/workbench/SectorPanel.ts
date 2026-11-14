@@ -7,6 +7,7 @@ import {toHexByte, toHexWord} from "z80-base";
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {el, formatNumber} from "../core/Dom.js";
 import type {PickedSector} from "./ViewState.js";
+import {capitalize, hexValue} from "./Text.js";
 
 /**
  * The names of the files that use a sector, in directory order. Two or more mean that the disk is cross-linked.
@@ -58,10 +59,10 @@ function describeDataAddressMark(mark: number): string {
  */
 function describeCrc(crc: CrcInfo | undefined, crcError: boolean): string {
     if (crc === undefined) {
-        return crcError ? "error (this image format doesn't keep the values)" : "good, or not recorded by this image format";
+        return crcError ? "Error (this image format doesn't keep the values)" : "Valid, or not recorded by this image format";
     }
-    return crc.valid() ? "good (" + toHexWord(crc.written) + ")" :
-        "error: written " + toHexWord(crc.written) + ", computed " + toHexWord(crc.computed);
+    return crc.valid() ? "Valid (" + hexValue(toHexWord(crc.written)) + ")" :
+        "Error: written " + hexValue(toHexWord(crc.written)) + ", computed " + hexValue(toHexWord(crc.computed));
 }
 
 /**
@@ -88,8 +89,10 @@ function makeHexDump(bytes: Uint8Array): HTMLElement {
  * @param container the inspector's element.
  * @param disk the disk, which must be a floppy.
  * @param picked the sector.
+ * @param onShowFile called with a file's name when the user clicks it, to show it in the Files view.
  */
-export function renderSectorPanel(container: HTMLElement, disk: OpenDisk, picked: PickedSector): void {
+export function renderSectorPanel(container: HTMLElement, disk: OpenDisk, picked: PickedSector,
+                                  onShowFile: (name: string) => void): void {
     const session = disk.session;
     const floppy = session.floppy;
     const position = SectorPosition.make(picked.cylinder, picked.side, picked.sector);
@@ -97,19 +100,37 @@ export function renderSectorPanel(container: HTMLElement, disk: OpenDisk, picked
     const info: SectorInfo | undefined = sector ?? floppy.getGeometry().sectorMap.get(position.key());
 
     const list = el("dl", "kv");
-    const add = (term: string, value: string, className = ""): void => {
-        list.append(el("dt", "", term), el("dd", className, value));
+    const add = (term: string, value: string | Node, className = ""): void => {
+        list.append(el("dt", "", term), el("dd", className, typeof value === "string" ? capitalize(value) : value));
     };
 
     const where = "Cylinder " + picked.cylinder + ", side " + picked.side + ", sector " + picked.sector;
     const names = filesAtSector(session, position);
-    add(names.length > 1 ? "Files" : "File", names.length === 0 ? "none uses this sector" : names.join(", "), "mono");
+    if (names.length === 0) {
+        add("File", "None uses this sector");
+    } else {
+        const links: (Node | string)[] = [];
+        for (const name of names) {
+            if (links.length > 0) {
+                links.push(", ");
+            }
+            const link = el("a", "filelink", name);
+            link.href = "#";
+            link.title = "Show " + name + " in the Files view";
+            link.addEventListener("click", event => {
+                event.preventDefault();
+                onShowFile(name);
+            });
+            links.push(link);
+        }
+        add(names.length > 1 ? "Files" : "File", el("span", "", ...links), "mono");
+    }
     if (info === undefined) {
         add("Sector", "The image has no sector here.");
     } else {
         add("Density", densityToString(info.density));
         add("Size", formatNumber(info.sectorSize) + " bytes");
-        add("Address mark", toHexByte(info.getDataAddressMark()) + ", " + describeDataAddressMark(info.getDataAddressMark()));
+        add("Address mark", hexValue(toHexByte(info.getDataAddressMark())) + ", " + capitalize(describeDataAddressMark(info.getDataAddressMark())));
         if (!info.hasData()) {
             add("Data field", "the ID is there, but no data follows it");
         }
@@ -126,6 +147,5 @@ export function renderSectorPanel(container: HTMLElement, disk: OpenDisk, picked
     if (sector !== undefined) {
         children.push(makeHexDump(sector.data));
     }
-    children.push(el("p", "hint", "Click another sector to see it."));
     container.replaceChildren(...children);
 }

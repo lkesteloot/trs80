@@ -40,6 +40,19 @@ export interface OpenResult {
 }
 
 /**
+ * Called with a phrase such as "Opening 3 of 12: foo.hdv…" before each file is opened, so that a page can show
+ * that work is happening. The page gets a chance to paint after each call, before the file is decoded.
+ */
+export type OpenProgress = (message: string) => void;
+
+/**
+ * Let the browser paint and handle events, which decoding a disk image would otherwise hold off.
+ */
+function yieldToBrowser(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+/**
  * How deep archives are opened: a ZIP of ZIPs of images is as far as we go.
  */
 const MAX_ARCHIVE_DEPTH = 2;
@@ -76,9 +89,10 @@ function isZip(name: string, bytes: Uint8Array): boolean {
  * @param handle its handle, if it's a file that we may write back to (a file inside a ZIP has none).
  * @param depth how many archives we're inside.
  * @param result where the results go.
+ * @param progress told about each file inside a ZIP before it's opened, or undefined.
  */
 async function openBytes(name: string, bytes: Uint8Array, lastModified: number, handle: FileSystemFileHandle | undefined,
-                         depth: number, result: OpenResult): Promise<void> {
+                         depth: number, result: OpenResult, progress: OpenProgress | undefined): Promise<void> {
 
     const unopened = (message: string): void => {
         result.unopened.push({
@@ -97,12 +111,16 @@ async function openBytes(name: string, bytes: Uint8Array, lastModified: number, 
             return;
         }
 
-        for (const entry of Object.values(zip.files)) {
-            if (entry.dir) {
-                continue;
+        const entries = Object.values(zip.files).filter(entry => !entry.dir);
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+            if (progress !== undefined) {
+                progress("Opening " + (entries.length > 1 ? (i + 1) + " of " + entries.length + ": " : "") +
+                    baseName(entry.name) + "…");
+                await yieldToBrowser();
             }
             const entryBytes = await entry.async("uint8array");
-            await openBytes(entry.name, entryBytes, entry.date.getTime(), undefined, depth + 1, result);
+            await openBytes(entry.name, entryBytes, entry.date.getTime(), undefined, depth + 1, result, progress);
         }
         return;
     }
@@ -123,12 +141,19 @@ async function openBytes(name: string, bytes: Uint8Array, lastModified: number, 
  * no handle, so saving it downloads.
  *
  * @param inputs the files, each with its handle if the browser gave one.
+ * @param progress told about each file before it's opened (including each file in a ZIP), or undefined.
  */
-export async function openFiles(inputs: readonly OpenInput[]): Promise<OpenResult> {
+export async function openFiles(inputs: readonly OpenInput[], progress?: OpenProgress): Promise<OpenResult> {
     const result: OpenResult = {disks: [], unopened: []};
-    for (const input of inputs) {
+    for (let i = 0; i < inputs.length; i++) {
+        const input = inputs[i];
+        if (progress !== undefined) {
+            progress("Opening " + (inputs.length > 1 ? (i + 1) + " of " + inputs.length + ": " : "") +
+                input.file.name + "…");
+            await yieldToBrowser();
+        }
         const bytes = new Uint8Array(await input.file.arrayBuffer());
-        await openBytes(input.file.name, bytes, input.file.lastModified, input.handle, 0, result);
+        await openBytes(input.file.name, bytes, input.file.lastModified, input.handle, 0, result, progress);
     }
 
     return result;
@@ -138,14 +163,16 @@ export async function openFiles(inputs: readonly OpenInput[]): Promise<OpenResul
  * Open files that the user chose with Chromium's showOpenFilePicker().
  *
  * @param handles the handles that the picker returned.
+ * @param progress told about each file before it's opened, or undefined.
  */
-export async function openFromHandles(handles: readonly FileSystemFileHandle[]): Promise<OpenResult> {
+export async function openFromHandles(handles: readonly FileSystemFileHandle[],
+                                      progress?: OpenProgress): Promise<OpenResult> {
     const inputs: OpenInput[] = [];
     for (const handle of handles) {
         inputs.push({file: await handle.getFile(), handle});
     }
 
-    return openFiles(inputs);
+    return openFiles(inputs, progress);
 }
 
 /**

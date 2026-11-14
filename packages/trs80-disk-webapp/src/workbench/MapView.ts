@@ -18,6 +18,8 @@ export interface MapViewHost {
     sectorPicked(): void;
     /** The user asked to see the whole map again, after the Health view had narrowed it to some granules. */
     clearFocus(): void;
+    /** The user clicked a file in the legend, to see it in the Files view. */
+    showFile(name: string): void;
 }
 
 /**
@@ -235,7 +237,7 @@ export class MapView {
             }
             const swatch = el("span", "swatch");
             swatch.style.background = fileColor(file);
-            this.addLegendItem(legend, ownerKey(file.name), [swatch, el("span", "mono", file.name)], file.granuleCount);
+            this.addLegendItem(legend, ownerKey(file.name), [swatch, el("span", "mono", file.name)], file.granuleCount, file.name);
         }
         for (const kind of LEGEND_KINDS) {
             const count = model.kindCounts.get(kind) ?? 0;
@@ -468,10 +470,10 @@ export class MapView {
         grid.addEventListener("mouseover", event => {
             const cellElement = (event.target as HTMLElement).closest(".cell") as HTMLElement | null;
             const cell = cellElement === null ? undefined : this.cellsByElement.get(cellElement);
-            this.tip.textContent = cell?.tip ?? "Hover a sector to see what it is.";
+            this.tip.textContent = cell?.tip ?? "";
         });
         grid.addEventListener("mouseleave", () => {
-            this.tip.textContent = "Hover a sector to see what it is.";
+            this.tip.textContent = "";
         });
         grid.addEventListener("click", event => {
             const cellElement = (event.target as HTMLElement).closest(".cell") as HTMLElement | null;
@@ -488,7 +490,7 @@ export class MapView {
             this.pickedElement = pickedElement;
         }
 
-        this.tip.textContent = "Hover a sector to see what it is.";
+        this.tip.textContent = "";
         const left = el("div", "mapleft");
         if (focus !== undefined) {
             left.append(el("div", "focusbar", "Showing only the granules for: " + focus.title + " ",
@@ -567,9 +569,16 @@ export class MapView {
      * @param token what its cells carry in their data-o.
      * @param content the item's swatch and name.
      * @param count the number of granules.
+     * @param fileName the file's name if the item is a file, which a click shows in the Files view.
      */
-    private addLegendItem(legend: HTMLElement, token: string, content: HTMLElement[], count: number): void {
+    private addLegendItem(legend: HTMLElement, token: string, content: HTMLElement[], count: number,
+                          fileName?: string): void {
         const item = el("div", "item", ...content, el("span", "n", formatNumber(count)));
+        if (fileName !== undefined) {
+            item.classList.add("clickable");
+            item.title = "Show " + fileName + " in the Files view";
+            item.addEventListener("click", () => this.host.showFile(fileName));
+        }
         item.dataset.o = token;
         item.addEventListener("mouseenter", () => lightFiles([token]));
         item.addEventListener("mouseleave", () => lightFiles(undefined));

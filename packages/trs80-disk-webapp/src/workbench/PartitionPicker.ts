@@ -16,7 +16,7 @@ export interface PartitionPickerHost {
 }
 
 /**
- * The strip of partitions that a hard disk image shows before its view tabs: each partition's number, name, DOS,
+ * The strip of partitions that a hard disk image shows before its view tabs (the page chooses the first when the disk opens, so one is always chosen): each partition's number, name, DOS,
  * file count, and whether it can be written. Clicking one chooses it, which is the CLI's "partition N".
  */
 export class PartitionPicker {
@@ -72,9 +72,8 @@ export class PartitionPicker {
             return card;
         });
 
-        const heading = selected === undefined ?
-            "This image has " + countOf(partitions.length, "partition") + ". Choose the one to work on." :
-            "Partition";
+        const heading = partitions.length > 1 ?
+            "This image has " + countOf(partitions.length, "partition") + ". Click one to work on it." : "Partition";
         this.container.replaceChildren(el("h4", "partitionhead", heading), el("div", "dosgrid partitions", ...cards));
     }
 }

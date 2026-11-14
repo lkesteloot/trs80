@@ -7,6 +7,7 @@ import {
 import {previewFileOf} from "../core/preview/RowPreview.js";
 import {countOf, el, formatNumber, makeButton} from "../core/Dom.js";
 import type {DiskViewState} from "./ViewState.js";
+import {capitalize} from "./Text.js";
 
 /**
  * The "Info" tab's name in the preview tabs, next to the preview kinds.
@@ -52,18 +53,29 @@ function tabsFor(row: FileRow): PreviewTab[] {
 }
 
 /**
+ * The file's kind in words: the file's own description if it already begins with the kind (such as
+ * "CMD program (DATECO)"), and otherwise just the kind.
+ */
+function describeKind(row: FileRow): string {
+    const kind = fileKindToString(row.kind);
+    const description = row.trs80File.getDescription();
+    return description.toLowerCase().startsWith(kind.toLowerCase()) ?
+        kind + description.substring(kind.length) : kind;
+}
+
+/**
  * Make the "Info" tab's body: the file's directory entry in words.
  */
 function renderInfo(row: FileRow): HTMLElement {
     const list = el("dl", "kv");
     const add = (term: string, value: string, className = ""): void => {
-        list.append(el("dt", "", term), el("dd", className, value));
+        list.append(el("dt", "", term), el("dd", className, className === "mono" ? value : capitalize(value)));
     };
 
     add("Name", row.fullName, "mono");
     add("Size", formatNumber(row.size) + " bytes");
     add("Date", row.dateText === "" ? "None" : row.dateText);
-    add("Kind", fileKindToString(row.kind) + " (" + row.trs80File.getDescription() + ")");
+    add("Kind", describeKind(row));
     const attributes = row.attributes;
     if (attributes === undefined) {
         const flags = [row.isSystem ? "System" : "", row.isHidden ? "Invisible" : ""].filter(flag => flag !== "");

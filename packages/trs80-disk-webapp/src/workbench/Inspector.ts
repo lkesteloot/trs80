@@ -6,6 +6,7 @@ import {getDiskFacts, getSpaceUse} from "../core/DiskFacts.js";
 import {describeRow, renderPreviewPanel} from "./PreviewPanel.js";
 import {renderSectorPanel} from "./SectorPanel.js";
 import {type DiskViewState, ViewKind} from "./ViewState.js";
+import {capitalize} from "./Text.js";
 
 /**
  * What the inspector asks of the page.
@@ -17,6 +18,8 @@ export interface InspectorHost {
     openFullScreen(row: FileRow): void;
     /** Download the files, or a ZIP of several. */
     extract(rows: FileRow[]): void;
+    /** Show the file in the Files view, from a link in the sector panel. */
+    showFile(name: string): void;
     /** The number of rows on the disk that are user files, for the details. */
     countFiles(disk: OpenDisk): {user: number, system: number};
 }
@@ -48,7 +51,7 @@ export class Inspector {
     public render(disk: OpenDisk, state: DiskViewState, selected: FileRow[]): void {
         const showingSector = state.view === ViewKind.MAP && state.pickedSector !== undefined && !disk.session.isHardDisk();
         if (showingSector && state.pickedSector !== undefined) {
-            renderSectorPanel(this.container, disk, state.pickedSector);
+            renderSectorPanel(this.container, disk, state.pickedSector, name => this.host.showFile(name));
         } else if (selected.length === 0) {
             this.renderDetails(disk);
         } else if (selected.length === 1) {
@@ -123,7 +126,7 @@ export class Inspector {
         const facts = getDiskFacts(session);
         const list = el("dl", "kv");
         const add = (term: string, value: string, className = ""): void => {
-            list.append(el("dt", "", term), el("dd", className, value));
+            list.append(el("dt", "", term), el("dd", className, className === "mono" ? value : capitalize(value)));
         };
 
         let title = disk.name;
