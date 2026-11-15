@@ -1232,7 +1232,9 @@ class ConfiguredCanvas {
         this.halation = new NamedVariable("u_halation", [DEFAULT_HALATION]);
         this.blackpoint = new NamedVariable("u_blackpoint", [DEFAULT_BLACKPOINT]);
         this.vignette = new NamedVariable("u_vignette", [DEFAULT_VIGNETTE]);
-        this.reflection = new NamedVariable("u_reflection", [DEFAULT_REFLECTION]);
+        // Without a camera there's nothing to reflect, and mixing in the black texture
+        // would only dim the screen.
+        this.reflection = new NamedVariable("u_reflection", [this.camera === undefined ? 0 : DEFAULT_REFLECTION]);
         this.zoom = new NamedVariable("u_zoom", [DEFAULT_ZOOM]);
         this.zoomPoint = new NamedVariable("u_zoomPoint", ZOOM_POINTS[0]);
         this.startTime = Date.now() / 1000;
