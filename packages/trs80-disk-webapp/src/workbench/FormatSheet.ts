@@ -186,7 +186,7 @@ export class FormatSheet {
         // a page doesn't have, so say the page's way.
         const canHoldDmk = saveNameCanHoldDmk(this.options.disk.session);
         if (!canHoldDmk) {
-            this.sheet.setStatus("Format makes a DMK image, but this disk isn't a .dmk file. Use Save as… to save a " +
+            this.sheet.setStatus("Format makes a DMK image, but this disk isn't a .dmk file. Use Save As… to save a " +
                 "DMK copy, then open that and format it.", true);
             this.formatButton.disabled = true;
             return;

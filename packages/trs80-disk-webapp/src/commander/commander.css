@@ -52,7 +52,11 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 .diskcols { grid-template-columns: minmax(10ch, 1fr) 5ch 9ch 17ch 18ch; }
 .hostcols { grid-template-columns: 1fr 10ch 12ch; }
 .partcols { grid-template-columns: 14ch minmax(0, 1fr) 10ch; }
-.row .r { text-align: right; padding-right: 1ch; }
+.row .r, .cols .r { text-align: right; padding-right: 1ch; }
+.cols .sortable { cursor: pointer; user-select: none; }
+.cols .sortable:hover { color: var(--fg-strong); }
+/* The label that follows the mouse when several files are dragged. It's made offscreen, for the browser to snapshot. */
+.dragimage { position: fixed; top: -1000px; left: 0; padding: 4px 10px; font: inherit; color: var(--fg-strong); background: var(--dlg); border: 1px solid var(--fg-strong); white-space: nowrap; }
 .row.up { color: var(--fg-muted); }
 .row.img { color: var(--disk); font-weight: 600; }
 .row.sys { color: var(--fg-muted); }
@@ -76,11 +80,6 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 .msgs div { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
 .msgs .cmd { color: var(--fg-muted); }
 .msgs .err { color: var(--err); }
-.cmdline { display: flex; padding: 0 10px 2px; gap: 0; }
-.cmdline span { color: var(--head); white-space: pre; }
-.cmdline input {
-    flex: 1; background: transparent; border: none; outline: none; color: var(--fg-strong); font: inherit; padding: 0; caret-color: var(--head);
-}
 .fkeys { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 2px 6px 4px; }
 /* Every key is one block of the same color, number and label alike, and only the ones that can't be used now are dimmer. */
 .fkeys button { display: flex; white-space: nowrap; overflow: hidden; text-align: left; background: var(--key-bg); color: var(--key-fg); }
@@ -187,7 +186,7 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 @media (max-width: 699px) {
     body { display: block; height: auto; overflow: auto; }
     .phonenote { display: block; }
-    .panels, .msgs, .cmdline, .fkeys { display: none; }
+    .panels, .msgs, .fkeys { display: none; }
     .title { height: auto; flex-wrap: wrap; padding: 2px 10px; }
     .title > span, .title [data-fk], .title [data-act] { display: none; }
     .title .grow { display: block; }

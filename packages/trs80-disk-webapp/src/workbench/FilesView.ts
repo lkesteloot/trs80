@@ -1,7 +1,8 @@
 import {TrsdosProtectionLevel} from "trs80-base";
 import {fileKindToString, type FileRow, filterRows, omitHiddenRows} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {el, formatNumber, makeButton, makeCheckbox, makeSwitch} from "../core/Dom.js";
+import {countOf, el, formatNumber, makeButton, makeCheckbox, makeSwitch} from "../core/Dom.js";
+import {putFilesOnDrag, zipNameForDisk} from "../core/Extracting.js";
 import {lightFiles, ownerKey} from "./Highlight.js";
 import type {DiskViewState} from "./ViewState.js";
 
@@ -13,7 +14,7 @@ export interface FilesViewHost {
     getRows(disk: OpenDisk, includeSystem: boolean): FileRow[];
     /** The color of a file's swatch, or undefined for none. */
     getColor(disk: OpenDisk, fullName: string): string | undefined;
-    /** How many other disks are open, which decides whether "Copy to…" is available. */
+    /** How many other disks are open, which decides whether "Copy To…" is available. */
     otherDiskCount(): number;
     /** The selection changed: the inspector should redraw. */
     selectionChanged(): void;
@@ -103,10 +104,10 @@ export class FilesView {
         const separator = (): void => {
             bar.append(el("span", "sep"));
         };
-        add("add", "＋ Add files", () => host.chooseFilesToAdd(), "primary");
+        add("add", "＋ Add Files", () => host.chooseFilesToAdd(), "primary");
         add("extract", "Extract", () => this.withSelection(rows => host.extract(rows)));
         if (host.canExtractToFolder()) {
-            add("folder", "Extract to folder…", () => this.withSelection(rows => host.extractToFolder(rows)));
+            add("folder", "Extract to Folder…", () => this.withSelection(rows => host.extractToFolder(rows)));
         }
         add("view", "View", () => this.withSelection(rows => host.openFullScreen(rows[0])));
         separator();
@@ -114,7 +115,7 @@ export class FilesView {
         add("attributes", "Attributes", () => this.withSelection(rows => host.attributes(rows)));
         add("delete", "Delete", () => this.withSelection(rows => host.remove(rows)), "danger");
         separator();
-        add("copy", "Copy to…", () => this.withSelection(rows => host.copyTo(rows)));
+        add("copy", "Copy To…", () => this.withSelection(rows => host.copyTo(rows)));
         bar.append(el("span", "grow"));
 
         this.filterInput.type = "search";
@@ -301,6 +302,9 @@ export class FilesView {
             el("td", "", row.dateText), pills, el("td", "kind", fileKindToString(row.kind)));
         tr.dataset.name = row.fullName;
         tr.dataset.fo = ownerKey(row.fullName);
+        // Dragging the row out of the page saves the file (or the selected files, as a ZIP) where it's dropped.
+        tr.draggable = !renaming;
+        tr.addEventListener("dragstart", event => this.onRowDragStart(event, row));
         // Light up the file's part of the space bar.
         tr.addEventListener("mouseenter", () => lightFiles([row.fullName]));
         tr.addEventListener("mouseleave", () => lightFiles(undefined));
@@ -310,6 +314,33 @@ export class FilesView {
             this.host.openFullScreen(row);
         });
         return tr;
+    }
+
+    /**
+     * A file's row starts being dragged: the selected files if it's one of them, and otherwise just it, go with the
+     * drag, so that dropping it on the desktop or in a folder saves them, as extracting would (one file as itself,
+     * several as a ZIP). That works in Chromium only.
+     */
+    private onRowDragStart(event: DragEvent, row: FileRow): void {
+        const disk = this.disk;
+        const state = this.state;
+        if (disk === undefined || state === undefined || event.dataTransfer === null) {
+            event.preventDefault();
+            return;
+        }
+        this.cancelRenameTimer();
+
+        const rows = state.selected.has(row.fullName) ? this.selectedRows() : [row];
+        putFilesOnDrag(event.dataTransfer, rows, zipNameForDisk(disk.name),
+            {lowercase: state.extractLowercase, markDamaged: state.extractMarkDamaged});
+        event.dataTransfer.effectAllowed = "copy";
+        if (rows.length > 1) {
+            // The browser would show only the row under the mouse, so show a label that says how many.
+            const label = el("div", "dragimage", countOf(rows.length, "file"));
+            document.body.append(label);
+            event.dataTransfer.setDragImage(label, 0, 0);
+            setTimeout(() => label.remove(), 0);
+        }
     }
 
     /**

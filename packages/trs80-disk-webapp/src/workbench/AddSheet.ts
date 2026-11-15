@@ -101,7 +101,7 @@ export class AddSheet {
             this.addFiles(Array.from(moreInput.files ?? []));
             moreInput.value = "";
         });
-        const moreButton = makeButton("Choose more files…", () => moreInput.click());
+        const moreButton = makeButton("Choose More Files…", () => moreInput.click());
 
         const content = el("div", "", table, this.makeOptions(), el("div", "btnrow addmore", moreButton, moreInput));
         this.addButton = makeButton("Add", () => this.add(), "primary");

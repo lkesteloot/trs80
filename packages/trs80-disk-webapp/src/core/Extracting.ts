@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import {DiskError, extractCommandLine} from "trs80-disk";
 import type {FileRow} from "./FileRows.js";
 import {downloadBlob, downloadBytes} from "./Saving.js";
+import {makeZip} from "./Zip.js";
 
 /**
  * How extracted files are named. These are the options of the "extract" command that apply to a page.
@@ -169,6 +170,52 @@ export async function downloadZip(rows: readonly FileRow[], zipName: string,
     downloadBlob(blob, zipName);
 
     return {commandLine: makeCommandLine(rows, options), written: files.map(file => file.path.join("/")), skipped: []};
+}
+
+/** How long a dragged file's URL stays valid, which must cover the drop and the browser's fetch of it. */
+const DRAG_URL_LIFETIME_MS = 60_000;
+
+/**
+ * Let files be dragged out of the page to the desktop or a folder, as Chromium allows with its "DownloadURL" drag
+ * data: one file as itself, named as extracting would name it, or several as one ZIP, since a drag can carry only
+ * one. Call it from the dragstart handler, which this must finish in, so the ZIP is made synchronously. Other
+ * browsers ignore the data.
+ *
+ * @param dataTransfer the drag's data.
+ * @param rows the files.
+ * @param zipName the name of the ZIP for several files, such as "mydisk.zip".
+ * @param options how to name the files.
+ */
+export function putFilesOnDrag(dataTransfer: DataTransfer, rows: readonly FileRow[], zipName: string,
+                               options: ExtractOptions = {}): void {
+
+    const files = planExtraction(rows, options);
+    let bytes: Uint8Array;
+    let name: string;
+    let type: string;
+    if (files.length === 1) {
+        bytes = files[0].bytes;
+        name = files[0].path[files[0].path.length - 1];
+        type = "application/octet-stream";
+    } else {
+        bytes = makeZip(files.map(file => ({path: file.path.join("/"), bytes: file.bytes, date: file.date})));
+        name = zipName;
+        type = "application/zip";
+    }
+
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], {type}));
+    // The value is "type:name:url", so the name can't have a colon.
+    dataTransfer.setData("DownloadURL", type + ":" + name.replace(/:/g, "_") + ":" + url);
+    setTimeout(() => URL.revokeObjectURL(url), DRAG_URL_LIFETIME_MS);
+}
+
+/**
+ * The name of the ZIP that a disk's files are put in: the disk's name with ".zip" for its extension.
+ *
+ * @param diskName the disk's name, such as "games.dmk".
+ */
+export function zipNameForDisk(diskName: string): string {
+    return diskName.replace(/\.[^.]*$/, "") + ".zip";
 }
 
 /**

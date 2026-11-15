@@ -201,7 +201,7 @@ export class HealthView {
         const actions = el("span", "");
         if (finding.granules.length > 0) {
             const granules = new Set(finding.granules.map(granule => granule.lump + ":" + granule.granule));
-            const button = makeButton("Show on map", () => this.host.showOnMap(finding.message, granules));
+            const button = makeButton("Show on Map", () => this.host.showOnMap(finding.message, granules));
             button.title = "Switch to the Map, lit up at " + countOf(granules.size, "granule") + ".";
             actions.append(button);
         }

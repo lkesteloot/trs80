@@ -1669,7 +1669,10 @@ export class DiskSession {
 
     /**
      * Put the disk back the way it was when it was last saved (or when the session opened, if it hasn't
-     * been saved). This is a change like any other, so it can be undone, and it clears the redo stack.
+     * been saved). If the saved disk is still in the history, this undoes (or redoes) the changes back to it,
+     * as that many undos would. Otherwise (the change after it was dropped to save memory, or it was undone and
+     * then replaced by another change) this is a change like any other, which can be undone, and which clears
+     * the redo stack.
      *
      * @returns whether anything was reverted: false if the disk is already as last saved.
      */
@@ -1678,8 +1681,30 @@ export class DiskSession {
             return false;
         }
 
-        this.pushUndoState("revert", this.captureState());
-        this.restoreState(this.savedState);
+        const savedIsUndone = this.undoStack.some(entry => entry.state.revision === this.savedRevision);
+        const savedIsRedone = this.redoStack.some(entry => entry.state.revision === this.savedRevision);
+        if (savedIsUndone) {
+            // Each undo entry holds the disk from before its change, and the redo entry that it becomes holds
+            // the disk from after it, which is the one before the next.
+            let after = this.captureState();
+            while (after.revision !== this.savedRevision) {
+                const entry = this.undoStack.pop() as DiskHistoryEntry;
+                this.redoStack.push({label: entry.label, state: after});
+                after = entry.state;
+            }
+            this.restoreState(after);
+        } else if (savedIsRedone) {
+            let before = this.captureState();
+            while (before.revision !== this.savedRevision) {
+                const entry = this.redoStack.pop() as DiskHistoryEntry;
+                this.undoStack.push({label: entry.label, state: before});
+                before = entry.state;
+            }
+            this.restoreState(before);
+        } else {
+            this.pushUndoState("revert", this.captureState());
+            this.restoreState(this.savedState);
+        }
         this.notifyChange();
 
         return true;

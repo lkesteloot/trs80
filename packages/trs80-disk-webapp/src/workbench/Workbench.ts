@@ -9,7 +9,7 @@ import {
     label as changeLabel, protect, redo, rename, repair, type RepairOptions, revert, trim, undo,
 } from "../core/Actions.js";
 import {
-    downloadFile, downloadZip, extractToFolder, type ExtractOptions, type ExtractResult,
+    downloadFile, downloadZip, extractToFolder, type ExtractOptions, type ExtractResult, zipNameForDisk,
 } from "../core/Extracting.js";
 import {type FileRow, filterRows, getFileRows, omitHiddenRows} from "../core/FileRows.js";
 import {boot, describeBoot} from "../core/Booting.js";
@@ -1099,7 +1099,7 @@ export class Workbench implements FilesViewHost {
                 result = downloadFile(rows[0], options);
                 line = "Downloaded " + result.written[0] + ".";
             } else {
-                const zipName = disk.name.replace(/\.[^.]*$/, "") + ".zip";
+                const zipName = zipNameForDisk(disk.name);
                 result = await downloadZip(rows, zipName, options);
                 line = "Downloaded " + zipName + " with " + countOf(rows.length, "file") + ".";
             }

@@ -34,7 +34,7 @@
             <h2>Drop a disk image here</h2>
             <p>DMK, JV1, JV3, HFE, IMD, SCP, or HDV (gzipped or not), or a ZIP of them. You can then list, view, extract, add, rename, and delete files,
                fix problems, and boot it in the emulator.</p>
-            <div class="btnrow"><button class="primary" id="openBtn">Choose a file…</button></div>
+            <div class="btnrow"><button class="primary" id="openBtn">Choose a File…</button></div>
             <p class="hint" style="margin:0">Or <a href="#" id="sampleLink">try a sample</a>: a small disk with three BASIC programs.</p>
         </div>
         <div id="newDisk">
@@ -44,7 +44,7 @@
                 <div class="form">
                     <label>Kind</label>
                     <div class="segmented" id="kindChoice">
-                        <button class="on" data-sys="0">Data disk</button><button data-sys="1">System disk (bootable)</button>
+                        <button class="on" data-sys="0">Data Disk</button><button data-sys="1">System Disk (Bootable)</button>
                     </div>
                     <label>Cylinders</label><div class="segmented" id="cylinderChoice"></div>
                     <label>Sides</label><div class="segmented" id="sideChoice"></div>
@@ -72,10 +72,6 @@
 </main>
 
 <footer class="strip" id="strip" hidden></footer>
-<div class="console" id="console" hidden>
-    <div class="log" id="conlog"></div>
-    <div class="inrow"><span id="conprompt">&gt;</span><input id="conin" autocomplete="off" spellcheck="false"></div>
-</div>
 <div id="modal"></div>
 <input type="file" id="filePick" multiple hidden>
 

@@ -52,7 +52,7 @@ export class HistoryView {
         undo.disabled = history.position === 0;
         const redo = makeButton("↷ Redo", () => this.host.redo());
         redo.disabled = history.position >= length;
-        const revert = makeButton("Revert to saved", () => this.host.revert());
+        const revert = makeButton("Revert to Saved", () => this.host.revert());
         const hasChanges = session.hasChanges();
         revert.disabled = !hasChanges;
         revert.title = hasChanges ? "Put the disk back as it was when last saved. Undo takes this back." :

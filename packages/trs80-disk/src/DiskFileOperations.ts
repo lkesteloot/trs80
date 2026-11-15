@@ -577,6 +577,12 @@ export interface AddOptions {
     text: boolean;
     /** The BASIC to tokenize for (--basic, or the disk's). */
     basic: BasicDialect;
+    /**
+     * The BASIC of the disk that the files were copied from, when they came from one (a page's copy between
+     * disks; the command line has no option for it), or undefined. Tokenized programs are
+     * read as this BASIC's when their bytes don't say, and converted if it isn't the disk's.
+     */
+    sourceBasic?: BasicDialect | undefined;
     /** Make the files system files (--system). On CP/M this and --invisible both mean SYS. */
     system: boolean;
     /** Hide the files from directory listings (--invisible). */
@@ -701,6 +707,7 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
                 binary: options.binary,
                 text: options.text,
                 basic: options.basic,
+                sourceBasic: options.sourceBasic,
             });
         } catch (e) {
             if (e instanceof DiskError) {

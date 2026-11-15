@@ -65,11 +65,11 @@ export class TopBar {
      * @param active whether the start screen is on show.
      */
     private makeStartTab(active: boolean): HTMLElement {
-        const label = el("button", "tablabel", "＋ Open or new");
+        const label = el("button", "tablabel", "＋ Open or New");
         label.type = "button";
         label.title = "Open a disk image, or make a new disk";
         label.addEventListener("click", () => this.host.showStart());
-        return el("div", "tab start" + (active ? " active" : ""), label);
+        return el("div", "tab opentab" + (active ? " active" : ""), label);
     }
 
     /**

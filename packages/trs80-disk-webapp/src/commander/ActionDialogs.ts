@@ -116,8 +116,16 @@ export interface AddDialogOptions {
     title: string;
     /** A sentence at the top, saying where the files come from. */
     subtitle: string;
-    /** Whether the files come from another disk, in which case they're copied exactly, with their dates. */
+    /**
+     * Whether the files come from another disk, in which case they're copied exactly, with their dates, unless
+     * the two disks' BASICs differ.
+     */
     copyMode: boolean;
+    /**
+     * The BASIC of the disk that the files come from, when they come from one. When it isn't this disk's, the
+     * files are converted (Auto) by default, so that BASIC programs are tokenized again for this disk's BASIC.
+     */
+    sourceBasic?: BasicDialect | undefined;
     /** Called after the files have been added. */
     afterAdd: (result: AddFilesResult) => void;
 }
@@ -130,8 +138,9 @@ export interface AddDialogOptions {
  * @param options what to add.
  */
 export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): void {
-    const {disk, files, copyMode} = options;
-    let conversion: Conversion = copyMode ? "binary" : "auto";
+    const {disk, files, copyMode, sourceBasic} = options;
+    const otherBasic = sourceBasic !== undefined && sourceBasic !== disk.session.getBasicDialect();
+    let conversion: Conversion = copyMode && !otherBasic ? "binary" : "auto";
     let overwrite = false;
     let useFileDates = copyMode && files.every(file => file.lastModified > 0);
     let basic: BasicDialect | undefined = undefined;
@@ -203,7 +212,8 @@ export function openAddPlanDialog(host: ActionHost, options: AddDialogOptions): 
     function makeOptions(): AddActionOptions {
         return {
             as: files.length === 1 && asName.trim() !== "" ? asName.trim() : undefined,
-            ascii: conversion === "ascii", binary: conversion === "binary", text: false, basic, system: false, invisible: false, overwrite, date: undefined, useFileDates,
+            ascii: conversion === "ascii", binary: conversion === "binary", text: false, basic, sourceBasic,
+            system: false, invisible: false, overwrite, date: undefined, useFileDates,
         };
     }
 

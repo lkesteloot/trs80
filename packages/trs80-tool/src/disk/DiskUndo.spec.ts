@@ -255,7 +255,7 @@ describe("disk undo, redo and revert", () => {
         expect(session.hasChanges()).to.equal(false);
     });
 
-    it("reverts several changes at once, and the revert can be undone", async () => {
+    it("reverts several changes at once, as that many undos, which redo takes back", async () => {
         makeImage([HELLO, WORLD]);
         const session = openDiskSession(imagePathname);
 
@@ -269,13 +269,28 @@ describe("disk undo, redo and revert", () => {
         expect(session.hasChanges()).to.equal(false);
         expect(await run(session, "revert")).to.eql(["Nothing to revert: the disk is as last saved."]);
 
-        expect(await run(session, "undo")).to.eql(["Undid \"revert\"."]);
-        expect(fileNames(session)).to.eql([]);
-        expect(session.hasChanges()).to.equal(true);
-
-        // The changes before the revert are still there to undo, one at a time.
-        await run(session, "undo");
+        // The reverted changes are there to redo, one at a time.
+        expect(await run(session, "undo")).to.eql(["Nothing to undo."]);
+        expect(await run(session, "redo")).to.eql(["Redid \"rm HELLO.BAS\"."]);
         expect(fileNames(session)).to.eql(["WORLD.BAS"]);
+        expect(session.hasChanges()).to.equal(true);
+    });
+
+    it("reverts with a change that undo takes back when the saved disk has left the history", async () => {
+        makeImage([HELLO, WORLD]);
+        const session = openDiskSession(imagePathname);
+
+        // Undoing the saved change and making another drops the saved disk from the history.
+        await run(session, "rm HELLO.BAS");
+        await run(session, "save");
+        await run(session, "undo");
+        await run(session, "rm WORLD.BAS");
+        expect(fileNames(session)).to.eql(["HELLO.BAS"]);
+
+        expect(await run(session, "revert")).to.eql(["Reverted to the disk as last saved."]);
+        expect(fileNames(session)).to.eql(["WORLD.BAS"]);
+        expect(await run(session, "undo")).to.eql(["Undid \"revert\"."]);
+        expect(fileNames(session)).to.eql(["HELLO.BAS"]);
     });
 
     it("reverts to the disk as last saved, not as opened", async () => {

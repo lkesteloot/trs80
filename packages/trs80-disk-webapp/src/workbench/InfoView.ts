@@ -323,12 +323,12 @@ export class InfoView {
         if (trimReason === undefined && !canTrimFloppy(session.floppy)) {
             trimReason = "Trim works on " + TRIMMABLE_FLOPPY_FORMATS + " images, not on " + session.floppy.getDescription() + ".";
         }
-        const trim = makeButton("Trim unused tracks…", () => this.host.trim());
+        const trim = makeButton("Trim Unused Tracks…", () => this.host.trim());
         trim.disabled = trimReason !== undefined;
         row.append(withDisabledReason(trim, trimReason));
 
         const saveAsReason = session.isHardDisk() ? "A hard disk image can only be saved as it is." : undefined;
-        const saveAs = makeButton("Save as another format…", () => this.host.saveAs());
+        const saveAs = makeButton("Save as Another Format…", () => this.host.saveAs());
         saveAs.disabled = saveAsReason !== undefined;
         row.append(withDisabledReason(saveAs, saveAsReason));
 
