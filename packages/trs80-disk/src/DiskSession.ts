@@ -1106,13 +1106,42 @@ export class DiskSession {
      * @param floppy the new floppy, with the contents to be saved.
      */
     public setFloppy(floppy: FloppyDisk): void {
+        // A new disk is detected afresh, whatever layout the old one had.
+        this.installFloppy(floppy, decodeFloppyFileSystem(floppy), undefined);
+    }
+
+    /**
+     * Put a new CP/M floppy in the session with the layout that the caller made it with, as {@link setFloppy} does
+     * but without detecting the layout. The layout counts as named by the user (as if --cpm-format had been given),
+     * so the write gate doesn't doubt it, and the disk can be saved even if it wouldn't be recognized as that
+     * layout when it's opened again (see {@link getSaveWarning}).
+     *
+     * @param floppy the new floppy, with the contents to be saved.
+     * @param preset the layout that the floppy was made with.
+     * @throws DiskError if the image can't hold the layout.
+     */
+    public setCpmFloppy(floppy: FloppyDisk, preset: CpmVerifiedLayout): void {
+        // A disk that was just made has nothing to say about what it reads as without the layout, so no warning.
+        const {cpm} = decodeWithCpmFormat(floppy, preset, false);
+        this.installFloppy(floppy, cpm, preset);
+    }
+
+    /**
+     * Make a floppy the session's disk, with its file system already decoded.
+     *
+     * @param floppy the new floppy.
+     * @param fileSystem its file system, or undefined if none was recognized.
+     * @param namedCpmFormat the CP/M layout that the user named for it, if they did, which also settles the layout.
+     */
+    private installFloppy(floppy: FloppyDisk, fileSystem: KnownFloppyFileSystem | undefined,
+                          namedCpmFormat: CpmVerifiedLayout | undefined): void {
+
         this.currentImage = floppy;
         this.partitions = [];
         this.selectedPartitionIndex = undefined;
-        // A new disk is detected afresh, whatever layout the old one had.
-        this.currentFileSystem = decodeFloppyFileSystem(floppy);
-        this.layoutSettled = false;
-        this.namedCpmFormat = undefined;
+        this.currentFileSystem = fileSystem;
+        this.layoutSettled = namedCpmFormat !== undefined;
+        this.namedCpmFormat = namedCpmFormat;
         this.granuleMap = null;
         this.writeGate = null;
         this.cpmWriteGate = null;

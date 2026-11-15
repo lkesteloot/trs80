@@ -1,6 +1,6 @@
 import zlib from "zlib";
 import type {DiskTemplateSource} from "trs80-disk";
-import {DATA_DISK_BOOT_SECTORS_HEX, SYSTEM_DISK_TEMPLATES_BASE64} from "./Templates.js";
+import {DATA_DISK_BOOT_SECTORS_HEX, MONTEZUMA_SYSTEM_TRACKS_HEX, SYSTEM_DISK_TEMPLATES_BASE64} from "./Templates.js";
 
 /**
  * The templates that are embedded in this build of the tool (see Templates.ts), for the disk engine's
@@ -23,5 +23,12 @@ export const NODE_TEMPLATES: DiskTemplateSource = {
      */
     bootSectorsHex(key: string): readonly string[] | undefined {
         return DATA_DISK_BOOT_SECTORS_HEX[key];
+    },
+
+    /**
+     * The embedded Montezuma system tracks of that preset, as a hex string, or undefined if it has none.
+     */
+    montezumaSystemTracksHex(presetId: string): string | undefined {
+        return MONTEZUMA_SYSTEM_TRACKS_HEX[presetId];
     },
 };

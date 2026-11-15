@@ -834,6 +834,7 @@ partition --delete [N|NAME] [--force]</code></pre>
 
             <h3 id="create"><code>create</code></h3>
             <div><pre><code>create DOS
+create cpm [--cpm-format NAME] [--system-from IMAGE]     (a Montezuma Micro CP/M disk)
 create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for a name ending in .hdv)</code></pre>
             </div>
             <p>Make a new, blank, formatted data disk, with no files, the way the DOS’s own
@@ -846,7 +847,8 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
             <code>quit</code> or the end of the run saves it.</p>
             <p>The DOS to make the disk for is required, and comes first. It is one of
             <code>trsdos-2.3</code>, <code>trsdos-1.3</code>, <code>ldos-5.3</code>,
-            <code>trsdos-6.2</code> and <code>lsdos-6.3</code>; <code>help create</code>, and the error for
+            <code>trsdos-6.2</code> and <code>lsdos-6.3</code>, or <code>cpm</code> for a Montezuma Micro CP/M 2.2
+            disk, described <a href="#create-cpm">below</a>; <code>help create</code>, and the error for
             a missing or unknown DOS, list them with what each makes. (This is not the
             <code>--dos</code> option that goes before the first command.)</p>
 
@@ -854,7 +856,8 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
                 <tr>
                     <td><code>--cylinders N</code></td>
                     <td>The number of cylinders. The default is 40, or 35 for TRSDOS 2.3; the DOS sets the
-                        limits. With <code>--system</code>, it is refused if it differs from the system disk’s.</td>
+                        limits (CP/M has 40 or 80). With <code>--system</code>, it is refused if it differs from the
+                        system disk’s.</td>
                 </tr>
                 <tr>
                     <td><code>--sides 1|2</code></td>
@@ -863,7 +866,8 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
                 </tr>
                 <tr>
                     <td><code>--density single|double</code></td>
-                    <td>The recording density. The default is single for TRSDOS 2.3 and double for the others. With
+                    <td>The recording density. The default is single for TRSDOS 2.3 and double for the others (CP/M
+                        disks are double). With
                         <code>--system</code>, it is refused if it differs from the system disk’s.</td>
                 </tr>
                 <tr>
@@ -895,6 +899,17 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
                     <td>With <code>--system</code>, remove every file that isn’t a system file, keeping what the DOS needs to
                         boot (and saying what it removed), to leave room on the disk.</td>
                 </tr>
+                <tr>
+                    <td><code>--cpm-format NAME</code></td>
+                    <td>For <code>cpm</code>, the layout to make, from <a href="#cpm-formats">the table</a>. It may also
+                        be given before the first command. <code>--sides</code> and <code>--cylinders</code> must agree
+                        with it.</td>
+                </tr>
+                <tr>
+                    <td><code>--system-from IMAGE</code></td>
+                    <td>For <code>cpm</code>, copy the system tracks of this disk image onto the new disk in place of
+                        the layout’s usual ones. It must read as the same layout.</td>
+                </tr>
             </table>
 
             <p>The disk gets the DOS’s own data-disk boot sectors, copied from disks that the DOS formatted,
@@ -915,19 +930,50 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
                 <li>LDOS 5.3.1 for the Model III</li>
                 <li>TRSDOS 6.2.1 for the Model 4</li>
                 <li>LS-DOS 6.3.1 for the Model 4</li>
+                <li>Montezuma Micro CP/M 2.2, BIOS 2.32, for the Model 4 (used by <code>create cpm --system</code>)</li>
             </ul>
             <p>These disks and the DOSes’ boot sectors are the DOS publishers’ software, shipped inside the
             tool as the trs80gp emulator ships them. They will be taken out of the tool if the rights holders
             ask.</p>
 
+            <p id="create-cpm"><strong>CP/M disks.</strong> <code>create cpm</code> makes a Montezuma Micro CP/M 2.2
+            floppy in one of <a href="#cpm-formats">the layouts</a>. With no <code>--cpm-format</code> it is a data
+            format: <code>mm-data</code> (10 sectors of 512 bytes, 40 tracks, one side, 200K), or
+            <code>mm-ds-data</code> with <code>--sides 2</code>, <code>mm-80-data</code> with
+            <code>--cylinders 80</code>, or <code>mm-80-ds-data</code> with both. <code>--cpm-format</code> names any
+            layout, and then <code>--sides</code> and <code>--cylinders</code> must agree with it. Every sector is
+            0xE5, so the directory is empty, as Montezuma’s FORMAT leaves it. <code>--density</code> may only be
+            double, and <code>--name</code>, <code>--date</code>, <code>--model</code> and <code>--minimal</code> are errors,
+            since CP/M disks have none of those. The layout counts as named, so later commands in the same run can write
+            to the disk, and when the saved disk wouldn’t be recognized as that layout the next time it’s opened (as
+            with the skew-4 layouts <code>mm-1.26-system</code> and <code>mm-1.26-ds-system</code>, and
+            <code>mm-1.42-ds-system</code>), saving says to give <code>--cpm-format</code> again.</p>
+            <p>A layout with reserved tracks is a system format, and gets system tracks. The four 18 × 256
+            layouts of BIOS 2.x (<code>mm-system</code>, <code>mm-ds-system</code>, <code>mm-80-system</code> and
+            <code>mm-80-ds-system</code>) get the two system tracks of a BIOS 2.32 system, with an
+            empty directory, as SYSGEN leaves a disk. Montezuma’s BIOS takes each drive’s sides and tracks, and each
+            logical drive’s format, from the configuration stored in its system tracks and not from the disk, so each of
+            the four layouts gets a 2.32 system configured by Montezuma’s <code>CONFIG</code> for a drive of that shape,
+            with no startup command. They were booted and tested in an emulator. The second system track is on
+            cylinder 0 side 1 when the disk has two sides and on cylinder 1 when it has one. The extended (10 × 512) layouts and the version 1.x
+            ones have no system of that shape, so they get the boot sector that Montezuma’s FORMAT leaves (which says
+            there’s no CP/M on the disk), and 0xE5 in the rest of the reserved tracks. <code>--system-from IMAGE</code>
+            copies another disk’s system tracks instead, which needs a disk of the same layout, because the system holds
+            the drive configuration.</p>
+            <p><code>create cpm --system</code> copies the whole BIOS 2.32 system disk, with its 22 files (CONFIG,
+            MOVCPM, SYSGEN, PIP and so on). It is <code>mm-system</code>, so <code>--cpm-format</code>,
+            <code>--sides</code> and <code>--cylinders</code> must agree with that, and <code>--system-from</code> can’t
+            be given.</p>
+
             <h3 id="format"><code>format</code></h3>
-            <div><pre><code>format [DOS]</code></pre>
+            <div><pre><code>format [DOS]
+format cpm [--cpm-format NAME] [--system-from IMAGE | --keep-system]</code></pre>
             </div>
             <p>Erase the disk and format it as an empty data disk. It takes the same options as
             <a href="#create"><code>create</code></a>, except <code>--system</code> and
             <code>--minimal</code>, with an optional DOS that defaults to the disk’s own (it is required if
-            that isn’t one of the five), the cylinders and sides default to the disk’s, and an
-            LDOS-family disk keeps its density. The result is a DMK image, so
+            that isn’t one of the five, or CP/M, which a CP/M disk gets by default), the cylinders and sides default to
+            the disk’s, and an LDOS-family disk keeps its density. The result is a DMK image, so
             for an image of another kind give <code>-o NEW.dmk</code> to save it under a new name.
             Like everything else it changes the disk in memory, and nothing is saved until the end.</p>
             <p>On a hard disk it formats the chosen partition again, in the same place with the same cylinders,
@@ -935,12 +981,34 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
             date unless <code>--date</code> is. The DOS defaults to the partition’s own and must be
             <code>ldos-5.3</code> or <code>lsdos-6.3</code>. <code>--cylinders</code>, <code>--sides</code> and
             <code>--density</code> don’t apply.</p>
+            <p><code>format cpm</code> formats the disk as a Montezuma Micro CP/M 2.2 floppy, as
+            <a href="#create-cpm"><code>create cpm</code></a> makes one. The layout is the one named with
+            <code>--cpm-format</code>; otherwise, if <code>--sides</code> or <code>--cylinders</code> is given, the data
+            format with those; otherwise the layout the disk has now, if it’s one of the presets; and otherwise the data
+            format of the disk’s own sides and cylinders. Montezuma’s FORMAT erases the system tracks too, so this does
+            as well, and gives the new disk the system tracks that <code>create</code> would.
+            <code>--keep-system</code> keeps the disk’s own system tracks instead, which needs the new layout to be the
+            disk’s own, because the system holds the drive configuration; <code>--system-from</code> copies another
+            disk’s, which must read as the new layout.</p>
 
             <table class="flags">
                 <tr>
                     <td><code>--force</code></td>
                     <td>Erase a disk that has files. Without it, <code>format</code> says how many files
                         would be lost and does nothing.</td>
+                </tr>
+                <tr>
+                    <td><code>--cpm-format NAME</code></td>
+                    <td>For <code>cpm</code>, the layout to make, as for <code>create</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>--system-from IMAGE</code></td>
+                    <td>For <code>cpm</code>, copy the system tracks of this disk image onto the new disk, as for
+                        <code>create</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>--keep-system</code></td>
+                    <td>For <code>cpm</code>, keep the disk’s own system tracks.</td>
                 </tr>
             </table>
 

@@ -40,6 +40,7 @@ export * from "./TrsdosWriter.js";
 export * from "./Cpm.js";
 export * from "./CpmFilename.js";
 export * from "./CpmWriteGate.js";
+export * from "./CpmCreate.js";
 export * from "./CpmWriter.js";
 export * from "./CpmTestDisk.js";
 export * from "./MicroDos.js";

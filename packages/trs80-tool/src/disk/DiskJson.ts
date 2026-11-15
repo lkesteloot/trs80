@@ -788,6 +788,8 @@ export interface CreateResultJson {
     description: string;
     /** Whether the command replaced a disk that was there (always true for "format", which erases). */
     replaced: boolean;
+    /** Only for CP/M disks: the preset (layout) that the new disk has, such as "mm-data". */
+    cpmFormat?: string;
     /** Only for "create --system": where the disk was copied from. */
     systemDisk?: {
         /** What the system disk is, such as "LS-DOS 6.3.1 system disk for the Model 4". */

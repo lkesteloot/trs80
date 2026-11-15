@@ -1,7 +1,8 @@
 /**
  * The templates that ship inside the tool: the DOSes' own data-disk boot sectors, which make "create" and
- * "format" disks (and hard disk partitions) that match what each DOS's FORMAT makes, and six bootable system
- * disks for "create --system".
+ * "format" disks (and hard disk partitions) that match what each DOS's FORMAT makes, six bootable system
+ * disks for "create --system", and Montezuma Micro CP/M's system disk and no-system boot sectors, which CP/M disks
+ * are made from (they're kept apart from the TRSDOS-family ones, since CP/M isn't a {@link TrsdosFormatDos}).
  * The files are in trs80-disk's templates/ (see its README.md), and trs80-tool's tools/GenerateTemplates.ts embeds
  * them in its Templates.ts. Here the templates come through a {@link DiskTemplateSource}, so that a browser can fetch them as
  * files instead.
@@ -21,6 +22,11 @@ export interface DiskTemplateSource {
     systemDisk(name: string): Uint8Array | undefined;
     /** The named boot sectors, as hex strings, or undefined if there are none by that name. */
     bootSectorsHex(key: string): readonly string[] | undefined;
+    /**
+     * The hex string of a Montezuma Micro CP/M preset's BIOS 2.32 system tracks, as in
+     * montezuma-cpm-2.32-system-tracks.json, or undefined if the preset has none.
+     */
+    montezumaSystemTracksHex(presetId: string): string | undefined;
 }
 
 /**
@@ -96,6 +102,31 @@ export function findSystemDiskTemplate(dos: TrsdosFormatDos, model: 1 | 3 | 4 | 
 }
 
 /**
+ * Make a new copy of a system disk image, writable and not write-protected, ready to change. (The templates
+ * are write-protected or not as the original disks were; the copy never is.)
+ *
+ * @param source where the templates come from.
+ * @param name the template's name.
+ * @throws DiskError if the template is missing or isn't a DMK image, which means a bad build.
+ */
+function loadSystemDiskImage(source: DiskTemplateSource, name: string): DmkFloppyDisk {
+    const original = source.systemDisk(name);
+    if (original === undefined) {
+        throw new DiskError("The system disk " + name + " isn't in this build of the tool");
+    }
+
+    // Change a copy, so that the source's own bytes stay as they were.
+    const binary = new Uint8Array(original);
+    // The first byte of a DMK image is its write-protect flag.
+    binary[0] = 0;
+    const floppy = decodeTrs80File(binary, {filename: name + ".dmk"});
+    if (!(floppy instanceof DmkFloppyDisk)) {
+        throw new DiskError("The system disk " + name + " doesn't decode as a DMK image");
+    }
+    return floppy;
+}
+
+/**
  * Make a new copy of a system disk, writable and not write-protected, ready to change. (The templates
  * are write-protected or not as the original disks were; the copy never is.)
  *
@@ -104,20 +135,89 @@ export function findSystemDiskTemplate(dos: TrsdosFormatDos, model: 1 | 3 | 4 | 
  * @throws DiskError if the template is missing or isn't a DMK image, which means a bad build.
  */
 export function loadSystemDiskTemplate(source: DiskTemplateSource, template: SystemDiskTemplate): DmkFloppyDisk {
-    const original = source.systemDisk(template.name);
-    if (original === undefined) {
-        throw new DiskError("The system disk " + template.name + " isn't in this build of the tool");
-    }
+    return loadSystemDiskImage(source, template.name);
+}
 
-    // Change a copy, so that the source's own bytes stay as they were.
-    const binary = new Uint8Array(original);
-    // The first byte of a DMK image is its write-protect flag.
-    binary[0] = 0;
-    const floppy = decodeTrs80File(binary, {filename: template.name + ".dmk"});
-    if (!(floppy instanceof DmkFloppyDisk)) {
-        throw new DiskError("The system disk " + template.name + " doesn't decode as a DMK image");
+/**
+ * The name of the Montezuma Micro CP/M system disk template, which is its file name in templates/ without ".dmk.gz".
+ * It's BIOS 2.32 (64K), the last version, for the Model 4, one-sided with 40 cylinders of 18 sectors of 256
+ * bytes, and has 22 files. Kept apart from {@link SYSTEM_DISK_TEMPLATES}, which are TRSDOS-family disks.
+ */
+export const MONTEZUMA_SYSTEM_DISK_NAME = "montezuma-cpm-2.32-model4";
+
+/**
+ * The length of a preset's Montezuma system tracks: two tracks of 18 sectors of 256 bytes.
+ */
+const MONTEZUMA_SYSTEM_TRACKS_LENGTH = 2*18*256;
+
+/**
+ * Describe the Montezuma system disk for the user, such as "Montezuma Micro CP/M 2.2 BIOS 2.32 system disk for the Model 4".
+ */
+export function describeMontezumaSystemDisk(): string {
+    return "Montezuma Micro CP/M 2.2 BIOS 2.32 system disk for the Model 4";
+}
+
+/**
+ * Make a new copy of the Montezuma Micro CP/M system disk, writable and not write-protected, ready to change or
+ * to copy system tracks from.
+ *
+ * @param source where the templates come from.
+ * @throws DiskError if the template is missing or isn't a DMK image, which means a bad build.
+ */
+export function loadMontezumaSystemDisk(source: DiskTemplateSource): DmkFloppyDisk {
+    return loadSystemDiskImage(source, MONTEZUMA_SYSTEM_DISK_NAME);
+}
+
+/**
+ * The BIOS 2.32 system tracks that Montezuma's CONFIG saved for a preset's drive (its sides and cylinders), which a
+ * new disk of that preset gets so that it boots and addresses the disk as that shape. They're two tracks of 18
+ * sectors of 256 bytes, in logical order. See "Making Montezuma disks" in FLOPPY_FORMATS.md.
+ *
+ * @param source where the templates come from.
+ * @param presetId the preset's id, such as "mm-ds-system".
+ * @return the bytes (reserved track 0's sectors 1 to 18, then reserved track 1's), or undefined if the preset has
+ * none (it's not one of the four 18 x 256 BIOS 2.x presets, or this build lacks them).
+ * @throws Error if the stored table has an entry of the wrong length, which means a bad build.
+ */
+export function getMontezumaSystemTracks(source: DiskTemplateSource, presetId: string): Uint8Array | undefined {
+    const hex = source.montezumaSystemTracksHex(presetId);
+    if (hex === undefined) {
+        return undefined;
     }
-    return floppy;
+    const bytes = decodeHex(hex);
+    if (bytes.length !== MONTEZUMA_SYSTEM_TRACKS_LENGTH) {
+        throw new Error("The system tracks for " + presetId + " are " + bytes.length + " bytes");
+    }
+    return bytes;
+}
+
+/**
+ * The key in the boot-sector table for Montezuma's FORMAT's no-system boot sector in a sector size, or undefined
+ * if we have none for it. The sector is the boot sector that its FORMAT leaves in track 0's first sector of a system
+ * format that hasn't been SYSGENed, and its 10 x 512 version starts with the 18 x 256 one.
+ */
+function montezumaBootSectorKey(sectorSize: number): string | undefined {
+    switch (sectorSize) {
+        case 256:
+            return "montezuma-cpm-no-system-256";
+        case 512:
+            return "montezuma-cpm-no-system-512";
+        default:
+            return undefined;
+    }
+}
+
+/**
+ * The boot sector that Montezuma Micro's FORMAT leaves in track 0 sector 1 of a system format that hasn't been
+ * SYSGENed (the one that says there's no CP/M on the disk), copied from disks that it formatted.
+ *
+ * @param source where the templates come from.
+ * @param sectorSize the sector size of the format: 256 or 512.
+ * @return the sector, or undefined if we have none for that size, in which case the caller should leave it out.
+ */
+export function getMontezumaNoSystemBootSector(source: DiskTemplateSource, sectorSize: number): Uint8Array | undefined {
+    const key = montezumaBootSectorKey(sectorSize);
+    return key === undefined ? undefined : decodeBootSectors(source, key, sectorSize)?.[0];
 }
 
 /**
@@ -215,9 +315,11 @@ function decodeHex(hex: string): Uint8Array {
  *
  * @param source where the templates come from.
  * @param key the name of the boot sectors.
+ * @param sectorSize the size of each sector in bytes (default 256, as the TRSDOS-family DOSes' are).
  * @return the sectors, or undefined if the key isn't in this build.
  */
-function decodeBootSectors(source: DiskTemplateSource, key: string): Uint8Array[] | undefined {
+function decodeBootSectors(source: DiskTemplateSource, key: string,
+                           sectorSize: number = BYTES_PER_SECTOR): Uint8Array[] | undefined {
     const hexStrings = source.bootSectorsHex(key);
     if (hexStrings === undefined) {
         return undefined;
@@ -225,7 +327,7 @@ function decodeBootSectors(source: DiskTemplateSource, key: string): Uint8Array[
 
     return hexStrings.map(hex => {
         const bootSector = decodeHex(hex);
-        if (bootSector.length !== BYTES_PER_SECTOR) {
+        if (bootSector.length !== sectorSize) {
             throw new Error("Boot sector " + key + " is " + bootSector.length + " bytes");
         }
         return bootSector;

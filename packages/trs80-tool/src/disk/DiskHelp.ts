@@ -68,6 +68,28 @@ const FORMAT_DOS_ALIASES = new Map<string, TrsdosFormatDos>([
 ]);
 
 /**
+ * The name that "create" and "format" take for Montezuma Micro CP/M 2.2 disks. It isn't a
+ * {@link TrsdosFormatDos}, so it's handled beside them: the commands look for it before parsing a DOS.
+ */
+export const CPM_DOS_NAME = "cpm";
+
+/**
+ * Whether the user's DOS argument for "create" or "format" is {@link CPM_DOS_NAME}.
+ *
+ * @param name the first argument of the command, or undefined if there is none.
+ */
+export function isCpmDosName(name: string | undefined): boolean {
+    return name !== undefined && name.trim().toLowerCase() === CPM_DOS_NAME;
+}
+
+/**
+ * The row of the list of DOSes for CP/M, which comes after the TRSDOS-family ones: the name to type, then what it makes.
+ */
+function cpmDosItem(): DiskHelpItem {
+    return {term: CPM_DOS_NAME, description: "Montezuma Micro CP/M 2.2 (data or system disk; see --cpm-format)"};
+}
+
+/**
  * Describe a DOS that "create" and "format" can make, for the list of them: what it is and which TRS-80
  * it's for, such as "TRSDOS 2.3, Model I".
  */
@@ -93,12 +115,15 @@ function formatDosDescription(dos: TrsdosFormatDos): string {
  * then what it makes.
  *
  * @param doses the DOSes to list (default: all of them; {@link HARD_DISK_FORMAT_DOSES} for a hard disk).
+ * @param includeCpm whether to end the list with CP/M (for floppies, which can be CP/M disks).
  */
-export function formatDosItems(doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES): DiskHelpItem[] {
-    return doses.map(dos => ({
+export function formatDosItems(doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES,
+                               includeCpm = false): DiskHelpItem[] {
+    const items = doses.map(dos => ({
         term: trsdosFormatDosCliName(dos),
         description: formatDosDescription(dos),
     }));
+    return includeCpm ? [...items, cpmDosItem()] : items;
 }
 
 /**
@@ -106,9 +131,11 @@ export function formatDosItems(doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT
  * message: the name to type, then what it makes.
  *
  * @param doses the DOSes to list (default: all of them; {@link HARD_DISK_FORMAT_DOSES} for a hard disk).
+ * @param includeCpm whether to end the list with CP/M (for floppies, which can be CP/M disks).
  */
-export function formatDosHelpLines(doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES): string[] {
-    const items = formatDosItems(doses);
+export function formatDosHelpLines(doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES,
+                                   includeCpm = false): string[] {
+    const items = formatDosItems(doses, includeCpm);
     const width = Math.max(... items.map(item => item.term.length));
     return items.map(item => "  " + item.term.padEnd(width + 2) + item.description);
 }
@@ -121,15 +148,16 @@ export function formatDosHelpLines(doses: readonly TrsdosFormatDos[] = TRSDOS_FO
  * @param name what the user typed, in any case.
  * @param doses the DOSes to list if the name isn't known (default: all of them). A known name of a DOS
  * that's not in the list is still returned, so that the caller can say why it doesn't work.
+ * @param includeCpm whether the list also has CP/M, which the caller has dealt with before this (see {@link isCpmDosName}).
  * @throws ToolError if it's not a name of a DOS we can format, listing the ones that are.
  */
-export function parseFormatDosName(name: string,
-                                   doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES): TrsdosFormatDos {
+export function parseFormatDosName(name: string, doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES,
+                                   includeCpm = false): TrsdosFormatDos {
     const dos = parseTrsdosFormatDos(name) ?? FORMAT_DOS_ALIASES.get(name.trim().toLowerCase());
     if (dos === undefined) {
         throw new ToolError("Unknown DOS \"" + name + "\"" +
             (name.trim().toLowerCase() === "dosplus" ? " (DOSPLUS disks can't be made yet)" : "") +
-            ". The DOSes are:\n" + formatDosHelpLines(doses).join("\n"));
+            ". The DOSes are:\n" + formatDosHelpLines(doses, includeCpm).join("\n"));
     }
     return dos;
 }

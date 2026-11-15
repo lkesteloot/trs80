@@ -10,8 +10,10 @@
 import type {CpmVerifiedLayout} from "./CpmWriteGate.js";
 import {makeBlankFloppy, makeDmkImage} from "./DmkBuilder.js";
 import type {DmkFloppyDisk} from "./DmkFloppyDisk.js";
-import {Density, type FormattedTrack, SectorPosition, TrackPosition} from "./FloppyDisk.js";
-import {buildFormattedTrack, type TrackLayout} from "./TrackLayout.js";
+import {type FormattedTrack, SectorPosition, TrackPosition} from "./FloppyDisk.js";
+import {
+    buildFormattedTrack, MONTEZUMA_256_TRACK_LAYOUT, MONTEZUMA_512_TRACK_LAYOUT, type TrackLayout,
+} from "./TrackLayout.js";
 
 // Bytes in a CP/M record, directory entry, and allocation block (Montezuma's blocks are 2K).
 const RECORD_SIZE = 128;
@@ -30,29 +32,16 @@ const CTRL_Z = 0x1A;
 const FIRST_SECTOR_NUMBER = 1;
 
 /**
- * Make a Montezuma track layout: double density, sectors numbered from 1 and in order on the track
- * (the BIOS does the skewing), filled with 0xE5 as FORMAT leaves them.
+ * The track layout of a Montezuma layout's sectors: FORMAT's own, measured (see "Track layouts by DOS" in
+ * FLOPPY_FORMATS.md).
  */
 function makeMontezumaTrackLayout(sectorCount: number, sectorSize: number): TrackLayout {
-    return {
-        id: `montezuma-${sectorCount}x${sectorSize}`,
-        description: `Montezuma Micro CP/M, ${sectorCount} sectors of ${sectorSize} bytes`,
-        density: Density.DOUBLE,
-        sectorCount,
-        sectorSize,
-        firstSectorNumber: FIRST_SECTOR_NUMBER,
-        interleaveStep: 1,
-        cylinderSkew: 0,
-        twoSidedCylinderSkew: 0,
-        sideSkew: 0,
-        leadGapLength: 32,
-        idSyncLength: 12,
-        gap2Length: 22,
-        dataSyncLength: 12,
-        gap3Length: 16,
-        fillPattern: [UNUSED_USER],
-        sectorTail: [],
-    };
+    const layout = [MONTEZUMA_256_TRACK_LAYOUT, MONTEZUMA_512_TRACK_LAYOUT].find(candidate =>
+        candidate.sectorCount === sectorCount && candidate.sectorSize === sectorSize);
+    if (layout === undefined) {
+        throw new Error(`No Montezuma track layout of ${sectorCount} sectors of ${sectorSize} bytes`);
+    }
+    return layout;
 }
 
 // What Montezuma's FORMAT leaves in the first sector of a system format that hasn't been SYSGENed: a boot sector

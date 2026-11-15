@@ -4,19 +4,25 @@ import type {DiskTemplateSource} from "./DiskTemplates.js";
  * A {@link DiskTemplateSource} for a browser. The system disks have to be fetched, which is asynchronous, and
  * {@link DiskTemplateSource.systemDisk} is not, so a page calls {@link prefetchSystemDisk} for each disk it might
  * use (before the user can ask for it) and then hands the source to the session. The boot sectors are small, so
- * the page imports the table, templates/data-disk-boot-sectors.json, with the app.
+ * the page imports the table, templates/data-disk-boot-sectors.json, with the app, and the small
+ * montezuma-cpm-2.32-system-tracks.json too.
  */
 export class PrefetchedTemplateSource implements DiskTemplateSource {
     /** The boot sectors as hex strings, keyed as in data-disk-boot-sectors.json. */
     private readonly bootSectors: Readonly<Record<string, readonly string[]>>;
+    /** Montezuma's system tracks as hex strings, keyed as in montezuma-cpm-2.32-system-tracks.json. */
+    private readonly systemTracks: Readonly<Record<string, string>>;
     /** The unzipped system disks that have been prefetched, by name. */
     private readonly systemDisks = new Map<string, Uint8Array>();
 
     /**
      * @param bootSectorsHex the contents of data-disk-boot-sectors.json.
+     * @param montezumaSystemTracksHex the contents of montezuma-cpm-2.32-system-tracks.json.
      */
-    constructor(bootSectorsHex: Readonly<Record<string, readonly string[]>>) {
+    constructor(bootSectorsHex: Readonly<Record<string, readonly string[]>>,
+                montezumaSystemTracksHex: Readonly<Record<string, string>> = {}) {
         this.bootSectors = bootSectorsHex;
+        this.systemTracks = montezumaSystemTracksHex;
     }
 
     /**
@@ -69,5 +75,14 @@ export class PrefetchedTemplateSource implements DiskTemplateSource {
      */
     public bootSectorsHex(key: string): readonly string[] | undefined {
         return this.bootSectors[key];
+    }
+
+    /**
+     * The named preset's Montezuma system tracks as a hex string, or undefined if the table has none for it.
+     *
+     * @param presetId the preset's id, such as "mm-ds-system".
+     */
+    public montezumaSystemTracksHex(presetId: string): string | undefined {
+        return this.systemTracks[presetId];
     }
 }
