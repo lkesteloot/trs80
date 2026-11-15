@@ -1,10 +1,10 @@
 import {
-    findBlockingProtectionSigns, FloppyDisk, protectionSignKindToString, type TrsdosFinding, TrsdosFindingSeverity,
+    Cpm, findBlockingProtectionSigns, FloppyDisk, protectionSignKindToString, type TrsdosFinding, TrsdosFindingSeverity,
     type TrsdosRepairResult, TrsdosWriteAccess,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
-import {DiskSession, DiskWritePurpose, writeBlockersErrorKind} from "./DiskSession.js";
+import {DiskSession, DiskWritePurpose, trsdosWriteGateToDiskWriteGate, writeBlockersErrorKind} from "./DiskSession.js";
 import {pluralizeWithCount} from "./Plural.js";
 
 // The operations behind the "check" and "repair" commands: what's inconsistent in the file system, and
@@ -97,6 +97,9 @@ export function repairDisk(session: DiskSession,
                            options: {freeUnclaimed: boolean, fixProgramSizes: boolean, markMissingUsed: boolean}): RepairResult {
     // A disk that is unreadable for any reason but damage can't be repaired, --force or not.
     const gate = session.getWriteGate();
+    if (session.fileSystem instanceof Cpm) {
+        throw new DiskError("Repairing CP/M disks isn't supported.", DiskErrorKind.READ_ONLY);
+    }
     if (session.fileSystem !== undefined && gate === undefined) {
         throw new DiskError("Repairing " + session.fileSystem.nameAndVersion + " disks isn't supported yet");
     }
@@ -108,7 +111,7 @@ export function repairDisk(session: DiskSession,
                 break;
             case TrsdosWriteAccess.READ_ONLY:
                 throw new DiskError("Can't repair this disk: " + session.getReadOnlyReason(),
-                    writeBlockersErrorKind(gate.blockers));
+                    writeBlockersErrorKind(trsdosWriteGateToDiskWriteGate(gate).blockers));
             default:
                 assertNever(gate.access);
         }

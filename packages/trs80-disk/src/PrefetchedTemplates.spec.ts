@@ -63,6 +63,9 @@ const FILE_TEMPLATES: DiskTemplateSource = {
     bootSectorsHex(key: string): readonly string[] | undefined {
         return BOOT_SECTORS_HEX[key];
     },
+    montezumaSystemTracksHex(): string | undefined {
+        return undefined;
+    },
 };
 
 describe("PrefetchedTemplateSource", () => {

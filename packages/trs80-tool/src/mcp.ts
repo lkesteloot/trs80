@@ -38,7 +38,10 @@ import {
     BasicLevel, CassettePlayer, Config, Keyboard, ModelType, SilentSoundPlayer, Trs80, Trs80Screen,
     model1ScreenCodeToModel3,
 } from "trs80-emulator";
-import {decodeBasicProgram, decodeTrs80File, isFloppy, MODEL3_FONT, parseBasicText} from "trs80-base";
+import {
+    type CpmVerifiedLayout, decodeBasicProgram, decodeTrs80File, isFloppy, MODEL3_FONT, parseBasicText,
+} from "trs80-base";
+import {resolveCpmFormat} from "trs80-disk";
 import {Disasm} from "z80-disasm";
 import {setColorLevel} from "./colors.js";
 import {dirJsonInfiles} from "./dir.js";
@@ -1437,6 +1440,27 @@ function booleanArg(args: any, name: string): boolean {
 }
 
 /**
+ * An optional argument that names a CP/M format (--cpm-format), as the layout it means.
+ *
+ * @throws Error if it's there and isn't a string, or isn't the name of a format (listing them).
+ */
+function cpmFormatArg(args: any): CpmVerifiedLayout | undefined {
+    const value = args["cpmFormat"];
+    if (value === undefined) {
+        return undefined;
+    }
+    if (typeof value !== "string") {
+        throw new Error("cpmFormat must be a string");
+    }
+    return resolveCpmFormat(value);
+}
+
+// The description of the cpmFormat argument of the tools that read disks.
+const CPM_FORMAT_DESCRIPTION = "Read CP/M floppies with this Montezuma Micro layout, such as \"mm-system\" or " +
+    "\"mm-ds-data\", whatever they would be detected as. Needed to write to a disk that's in doubt, and to read " +
+    "or save one with an empty directory that isn't recognized as blank. An unknown name's error lists them all.";
+
+/**
  * The output for a JSON document, compact since it all goes into the caller's context, which is a failure
  * if the command line would have exited with an error.
  */
@@ -1460,8 +1484,11 @@ async function runDiskTool(args: any, readOnly: boolean): Promise<ToolOutput> {
     if (typeof args.image !== "string") {
         throw new Error("image must be a string");
     }
+    // Check the name here, so that the error is the one that lists the formats.
+    const cpmFormat = cpmFormatArg(args);
+    const words = stringArrayArg(args, "words");
     const {json, exitCode} = await diskJsonRun(expandInputPattern(args.image),
-        stringArrayArg(args, "words"), readOnly);
+        cpmFormat === undefined ? words : ["--cpm-format", cpmFormat.id, ...words], readOnly);
     return jsonOutput(json, exitCode);
 }
 
@@ -1477,6 +1504,7 @@ const DISK_TOOL_SCHEMA = {
                 "--partition, then commands separated by lone \":\" words, e.g. " +
                 "[\"info\", \":\", \"dir\", \"--system\"]",
         },
+        cpmFormat: {type: "string", description: CPM_FORMAT_DESCRIPTION},
     },
     required: ["image", "words"],
 };
@@ -1491,12 +1519,13 @@ TOOLS["dir"] = {
             system: {type: "boolean", description: "Include system files, defaults to false"},
             cpmRecords: {type: "boolean",
                 description: "Keep CP/M files' whole 128-byte records, defaults to false"},
+            cpmFormat: {type: "string", description: CPM_FORMAT_DESCRIPTION},
         },
         required: ["images"],
     },
     annotations: READ_ONLY_TOOL,
     run: args => infilesOutput(dirJsonInfiles(expandInputPatterns(stringArrayArg(args, "images")),
-        booleanArg(args, "system"), booleanArg(args, "cpmRecords"))),
+        booleanArg(args, "system"), booleanArg(args, "cpmRecords"), cpmFormatArg(args))),
 };
 
 TOOLS["info"] = {
@@ -1509,12 +1538,13 @@ TOOLS["info"] = {
             images: {type: "array", items: {type: "string"}, description: "The files to describe"},
             verbose: {type: "boolean",
                 description: "Add the geometry and the file system's details, defaults to false"},
+            cpmFormat: {type: "string", description: CPM_FORMAT_DESCRIPTION},
         },
         required: ["images"],
     },
     annotations: READ_ONLY_TOOL,
     run: args => infilesOutput(infoJsonInfiles(expandInputPatterns(stringArrayArg(args, "images")),
-        booleanArg(args, "verbose"))),
+        booleanArg(args, "verbose"), cpmFormatArg(args))),
 };
 
 TOOLS["sectors"] = {

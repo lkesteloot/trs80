@@ -117,6 +117,11 @@ export const DISK_GLOBAL_OPTIONS: DiskOptionSpec[] = [
         description: "write by the rules of this DOS, if the disk doesn't say or says otherwise (\"help dos\" lists them)",
     },
     {
+        name: "--cpm-format",
+        valueName: "NAME",
+        description: "read a CP/M floppy with this layout, whatever it would be detected as (\"help cpm-format\" lists them)",
+    },
+    {
         name: "--force",
         valueName: undefined,
         description: "write even where the disk looks doubtful, if the doubt can be overridden",
@@ -342,6 +347,16 @@ const ATTRIB_COMMAND: DiskCommand = {
                 description: "make the files user files",
             },
             {
+                name: "--read-only",
+                valueName: undefined,
+                description: "make the files read-only (CP/M disks only)",
+            },
+            {
+                name: "--no-read-only",
+                valueName: undefined,
+                description: "make the files read-write (CP/M disks only)",
+            },
+            {
                 name: "--protect",
                 valueName: "LEVEL",
                 description: "set the protection level, by the names the disk's DOS uses (such as READ or EXEC) or 0-7",
@@ -383,6 +398,7 @@ const ATTRIB_COMMAND: DiskCommand = {
         const options = command.options;
         requireNotBoth(options, "--invisible", "--visible");
         requireNotBoth(options, "--system", "--no-system");
+        requireNotBoth(options, "--read-only", "--no-read-only");
         requireNotBoth(options, "--date", "--no-date");
 
         const request: AttributeRequest = {};
@@ -391,6 +407,9 @@ const ATTRIB_COMMAND: DiskCommand = {
         }
         if (options.has("--system") || options.has("--no-system")) {
             request.system = options.has("--system");
+        }
+        if (options.has("--read-only") || options.has("--no-read-only")) {
+            request.readOnly = options.has("--read-only");
         }
         request.protect = options.getString("--protect");
         request.updatePassword = options.getString("--password");
@@ -426,6 +445,9 @@ const ATTRIB_COMMAND: DiskCommand = {
         if (changes.system !== undefined) {
             changesJson.system = changes.system;
         }
+        if (changes.readOnly !== undefined) {
+            changesJson.readOnly = changes.readOnly;
+        }
         if (changes.protectionLevel !== undefined) {
             changesJson.protection = protectionToJson(changes.protectionLevel, protectionNames);
         }
@@ -456,7 +478,7 @@ const ADD_COMMAND: DiskCommand = {
             {
                 name: "--as",
                 valueName: "NAME",
-                description: "the TRSDOS name for the one host file (default: made from the host name)",
+                description: "the TRSDOS (or CP/M) name for the one host file (default: made from the host name)",
             },
             {
                 name: "--ascii",

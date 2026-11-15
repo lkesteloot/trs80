@@ -23,7 +23,8 @@ import {HELP_JSON_OPTION, makeHelpJson} from "./helpJson.js";
 import {printJson} from "./json.js";
 import {diskOverviewSections, renderHelpSections} from "./disk/DiskHelp.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
-import { CassetteSpeed } from "trs80-base";
+import { CassetteSpeed, type CpmVerifiedLayout } from "trs80-base";
+import {resolveCpmFormat} from "trs80-disk";
 import {
     EXIT_CODES_HELP, expandInputPattern, expandInputPatterns, ToolError, toolErrorExitCode, wordsAfterSubcommand,
     wrapMessage,
@@ -62,6 +63,16 @@ const COLORED_SINK = (level: LogLevel, message: string): void => {
             break;
     }
 };
+
+/**
+ * The CP/M layout that the user named with --cpm-format.
+ *
+ * @param name the option's value, or undefined if the option wasn't given.
+ * @throws ToolError if it isn't a preset, listing them.
+ */
+function parseCpmFormatOption(name: string | undefined): CpmVerifiedLayout | undefined {
+    return name === undefined ? undefined : resolveCpmFormat(name);
+}
 
 /**
  * Make a log sink that writes to a file.
@@ -169,9 +180,12 @@ async function main(): Promise<void> {
         })
         .option("--system", "include system files from floppies and hard disks")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
+        .option("--cpm-format <name>", "read a CP/M floppy with this layout, whatever it would be detected as " +
+            "(\"trs80-tool disk IMAGE help cpm-format\" lists the names)")
         .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
-            await dir(expandInputPatterns(infiles), options.system ?? false, options.cpmRecords ?? false, options.json ?? false);
+            await dir(expandInputPatterns(infiles), options.system ?? false, options.cpmRecords ?? false,
+                options.json ?? false, parseCpmFormatOption(options.cpmFormat));
         }));
     program
         .command("info <infiles...>")
@@ -179,10 +193,13 @@ async function main(): Promise<void> {
             infiles: "any TRS-80 files",
         })
         .option("--verbose", "output more information about each file")
+        .option("--cpm-format <name>", "read a CP/M floppy with this layout, whatever it would be detected as " +
+            "(\"trs80-tool disk IMAGE help cpm-format\" lists the names)")
         .option("--json", "output one JSON object for all the infiles instead of text")
         .addOption(new Option("--report", "output a detailed JSON report, for regression testing").hideHelp())
         .action(paged(async (infiles, options) => {
-            await info(expandInputPatterns(infiles), options.verbose ?? false, options.json ?? false, options.report ?? false);
+            await info(expandInputPatterns(infiles), options.verbose ?? false, options.json ?? false,
+                options.report ?? false, parseCpmFormatOption(options.cpmFormat));
         }));
     program
         .command("convert <files...>")
@@ -219,9 +236,12 @@ async function main(): Promise<void> {
         .option("--ucsd-pascal-raw", "keep UCSD Pascal text files as they are on the disk instead of converting them to host text")
         .option("--mark-damaged", "add \"[DAMAGED]\" to the name of files with unreadable sectors or other damage")
         .option("--lowercase", "write the files with lowercase names")
+        .option("--cpm-format <name>", "read a CP/M floppy with this layout, whatever it would be detected as " +
+            "(\"trs80-tool disk IMAGE help cpm-format\" lists the names)")
         .option("--json", "write one JSON object, with the files' contents in base64, to standard output instead of writing files")
         .action((infile, names, options) => {
             const expandedInfile = expandInputPattern(infile);
+            const cpmFormat = parseCpmFormatOption(options.cpmFormat);
             if (options.json) {
                 if (options.outDir !== undefined) {
                     throw new ToolError("Leave out --out-dir with --json, which prints to standard output");
@@ -230,11 +250,11 @@ async function main(): Promise<void> {
                     throw new ToolError("--json can't be used with --ucsd-pascal-raw: the JSON has both versions of text files");
                 }
                 extractJson(expandedInfile, names, options.system ?? false, options.cpmRecords ?? false,
-                    options.markDamaged ?? false, options.lowercase ?? false);
+                    options.markDamaged ?? false, options.lowercase ?? false, cpmFormat);
             } else {
                 extract(expandedInfile, options.outDir ?? ".", names, options.system ?? false,
                     options.cpmRecords ?? false, options.ucsdPascalRaw ?? false, options.markDamaged ?? false,
-                    options.lowercase ?? false);
+                    options.lowercase ?? false, cpmFormat);
             }
         });
     program

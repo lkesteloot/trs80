@@ -547,11 +547,15 @@ export function terminalWidth(): number {
     return process.stdout.isTTY && process.stdout.columns > 0 ? process.stdout.columns : 80;
 }
 
+// A row of a table: at least three gaps of two or more spaces after the first cell's text.
+const TABLE_ROW = /^ *\S.*?\S {2,}\S.* {2,}\S.* {2,}\S/;
+
 /**
  * Wrap a message that may have several lines (such as an error with a list under it) to fit the terminal.
  * Each line wraps at spaces, and the lines that it wraps into are indented as far as it was. A line of a
  * list, which is indented and has a term and then at least two spaces before its description, wraps
- * under the description instead.
+ * under the description instead. A row of a table, which has at least three gaps of two or more spaces between
+ * its cells (as in formatCpmPresetTable()), is left alone, since wrapping it would scramble the columns.
  *
  * @param message the text, with lines separated by "\n".
  * @param width the width to wrap to; the terminal's width by default.
@@ -559,6 +563,9 @@ export function terminalWidth(): number {
  */
 export function wrapMessage(message: string, width = terminalWidth()): string {
     return message.split("\n").map(line => {
+        if (TABLE_ROW.test(line)) {
+            return line;
+        }
         const listItem = /^ +[^ ]+ {2,}(?=\S)/.exec(line);
         const indent = listItem !== null ? listItem[0].length : line.length - line.trimStart().length;
         return wrapText(line, width, indent, false, false).join("\n");

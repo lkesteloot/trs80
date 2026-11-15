@@ -288,6 +288,11 @@ describe("wrapMessage", () => {
         expect(wrapMessage("short\n\nalso short", 40)).to.eql("short\n\nalso short");
     });
 
+    it("leaves the rows of a table alone, however wide", () => {
+        const table = "  mm-ext-80-ds-system  Extended 80T DS system   2  80  10 × 512  790K";
+        expect(wrapMessage("Choices:\n" + table, 40)).to.eql("Choices:\n" + table);
+    });
+
     it("wraps by the terminal's width by default, 80 when it's not a terminal", () => {
         const long = "word ".repeat(30).trim();
         for (const line of wrapMessage(long).split("\n")) {

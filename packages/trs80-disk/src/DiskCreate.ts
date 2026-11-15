@@ -135,7 +135,7 @@ export function saveNameCanHoldDmk(session: DiskSession): boolean {
  * @param message what to say if the name is that of another kind of image.
  * @throws DiskError with the message if the name has the extension of another kind of image.
  */
-function requireDmkPathname(session: DiskSession, message: string): void {
+export function requireDmkPathname(session: DiskSession, message: string): void {
     const canHoldDmk = saveNameCanHoldDmk(session);
     if (!canHoldDmk) {
         throw new DiskError(message);

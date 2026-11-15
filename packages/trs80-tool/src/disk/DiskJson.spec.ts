@@ -12,7 +12,7 @@ import {disk} from "./disk.js";
 import {JSON_NEEDS_COMMANDS_MESSAGE} from "./DiskShell.js";
 import type {
     AddResultJson, AttribChangeResultJson, AttribShowResultJson, CheckResultJson, CreateResultJson,
-    DirResultJson, DiskCommandJson, DiskRunJson, ExtractResultJson, FreeResultJson, InfoResultJson,
+    DirResultJson, DiskCommandJson, DiskRunJson, ExtractResultJson, GranuleFreeResultJson, InfoResultJson,
     KillResultJson, LabelResultJson, ListResultJson, MapResultJson, PartitionListResultJson,
     PartitionSelectResultJson, RenameResultJson, SaveResultJson, UndoResultJson,
 } from "./DiskJson.js";
@@ -155,7 +155,7 @@ describe("disk --json", () => {
         expect(listing.files.map(f => f.name)).to.eql(["HELLO.BAS"]);
         expect(listing.files[0].contentType).to.equal("basicProgram");
 
-        const free = commandAt<FreeResultJson>(run, 3, "free").result;
+        const free = commandAt<GranuleFreeResultJson>(run, 3, "free").result;
         expect(free.granuleBytes).to.equal(1536);
         expect(free.freeBytes).to.equal(free.freeGranules*free.granuleBytes);
 
@@ -427,7 +427,7 @@ describe("disk --json", () => {
         expect(info.os?.trsdos?.diskName).to.equal("Beta");
         expect(info.hardDiskGeometry?.cylinderCount).to.be.greaterThan(0);
         expect(info.geometry).to.equal(undefined);
-        expect(info.free?.freeGranules).to.be.greaterThan(0);
+        expect((info.free as GranuleFreeResultJson | undefined)?.freeGranules).to.be.greaterThan(0);
     });
 
     it("describes a hard disk with no partition chosen without failing", async () => {

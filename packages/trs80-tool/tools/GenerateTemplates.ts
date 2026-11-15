@@ -1,4 +1,4 @@
-// Embeds the files in ../trs80-disk/templates/ (the gzipped system disks and the data-disk boot sectors) in
+// Embeds the files in ../trs80-disk/templates/ (the gzipped system disks, the data-disk boot sectors, and Montezuma's system tracks) in
 // src/disk/Templates.ts as strings, so that the esbuild bundle and the single-file binaries carry them.
 // The generated file is gitignored and regenerated before type checks, tests, and builds.
 // src/disk/NodeTemplates.ts hands it to trs80-disk, whose DiskTemplates.ts is the API to it.
@@ -12,6 +12,7 @@ import {fileURLToPath} from "url";
 const TEMPLATES_DIR = fileURLToPath(new URL("../../trs80-disk/templates", import.meta.url));
 const OUTPUT_PATH = fileURLToPath(new URL("../src/disk/Templates.ts", import.meta.url));
 const BOOT_SECTORS_FILENAME = "data-disk-boot-sectors.json";
+const SYSTEM_TRACKS_FILENAME = "montezuma-cpm-2.32-system-tracks.json";
 const SYSTEM_DISK_SUFFIX = ".dmk.gz";
 
 /**
@@ -75,6 +76,20 @@ function main(): void {
             lines.push(... generateStringLines("        ", hex, ","));
         }
         lines.push("    ],");
+    }
+    lines.push("};");
+    lines.push("");
+
+    lines.push("/**");
+    lines.push(" * Montezuma Micro CP/M's BIOS 2.32 system tracks for each 18 x 256 preset, as hex strings keyed by preset id, as in " +
+        SYSTEM_TRACKS_FILENAME + ".");
+    lines.push(" */");
+    const systemTracksJson = fs.readFileSync(path.join(TEMPLATES_DIR, SYSTEM_TRACKS_FILENAME), "utf-8");
+    const systemTracks = JSON.parse(systemTracksJson) as { [presetId: string]: string };
+    lines.push("export const MONTEZUMA_SYSTEM_TRACKS_HEX: { [presetId: string]: string } = {");
+    for (const presetId of Object.keys(systemTracks)) {
+        lines.push("    " + JSON.stringify(presetId) + ":");
+        lines.push(... generateStringLines("        ", systemTracks[presetId], ","));
     }
     lines.push("};");
     lines.push("");

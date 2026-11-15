@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import {
-    FileDamage, SectorPosition, Trs80File, Trs80Floppy,
+    type CpmVerifiedLayout, FileDamage, SectorPosition, Trs80File, Trs80Floppy,
 } from "trs80-base";
 import {LogLevel, MAIN_SINK} from "z80-logger";
 import {assertNever} from "z80-base";
@@ -667,13 +667,15 @@ export interface FilesInfileJson extends InfileJson {
  * @param forExtract options if this is for "extract", which needs the input to be a container, includes
  * only the files that match its patterns (an error if a pattern matches none), and adds the contents to
  * each file. Undefined for "dir".
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
  */
 export function filesInfileJson(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean,
-                                forExtract: ExtractJsonOptions | undefined): FilesInfileJson {
+                                forExtract: ExtractJsonOptions | undefined,
+                                cpmFormat?: CpmVerifiedLayout): FilesInfileJson {
 
     const {result, warnings} = captureLogs((): Omit<FilesInfileJson, "warnings"> => {
         try {
-            const {inFiles, isContainer, os} = loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords);
+            const {inFiles, isContainer, os} = loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords, cpmFormat);
             if (forExtract !== undefined && !isContainer) {
                 throw notContainerError(inFilename);
             }

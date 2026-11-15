@@ -3059,6 +3059,82 @@ there's no CP/M on the disk, so nothing on them names the version.
   nothing in the directory tells them apart, and the table's order picks
   skew 2.
 
+**Montezuma's physical layout and blank disks.** Measured on FORMAT1 to FORMAT16
+(the rules that `findBlankCpmCandidates()` uses to recognize a disk with no files):
+
+- FORMAT writes each track's sectors in plain order, 1 to N (the skew is the BIOS's,
+  not the track's), and numbers them from 1 on both sides. In the DMK images one ID
+  mark follows another every 342 bytes on 18 × 256 tracks and every 598 bytes on
+  10 × 512 tracks (tracks 0, 1, and the last, on all 16 disks). The disks in
+  double-sided images that are really single-sided (FORMAT5, 6, and 11) have no
+  sectors at all on side 1.
+- On a system format that hasn't been SYSGENed (FORMAT3, 5, 7, and 9 to 16), track 0 sector
+  1 is a boot sector that starts with code and has "There is NO CP/M on this disk!"
+  at byte 36, followed by more code, and the rest of the reserved tracks is 0xE5. The
+  same bytes are on all of them, so it names no version. A SYSGENed disk (FORMAT1)
+  has real boot code there and the BIOS banner further on. On a data format that
+  sector is the start of the directory, so its slots' first bytes are all 0xE5 on a
+  blank disk.
+- A directory emptied by ERA keeps the rest of every entry, so track 0 sector 1 of a data
+  disk with its files erased isn't all 0xE5: only each slot's first byte is. A test
+  for "sector 1 is all 0xE5" would take an erased data disk for a system disk, so the
+  rule is that every slot's first byte is 0xE5 (the sector looks like a directory), which
+  a boot sector never does.
+- With the files erased, 15 of the 16 disks read one way, since the leftover file data under
+  the other skew's or the other reserved-track count's directory sectors isn't 0xE5.
+  FORMAT16 reads three ways (2 or 4 reserved tracks, skew 2 or 4 with 2 sides),
+  and a really blank disk ties the skews too, because nothing on a blank disk tells
+  them apart. Without a banner these tie: the one-sided and two-sided standard system
+  formats with their skew-4 versions, and the two-sided one with the 4-reserved-track
+  version. A banner for a version other than 1.26 and 1.30 rules out skew 4. A banner
+  for 1.42 or 1.44 rules out the standard two-sided system format.
+  The collection's one-sided 1.42 and 1.44 disks read as the standard system
+  format, so the banner doesn't rule that out for one side.
+- The numbering from 1 doesn't tell Montezuma's disks from TRSDOS's: Model III
+  TRSDOS also numbers from 1, and a blank one has a blank directory under a
+  Montezuma system layout too. What separates them is the boot sector, so a system
+  format counts as blank Montezuma only with its "There is NO CP/M" boot sector or
+  a banner. (Data formats have no such evidence, so a blank 10 × 512 disk from
+  another system with the same geometry reads as a blank "Standard data" disk when
+  nothing else recognizes it.)
+
+**Making Montezuma disks** (`makeCpmDisk()`, "create cpm" and "format cpm"). What a created
+disk holds, from the same disks and a BIOS 2.32 system disk:
+
+- The boot sector that FORMAT leaves on a system format is **256 bytes on the 18 × 256 formats and
+  512 bytes on the 10 × 512 ones**, and the 512-byte one starts with the 256-byte one (the
+  message is at byte 36 in both). All the unSYSGENed system formats of each size have the same bytes,
+  whatever their sides and cylinders. A format of one size uses only its own size's sector, so the table
+  of templates holds both.
+- The system tracks of the BIOS 2.32 disk (22 files, one side, 40 cylinders, 18 × 256) are
+  reserved tracks 0 and 1, which are cylinders 0 and 1 on one side. On a two-sided disk Montezuma's BIOS looks
+  for reserved track 1 on cylinder 0 side 1 (reserved track t is on cylinder t >> 1, side t & 1), and on
+  cylinder 1 side 0 on a one-sided one.
+- **The system tracks hold the drive configuration.** Montezuma's BIOS takes each drive's sides and
+  tracks, and each logical drive's format, from the configuration stored in its system tracks (set by
+  Montezuma's CONFIG program), not from the disk. The 2.32 disk's system is configured for a 40-track
+  one-sided drive 0, so on a two-sided or 80-track disk it reads and writes with the one-sided 40-track
+  layout, in the wrong places and with the wrong capacity. So each of the four 18 × 256 BIOS 2.x layouts
+  needs its own system tracks, and a system can only be copied to a disk of the same layout.
+- **The boot sector (track 0 sector 1) has a two-sided flag**: offset 0xCE (0 one-sided, 1 two-sided) in the
+  boot sector of 2.32 and some 2.2x versions, and offset 0xCF in older 2.2x boot sectors. Without it a
+  two-sided disk doesn't boot. CONFIG sets it when it saves a two-sided drive 0.
+- **The startup command.** The CCP command buffer's length byte (track 0 sector 3, offset 7) is the length of
+  the command that CP/M runs at boot. The 2.32 disk's is 4 (`MDIR`), and a blank disk has no MDIR.COM, so it
+  prints "MDIR?". Zero turns it off.
+- **The shipped system tracks** were made by running Montezuma's own CONFIG (version 3.10) in an emulator, once
+  per layout: drive 0 (and logical drives A: and C:) configured for the layout's sides and tracks, the startup
+  command turned off, and the system saved. Each result was booted: STAT reports 170K (`mm-system`), 350K
+  (`mm-ds-system`), 350K (`mm-80-system`), and 710K (`mm-80-ds-system`), and files that PIP wrote read back
+  byte-identical with our reader, and the other way round. Only the reserved tracks of those disks are used
+  (`templates/montezuma-cpm-2.32-system-tracks.json`; see the templates README). The unchanged 2.32 disk is
+  still what `create cpm --system` copies, with its MDIR startup.
+- Only the 18 × 256 formats of BIOS 2.x have system tracks of that shape. The extended (10 × 512)
+  and the version 1.x formats get FORMAT's boot sector and `E5` in the rest of the reserved tracks, so
+  that they read as a Montezuma system format with an empty directory (see the rules above). A created
+  system format with a banner reads as exactly its layout. One with only the boot sector reads as the
+  layouts that tie (the skew-4 ones, and the 4-reserved-track one), and reads as the first of them.
+
 **Montezuma "Super Data"** (220K). Ira's three `CP-M Public Domain Disk C354`,
 `C900` and `C901` disks (`ira/lk-410-to-do`, labeled "40T SS DD 220K M M Super
 Data") are in a format not among the 12 above, worked out from the disks with
@@ -3988,6 +4064,8 @@ address mark is 0xFB. No layout writes an index address mark. All lengths are by
 | LDOS 5.3, Models I and III | MFM | 18, from 0 | 3:1: 0 6 12 1 7 13 2 8 14 3 9 15 4 10 16 5 11 17 | `6D B6` | 32 4E | 12 | 22 4E | 12 | 24 4E | 342 |
 | LS-DOS 6.3 / TRSDOS 6.2, Model 4 | MFM | 18, from 0 | 2:1: 0 9 1 10 2 11 3 12 4 13 5 14 6 15 7 16 8 17 | `6D B6` | 32 4E | 12 | 22 4E | 12 | 24 4E | 342 |
 | TRSDOS 1.3, Model III | MFM | 18, from 1 | 1 4 7 10 13 16 2 5 8 11 14 17 3 6 9 12 15 18 | `E5` ending in `(c) 1980 Tandy  ` | 64 4E | 8 | 22 4E | 12 | 24 4E | 338 |
+| Montezuma Micro CP/M 2.2, 18 × 256 | MFM | 18, from 1 | plain order: 1 2 3 ... 18 | `E5` | 32 4E | 12 | 22 4E | 12 | 24 4E | 342 |
+| Montezuma Micro CP/M 2.2, 10 × 512 | MFM | 10, from 1 | plain order: 1 2 3 ... 10 | `E5` | 32 4E | 12 | 22 4E | 12 | 24 4E | 598 |
 
 The MFM sync (three A1 before every mark) follows the ID sync and data sync zeros;
 "ID to ID" counts it. After the last sector the track is gap bytes to the end.
@@ -4023,6 +4101,12 @@ The MFM sync (three A1 before every mark) follows the ID sync and data sync zero
   were not made by a plain FORMAT: `m3_ld53_ss_dd_40_system` is LDOS 3:1 with the start
   moving back 3 positions each cylinder, and `m4_ld63_ss_dd_40_system` is the LDOS 3:1
   order on every cylinder after the first, starting at the same sector.
+- **Montezuma's tracks** (the last two rows) were measured on FORMAT's own output, tracks 0, 6, and 39 on
+  both sides of the one- and two-sided disks, 40 cylinders, both sector sizes: the same gaps in both
+  shapes, sectors in plain order on every track with no skew from one cylinder or side to the next, side
+  1's ID fields numbered side 1 and the cylinder of their track, and the same sector size code on both
+  sides. Fresh data is `E5`, with no tail. The real tracks end a byte differently from ours (one more zero
+  where our padding of gap bytes ends); nothing reads that.
 - **Unmeasured.** TRSDOS 2.3's lead gap (14 FF then six zeros before the first ID,
   from the HFE), and everything about two-sided TRSDOS 1.3 and 2.3 disks. The Model I
   LDOS system disk's cylinder 0 is single density on a double-density disk.

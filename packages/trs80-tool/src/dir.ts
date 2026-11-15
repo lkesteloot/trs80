@@ -1,3 +1,4 @@
+import type {CpmVerifiedLayout} from "trs80-base";
 import {expandFile, InputFile} from "./InputFile.js";
 import {pagerYield} from "./pager.js";
 import {colorError, colorFilename, colorSize} from "./lscolors.js";
@@ -8,12 +9,13 @@ import {filesInfileJson, type FilesInfileJson, printInfilesJson} from "./json.js
  * Handle the "dir" command.
  *
  * @param json whether to print one JSON object for all the input files instead of text.
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
  */
 export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWholeRecords: boolean,
-                          json: boolean): Promise<void> {
+                          json: boolean, cpmFormat?: CpmVerifiedLayout): Promise<void> {
 
     if (json) {
-        printInfilesJson(dirJsonInfiles(inFilenames, showSystemFiles, cpmWholeRecords));
+        printInfilesJson(dirJsonInfiles(inFilenames, showSystemFiles, cpmWholeRecords, cpmFormat));
         return;
     }
 
@@ -29,7 +31,7 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
             console.log(inFilename + ":");
         }
         try {
-            dirFile(inFilename, showSystemFiles, cpmWholeRecords);
+            dirFile(inFilename, showSystemFiles, cpmWholeRecords, cpmFormat);
         } catch (e) {
             // Report the error and go on to the next file, like ls does.
             if (!(e instanceof ToolError)) {
@@ -52,18 +54,21 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
  * @param inFilenames the input files, with wildcards already expanded.
  * @param showSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records.
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
  */
-export function dirJsonInfiles(inFilenames: string[], showSystemFiles: boolean,
-                               cpmWholeRecords: boolean): FilesInfileJson[] {
+export function dirJsonInfiles(inFilenames: string[], showSystemFiles: boolean, cpmWholeRecords: boolean,
+                               cpmFormat?: CpmVerifiedLayout): FilesInfileJson[] {
 
-    return inFilenames.map(inFilename => filesInfileJson(inFilename, showSystemFiles, cpmWholeRecords, undefined));
+    return inFilenames.map(inFilename =>
+        filesInfileJson(inFilename, showSystemFiles, cpmWholeRecords, undefined, cpmFormat));
 }
 
 /**
  * List the files in one input file.
  */
-function dirFile(inFilename: string, showSystemFiles: boolean, cpmWholeRecords: boolean): void {
-    printDirListing(expandFile(inFilename, showSystemFiles, cpmWholeRecords));
+function dirFile(inFilename: string, showSystemFiles: boolean, cpmWholeRecords: boolean,
+                 cpmFormat: CpmVerifiedLayout | undefined): void {
+    printDirListing(expandFile(inFilename, showSystemFiles, cpmWholeRecords, cpmFormat));
 }
 
 /**

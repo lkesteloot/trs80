@@ -5,12 +5,14 @@ import {
     CassetteSpeed,
     FileDamage,
     Trs80File,
-    Cpm, CpmFile, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
-    TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type KnownFloppyFileSystem,
+    Cpm, CpmFile, type CpmVerifiedLayout, MicroDos, MicroDosFile, ModelIITrsdos, ModelIITrsdosDirEntry, Trsdos, TrsdosDirEntry, TrsdosII,
+    TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, UcsdPascal, UcsdPascalFile, XenixTar, XenixTarFile, decodeFloppyFileSystem, type FloppyDisk, type KnownFloppyFileSystem,
     decodeTrs80CassetteFile, decodeTrs80File, findHardDiskPartitions, guessBasicDialect, getTrs80FileExtension, isFloppy, isHardDisk, knownTrsdosPassword, microDosFileTypeToString, trsdosIIProtectionLevelToString,
     trsdosAccessPasswordHoldsTimeStamp, trsdosBasicDialect, trsdosProtectionLevelToString, ucsdPascalFileKindToString, ucsdPascalTextToHost, uncompressFile } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
+import {decodeWithCpmFormat} from "trs80-disk";
 import {assertNever} from "z80-base";
+import {TRS80_FLOPPY_LOGGER} from "z80-logger";
 import {
     hostFileError, ToolError, type PatternSelection, formatDate, jsonDate, modelIITrsdosFlagsString, trsdosIIFlagsString, xenixTarModeString,
     xenixTarTypeLetter, selectByPatterns,
@@ -824,6 +826,20 @@ export interface LoadedInput {
 }
 
 /**
+ * Decode a floppy as CP/M with the layout that the user named, logging a warning if that overrides what the disk
+ * reads as without it.
+ *
+ * @throws ToolError if the image can't hold the layout.
+ */
+export function decodeNamedCpmFormat(floppy: FloppyDisk, cpmFormat: CpmVerifiedLayout, cpmWholeRecords: boolean): Cpm {
+    const {cpm, warning} = decodeWithCpmFormat(floppy, cpmFormat, cpmWholeRecords);
+    if (warning !== undefined) {
+        TRS80_FLOPPY_LOGGER.warn(warning);
+    }
+    return cpm;
+}
+
+/**
  * Load the file and, if it can contain other files (floppies, hard disks, cassettes, and wav files),
  * expand it. The files of each partition of a hard disk are in a directory named for the partition,
  * usually its disk name, such as "HARDA/" (see makeDirectoryNames() in trs80-base).
@@ -832,11 +848,14 @@ export interface LoadedInput {
  * @param includeSystemFiles whether to include system files from floppies and hard disks.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
+ * @param cpmFormat the CP/M layout that the user named (--cpm-format), to read a floppy with whatever it
+ * would be detected as, or undefined to detect it. Other input is unaffected.
  * @return the contained files, whether the input was a container (if it wasn't, the result is
  * the single input file), and the operating system of a floppy or hard disk.
- * @throws ToolError if the file can't be read or decoded.
+ * @throws ToolError if the file can't be read or decoded, or the image can't hold the named CP/M layout.
  */
-export function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): LoadedInput {
+export function loadInputFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean,
+                              cpmFormat?: CpmVerifiedLayout): LoadedInput {
     const inFiles: InputFile[] = [];
     let isContainer = true;
     let os: string | undefined = undefined;
@@ -875,7 +894,8 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
         }
 
         if (isFloppy(trs80File)) {
-            const fileSystem = decodeFloppyFileSystem(trs80File, cpmWholeRecords);
+            const fileSystem = cpmFormat === undefined ? decodeFloppyFileSystem(trs80File, cpmWholeRecords) :
+                decodeNamedCpmFormat(trs80File, cpmFormat, cpmWholeRecords);
             if (fileSystem === undefined) {
                 throw new ToolError("Can't find a DOS directory on \"" + inFilename + "\"");
             }
@@ -922,9 +942,12 @@ export function loadInputFile(inFilename: string, includeSystemFiles: boolean, c
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
+ * @param cpmFormat the CP/M layout that the user named (--cpm-format), to read a floppy with whatever it
+ * would be detected as, or undefined to detect it. Other input is unaffected.
  */
-export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
-    return loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords).inFiles;
+export function expandFile(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean,
+                           cpmFormat?: CpmVerifiedLayout): InputFile[] {
+    return loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords, cpmFormat).inFiles;
 }
 
 /**
@@ -945,10 +968,13 @@ export function notContainerError(inFilename: string): ToolError {
  * @param includeSystemFiles whether to include system files from floppies.
  * @param cpmWholeRecords whether CP/M files keep their whole 128-byte records instead of
  * ending text files at their Ctrl-Z.
+ * @param cpmFormat the CP/M layout that the user named (--cpm-format), to read a floppy with whatever it
+ * would be detected as, or undefined to detect it. Other input is unaffected.
  * @throws ToolError if the file can't be read or isn't a container.
  */
-export function expandContainer(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean): InputFile[] {
-    const { inFiles, isContainer } = loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords);
+export function expandContainer(inFilename: string, includeSystemFiles: boolean, cpmWholeRecords: boolean,
+                                cpmFormat?: CpmVerifiedLayout): InputFile[] {
+    const { inFiles, isContainer } = loadInputFile(inFilename, includeSystemFiles, cpmWholeRecords, cpmFormat);
     if (!isContainer) {
         throw notContainerError(inFilename);
     }

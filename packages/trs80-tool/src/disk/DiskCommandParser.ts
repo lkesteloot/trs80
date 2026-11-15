@@ -1,3 +1,4 @@
+import {Density} from "trs80-base";
 import {ToolError} from "../utils.js";
 import {commanderErrorToToolError, makeDiskCommand, makeDiskOptionParser} from "./DiskCommander.js";
 
@@ -52,9 +53,19 @@ export interface DiskHelpList {
 }
 
 /**
- * A part of help text: a paragraph, which is wrapped to the terminal's width, or a list.
+ * A block of help text that's shown as it is, never wrapped, such as a table with aligned columns.
  */
-export type DiskHelpSection = string | DiskHelpList;
+export interface DiskHelpPreformatted {
+    /** The heading above the block, such as "The CP/M formats are:". */
+    title: string;
+    /** The lines, which are indented under the title. */
+    lines: string[];
+}
+
+/**
+ * A part of help text: a paragraph, which is wrapped to the terminal's width, a list, or a preformatted block.
+ */
+export type DiskHelpSection = string | DiskHelpList | DiskHelpPreformatted;
 
 /**
  * Describes one disk command, such as "dir" or "kill". The parser and the help are both made from this
@@ -204,6 +215,45 @@ export function parseCountOption(options: DiskOptionValues, name: string): numbe
         throw new ToolError("Invalid " + name + " \"" + text + "\": use a number");
     }
     return Number(text);
+}
+
+/**
+ * Parse the --sides option.
+ *
+ * @param options the command's options.
+ * @return the number of sides, or undefined if the option wasn't given.
+ * @throws ToolError if the value isn't 1 or 2.
+ */
+export function parseSidesOption(options: DiskOptionValues): number | undefined {
+    const sides = parseCountOption(options, "--sides");
+    if (sides !== undefined && sides !== 1 && sides !== 2) {
+        throw new ToolError("Invalid --sides \"" + sides + "\": use 1 or 2");
+    }
+    return sides;
+}
+
+/**
+ * Parse the --density option.
+ *
+ * @param options the command's options.
+ * @return the density, or undefined if the option wasn't given.
+ * @throws ToolError if the value isn't single or double (or sd or dd).
+ */
+export function parseDensityOption(options: DiskOptionValues): Density | undefined {
+    const densityText = options.getString("--density");
+    if (densityText === undefined) {
+        return undefined;
+    }
+    switch (densityText.toLowerCase()) {
+        case "single":
+        case "sd":
+            return Density.SINGLE;
+        case "double":
+        case "dd":
+            return Density.DOUBLE;
+        default:
+            throw new ToolError("Invalid --density \"" + densityText + "\": use single or double");
+    }
 }
 
 /**

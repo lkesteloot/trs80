@@ -76,6 +76,14 @@ describe("disk attrib", () => {
         return dirEntry;
     }
 
+    it("refuses --read-only, which only CP/M disks have", async () => {
+        makeImage([HELLO]);
+        const before = fs.readFileSync(imagePathname);
+        const error = await runDiskExpectingError("attrib", "HELLO/BAS", "--read-only");
+        expect(error.message).to.contain("TRSDOS has protection levels, not a read-only attribute");
+        expect(fs.readFileSync(imagePathname)).to.eql(before);
+    });
+
     it("shows the attributes and changes nothing when no attribute is given", async () => {
         makeImage([HELLO, WORLD]);
         const before = fs.readFileSync(imagePathname);

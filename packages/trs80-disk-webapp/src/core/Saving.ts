@@ -107,10 +107,12 @@ async function writeThroughHandle(handle: FileSystemFileHandle, bytes: Uint8Arra
  * started), which is why this doesn't use DiskSession.save(). A name that ends in ".gz" saves compressed.
  *
  * @param openDisk the disk.
- * @throws DiskError if the file can't be written.
+ * @throws DiskError if the file can't be written, or the disk can't be saved as it is (see
+ * DiskSession.getSaveBlocker()).
  */
 export async function saveDisk(openDisk: OpenDisk): Promise<SaveResult> {
     const session = openDisk.session;
+    session.requireSaveable();
     // The disk's name, not the session's save name, decides: "Save as" renames the disk and not the session.
     const bytes = compressForName(openDisk.name, session.image.binary);
     const handle = openDisk.handle;
@@ -147,13 +149,16 @@ function replaceExtension(name: string, extension: string): string {
  * @param openDisk the disk, which must be a floppy.
  * @param format the format to write.
  * @returns what was done, or undefined if the user cancelled the file picker.
- * @throws DiskError if the disk isn't a floppy, can't be converted, or can't be written.
+ * @throws DiskError if the disk isn't a floppy, can't be saved as it is (see DiskSession.getSaveBlocker()), can't
+ * be converted, or can't be written.
  */
 export async function saveDiskAs(openDisk: OpenDisk, format: FloppyImageFormat): Promise<SaveAsResult | undefined> {
     const session = openDisk.session;
     if (session.isHardDisk()) {
         throw new DiskError("A hard disk image can only be saved as it is");
     }
+    // A copy in another format is written out too, so it's refused as well.
+    session.requireSaveable();
 
     const floppy = session.floppy;
     const sameFormat = floppyImageFormatOf(floppy) === format;

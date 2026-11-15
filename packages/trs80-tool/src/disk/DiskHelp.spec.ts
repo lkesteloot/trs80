@@ -69,7 +69,7 @@ describe("help for the whole disk command", () => {
             "  --force  write anyway",
             "",
             "\"help COMMAND\" describes a command and its options; \"help dos\" lists the names",
-            "for --dos.",
+            "for --dos, and \"help cpm-format\" those for --cpm-format.",
         ]);
     });
 

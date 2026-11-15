@@ -28,6 +28,10 @@ const TEMPLATES: DiskTemplateSource = {
         const all = JSON.parse(fs.readFileSync(path.join(TEMPLATES_DIR, "data-disk-boot-sectors.json"), "utf8"));
         return all[key];
     },
+    montezumaSystemTracksHex(presetId: string): string | undefined {
+        const all = JSON.parse(fs.readFileSync(path.join(TEMPLATES_DIR, "montezuma-cpm-2.32-system-tracks.json"), "utf8"));
+        return all[presetId];
+    },
 };
 
 /**

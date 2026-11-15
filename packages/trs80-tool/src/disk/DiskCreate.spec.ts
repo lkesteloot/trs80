@@ -224,13 +224,14 @@ describe("disk create and format", () => {
     });
 
     it("refuses an unknown DOS and lists the choices", async () => {
-        const error = await runDiskExpectingError("create", "cpm");
-        expect(error.message).to.eql("Unknown DOS \"cpm\". The DOSes are:\n" +
+        const error = await runDiskExpectingError("create", "cp-m");
+        expect(error.message).to.eql("Unknown DOS \"cp-m\". The DOSes are:\n" +
             "  trsdos-2.3  TRSDOS 2.3, Model I\n" +
             "  trsdos-1.3  TRSDOS 1.3, Model III\n" +
             "  ldos-5.3    LDOS 5.3, Model I (--model 1) or Model III (the default)\n" +
             "  trsdos-6.2  TRSDOS 6.2, Model 4\n" +
-            "  lsdos-6.3   LS-DOS 6.3, Model 4");
+            "  lsdos-6.3   LS-DOS 6.3, Model 4\n" +
+            "  cpm         Montezuma Micro CP/M 2.2 (data or system disk; see --cpm-format)");
         expect(fs.existsSync(imagePathname)).to.eql(false);
     });
 

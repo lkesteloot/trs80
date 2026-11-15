@@ -1,5 +1,5 @@
 import {
-    Density, HARD_DISK_FORMAT_DOSES, TRSDOS_FORMAT_DOSES, type TrsdosFormatDos, trsdosFormatDosToString,
+    HARD_DISK_FORMAT_DOSES, TRSDOS_FORMAT_DOSES, type TrsdosFormatDos, trsdosFormatDosToString,
 } from "trs80-base";
 import {
     createFloppy, createHardDisk, describeDriverSettings, DiskSession, type FormatRequest, formatFloppy,
@@ -10,9 +10,14 @@ import type {DiskCommand} from "./DiskCommands.js";
 import {type CreateResultJson, trsdosNameToJson} from "./DiskJson.js";
 import type {DiskOutput} from "./DiskOutput.js";
 import {
-    DiskOptionSpec, parseAddDate, parseCountOption, parseModelOption, type ParsedDiskCommand,
+    DiskOptionSpec, parseAddDate, parseCountOption, parseDensityOption, parseModelOption, type ParsedDiskCommand,
+    parseSidesOption,
 } from "./DiskCommandParser.js";
-import {formatDosHelpLines, formatDosItems, parseFormatDosName} from "./DiskHelp.js";
+import {
+    createCpmFromCommand, CPM_FORMAT_OPTION_SPECS, CPM_KEEP_SYSTEM_OPTION_SPEC, cpmHardDiskError, formatCpmFromCommand,
+    rejectCpmOnlyOptions, sessionDiskIsCpm,
+} from "./DiskCpmCreate.js";
+import {formatDosHelpLines, formatDosItems, isCpmDosName, parseFormatDosName} from "./DiskHelp.js";
 
 /**
  * The options of "create" and "format", which are the same except for what --force says.
@@ -24,17 +29,17 @@ function makeFormatOptionSpecs(forceDescription: string): DiskOptionSpec[] {
         {
             name: "--cylinders",
             valueName: "N",
-            description: "the number of cylinders (the DOS's limits apply)",
+            description: "the number of cylinders (the DOS's limits apply; cpm has 40 or 80, and its default is 40)",
         },
         {
             name: "--sides",
             valueName: "1|2",
-            description: "the number of sides (trsdos-2.3 and trsdos-1.3 have only one)",
+            description: "the number of sides (trsdos-2.3 and trsdos-1.3 have only one; cpm's default is 1)",
         },
         {
             name: "--density",
             valueName: "single|double",
-            description: "the recording density (trsdos-2.3 is single and trsdos-1.3 is double only)",
+            description: "the recording density (trsdos-2.3 is single, and trsdos-1.3 and cpm are double only)",
         },
         {
             name: "--model",
@@ -64,35 +69,15 @@ function makeFormatOptionSpecs(forceDescription: string): DiskOptionSpec[] {
  *
  * @param command the parsed command, with at most one argument: the DOS.
  * @param doses the DOSes to list if the DOS isn't known (default: all of them).
+ * @param includeCpm whether the list also names CP/M, which the caller deals with before this, for a floppy.
  * @throws ToolError if the DOS or an option has a bad value.
  */
-function parseFormatChoices(command: ParsedDiskCommand,
-                            doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES): FormatRequest {
+function parseFormatChoices(command: ParsedDiskCommand, doses: readonly TrsdosFormatDos[] = TRSDOS_FORMAT_DOSES,
+                            includeCpm = false): FormatRequest {
     const options = command.options;
-    const dos = command.args.length === 0 ? undefined : parseFormatDosName(command.args[0], doses);
-
-    const sides = parseCountOption(options, "--sides");
-    if (sides !== undefined && sides !== 1 && sides !== 2) {
-        throw new ToolError("Invalid --sides \"" + sides + "\": use 1 or 2");
-    }
-
-    let density: Density | undefined = undefined;
-    const densityText = options.getString("--density");
-    if (densityText !== undefined) {
-        switch (densityText.toLowerCase()) {
-            case "single":
-            case "sd":
-                density = Density.SINGLE;
-                break;
-            case "double":
-            case "dd":
-                density = Density.DOUBLE;
-                break;
-            default:
-                throw new ToolError("Invalid --density \"" + densityText + "\": use single or double");
-        }
-    }
-
+    const dos = command.args.length === 0 ? undefined : parseFormatDosName(command.args[0], doses, includeCpm);
+    const sides = parseSidesOption(options);
+    const density = parseDensityOption(options);
     const model = parseModelOption(options);
 
     const dateText = options.getString("--date");
@@ -145,6 +130,10 @@ function createHardDiskFromCommand(session: DiskSession, command: ParsedDiskComm
             throw new ToolError(name + " only applies to floppy images, not hard disks");
         }
     }
+    if (isCpmDosName(command.args[0])) {
+        throw cpmHardDiskError();
+    }
+    rejectCpmOnlyOptions(command, "hard disks");
 
     const choices = parseFormatChoices(command, HARD_DISK_FORMAT_DOSES);
     const dos = choices.dos;
@@ -219,11 +208,22 @@ export const CREATE_COMMAND: DiskCommand = {
                 description: "for a hard disk image, how many equal partitions to make (default: as few as keep " +
                     "each at 203 cylinders or fewer)",
             },
+            ... CPM_FORMAT_OPTION_SPECS,
         ],
         extraHelp: [
-            { title: "DOS is one of:", style: "command", items: formatDosItems() },
+            { title: "DOS is one of:", style: "command", items: formatDosItems(TRSDOS_FORMAT_DOSES, true) },
             "With --system the disk is a copy of the DOS's own (TRSDOS 2.3, TRSDOS 1.3, LDOS 5.3.1, TRSDOS 6.2.1, " +
-            "or LS-DOS 6.3.1), which fixes its shape: --cylinders, --sides and --density must match it.",
+            "LS-DOS 6.3.1, or Montezuma Micro CP/M BIOS 2.32), which fixes its shape: --cylinders, --sides and " +
+            "--density must match it.",
+            "With cpm the disk is a Montezuma Micro CP/M 2.2 floppy in one of the layouts that \"help cpm-format\" " +
+            "lists, a data format (mm-data, 10 x 512, 40 tracks, one side) unless --sides 2, --cylinders 80, or " +
+            "--cpm-format says otherwise. --cpm-format may also be given before the command, as it is for the rest " +
+            "of the disk command. A system layout gets its system tracks: the BIOS 2.32 system, configured by " +
+            "Montezuma's CONFIG for a drive of that shape (with no startup command), for mm-system, mm-ds-system, " +
+            "mm-80-system, and mm-80-ds-system, so the disk boots, and the boot sector that Montezuma's FORMAT " +
+            "leaves (which says there's no CP/M on the disk) for the others. --system-from IMAGE copies another " +
+            "disk's system tracks instead, which must read as the same layout, because the system tracks hold the " +
+            "drive configuration. --name, --date, --model, and --minimal don't apply to cpm.",
             "A file named .hdv makes a hard disk image instead of a floppy: --cylinders (1 to 1023; default 840) and " +
             "--heads (1 to 8; default 6) give its shape, and the defaults are what FreHD makes. Without a DOS the " +
             "disk is blank, with no partitions (\"partition --add\" makes them). With ldos-5.3 or lsdos-6.3 (the " +
@@ -240,7 +240,8 @@ export const CREATE_COMMAND: DiskCommand = {
     worksWithoutDisk: true,
 
     /**
-     * On a file named .hdv, make a hard disk image instead (see {@link createHardDisk}). Otherwise make the disk
+     * On a file named .hdv, make a hard disk image instead (see {@link createHardDisk}). With the DOS cpm, make a
+     * Montezuma Micro CP/M disk (see {@link createCpmFromCommand}). Otherwise make the disk
      * with the DOS's usual layout, as its FORMAT would (with its boot sectors when we have them),
      * and put it in the session as if it had been opened, with changes pending. With --system the disk is
      * instead a copy of the DOS's system disk, optionally trimmed to its system files, and --name and
@@ -260,9 +261,17 @@ export const CREATE_COMMAND: DiskCommand = {
             }
         }
 
-        const choices = parseFormatChoices(command);
+        if (isCpmDosName(command.args[0])) {
+            createCpmFromCommand(session, command, globalOptions, out, replaced => printReplaced(replaced, out),
+                () => printNewDiskSummary("Created", session, out));
+            return;
+        }
+        rejectCpmOnlyOptions(command, "this DOS");
+
+        const choices = parseFormatChoices(command, TRSDOS_FORMAT_DOSES, true);
         if (choices.dos === undefined) {
-            throw new ToolError("create needs a DOS to make the disk for. The DOSes are:\n" + formatDosHelpLines().join("\n"));
+            throw new ToolError("create needs a DOS to make the disk for. The DOSes are:\n" +
+                formatDosHelpLines(TRSDOS_FORMAT_DOSES, true).join("\n"));
         }
         const dos = choices.dos;
 
@@ -311,6 +320,10 @@ function formatHardDiskFromCommand(session: DiskSession, command: ParsedDiskComm
             throw new ToolError(name + " doesn't apply to a hard disk: format keeps the chosen partition's size");
         }
     }
+    if (isCpmDosName(command.args[0])) {
+        throw cpmHardDiskError();
+    }
+    rejectCpmOnlyOptions(command, "hard disks");
     const choices = parseFormatChoices(command, HARD_DISK_FORMAT_DOSES);
 
     // The default DOS is the chosen partition's, so there must be one. This says how to make one if there are none.
@@ -344,13 +357,23 @@ export const FORMAT_COMMAND: DiskCommand = {
         aliases: [],
         args: "[DOS]",
         summary: "erase the disk (or a hard disk's chosen partition) and format it as an empty data disk",
-        options: makeFormatOptionSpecs("erase a disk that has files"),
+        options: [
+            ... makeFormatOptionSpecs("erase a disk that has files"),
+            ... CPM_FORMAT_OPTION_SPECS,
+            CPM_KEEP_SYSTEM_OPTION_SPEC,
+        ],
         extraHelp: [
             {
                 title: "DOS is as for create (default: the disk's own DOS, if it's one of those):",
                 style: "command",
-                items: formatDosItems(),
+                items: formatDosItems(TRSDOS_FORMAT_DOSES, true),
             },
+            "With cpm the disk is formatted as a Montezuma Micro CP/M 2.2 floppy: with --cpm-format, in that layout; " +
+            "otherwise, with --sides or --cylinders, as the data format with them; otherwise in the layout the disk " +
+            "has now, if it's one of the presets, and else as the data format of its own sides and cylinders. " +
+            "Montezuma's FORMAT erases the system tracks, so this does too, and gives them what create would; " +
+            "--keep-system keeps the disk's own instead, when the new layout is the disk's own, and --system-from " +
+            "IMAGE copies another disk's, which must read as the new layout. --name, --date, and --model don't apply to cpm.",
             "On a hard disk this formats the chosen partition (see \"partition\") again in the same place, with " +
             "the same cylinders, heads and granules. It keeps the partition's name unless --name is given, and " +
             "takes today's date unless --date is. The DOS must be ldos-5.3 or lsdos-6.3, and --force is needed if " +
@@ -361,7 +384,8 @@ export const FORMAT_COMMAND: DiskCommand = {
     endsSession: false,
 
     /**
-     * On a hard disk, format the chosen partition again (see {@link formatHardDiskPartition}). Otherwise
+     * On a hard disk, format the chosen partition again (see {@link formatHardDiskPartition}). With the DOS cpm
+     * (or no DOS, on a CP/M disk), format a Montezuma Micro CP/M disk (see {@link formatCpmFromCommand}). Otherwise
      * replace the disk in memory with a blank one, as "create" makes. The cylinders and sides default to the
      * current disk's, and the DOS to the current disk's (which must be given if the disk's isn't one that we can format).
      * The result is a DMK image, so a file name for another kind is refused. If the disk has files then
@@ -374,12 +398,20 @@ export const FORMAT_COMMAND: DiskCommand = {
         }
 
         const options = command.options;
-        const choices = parseFormatChoices(command);
+        // A CP/M disk has no DOS of the TRSDOS family, so "format" alone on one means to format it as CP/M again.
+        const formatsCpm = isCpmDosName(command.args[0]) || (command.args.length === 0 && sessionDiskIsCpm(session));
+        if (formatsCpm) {
+            formatCpmFromCommand(session, command, globalOptions, out,
+                () => printNewDiskSummary("Formatted", session, out));
+            return;
+        }
+        rejectCpmOnlyOptions(command, "this DOS");
+        const choices = parseFormatChoices(command, TRSDOS_FORMAT_DOSES, true);
 
         const dos = choices.dos ?? getSessionFormatDos(session);
         if (dos === undefined) {
             throw new ToolError("format needs a DOS to format for, since the disk's DOS isn't one that format can " +
-                "make. The DOSes are:\n" + formatDosHelpLines().join("\n"));
+                "make. The DOSes are:\n" + formatDosHelpLines(TRSDOS_FORMAT_DOSES, true).join("\n"));
         }
 
         formatFloppy(session, {format: {...choices, dos}, force: options.has("--force")});

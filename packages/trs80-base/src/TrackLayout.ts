@@ -269,6 +269,45 @@ export const TRSDOS_13_TRACK_LAYOUT: TrackLayout = {
 };
 
 /**
+ * Montezuma Micro CP/M 2.2 in double density with 256-byte sectors: eighteen sectors numbered from 1 and in order
+ * on every track of every cylinder and side (the BIOS does the skewing, not FORMAT), filled with 0xE5. The gaps
+ * are the same as LS-DOS's, which makes 342 bytes from one ID field to the next. See "Track layouts by DOS" and
+ * "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md.
+ */
+export const MONTEZUMA_256_TRACK_LAYOUT: TrackLayout = {
+    id: "montezuma-256",
+    description: "Montezuma Micro CP/M 2.2, 18 sectors of 256 bytes, double density",
+    density: Density.DOUBLE,
+    sectorCount: 18,
+    sectorSize: 256,
+    firstSectorNumber: 1,
+    interleaveStep: 1,
+    cylinderSkew: 0,
+    twoSidedCylinderSkew: 0,
+    sideSkew: 0,
+    leadGapLength: 32,
+    idSyncLength: 12,
+    gap2Length: 22,
+    dataSyncLength: 12,
+    gap3Length: 24,
+    fillPattern: [0xE5],
+    sectorTail: [],
+};
+
+/**
+ * Montezuma Micro CP/M 2.2 in double density with 512-byte sectors: ten sectors numbered from 1 and in order, with
+ * the gaps of {@link MONTEZUMA_256_TRACK_LAYOUT}, so 598 bytes from one ID field to the next. See "Track layouts by
+ * DOS" and "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md.
+ */
+export const MONTEZUMA_512_TRACK_LAYOUT: TrackLayout = {
+    ...MONTEZUMA_256_TRACK_LAYOUT,
+    id: "montezuma-512",
+    description: "Montezuma Micro CP/M 2.2, 10 sectors of 512 bytes, double density",
+    sectorCount: 10,
+    sectorSize: 512,
+};
+
+/**
  * Every layout above, for looking one up by its id.
  */
 export const ALL_TRACK_LAYOUTS: TrackLayout[] = [
@@ -277,6 +316,8 @@ export const ALL_TRACK_LAYOUTS: TrackLayout[] = [
     LDOS_DD_TRACK_LAYOUT,
     LSDOS_DD_TRACK_LAYOUT,
     TRSDOS_13_TRACK_LAYOUT,
+    MONTEZUMA_256_TRACK_LAYOUT,
+    MONTEZUMA_512_TRACK_LAYOUT,
 ];
 
 /**

@@ -1,3 +1,5 @@
+import type {CpmVerifiedLayout} from "trs80-base";
+import {resolveCpmFormat} from "trs80-disk";
 import {setColorLevel} from "../colors.js";
 import {captureLogsAsync, printJson} from "../json.js";
 import {ToolError, ToolExitCode} from "../utils.js";
@@ -26,7 +28,7 @@ import {openDiskSession, saveAndReport} from "./DiskFiles.js";
  */
 export async function disk(words: string[]): Promise<void> {
     const pathname = words[0];
-    const { globalOptions, commands, ruleSet } = parseDiskWords(words.slice(1));
+    const { globalOptions, commands, ruleSet, cpmFormat } = parseDiskWords(words.slice(1));
 
     if (globalOptions.has("--json")) {
         // A shell on a terminal has no end to describe.
@@ -34,7 +36,7 @@ export async function disk(words: string[]): Promise<void> {
             throw new ToolError(JSON_NEEDS_COMMANDS_MESSAGE);
         }
         const { json, exitCode } = await runDiskJson(pathname, commands, globalOptions, ruleSet,
-            globalOptions.has("--dry-run"));
+            cpmFormat, globalOptions.has("--dry-run"));
         printJson(json);
         if (exitCode !== ToolExitCode.SUCCESS) {
             process.exitCode = exitCode;
@@ -47,6 +49,7 @@ export async function disk(words: string[]): Promise<void> {
         dryRun: globalOptions.has("--dry-run"),
         partition: globalOptions.getString("--partition"),
         ruleSet,
+        cpmFormat,
         force: globalOptions.has("--force"),
     });
 
@@ -64,12 +67,13 @@ export async function disk(words: string[]): Promise<void> {
  * --dos, if any. This is done before opening the disk, so that a typo doesn't cost a decode and syntax errors
  * don't depend on the file.
  *
- * @throws ToolError for a syntax error or an unknown DOS.
+ * @throws ToolError for a syntax error, an unknown DOS, or an unknown --cpm-format.
  */
 function parseDiskWords(words: string[]): {
     globalOptions: DiskOptionValues,
     commands: ParsedDiskCommand[],
     ruleSet: ReturnType<typeof parseDosName> | undefined,
+    cpmFormat: CpmVerifiedLayout | undefined,
 } {
     const { globalOptions, commands } = parseDiskCommandLine(words, DISK_GLOBAL_OPTIONS,
         DISK_COMMANDS.map(c => c.spec));
@@ -77,7 +81,10 @@ function parseDiskWords(words: string[]): {
     const dosName = globalOptions.getString("--dos");
     const ruleSet = dosName === undefined ? undefined : parseDosName(dosName);
 
-    return { globalOptions, commands, ruleSet };
+    const cpmFormatName = globalOptions.getString("--cpm-format");
+    const cpmFormat = cpmFormatName === undefined ? undefined : resolveCpmFormat(cpmFormatName);
+
+    return { globalOptions, commands, ruleSet, cpmFormat };
 }
 
 /**
@@ -106,7 +113,7 @@ export interface DiskJsonOutcome {
  * found before anything runs.
  */
 export async function diskJsonRun(pathname: string, words: string[], readOnly: boolean): Promise<DiskJsonOutcome> {
-    const { globalOptions, commands, ruleSet } = parseDiskWords(words);
+    const { globalOptions, commands, ruleSet, cpmFormat } = parseDiskWords(words);
     if (commands.length === 0) {
         throw new ToolError("Give at least one command, such as \"dir\"");
     }
@@ -120,7 +127,8 @@ export async function diskJsonRun(pathname: string, words: string[], readOnly: b
         }
     }
 
-    return runDiskJson(pathname, commands, globalOptions, ruleSet, readOnly || globalOptions.has("--dry-run"));
+    return runDiskJson(pathname, commands, globalOptions, ruleSet, cpmFormat,
+        readOnly || globalOptions.has("--dry-run"));
 }
 
 /**
@@ -133,12 +141,13 @@ export async function diskJsonRun(pathname: string, words: string[], readOnly: b
  * @param commands the parsed commands, or none to read a script from standard input.
  * @param globalOptions the options that apply to the whole run.
  * @param ruleSet the rules of the DOS named with --dos, if any.
+ * @param cpmFormat the CP/M layout named with --cpm-format, if any.
  * @param dryRun whether to keep changes from being saved, as --dry-run does.
  * @returns the document, and the exit status the run gives.
  */
 async function runDiskJson(pathname: string, commands: ParsedDiskCommand[], globalOptions: DiskOptionValues,
                            ruleSet: ReturnType<typeof parseDosName> | undefined,
-                           dryRun: boolean): Promise<DiskJsonOutcome> {
+                           cpmFormat: CpmVerifiedLayout | undefined, dryRun: boolean): Promise<DiskJsonOutcome> {
 
     setColorLevel("off");
     const run = new JsonDiskRun();
@@ -150,6 +159,7 @@ async function runDiskJson(pathname: string, commands: ParsedDiskCommand[], glob
                 dryRun,
                 partition: globalOptions.getString("--partition"),
                 ruleSet,
+                cpmFormat,
                 force: globalOptions.has("--force"),
                 warn: message => run.warn(message),
             });

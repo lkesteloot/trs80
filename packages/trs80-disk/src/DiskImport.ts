@@ -108,6 +108,78 @@ export function importHostFile(hostName: string, bytes: Uint8Array, options: Imp
     }
 }
 
+const CTRL_Z = 0x1A;
+
+/**
+ * Convert a host file's bytes for a CP/M disk, which keeps text as it is on the host except for its line endings
+ * (see the "add" command in the site's documentation): text files (--text, an extension in TEXT_FILE_EXTENSIONS, or a
+ * .bas file that isn't tokenized MBASIC, which starts with 0xFF) get CR LF line endings and end with one Ctrl-Z, and
+ * everything else, including .cas and .3bn files, is copied as it is. The writer pads the last record with Ctrl-Z.
+ * BASIC isn't tokenized, since a CP/M disk's BASIC does its own.
+ *
+ * @param hostName the host file's name without directories, which is used in messages and whose extension says
+ * what kind of file it is.
+ * @param bytes the host file's contents.
+ * @param options the conversion options. --ascii is refused, since the caller says so before it gets here.
+ * @throws DiskError if the options contradict each other or ask for --ascii.
+ */
+export function importCpmHostFile(hostName: string, bytes: Uint8Array, options: ImportOptions): ImportResult {
+    checkImportOptions(options);
+    if (options.ascii) {
+        throw new DiskError("--ascii doesn't apply to CP/M disks, where .bas files are text unless they're tokenized");
+    }
+
+    let isText: boolean;
+    if (options.binary) {
+        isText = false;
+    } else if (options.text) {
+        isText = true;
+    } else {
+        const hostExtension = extensionOf(hostName).toLowerCase();
+        if (hostExtension === ".bas") {
+            // Tokenized MBASIC starts with 0xFF.
+            isText = bytes.length === 0 || bytes[0] !== BASIC_HEADER_BYTE;
+        } else {
+            isText = TEXT_FILE_EXTENSIONS.includes(hostExtension);
+        }
+    }
+    // A file of no bytes stays one: a lone Ctrl-Z would make it a record.
+    if (!isText || bytes.length === 0) {
+        return {contents: bytes, extension: undefined, messages: []};
+    }
+
+    const contents = convertToCpmText(bytes);
+    const messages = contents.length !== bytes.length || contents.some((b, i) => b !== bytes[i]) ?
+        ["Converted line endings of " + hostName + "."] : [];
+    return {contents, extension: undefined, messages};
+}
+
+/**
+ * Convert LF and CRLF line endings to CRLF, leave a lone CR alone, and end with one Ctrl-Z unless the text already
+ * does.
+ *
+ * @param bytes the text.
+ * @returns a new array.
+ */
+function convertToCpmText(bytes: Uint8Array): Uint8Array {
+    const out: number[] = [];
+    for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        if (b === CR && i + 1 < bytes.length && bytes[i + 1] === LF) {
+            out.push(CR, LF);
+            i++;
+        } else if (b === LF) {
+            out.push(CR, LF);
+        } else {
+            out.push(b);
+        }
+    }
+    if (out.length === 0 || out[out.length - 1] !== CTRL_Z) {
+        out.push(CTRL_Z);
+    }
+    return Uint8Array.from(out);
+}
+
 /**
  * Check that the conversion options don't contradict each other: --binary turns off every conversion, which
  * --ascii and --text ask for.
