@@ -41,6 +41,9 @@ const CAMERA_NODE_ID = "trs80_emulator_web_camera_id";
 const HORIZONTAL_BLUR = 0.72;
 const VERTICAL_BLUR = 0.20;
 const HALATION_BLUR = 1.5;
+// Resolution at which halation is computed, in texels per CRT pixel. The halation blur
+// is several CRT pixels wide, so it doesn't need the full device resolution.
+const HALATION_TEXELS_PER_CRT_PIXEL = 1;
 const REFLECTION_BLUR = 3;
 
 // Switch between display modes automatically to test interfaces that don't have a
@@ -319,6 +322,8 @@ const MAX_BLUR_TAPS = 32;
  * The weights come from a BlurKernel. Each tap samples halfway between two texels
  * (at the offset that weights them correctly), so that the texture unit's linear
  * filtering does half the work. That requires the input texture to use LINEAR filtering.
+ * The output can be smaller than the input: the blur is in input texels, and acts as the
+ * filter that keeps the smaller output from aliasing.
  */
 const BLUR_FRAGMENT_SHADER_SOURCE = `#version 300 es
 
@@ -334,22 +339,24 @@ uniform vec2 u_taps[MAX_TAPS]; // Offset in texels, weight. Mirrored on both sid
 uniform int u_tapCount;
 uniform float u_boost;
 uniform bool u_vertical;
+uniform vec2 u_outputSize;
 in vec2 v_texcoord;
 out vec4 outColor;
 
 void main() {
-    vec2 size = vec2(u_inputTextureSize);
-    vec4 color = texture(u_inputTexture, v_texcoord/size);
+    vec2 uv = v_texcoord/u_outputSize;
+    vec4 color = texture(u_inputTexture, uv);
     if (u_tapCount == 0) {
         // No blur (sigma of zero), and no boost either.
         outColor = color;
     } else {
-        vec2 delta = u_vertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
+        // One input texel, in the direction of the blur.
+        vec2 delta = (u_vertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0))/vec2(u_inputTextureSize);
         color *= u_centerWeight;
         for (int i = 0; i < u_tapCount; i++) {
             vec2 offset = delta*u_taps[i].x;
-            color += (texture(u_inputTexture, (v_texcoord + offset)/size) +
-                      texture(u_inputTexture, (v_texcoord - offset)/size))*u_taps[i].y;
+            color += (texture(u_inputTexture, uv + offset) +
+                      texture(u_inputTexture, uv - offset))*u_taps[i].y;
         }
         outColor = color*u_boost;
     }
@@ -1164,7 +1171,15 @@ class ConfiguredCanvas {
         const renderedTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
-        const halationTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
+        // Halation is a wide, soft glow, so it's computed at a lower resolution, tied to
+        // the CRT's pixels rather than the device's, so that its cost doesn't grow with
+        // the window. Never more than the canvas's. The horizontal pass shrinks the width
+        // and the vertical pass the height.
+        const halationDownscale = Math.max(1, devicePixelRatio*this.crtToCss/HALATION_TEXELS_PER_CRT_PIXEL);
+        const halationWidth = Math.ceil(this.canvas.width/halationDownscale);
+        const halationHeight = Math.ceil(this.canvas.height/halationDownscale);
+        const horizontallyBlurredHalationTexture = createIntermediateTexture(gl, halationWidth, this.canvas.height);
+        const halationTexture = createIntermediateTexture(gl, halationWidth, halationHeight);
         const horizontallyBlurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
         const blurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
 
@@ -1309,11 +1324,11 @@ class ConfiguredCanvas {
                     halationBlur,
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
                     new NamedVariable("u_vertical", [0]),
-                ], horizontallyBlurredTexture),
+                ], horizontallyBlurredHalationTexture),
 
                 // Vertically blur for halation.
                 new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
+                    new NamedTexture("u_inputTexture", horizontallyBlurredHalationTexture),
                 ], [
                     halationBlur,
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
