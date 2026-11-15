@@ -41,6 +41,9 @@ const CAMERA_NODE_ID = "trs80_emulator_web_camera_id";
 const HORIZONTAL_BLUR = 0.72;
 const VERTICAL_BLUR = 0.20;
 const HALATION_BLUR = 1.5;
+// Resolution at which halation is computed, in texels per CRT pixel. The halation blur
+// is several CRT pixels wide, so it doesn't need the full device resolution.
+const HALATION_TEXELS_PER_CRT_PIXEL = 1;
 const REFLECTION_BLUR = 3;
 
 // Switch between display modes automatically to test interfaces that don't have a
@@ -309,38 +312,53 @@ void main() {
 `;
 
 /**
+ * Maximum number of tap pairs in a blur kernel. Each pair covers two texels on each side
+ * of the center, so this allows a radius of twice this many texels.
+ */
+const MAX_BLUR_TAPS = 32;
+
+/**
  * Generic shader to blur the input texture in one direction (horizontal or vertical).
+ * The weights come from a BlurKernel. Each tap samples halfway between two texels
+ * (at the offset that weights them correctly), so that the texture unit's linear
+ * filtering does half the work. That requires the input texture to use LINEAR filtering.
+ * The output can be smaller than the input: the blur is in input texels, and acts as the
+ * filter that keeps the smaller output from aliasing.
  */
 const BLUR_FRAGMENT_SHADER_SOURCE = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
 
+const int MAX_TAPS = ${MAX_BLUR_TAPS};
+
 uniform sampler2D u_inputTexture;
 uniform ivec2 u_inputTextureSize;
-uniform float u_sigma;
+uniform float u_centerWeight;
+uniform vec2 u_taps[MAX_TAPS]; // Offset in texels, weight. Mirrored on both sides.
+uniform int u_tapCount;
 uniform float u_boost;
 uniform bool u_vertical;
+uniform vec2 u_outputSize;
 in vec2 v_texcoord;
 out vec4 outColor;
 
 void main() {
-    if (u_sigma == 0.0) {
-        vec2 uv = v_texcoord/vec2(u_inputTextureSize);
-        outColor = texture(u_inputTexture, uv);
+    vec2 uv = v_texcoord/u_outputSize;
+    vec4 color = texture(u_inputTexture, uv);
+    if (u_tapCount == 0) {
+        // No blur (sigma of zero), and no boost either.
+        outColor = color;
     } else {
-        float radius = ceil(u_sigma*3.0);
-        vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-        float total = 0.0;
-        vec2 delta = u_vertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
-        for (float dx = -radius; dx <= radius; dx++) {
-            vec2 uv = (v_texcoord + delta*dx)/vec2(u_inputTextureSize);
-            vec4 pixelColor = texture(u_inputTexture, uv);
-            float coef = exp(-dx*dx/(2.0*u_sigma*u_sigma));
-            color += pixelColor*coef;
-            total += coef;
+        // One input texel, in the direction of the blur.
+        vec2 delta = (u_vertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0))/vec2(u_inputTextureSize);
+        color *= u_centerWeight;
+        for (int i = 0; i < u_tapCount; i++) {
+            vec2 offset = delta*u_taps[i].x;
+            color += (texture(u_inputTexture, uv + offset) +
+                      texture(u_inputTexture, uv - offset))*u_taps[i].y;
         }
-        outColor = color / total * u_boost;
+        outColor = color*u_boost;
     }
 }
 `;
@@ -634,9 +652,19 @@ class NamedTexture {
 }
 
 /**
+ * Something that sets uniform variables in a shader program before a render pass.
+ */
+interface ShaderVariable {
+    /**
+     * Set this object's uniforms in this program.
+     */
+    bind(gl: WebGL2RenderingContext, program: WebGLProgram): void;
+}
+
+/**
  * A variable in a shader that has a name and a value. The value can be a scalar or vector.
  */
-class NamedVariable {
+class NamedVariable implements ShaderVariable {
     public readonly values: number[];
 
     public constructor(public readonly name: string,
@@ -671,11 +699,98 @@ class NamedVariable {
 }
 
 /**
+ * Get the location of a uniform that the shader must have. Throws if it's missing.
+ */
+function getRequiredUniformLocation(gl: WebGL2RenderingContext, program: WebGLProgram,
+                                    name: string): WebGLUniformLocation {
+
+    const location = gl.getUniformLocation(program, name);
+    if (location === null) {
+        throw new Error("Can't find uniform variable \"" + name + "\"");
+    }
+    return location;
+}
+
+/**
+ * The weights of a one-dimensional Gaussian blur, for BLUR_FRAGMENT_SHADER_SOURCE. The
+ * kernel covers three sigmas on each side, normalized to sum to one. Rather than one
+ * tap per texel, the texels on each side are paired up, and each pair is a single tap
+ * whose offset falls between the two texels in proportion to their weights, so that
+ * linear filtering returns their weighted sum. The weights are computed here, once per
+ * change of sigma, rather than per pixel in the shader.
+ */
+class BlurKernel implements ShaderVariable {
+    private currentSigma = -1;
+    private centerWeight = 1;
+    private tapCount = 0;
+    // Pairs of (offset in texels, weight), for one side.
+    private readonly taps = new Float32Array(MAX_BLUR_TAPS*2);
+
+    public constructor(sigma: number) {
+        this.sigma = sigma;
+    }
+
+    /**
+     * Standard deviation of the blur, in texels.
+     */
+    public get sigma(): number {
+        return this.currentSigma;
+    }
+
+    /**
+     * Set the standard deviation of the blur, in texels, and recompute the taps.
+     * Zero means no blur.
+     */
+    public set sigma(sigma: number) {
+        if (sigma === this.currentSigma) {
+            return;
+        }
+        this.currentSigma = sigma;
+
+        this.taps.fill(0);
+        if (sigma === 0) {
+            this.centerWeight = 1;
+            this.tapCount = 0;
+            return;
+        }
+
+        // Truncate absurdly wide blurs to what the shader can do.
+        const radius = Math.min(Math.ceil(sigma*3), MAX_BLUR_TAPS*2);
+        const weight = (dx: number) => dx > radius ? 0 : Math.exp(-dx*dx/(2*sigma*sigma));
+
+        let total = weight(0);
+        for (let dx = 1; dx <= radius; dx++) {
+            total += 2*weight(dx);
+        }
+
+        this.centerWeight = weight(0)/total;
+        this.tapCount = 0;
+        for (let dx = 1; dx <= radius; dx += 2) {
+            const w1 = weight(dx);
+            const w2 = weight(dx + 1);
+            const w = w1 + w2;
+            this.taps[this.tapCount*2] = (dx*w1 + (dx + 1)*w2)/w;
+            this.taps[this.tapCount*2 + 1] = w/total;
+            this.tapCount += 1;
+        }
+    }
+
+    /**
+     * Set the kernel's uniforms in this program.
+     */
+    public bind(gl: WebGL2RenderingContext, program: WebGLProgram): void {
+        gl.uniform1f(getRequiredUniformLocation(gl, program, "u_centerWeight"), this.centerWeight);
+        gl.uniform2fv(getRequiredUniformLocation(gl, program, "u_taps"), this.taps);
+        gl.uniform1i(getRequiredUniformLocation(gl, program, "u_tapCount"), this.tapCount);
+    }
+}
+
+/**
  * A pass that runs a pixel shader, perhaps on input textures, either generating an
  * off-screen texture or rendering to the canvas.
  */
 class RenderPass {
-    private readonly namedVariables: NamedVariable[];
+    private readonly namedVariables: ShaderVariable[];
     private readonly fb: WebGLFramebuffer | undefined;
     private readonly program: WebGLProgram;
     private readonly vao: WebGLVertexArrayObject;
@@ -683,7 +798,7 @@ class RenderPass {
     public constructor(gl: WebGL2RenderingContext,
                        fragmentSource: string,
                        private readonly namedTextures: NamedTexture[],
-                       namedVariables: NamedVariable[],
+                       namedVariables: ShaderVariable[],
                        private readonly output: SizedTexture | { width: number, height: number }) {
 
         this.namedVariables = [
@@ -962,8 +1077,8 @@ class ConfiguredCanvas {
     public readonly crtCurvature: NamedVariable;
     public readonly scanlines: NamedVariable;
     public readonly scanlineBloom: NamedVariable;
-    public readonly pixelHorizontalBlur: NamedVariable;
-    public readonly pixelVerticalBlur: NamedVariable;
+    public readonly pixelHorizontalBlur: BlurKernel;
+    public readonly pixelVerticalBlur: BlurKernel;
     public readonly phosphor: NamedVariable;
     public readonly halation: NamedVariable;
     public readonly blackpoint: NamedVariable;
@@ -1056,7 +1171,15 @@ class ConfiguredCanvas {
         const renderedTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
-        const halationTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
+        // Halation is a wide, soft glow, so it's computed at a lower resolution, tied to
+        // the CRT's pixels rather than the device's, so that its cost doesn't grow with
+        // the window. Never more than the canvas's. The horizontal pass shrinks the width
+        // and the vertical pass the height.
+        const halationDownscale = Math.max(1, devicePixelRatio*this.crtToCss/HALATION_TEXELS_PER_CRT_PIXEL);
+        const halationWidth = Math.ceil(this.canvas.width/halationDownscale);
+        const halationHeight = Math.ceil(this.canvas.height/halationDownscale);
+        const horizontallyBlurredHalationTexture = createIntermediateTexture(gl, halationWidth, this.canvas.height);
+        const halationTexture = createIntermediateTexture(gl, halationWidth, halationHeight);
         const horizontallyBlurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
         const blurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
 
@@ -1118,13 +1241,15 @@ class ConfiguredCanvas {
         this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
         this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
         this.scanlineBloom = new NamedVariable("u_scanlineBloom", [DEFAULT_SCANLINE_BLOOM]);
-        this.pixelHorizontalBlur = new NamedVariable("u_sigma", [this.pixelHorizontalBlurMax]);
-        this.pixelVerticalBlur = new NamedVariable("u_sigma", [this.pixelVerticalBlurMax]);
+        this.pixelHorizontalBlur = new BlurKernel(this.pixelHorizontalBlurMax);
+        this.pixelVerticalBlur = new BlurKernel(this.pixelVerticalBlurMax);
         this.phosphor = new NamedVariable("u_phosphor", [DEFAULT_PHOSPHOR]);
         this.halation = new NamedVariable("u_halation", [DEFAULT_HALATION]);
         this.blackpoint = new NamedVariable("u_blackpoint", [DEFAULT_BLACKPOINT]);
         this.vignette = new NamedVariable("u_vignette", [DEFAULT_VIGNETTE]);
-        this.reflection = new NamedVariable("u_reflection", [DEFAULT_REFLECTION]);
+        // Without a camera there's nothing to reflect, and mixing in the black texture
+        // would only dim the screen.
+        this.reflection = new NamedVariable("u_reflection", [this.camera === undefined ? 0 : DEFAULT_REFLECTION]);
         this.zoom = new NamedVariable("u_zoom", [DEFAULT_ZOOM]);
         this.zoomPoint = new NamedVariable("u_zoomPoint", ZOOM_POINTS[0]);
         this.startTime = Date.now() / 1000;
@@ -1151,6 +1276,8 @@ class ConfiguredCanvas {
                 ], {width: this.canvas.width, height: this.canvas.height}),
             ];
         } else {
+            const halationBlur = new BlurKernel(HALATION_BLUR * devicePixelRatio * this.crtToCss);
+            const reflectionBlur = new BlurKernel(REFLECTION_BLUR);
             this.renderPasses = [
                 // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
                 new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE(font.width, font.height), [
@@ -1194,37 +1321,42 @@ class ConfiguredCanvas {
                 new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", blurredTexture),
                 ], [
-                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.crtToCss]),
+                    halationBlur,
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
                     new NamedVariable("u_vertical", [0]),
-                ], horizontallyBlurredTexture),
+                ], horizontallyBlurredHalationTexture),
 
                 // Vertically blur for halation.
                 new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
+                    new NamedTexture("u_inputTexture", horizontallyBlurredHalationTexture),
                 ], [
-                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.crtToCss]),
+                    halationBlur,
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
                     new NamedVariable("u_vertical", [1]),
                 ], halationTexture),
 
-                // Horizontally blur camera reflection.
-                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", this.cameraTexture),
-                ], [
-                    new NamedVariable("u_sigma", [REFLECTION_BLUR]),
-                    new NamedVariable("u_boost", [1.0]),
-                    new NamedVariable("u_vertical", [0]),
-                ], horizontallyBlurredReflectionTexture),
+                // Blur the camera reflection. Without a camera, the reflection texture
+                // stays black (WebGL zero-fills new textures), which is what blurring
+                // the empty camera texture would produce, so skip it.
+                ... (this.camera === undefined ? [] : [
+                    // Horizontally blur camera reflection.
+                    new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                        new NamedTexture("u_inputTexture", this.cameraTexture),
+                    ], [
+                        reflectionBlur,
+                        new NamedVariable("u_boost", [1.0]),
+                        new NamedVariable("u_vertical", [0]),
+                    ], horizontallyBlurredReflectionTexture),
 
-                // Vertically blur camera reflection.
-                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", horizontallyBlurredReflectionTexture),
-                ], [
-                    new NamedVariable("u_sigma", [REFLECTION_BLUR]),
-                    new NamedVariable("u_boost", [1.0]),
-                    new NamedVariable("u_vertical", [1]),
-                ], blurredReflectionTexture),
+                    // Vertically blur camera reflection.
+                    new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                        new NamedTexture("u_inputTexture", horizontallyBlurredReflectionTexture),
+                    ], [
+                        reflectionBlur,
+                        new NamedVariable("u_boost", [1.0]),
+                        new NamedVariable("u_vertical", [1]),
+                    ], blurredReflectionTexture),
+                ]),
 
                 // Halation, phosphor color, vignette, bezel.
                 new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
@@ -2015,8 +2147,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 break;
 
             case DemoMode.PIXEL_BLUR:
-                this.configuredCanvas.pixelHorizontalBlur.values[0] = clamp(0, value*this.configuredCanvas.pixelHorizontalBlurMax, this.configuredCanvas.pixelHorizontalBlurMax*2);
-                this.configuredCanvas.pixelVerticalBlur.values[0] = clamp(0, value*this.configuredCanvas.pixelVerticalBlurMax, this.configuredCanvas.pixelVerticalBlurMax*2);
+                this.configuredCanvas.pixelHorizontalBlur.sigma = clamp(0, value*this.configuredCanvas.pixelHorizontalBlurMax, this.configuredCanvas.pixelHorizontalBlurMax*2);
+                this.configuredCanvas.pixelVerticalBlur.sigma = clamp(0, value*this.configuredCanvas.pixelVerticalBlurMax, this.configuredCanvas.pixelVerticalBlurMax*2);
                 break;
 
             case DemoMode.PHOSPHOR:

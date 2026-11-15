@@ -1,4 +1,4 @@
-import {Config, RunningState, Trs80} from "trs80-emulator";
+import {Config, DisplayType, RunningState, Trs80} from "trs80-emulator";
 import {
     BasicEditor,
     Bezel,
@@ -180,7 +180,10 @@ export function main() {
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
 
-    const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY, Config.makeDefault().edit().withBezel(true).build());
+    const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY, Config.makeDefault().edit()
+        .withBezel(true)
+        .withDisplayType(DisplayType.AUTHENTIC)
+        .build());
     const screen = new CanvasScreen(1.5);
     const keyboard = new WebKeyboard();
     const cassettePlayer = new AudioFileCassettePlayer();

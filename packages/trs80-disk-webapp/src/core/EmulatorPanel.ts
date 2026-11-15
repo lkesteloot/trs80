@@ -1,6 +1,6 @@
 import type {FloppyDisk} from "trs80-base";
 import type {BootModel, BootModelChoice} from "trs80-disk";
-import {BasicLevel, CassettePlayer, Config, ModelType, RunningState, Trs80} from "trs80-emulator";
+import {BasicLevel, CassettePlayer, Config, DisplayType, ModelType, RunningState, Trs80} from "trs80-emulator";
 import {
     Bezel, CanvasScreen, ControlPanel, DriveIndicators, FlipCard, loadTrs80Config, PanelType, saveTrs80Config,
     SettingsPanel, WebKeyboard, WebSoundPlayer,
@@ -87,7 +87,10 @@ class Machine {
      */
     constructor() {
         this.node = el("div", "emu-screen");
-        const config = loadTrs80Config(CONFIG_KEY, Config.makeDefault().edit().withBezel(true).build());
+        const config = loadTrs80Config(CONFIG_KEY, Config.makeDefault().edit()
+            .withBezel(true)
+            .withDisplayType(DisplayType.AUTHENTIC)
+            .build());
         const screen = new CanvasScreen(1.5);
         const keyboard = new WebKeyboard();
         const soundPlayer = new WebSoundPlayer();
