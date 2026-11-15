@@ -1,32 +1,74 @@
 import {
-    type BasicDialect, knownTrsdosPassword, parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo,
+    type BasicDialect, Cpm, type CpmAddResult, CpmFile, type CpmFilename, cpmFilenameFromHost, cpmFilenameToString,
+    knownTrsdosPassword, parseCpmFilename, parseTrsdosFilename, parseTrsdosProtectionLevel, readTrsdosDiskInfo,
     Trsdos, trsdosBlankPasswordHash, type TrsdosVersion, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
     type TrsdosAddResult, type TrsdosDiskInfoChanges, type TrsdosFilename, trsdosFilenameFromHost,
     trsdosFilenameToString, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString,
-    type TrsdosProtectionNames, uncompressFile,
+    TrsdosProtectionNames, uncompressFile,
 } from "trs80-base";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
-import {checkImportOptions, importHostFile, stemOf} from "./DiskImport.js";
+import {checkImportOptions, importCpmHostFile, importHostFile, stemOf} from "./DiskImport.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {selectByPatterns, systemWildcardHint} from "./Patterns.js";
 import {pluralizeWithCount} from "./Plural.js";
 
 // The operations behind the disk commands that change files and labels ("kill", "rename", "attrib", "add"
 // and "label"). Each does its work on a DiskSession and returns what it did as data, without printing, so
-// that the command line and a web page can each show the result their own way.
+// that the command line and a web page can each show the result their own way. Each works on TRSDOS-family
+// disks and on CP/M disks, branching on the session's file system. A CP/M disk's files are in every user area
+// (see "CP/M" in FLOPPY_FORMATS.md), which the operations treat as follows: "add" writes user 0, and the others
+// match files of every user by name, and refuse a name that matches files in more than one user rather than
+// guess.
+
+/**
+ * The words for a CP/M user area in a message, such as "user 0 and user 3".
+ *
+ * @param users the user numbers, in order.
+ */
+function describeUsers(users: number[]): string {
+    return users.map(user => "user " + user).join(" and ");
+}
+
+/**
+ * Refuse a selection of CP/M files in which one name belongs to files in more than one user area.
+ *
+ * @param files the selected files.
+ * @throws DiskError that names the name and the users.
+ */
+function requireOneUserPerName(files: CpmFile[]): void {
+    for (const file of files) {
+        const users = files.filter(other => other.getFilename(".").toUpperCase() === file.getFilename(".").toUpperCase())
+            .map(other => other.user);
+        if (users.length > 1) {
+            throw new DiskError(file.getFilename(".") + " is on the disk in more than one user area (" +
+                describeUsers(users) + "), and only user 0 can be named yet, so it can't be told which one you mean");
+        }
+    }
+}
+
+/**
+ * What "label" says on a CP/M disk.
+ */
+const CPM_NO_DISK_INFO = "CP/M 2.2 disks have no name or date.";
+
+/**
+ * The words for what CP/M 2.2 lacks, for the attributes that only TRSDOS has.
+ */
+const CPM_LACKS_PROTECTION = "CP/M 2.2 has no protection levels, passwords, or dates";
 
 /**
  * Choose the files that the patterns select, for the commands that take TRS-80 name patterns. A name
  * without wildcards selects the file of that name even if it's a system file, but a wildcard never
  * selects a system file (see selectByPatterns()).
  *
- * @param allEntries the primary entries of the files on the disk, in directory order, including system files.
+ * @param allEntries the primary entries of the files on the disk (TRSDOS directory entries or CP/M files), in
+ * directory order, including system files.
  * @param patterns the name patterns the user gave. Each must match a file.
  * @return the files that any pattern matches, once each, in directory order.
  * @throws DiskError if a pattern matches no file.
  */
-export function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[]): TrsdosDirEntry[] {
-    const { selected, unmatchedPattern, unmatchedOnlySystem } = selectByPatterns(allEntries, patterns, {
+export function selectDirEntries<T extends TrsdosDirEntry | CpmFile>(allEntries: T[], patterns: string[]): T[] {
+    const { selected, unmatchedPattern, unmatchedOnlySystem } = selectByPatterns<T>(allEntries, patterns, {
         name: dirEntry => dirEntry.getFilename("."),
         hasDirectories: () => false,
         isSystem: dirEntry => dirEntry.isSystemFile(),
@@ -45,11 +87,24 @@ export function selectDirEntries(allEntries: TrsdosDirEntry[], patterns: string[
  *
  * @param session the open disk.
  * @param patterns the TRS-80 name patterns that select the files to remove.
- * @return the names of the removed files as the disk shows them (such as "HELLO/BAS"), in directory order.
+ * @return the names of the removed files as the disk shows them (such as "HELLO/BAS", or "HELLO.TXT" on CP/M),
+ * in directory order.
  * @throws DiskError if a pattern matches no file or the disk can't be written.
  */
 export function killFiles(session: DiskSession, patterns: string[]): string[] {
     const removedNames: string[] = [];
+
+    if (session.fileSystem instanceof Cpm) {
+        session.changeCpm(DiskWritePurpose.CHANGE, writer => {
+            const toRemove = selectDirEntries(writer.getFiles(), patterns);
+            requireOneUserPerName(toRemove);
+            for (const file of toRemove) {
+                writer.deleteFile(file);
+                removedNames.push(file.getFilename("."));
+            }
+        });
+        return removedNames;
+    }
 
     session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
         // Check every pattern before removing anything. The files come in directory order, so the
@@ -79,11 +134,17 @@ export interface RenameResult {
  * file or if the new name belongs to another file. The file can be a system file, since it's named.
  *
  * @param session the open disk.
- * @param oldText the file's current name, in any form that parseTrsdosFilename() accepts.
+ * @param oldText the file's current name, in any form that parseTrsdosFilename() accepts (parseCpmFilename() on
+ * a CP/M disk).
  * @param newText the new name, in the same forms.
- * @throws DiskError if a name is invalid, the file doesn't exist, or the disk can't be written.
+ * @throws DiskError if a name is invalid, the file doesn't exist (or on CP/M exists in several users), or the disk
+ * can't be written.
  */
 export function renameFile(session: DiskSession, oldText: string, newText: string): RenameResult {
+    if (session.fileSystem instanceof Cpm) {
+        return renameCpmFile(session, oldText, newText);
+    }
+
     const oldFilename = parseTrsdosFilename(oldText);
     if (typeof oldFilename === "string") {
         throw new DiskError(oldFilename);
@@ -104,6 +165,36 @@ export function renameFile(session: DiskSession, oldText: string, newText: strin
         // The name as it is on the disk.
         shownOldName = dirEntry.getFilename("/");
         writer.renameFile(dirEntry, newFilename);
+    });
+
+    return { oldName: shownOldName, newName };
+}
+
+/**
+ * The CP/M half of renameFile().
+ */
+function renameCpmFile(session: DiskSession, oldText: string, newText: string): RenameResult {
+    const oldFilename = parseCpmFilename(oldText);
+    if (typeof oldFilename === "string") {
+        throw new DiskError(oldFilename);
+    }
+    const newFilename = parseCpmFilename(newText);
+    if (typeof newFilename === "string") {
+        throw new DiskError(newFilename);
+    }
+    const oldName = cpmFilenameToString(oldFilename);
+    const newName = cpmFilenameToString(newFilename);
+
+    let shownOldName = oldName;
+    session.changeCpm(DiskWritePurpose.CHANGE, writer => {
+        const files = writer.findFiles(oldFilename);
+        if (files.length === 0) {
+            throw new DiskError("No file on the disk is called " + oldName, DiskErrorKind.NOT_FOUND);
+        }
+        requireOneUserPerName(files);
+        // The name as it is on the disk.
+        shownOldName = files[0].getFilename(".");
+        writer.renameFile(files[0], newFilename);
     });
 
     return { oldName: shownOldName, newName };
@@ -141,13 +232,16 @@ export function parseProtectLevel(text: string, names: TrsdosProtectionNames): T
  * @param changes the changes, with the protection level resolved.
  * @param names which DOS's protection names the disk uses.
  */
-export function describeChanges(changes: TrsdosAttributeChanges, names: TrsdosProtectionNames): string {
+export function describeChanges(changes: AppliedAttributeChanges, names: TrsdosProtectionNames): string {
     const parts: string[] = [];
     if (changes.invisible !== undefined) {
         parts.push(changes.invisible ? "invisible" : "visible");
     }
     if (changes.system !== undefined) {
         parts.push(changes.system ? "system" : "user file");
+    }
+    if (changes.readOnly !== undefined) {
+        parts.push(changes.readOnly ? "read-only" : "read-write");
     }
     if (changes.protectionLevel !== undefined) {
         parts.push("protection " + trsdosProtectionLevelToString(changes.protectionLevel, names));
@@ -168,12 +262,27 @@ export function describeChanges(changes: TrsdosAttributeChanges, names: TrsdosPr
 
 /**
  * Describe a file's attributes for "attrib" without changing anything, such as
- * "HELLO/BAS: protection READ, invisible, update password, date 01/05/1983".
+ * "HELLO/BAS: protection READ, invisible, update password, date 01/05/1983" or, for a CP/M file,
+ * "HELLO.TXT: read-only, system".
  *
- * @param dirEntry the file's primary directory entry.
+ * @param dirEntry the file's primary directory entry, or the CP/M file.
  * @param names which DOS's protection names the disk uses.
  */
-export function describeAttributes(dirEntry: TrsdosDirEntry, names: TrsdosProtectionNames): string {
+export function describeAttributes(dirEntry: TrsdosDirEntry | CpmFile, names: TrsdosProtectionNames): string {
+    if (dirEntry instanceof CpmFile) {
+        const cpmParts: string[] = [];
+        if (dirEntry.isReadOnly()) {
+            cpmParts.push("read-only");
+        }
+        if (dirEntry.isSystemFile()) {
+            cpmParts.push("system");
+        }
+        if (dirEntry.extents[0].archived) {
+            cpmParts.push("archived");
+        }
+        return dirEntry.getFilename(".") + ": " + (cpmParts.length === 0 ? "no attributes" : cpmParts.join(", "));
+    }
+
     const parts = ["protection " + trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), names)];
     if (dirEntry.isHidden()) {
         parts.push("invisible");
@@ -201,6 +310,8 @@ export interface AttributeRequest {
     invisible?: boolean | undefined;
     /** Whether to make the files system files. */
     system?: boolean | undefined;
+    /** Whether to make the files read-only (R/O). Only CP/M has this attribute; TRSDOS has protection levels. */
+    readOnly?: boolean | undefined;
     /**
      * The protection level as the user typed it, a name or a number. It's parsed against the names that
      * the disk's own DOS uses, inside the change.
@@ -215,14 +326,28 @@ export interface AttributeRequest {
 }
 
 /**
+ * The attributes that changeAttributes() applied: TRSDOS's, and CP/M's read-only flag.
+ */
+export interface AppliedAttributeChanges extends TrsdosAttributeChanges {
+    /** Whether the files became read-only (true) or read-write (false). Only on a CP/M disk. */
+    readOnly?: boolean | undefined;
+}
+
+/**
  * What changeAttributes() did.
  */
 export interface AttributeChangeResult {
     /** The names of the files that changed as the disk shows them (such as "HELLO/BAS"), in directory order. */
     files: string[];
-    /** The changes as applied, with the protection level resolved. */
-    changes: TrsdosAttributeChanges;
-    /** The disk's protection names, for describing the changes with describeChanges(). */
+    /**
+     * The changes as applied, with the protection level resolved. On a CP/M disk these are the ones that were
+     * asked for (invisible and system both mean SYS there, and read-only is R/O).
+     */
+    changes: AppliedAttributeChanges;
+    /**
+     * The disk's protection names, for describing the changes with describeChanges(). A CP/M disk has no protection
+     * levels, so it has TRSDOS's default names, which nothing shows.
+     */
     protectionNames: TrsdosProtectionNames;
 }
 
@@ -237,6 +362,13 @@ export interface AttributeChangeResult {
  */
 export function changeAttributes(session: DiskSession, patterns: string[],
                                  request: AttributeRequest): AttributeChangeResult {
+
+    if (session.fileSystem instanceof Cpm) {
+        return changeCpmAttributes(session, patterns, request);
+    }
+    if (request.readOnly !== undefined) {
+        throw new DiskError("TRSDOS has protection levels, not a read-only attribute; use --protect");
+    }
 
     const changes: TrsdosAttributeChanges = {};
     changes.invisible = request.invisible;
@@ -267,11 +399,51 @@ export function changeAttributes(session: DiskSession, patterns: string[],
 }
 
 /**
+ * The CP/M half of changeAttributes(): R/O and SYS, in every directory entry of each file. The TRSDOS-only options
+ * are refused before anything changes.
+ */
+function changeCpmAttributes(session: DiskSession, patterns: string[],
+                             request: AttributeRequest): AttributeChangeResult {
+
+    if (request.protect !== undefined || request.updatePassword !== undefined ||
+        request.accessPassword !== undefined || request.date !== undefined) {
+
+        throw new DiskError("--protect, --password, --access-password, --date, and --no-date don't apply to CP/M " +
+            "disks: " + CPM_LACKS_PROTECTION);
+    }
+    // Both mean SYS, which hides the file from DIR.
+    if (request.invisible !== undefined && request.system !== undefined && request.invisible !== request.system) {
+        throw new DiskError("On a CP/M disk, invisible and system both mean SYS, so they can't ask for different things");
+    }
+    const system = request.invisible ?? request.system;
+
+    const changes: AppliedAttributeChanges = {
+        invisible: request.invisible,
+        system: request.system,
+        readOnly: request.readOnly,
+    };
+    const files: string[] = [];
+    session.changeCpm(DiskWritePurpose.CHANGE, writer => {
+        const selected = selectDirEntries(writer.getFiles(), patterns);
+        requireOneUserPerName(selected);
+        for (const file of selected) {
+            writer.setAttributes(file, {system, readOnly: request.readOnly});
+            files.push(file.getFilename("."));
+        }
+    });
+
+    return { files, changes, protectionNames: TrsdosProtectionNames.LDOS };
+}
+
+/**
  * The attributes of some files, as listAttributes() returns them.
  */
 export interface AttributeListing {
-    /** The primary directory entries of the selected files, in directory order. */
-    dirEntries: TrsdosDirEntry[];
+    /**
+     * The primary directory entries of the selected files (or CP/M files), in directory order. The files of a
+     * CP/M disk have R/O and SYS, and no protection level, passwords or date.
+     */
+    dirEntries: (TrsdosDirEntry | CpmFile)[];
     /** The disk's protection names, for describing the entries with describeAttributes(). */
     protectionNames: TrsdosProtectionNames;
 }
@@ -281,10 +453,14 @@ export interface AttributeListing {
  *
  * @param session the open disk.
  * @param patterns the TRS-80 name patterns that select the files. Each must match a file.
- * @throws DiskError if the disk isn't TRSDOS-family or a pattern matches no file.
+ * @throws DiskError if the disk is neither TRSDOS-family nor CP/M, or a pattern matches no file.
  */
 export function listAttributes(session: DiskSession, patterns: string[]): AttributeListing {
     const trsdos = session.fileSystem;
+    if (trsdos instanceof Cpm) {
+        return { dirEntries: selectDirEntries(trsdos.getDirEntries(true), patterns),
+            protectionNames: TrsdosProtectionNames.LDOS };
+    }
     if (!(trsdos instanceof Trsdos)) {
         throw new DiskError("Can't show attributes: " + (trsdos === undefined ?
             "can't find a DOS directory on \"" + session.name + "\"" :
@@ -341,6 +517,9 @@ export function describeAutoCommand(autoCommand: string | undefined): string {
  */
 export function readDiskInfo(session: DiskSession): TrsdosDiskInfo {
     const trsdos = session.fileSystem;
+    if (trsdos instanceof Cpm) {
+        throw new DiskError(CPM_NO_DISK_INFO);
+    }
     if (!(trsdos instanceof Trsdos)) {
         throw new DiskError("Can't show the disk's information: " + (trsdos === undefined ?
             "can't find a DOS directory on \"" + session.name + "\"" :
@@ -363,6 +542,9 @@ export function readDiskInfo(session: DiskSession): TrsdosDiskInfo {
  * @throws DiskError if the disk can't be written or a value isn't accepted.
  */
 export function changeDiskInfo(session: DiskSession, changes: TrsdosDiskInfoChanges): TrsdosDiskInfo {
+    if (session.fileSystem instanceof Cpm) {
+        throw new DiskError(CPM_NO_DISK_INFO);
+    }
     session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
         writer.setDiskInfo(changes);
     });
@@ -385,9 +567,9 @@ export interface AddFileSource {
  * How to add files (the add command's options, parsed).
  */
 export interface AddOptions {
-    /** The TRSDOS name for the one file (--as), or undefined to make names from the host names. */
+    /** The TRSDOS (or CP/M) name for the one file (--as), or undefined to make names from the host names. */
     as?: string | undefined;
-    /** Keep BASIC programs as text instead of tokenizing them (--ascii). */
+    /** Keep BASIC programs as text instead of tokenizing them (--ascii). Not on CP/M, where .bas is text anyway. */
     ascii: boolean;
     /** Copy every file exactly as it is (--binary). */
     binary: boolean;
@@ -395,13 +577,13 @@ export interface AddOptions {
     text: boolean;
     /** The BASIC to tokenize for (--basic, or the disk's). */
     basic: BasicDialect;
-    /** Make the files system files (--system). */
+    /** Make the files system files (--system). On CP/M this and --invisible both mean SYS. */
     system: boolean;
     /** Hide the files from directory listings (--invisible). */
     invisible: boolean;
     /** Replace files that are already on the disk (--overwrite). */
     overwrite: boolean;
-    /** The date to record on the files (--date). */
+    /** The date to record on the files (--date). CP/M 2.2 records none, so it's refused there. */
     date?: Date | undefined;
 }
 
@@ -418,12 +600,13 @@ export interface AddPlanItem {
     problem: string | undefined;
     /**
      * Its TRSDOS name, or undefined if no name could be made for it. It's set even when there's a
-     * problem, if the problem comes after the name (a name that an earlier file has too).
+     * problem, if the problem comes after the name (a name that an earlier file has too). A CP/M name has the
+     * same shape.
      */
-    filename: TrsdosFilename | undefined;
-    /** Its TRSDOS name as text, such as "HELLO/BAS", or "" if filename is undefined. */
+    filename: TrsdosFilename | CpmFilename | undefined;
+    /** Its name as text, such as "HELLO/BAS" (or "HELLO.TXT" on CP/M), or "" if filename is undefined. */
     name: string;
-    /** Whether the TRSDOS name differs from the host name (so the CLI says "x will be Y."). */
+    /** Whether the name differs from the host name (so the CLI says "x will be Y."). */
     nameChanged: boolean;
     /** The bytes to store, after conversion, or undefined if the conversion failed. */
     contents: Uint8Array | undefined;
@@ -465,8 +648,21 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
     checkAddAsCount(options.as, sources.length);
     checkImportOptions(options);
 
-    const trsdos = session.fileSystem;
-    const existingEntries = trsdos instanceof Trsdos ? trsdos.getDirEntries(true) : [];
+    const fileSystem = session.fileSystem;
+    const isCpm = fileSystem instanceof Cpm;
+    if (isCpm) {
+        if (options.ascii) {
+            throw new DiskError("--ascii doesn't apply to CP/M disks, where .bas files are text unless they're " +
+                "tokenized; use --binary to copy a file as it is");
+        }
+        if (options.date !== undefined) {
+            throw new DiskError("--date doesn't apply to CP/M disks: CP/M 2.2 records no dates");
+        }
+    }
+    // The existing files whose names a new one can collide with: CP/M adds to user 0 only.
+    const existingEntries: (TrsdosDirEntry | CpmFile)[] = fileSystem instanceof Trsdos ? fileSystem.getDirEntries(true) :
+        fileSystem instanceof Cpm ? fileSystem.getDirEntries(true).filter(file => file.user === 0) : [];
+    const separator = isCpm ? "." : "/";
 
     const items: AddPlanItem[] = [];
     for (const originalSource of sources) {
@@ -500,7 +696,7 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
         // Convert before choosing the name, since the conversion can change the extension.
         let imported;
         try {
-            imported = importHostFile(source.name, source.bytes, {
+            imported = (isCpm ? importCpmHostFile : importHostFile)(source.name, source.bytes, {
                 ascii: options.ascii,
                 binary: options.binary,
                 text: options.text,
@@ -517,7 +713,7 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
         item.conversionMessages = imported.messages;
 
         if (options.as !== undefined) {
-            const parsed = parseTrsdosFilename(options.as);
+            const parsed = isCpm ? parseCpmFilename(options.as) : parseTrsdosFilename(options.as);
             if (typeof parsed === "string") {
                 item.problem = parsed;
                 continue;
@@ -526,7 +722,7 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
         } else {
             const nameToConvert = imported.extension === undefined ? source.name :
                 stemOf(source.name) + "." + imported.extension;
-            const converted = trsdosFilenameFromHost(nameToConvert);
+            const converted = isCpm ? cpmFilenameFromHost(nameToConvert) : trsdosFilenameFromHost(nameToConvert);
             if (typeof converted === "string") {
                 item.problem = converted;
                 continue;
@@ -534,7 +730,7 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
             item.filename = converted.filename;
             item.nameChanged = converted.changed;
         }
-        item.name = trsdosFilenameToString(item.filename);
+        item.name = isCpm ? cpmFilenameToString(item.filename) : trsdosFilenameToString(item.filename);
 
         const duplicate = items.find(other => other !== item && other.filename !== undefined &&
             other.name === item.name);
@@ -545,10 +741,10 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
         }
 
         const upperName = item.name.toUpperCase();
-        const existing = existingEntries.find(dirEntry => dirEntry.getFilename("/").toUpperCase() === upperName);
+        const existing = existingEntries.find(dirEntry => dirEntry.getFilename(separator).toUpperCase() === upperName);
         if (existing !== undefined) {
             // The name as it is on the disk.
-            item.existingName = existing.getFilename("/");
+            item.existingName = existing.getFilename(separator);
         }
     }
 
@@ -606,6 +802,10 @@ export function addFiles(session: DiskSession, plan: AddPlanItem[], options: Add
         }
     }
 
+    if (session.fileSystem instanceof Cpm) {
+        return addCpmFiles(session, plan, options);
+    }
+
     const files: AddedFile[] = [];
     const warnings = new Set<string>();
     session.changeTrsdos(DiskWritePurpose.CHANGE, writer => {
@@ -651,4 +851,45 @@ export function addFiles(session: DiskSession, plan: AddPlanItem[], options: Add
     });
 
     return { files, warnings: [...warnings] };
+}
+
+/**
+ * The CP/M half of addFiles(): files go to user 0, and replacing one keeps its R/O and SYS attributes unless
+ * --system or --invisible (both mean SYS) say to set SYS.
+ */
+function addCpmFiles(session: DiskSession, plan: AddPlanItem[], options: AddOptions): AddFilesResult {
+    const files: AddedFile[] = [];
+    session.changeCpm(DiskWritePurpose.CHANGE, writer => {
+        for (const item of plan) {
+            // The plan has no problems, so these are set.
+            const filename = item.filename!;
+            const contents = item.contents!;
+
+            const existing = writer.findFiles(filename).find(file => file.user === 0);
+            const system = options.system || options.invisible ? true : undefined;
+            let result: CpmAddResult;
+            let replaced: boolean;
+            if (existing === undefined) {
+                result = writer.addFile(filename, contents, {system});
+                replaced = false;
+            } else {
+                if (!options.overwrite) {
+                    // The name as it is on the disk.
+                    throw new DiskError(existing.getFilename(".") +
+                        " is already on the disk (use --overwrite to replace it)");
+                }
+                // Only the flags that were given change; the new copy keeps the rest of the old file's.
+                result = writer.replaceFile(existing, contents, {system});
+                replaced = true;
+            }
+            files.push({
+                name: result.name,
+                size: result.size,
+                replaced,
+                conversionMessages: item.conversionMessages,
+            });
+        }
+    });
+
+    return { files, warnings: [] };
 }

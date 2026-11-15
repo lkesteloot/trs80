@@ -1,5 +1,7 @@
 import {
-    BasicDialect, CpmWriteBlockerKind, type CpmWriteGate, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosWithLayout,
+    BasicDialect, Cpm, type CpmLayout, CpmWriteBlockerKind, CpmWriteError, CpmWriteErrorKind, type CpmWriteGate,
+    CpmWriter, decodeCpmWithLayout, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition,
+    decodeTrsdosWithLayout, evaluateCpmWriteGate, findCpmFreeBlocks,
     evaluateTrsdosWriteGate, findHardDiskPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     compressForName, isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type DecodedPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
@@ -19,16 +21,43 @@ function freeKilobytesText(granuleMap: TrsdosGranuleMap): string {
 }
 
 /**
+ * The unit that a file system allocates space in, which is what its free space is counted in.
+ */
+export enum AllocationUnit {
+    /** A TRSDOS-family granule. */
+    GRANULE,
+
+    /** A CP/M allocation block. */
+    BLOCK,
+}
+
+/**
+ * The name of an allocation unit, in lower case, such as "granule". It's what the "free" command's JSON calls the
+ * unit.
+ */
+export function allocationUnitToString(unit: AllocationUnit): string {
+    switch (unit) {
+        case AllocationUnit.GRANULE:
+            return "granule";
+        case AllocationUnit.BLOCK:
+            return "block";
+        default:
+            assertNever(unit);
+    }
+}
+
+/**
  * The space available for new files on a TRSDOS-family disk: the granules that the GAT and the files leave
  * free, less those that the writer never uses because the image doesn't fully hold them or they're past
  * the disk's end (see findUnusableFreeGranules() in trs80-base), which are counted apart.
  */
-export function computeFreeSpace(granuleMap: TrsdosGranuleMap): FreeSpace {
+export function computeFreeSpace(granuleMap: TrsdosGranuleMap): GranuleFreeSpace {
     const trsdos = granuleMap.trsdos;
     const granuleBytes = trsdos.sectorsPerGranule*trsdos.geometry.modalDataSectorSize;
     const unusable = findUnusableFreeGranules(trsdos, granuleMap);
     const freeGranules = granuleMap.getFreeGranuleCount() - unusable.missing.length - unusable.pastEnd.length;
     return {
+        unit: AllocationUnit.GRANULE,
         freeGranules,
         granuleBytes,
         freeBytes: freeGranules*granuleBytes,
@@ -38,10 +67,27 @@ export function computeFreeSpace(granuleMap: TrsdosGranuleMap): FreeSpace {
 }
 
 /**
+ * The space available for new files on a CP/M disk: the data blocks that no directory entry claims, less those
+ * with a sector that is missing or has a CRC error (see findCpmFreeBlocks() in trs80-base), which are counted
+ * apart.
+ */
+export function computeCpmFreeSpace(cpm: Cpm): BlockFreeSpace {
+    const {free, unusable} = findCpmFreeBlocks(cpm);
+    const blockBytes = cpm.format.blockSize;
+    return {
+        unit: AllocationUnit.BLOCK,
+        freeBlocks: free.length,
+        blockBytes,
+        freeBytes: free.length*blockBytes,
+        missingBlocks: unusable.length,
+    };
+}
+
+/**
  * Say what the GAT calls free beyond the free space, for the end of a line about it, such as "; the GAT calls
  * 2 more granules free, which aren't fully on the image", or "" if there's nothing more.
  */
-export function unusableFreeText(freeSpace: FreeSpace): string {
+export function unusableFreeText(freeSpace: Omit<GranuleFreeSpace, "unit">): string {
     const {missingGranules, pastEndGranules} = freeSpace;
     const more = missingGranules + pastEndGranules;
     if (more === 0) {
@@ -61,9 +107,11 @@ export function unusableFreeText(freeSpace: FreeSpace): string {
 }
 
 /**
- * The space available for new files on a disk.
+ * The space available for new files on a TRSDOS-family disk, counted in granules.
  */
-export interface FreeSpace {
+export interface GranuleFreeSpace {
+    /** What the space is counted in. */
+    unit: AllocationUnit.GRANULE;
     /** How many granules are free. */
     freeGranules: number;
     /** How many bytes each granule holds. */
@@ -81,6 +129,31 @@ export interface FreeSpace {
      */
     pastEndGranules: number;
 }
+
+/**
+ * The space available for new files on a CP/M disk, counted in allocation blocks. CP/M has no allocation map, so
+ * the free blocks are the ones that no directory entry claims.
+ */
+export interface BlockFreeSpace {
+    /** What the space is counted in. */
+    unit: AllocationUnit.BLOCK;
+    /** How many blocks are free. */
+    freeBlocks: number;
+    /** How many bytes each block holds. */
+    blockBytes: number;
+    /** How many bytes are free in all. */
+    freeBytes: number;
+    /**
+     * How many blocks no entry claims but that have a sector the image doesn't have or that has a CRC error.
+     * The writer skips them, so they aren't in freeBlocks.
+     */
+    missingBlocks: number;
+}
+
+/**
+ * The space available for new files on a disk, in the units of its file system.
+ */
+export type FreeSpace = GranuleFreeSpace | BlockFreeSpace;
 
 /**
  * Why a command wants to write to the disk, which decides whether a damaged file system blocks it.
@@ -279,6 +352,26 @@ function writeErrorKindToDiskErrorKind(kind: TrsdosWriteErrorKind): DiskErrorKin
 }
 
 /**
+ * The kind of {@link DiskError} for a refusal by the CP/M writer.
+ */
+function cpmWriteErrorKindToDiskErrorKind(kind: CpmWriteErrorKind): DiskErrorKind {
+    switch (kind) {
+        case CpmWriteErrorKind.OTHER:
+            return DiskErrorKind.GENERAL;
+        case CpmWriteErrorKind.NO_SPACE:
+            return DiskErrorKind.DISK_FULL;
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * Why a CP/M disk with no files can't be saved, which is also what the session says when it refuses to.
+ */
+const EMPTY_CPM_SAVE_MESSAGE = "Can't save: an empty CP/M disk can't be recognized when it's opened again. " +
+    "Add a file first.";
+
+/**
  * How a session saves its changes. These come from the global options of the "disk" command.
  */
 export interface DiskSessionOptions {
@@ -379,6 +472,12 @@ interface DiskState {
     extension: string | undefined;
     /** The revision number of this version of the disk. */
     revision: number;
+    /**
+     * The layout of the CP/M file system that the disk had when the state was captured, or undefined if it had none.
+     * An empty CP/M directory doesn't decode on its own, so restoring the state decodes with this instead of
+     * detecting.
+     */
+    cpmLayout: CpmLayout | undefined;
 }
 
 /**
@@ -455,10 +554,20 @@ export class DiskSession {
      * after each change.
      */
     private currentFileSystem: KnownFloppyFileSystem | undefined;
+    /**
+     * Whether {@link currentFileSystem}'s CP/M layout was settled earlier, because it came from a remembered layout
+     * (after a change, undo, redo, revert, or replaced image) and not from detecting one. The CP/M write gate then
+     * doesn't doubt the layout. One consequence is that if the user forced past a doubt once, later commands in the
+     * session don't need --force again. False whenever the file system was just detected: on open, refresh, or a new
+     * floppy. Set wherever currentFileSystem is.
+     */
+    private layoutSettled = false;
     /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
     private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
     /** Cache for getWriteGate(), null until the first call (undefined is a valid result). */
     private writeGate: TrsdosWriteGate | undefined | null = null;
+    /** Cache for getCpmWriteGate(), null until the first call (undefined is a valid result). */
+    private cpmWriteGate: CpmWriteGate | undefined | null = null;
     /** Where the next save goes: the image, or the --output file (and then wherever the last save went). */
     private currentSaveName: string;
     /** Whether saving is pretended (--dry-run). */
@@ -957,9 +1066,12 @@ export class DiskSession {
         this.currentImage = floppy;
         this.partitions = [];
         this.selectedPartitionIndex = undefined;
+        // A new disk is detected afresh, whatever layout the old one had.
         this.currentFileSystem = decodeFloppyFileSystem(floppy);
+        this.layoutSettled = false;
         this.granuleMap = null;
         this.writeGate = null;
+        this.cpmWriteGate = null;
         this.forceWarningShown = false;
         this.changed = true;
         this.modificationCount++;
@@ -1060,8 +1172,10 @@ export class DiskSession {
      */
     public refreshFileSystem(): void {
         this.currentFileSystem = decodeFloppyFileSystem(this.floppy);
+        this.layoutSettled = false;
         this.granuleMap = null;
         this.writeGate = null;
+        this.cpmWriteGate = null;
         this.forceWarningShown = false;
         this.notifyChange();
     }
@@ -1118,12 +1232,13 @@ export class DiskSession {
      * a failure leaves the old file.
      * @returns the name written, or undefined if nothing was written because there were no changes
      * (or because of --dry-run).
-     * @throws DiskError if the file can't be written.
+     * @throws DiskError if the file can't be written, or if {@link getSaveBlocker} gives a reason not to.
      */
     public save(write: (saveName: string, binary: Uint8Array) => void): string | undefined {
         if (!this.changed || this.dryRunOption) {
             return undefined;
         }
+        this.requireSaveable();
 
         try {
             write(this.saveName, this.fileBytes());
@@ -1133,6 +1248,53 @@ export class DiskSession {
         this.markSaved();
 
         return this.saveName;
+    }
+
+    /**
+     * Why the disk can't be saved as it is, or undefined if it can. Only CP/M disks are ever refused. A CP/M disk
+     * doesn't record its layout, so it's found by trying each layout and keeping the one whose directory reads best
+     * (see decodeCpm() in trs80-base). A session remembers the layout of a disk that it changed, so it can work on a
+     * disk that a fresh open wouldn't recognize: one with no files (an empty directory doesn't decode at all), or
+     * with so few good entries left, next to bad ones, that another layout or none scores better. The saved image
+     * would be misread or unrecognized when it's opened again, so this decodes the current image afresh, as opening a
+     * file does, and refuses unless that gives the same layout. Every path that writes the session's image out (not
+     * an in-memory conversion) must check this: see {@link requireSaveable}.
+     *
+     * @returns the message to show the user, or undefined if saving is allowed.
+     */
+    public getSaveBlocker(): string | undefined {
+        if (this.isHardDisk()) {
+            return undefined;
+        }
+        const fileSystem = this.currentFileSystem;
+        const image = this.currentImage;
+        if (!(fileSystem instanceof Cpm) || !(image instanceof FloppyDisk)) {
+            return undefined;
+        }
+        // A file is an entry of user 0 to 15, which is what the decoder keeps.
+        if (fileSystem.getDirEntries(true).length === 0) {
+            return EMPTY_CPM_SAVE_MESSAGE;
+        }
+
+        const reopened = decodeFloppyFileSystem(image);
+        if (!(reopened instanceof Cpm) || !reopened.sameLayout(fileSystem)) {
+            return "Can't save: when it's opened again, this disk wouldn't be recognized as " +
+                fileSystem.nameAndVersion + " with its current layout, because too few good directory entries are " +
+                "left to tell. Add a file, or undo the change.";
+        }
+        return undefined;
+    }
+
+    /**
+     * Throw if the disk can't be saved as it is, as {@link getSaveBlocker} says.
+     *
+     * @throws DiskError if there's a reason not to save.
+     */
+    public requireSaveable(): void {
+        const blocker = this.getSaveBlocker();
+        if (blocker !== undefined) {
+            throw new DiskError(blocker, DiskErrorKind.READ_ONLY);
+        }
     }
 
     /**
@@ -1172,6 +1334,7 @@ export class DiskSession {
             binary: image === undefined ? undefined : new Uint8Array(image.binary),
             extension: image === undefined ? undefined : DiskSession.extensionForImage(image),
             revision: this.currentRevision,
+            cpmLayout: this.currentFileSystem instanceof Cpm ? this.currentFileSystem.getLayout() : undefined,
         };
     }
 
@@ -1198,9 +1361,12 @@ export class DiskSession {
      *
      * @param binary the bytes, which the new image owns.
      * @param extension the file name extension that sends them to the right decoder.
+     * @param cpmLayout the layout of the CP/M file system that the floppy had, if it had one. It's decoded with
+     * that layout instead of detecting one, since a CP/M disk with no files can't be detected. Detection stays the
+     * only path for an image that's newly opened.
      * @throws Error if the bytes don't decode as a floppy or a hard disk (a bug, since they came from one).
      */
-    private loadImage(binary: Uint8Array, extension: string): void {
+    private loadImage(binary: Uint8Array, extension: string, cpmLayout: CpmLayout | undefined): void {
         // The extension sends the bytes to the decoder that made this kind of floppy in the first place.
         const trs80File = decodeTrs80File(binary, { filename: "state" + extension });
         if (trs80File.error !== undefined) {
@@ -1208,6 +1374,7 @@ export class DiskSession {
         }
         if (isHardDisk(trs80File)) {
             this.currentImage = trs80File;
+            this.layoutSettled = false;
             // The partitions are where they were, so keep the user's choice of one.
             const selected = this.selectedPartitionIndex;
             this.findPartitions(undefined);
@@ -1223,7 +1390,9 @@ export class DiskSession {
             this.currentImage = trs80File;
             this.partitions = [];
             this.selectedPartitionIndex = undefined;
-            this.currentFileSystem = decodeFloppyFileSystem(trs80File);
+            this.currentFileSystem = cpmLayout === undefined ? decodeFloppyFileSystem(trs80File) :
+                decodeCpmWithLayout(trs80File, {...cpmLayout, geometry: trs80File.getGeometry()}, false);
+            this.layoutSettled = cpmLayout !== undefined;
         } else {
             throw new Error("Can't decode the disk again: it didn't decode as a floppy or a hard disk");
         }
@@ -1242,9 +1411,13 @@ export class DiskSession {
         if (image === undefined) {
             throw this.makeNoDiskError();
         }
-        this.loadImage(binary, DiskSession.extensionForImage(image));
+        // The file system isn't what changed, so a CP/M disk keeps its layout.
+        const fileSystem = this.currentFileSystem;
+        this.loadImage(binary, DiskSession.extensionForImage(image),
+            fileSystem instanceof Cpm ? fileSystem.getLayout() : undefined);
         this.granuleMap = null;
         this.writeGate = null;
+        this.cpmWriteGate = null;
         this.forceWarningShown = false;
         this.changed = true;
         this.modificationCount++;
@@ -1260,13 +1433,15 @@ export class DiskSession {
         if (state.binary === undefined || state.extension === undefined) {
             this.currentImage = undefined;
             this.currentFileSystem = undefined;
+            this.layoutSettled = false;
             this.partitions = [];
             this.selectedPartitionIndex = undefined;
         } else {
-            this.loadImage(new Uint8Array(state.binary), state.extension);
+            this.loadImage(new Uint8Array(state.binary), state.extension, state.cpmLayout);
         }
         this.granuleMap = null;
         this.writeGate = null;
+        this.cpmWriteGate = null;
         this.currentRevision = state.revision;
         this.changed = state.revision !== this.savedRevision;
     }
@@ -1502,14 +1677,38 @@ export class DiskSession {
     }
 
     /**
+     * Whether the CP/M file system on the floppy is safe to write, and why not. It's computed on the first call and
+     * then kept. It ranks the layouts that the disk could be read with, so it isn't cheap.
+     *
+     * @returns the gate, or undefined if the disk has no file system, or its file system isn't CP/M, or the disk
+     * isn't a floppy.
+     */
+    public getCpmWriteGate(): CpmWriteGate | undefined {
+        if (this.cpmWriteGate === null) {
+            const fileSystem = this.fileSystem;
+            const image = this.currentImage;
+            // The gate wants whole records, and the session's file system clips text files.
+            this.cpmWriteGate = fileSystem instanceof Cpm && image instanceof FloppyDisk ?
+                evaluateCpmWriteGate(decodeCpmWithLayout(image, fileSystem, true), {layoutSettled: this.layoutSettled}) :
+                undefined;
+        }
+
+        return this.cpmWriteGate;
+    }
+
+    /**
      * The family-independent write gate of the disk's file system, which the checks before a write use.
-     * For now only TRSDOS-family file systems have one.
+     * TRSDOS-family and CP/M file systems have one.
      *
      * @returns the gate, or undefined if we can't write the disk's file system family.
      */
     private getDiskWriteGate(): DiskWriteGate | undefined {
         const trsdosGate = this.getWriteGate();
-        return trsdosGate === undefined ? undefined : trsdosWriteGateToDiskWriteGate(trsdosGate);
+        if (trsdosGate !== undefined) {
+            return trsdosWriteGateToDiskWriteGate(trsdosGate);
+        }
+        const cpmGate = this.getCpmWriteGate();
+        return cpmGate === undefined ? undefined : cpmWriteGateToDiskWriteGate(cpmGate);
     }
 
     /**
@@ -1552,6 +1751,11 @@ export class DiskSession {
         this.requireDisk();
         if (this.fileSystem === undefined) {
             throw new DiskError("Can't find a DOS directory on \"" + this.name + "\"");
+        }
+
+        if (this.fileSystem instanceof Cpm && purpose === DiskWritePurpose.REPAIR) {
+            // The CP/M gate calls damage repair-only, but there's no CP/M repair.
+            throw new DiskError("Repairing CP/M disks isn't supported.", DiskErrorKind.READ_ONLY);
         }
 
         const decision = decideWrite(this.getDiskWriteGate(), this.fileSystem.nameAndVersion, purpose, this.force);
@@ -1631,8 +1835,10 @@ export class DiskSession {
 
         if (flushed !== undefined) {
             this.currentFileSystem = this.decodeFileSystemAfterChange(sessionTrsdos, flushed);
+            this.layoutSettled = false;
             this.granuleMap = null;
             this.writeGate = null;
+            this.cpmWriteGate = null;
             if (!(this.currentFileSystem instanceof Trsdos)) {
                 // The writer verified the change, so this shouldn't happen. But the floppy in memory
                 // has already changed, so make sure that nothing saves it.
@@ -1640,6 +1846,73 @@ export class DiskSession {
                 throw new DiskError("After the change, the disk's file system isn't recognized, so nothing " +
                     "will be saved.");
             }
+        }
+    }
+
+    /**
+     * Change the disk's CP/M file system. The change is made through a {@link CpmWriter} on a
+     * {@link SectorOverlay}, so it is all or nothing: the writer verifies the result, and only then are the
+     * changed sectors written to the in-memory floppy, which counts as a change to be saved. Afterwards the
+     * file system is decoded again, with the layout it had, so {@link fileSystem} and the caches reflect the new
+     * disk. A CP/M disk with no files left stays a CP/M disk in the session (see {@link getSaveBlocker}).
+     *
+     * @param purpose why the command wants to write, which decides whether the disk's state allows it.
+     * @param change makes the changes with the writer. If it makes none then nothing is written.
+     * @throws DiskError if the disk can't be written, or the writer refuses or can't verify the change, in
+     * which case the disk is unchanged.
+     */
+    public changeCpm(purpose: DiskWritePurpose, change: (writer: CpmWriter) => void): void {
+        // The commit writes many sectors; announce them once, with the new file system in place.
+        this.holdNotifications();
+        try {
+            this.changeCpmHeld(purpose, change);
+        } finally {
+            this.releaseNotifications();
+        }
+    }
+
+    /**
+     * The body of {@link changeCpm}, run with notifications held.
+     */
+    private changeCpmHeld(purpose: DiskWritePurpose, change: (writer: CpmWriter) => void): void {
+        this.requireWritable(purpose);
+        this.clearWriteProtection();
+
+        const sessionCpm = this.currentFileSystem;
+        const floppy = this.image;
+        if (!(sessionCpm instanceof Cpm) || !(floppy instanceof FloppyDisk)) {
+            // requireWritable() has already refused anything that isn't a CP/M floppy.
+            throw new DiskError("Writing " + (sessionCpm?.nameAndVersion ?? "this") + " disks isn't supported.",
+                DiskErrorKind.READ_ONLY);
+        }
+
+        const overlay = new SectorOverlay(floppy);
+        let flushed = false;
+        try {
+            // The session's file system was decoded from these bytes, so use its layout rather than
+            // search again. If the change makes another layout read better, the flush refuses it.
+            const cpm = decodeCpmWithLayout(overlay, sessionCpm, true);
+            const writer = new CpmWriter(overlay, cpm);
+            change(writer);
+            if (writer.hasChanges()) {
+                writer.flush();
+                overlay.commit();
+                flushed = true;
+            }
+        } catch (e) {
+            overlay.discard();
+            if (e instanceof CpmWriteError) {
+                throw new DiskError(e.message, cpmWriteErrorKindToDiskErrorKind(e.kind));
+            }
+            throw e;
+        }
+
+        if (flushed) {
+            this.currentFileSystem = decodeCpmWithLayout(floppy, sessionCpm, false);
+            this.layoutSettled = true;
+            this.granuleMap = null;
+            this.writeGate = null;
+            this.cpmWriteGate = null;
         }
     }
 
@@ -1709,18 +1982,23 @@ export class DiskSession {
     }
 
     /**
-     * The space available for new files, as numbers.
+     * The space available for new files, as numbers, in the units of the disk's file system: granules for a
+     * TRSDOS-family disk and blocks for a CP/M one (see {@link FreeSpace}).
      *
-     * @throws DiskError if the disk has no file system, if its file system isn't TRSDOS-family, or
+     * @throws DiskError if the disk has no file system, if its file system is neither TRSDOS-family nor CP/M, or
      * if the granule map can't be made.
      */
     public getFreeSpace(): FreeSpace {
-        if (this.fileSystem === undefined) {
+        const fileSystem = this.fileSystem;
+        if (fileSystem === undefined) {
             throw new DiskError("Can't find a DOS directory on \"" + this.name + "\"");
+        }
+        if (fileSystem instanceof Cpm) {
+            return computeCpmFreeSpace(fileSystem);
         }
         const granuleMap = this.getGranuleMap();
         if (granuleMap === undefined) {
-            throw new DiskError("Free space isn't known for " + this.fileSystem.nameAndVersion + " disks yet");
+            throw new DiskError("Free space isn't known for " + fileSystem.nameAndVersion + " disks yet");
         }
         if (typeof granuleMap === "string") {
             throw new DiskError("Can't find the free space: " + granuleMap);
@@ -1730,18 +2008,36 @@ export class DiskSession {
     }
 
     /**
-     * The space available for new files, such as "112 KB free (90 granules of 1,280 bytes each)", followed by
-     * what else the GAT calls free (see {@link unusableFreeText}).
+     * The space available for new files, such as "112 KB free (90 granules of 1,280 bytes each)" for a TRSDOS
+     * disk, followed by what else the GAT calls free (see {@link unusableFreeText}), or "170 KB free (85 blocks of
+     * 2,048 bytes each)" for a CP/M disk, followed by any free blocks that can't be used.
      *
-     * @throws DiskError if the disk has no file system, if its file system isn't TRSDOS-family, or
+     * @throws DiskError if the disk has no file system, if its file system is neither TRSDOS-family nor CP/M, or
      * if the granule map can't be made.
      */
     public getFreeSpaceText(): string {
         const freeSpace = this.getFreeSpace();
-        const {freeGranules, granuleBytes, freeBytes} = freeSpace;
-        return Math.floor(freeBytes/1024).toLocaleString() + " KB free (" +
-            pluralizeWithCount(freeGranules, "granule") + " of " + granuleBytes.toLocaleString() + " bytes" +
-            (freeGranules === 1 ? "" : " each") + ")" + unusableFreeText(freeSpace);
+        const kilobytes = Math.floor(freeSpace.freeBytes/1024).toLocaleString() + " KB free (";
+        switch (freeSpace.unit) {
+            case AllocationUnit.GRANULE: {
+                const {freeGranules, granuleBytes} = freeSpace;
+                return kilobytes + pluralizeWithCount(freeGranules, "granule") + " of " +
+                    granuleBytes.toLocaleString() + " bytes" + (freeGranules === 1 ? "" : " each") + ")" +
+                    unusableFreeText(freeSpace);
+            }
+
+            case AllocationUnit.BLOCK: {
+                const {freeBlocks, blockBytes, missingBlocks} = freeSpace;
+                const unusable = missingBlocks === 0 ? "" : "; " + pluralizeWithCount(missingBlocks, "more block") +
+                    " look" + (missingBlocks === 1 ? "s" : "") + " free but " + (missingBlocks === 1 ? "has" : "have") +
+                    " a sector that is missing or bad";
+                return kilobytes + pluralizeWithCount(freeBlocks, "block") + " of " + blockBytes.toLocaleString() +
+                    " bytes" + (freeBlocks === 1 ? "" : " each") + ")" + unusable;
+            }
+
+            default:
+                assertNever(freeSpace);
+        }
     }
 
     /**

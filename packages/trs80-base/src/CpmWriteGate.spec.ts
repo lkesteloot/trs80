@@ -199,6 +199,29 @@ describe("evaluateCpmWriteGate", () => {
         expect(gate.blockers[0].message).to.contain("one side");
     });
 
+    it("doesn't doubt the sides of a single-sided image whose directory is sparse", () => {
+        const layout = layoutNamed("Standard data");
+        // One file in the first block: a two-side reading finds the same directory and file, but the image has
+        // nothing on side 1, so it can't be a two-sided disk's.
+        const files = [{name: "FRESH.TXT", contents: new Uint8Array(300).fill(65)}];
+        const cpm = decodeCpm(makeMontezumaTestDisk(layout, files), true)!;
+        const ranked = rankCpmCandidates(cpm.disk, cpm.geometry, true);
+        const twoSides = ranked.find(other => other.allocationSides === 2 && other.format === cpm.format &&
+            other.reservedTrackCount === cpm.reservedTrackCount && other.cylinderCount === cpm.cylinderCount)!;
+        expect(twoSides.evaluation.score).to.equal(cpm.evaluation.score);
+        expect(twoSides.evaluation.missingSectorCount).to.equal(cpm.evaluation.missingSectorCount);
+        expect(findCpmLayoutDoubts(cpm, ranked)).to.eql([]);
+        expect(evaluateCpmWriteGate(cpm).blockers).to.eql([]);
+    });
+
+    it("skips the layout doubt when the caller says the layout is settled", () => {
+        const layout = layoutNamed("Standard system");
+        const disk = makeMontezumaTestDisk(layout, makeFiles(true));
+        const cpm = decodeCpm(disk, true)!;
+        expect(evaluateCpmWriteGate(cpm).blockers.map(blocker => blocker.kind)).to.eql([CpmWriteBlockerKind.LAYOUT_DOUBT]);
+        expect(evaluateCpmWriteGate(cpm, {layoutSettled: true}).blockers).to.eql([]);
+    });
+
     it("reads a single-sided disk in a double-sided image as one side", () => {
         const layout = layoutNamed("Standard data");
         const disk = makeMontezumaTestDisk(layout, makeFiles(), {imageSideCount: 2, unformatSide1: true});

@@ -135,6 +135,21 @@
             <p>Each command can be given after the image or typed at the prompt. In the summaries,
             brackets mark what can be left out, and <code>...</code> means one or more.</p>
 
+            <p><strong>CP/M disks.</strong> <code>add</code>, <code>kill</code>, <code>rename</code>,
+            <code>attrib</code> and <code>free</code> also work on Montezuma Micro CP/M 2.2 disks in the layouts whose
+            disk parameters were checked against a real system (the 12 formats that Montezuma’s PROBE program
+            describes, and its 1.26, 1.30, 1.42 and 1.44 formats). A CP/M disk doesn’t say what its layout is, so
+            the tool works it out from the directory; if two layouts read the disk equally well, or the directory
+            is damaged, the disk is refused unless you give <code>--force</code> (and it’s refused for good if
+            the layout isn’t one of those, or a directory sector can’t be read, or the directory has CP/M 3 entries).
+            Every other CP/M disk is read but not written yet. Files you add go in user 0. <code>kill</code>,
+            <code>rename</code> and <code>attrib</code> find files of every user by name, and a name that belongs to
+            files of more than one user is an error that names the users. CP/M names are 1 to 8 characters and
+            an extension of 0 to 3, and CP/M records sizes in whole 128-byte records. CP/M 2.2 has no dates,
+            passwords or protection levels, and <code>label</code> and <code>repair</code> don’t apply to it. You can remove a CP/M
+            disk’s last file, and add to it again, but an empty CP/M disk can’t be saved, because it can’t be
+            recognized when it’s opened again: add a file before saving.</p>
+
             <h3 id="dir"><code>dir</code></h3>
             <div><pre><code>dir [NAME...]</code></pre>
             </div>
@@ -238,6 +253,13 @@
             need more than four fragments of free space can’t be added yet. It prints
             <code>Added HELLO/BAS (1,234 bytes).</code> for each file. Also called
             <code>import</code> and <code>put</code>.</p>
+            <p>On a CP/M disk the files are converted differently. A <code>.bas</code> file is text, and is copied
+            as text, unless its first byte is 0xFF (tokenized MBASIC), when it’s copied as it is; the text extensions
+            above, and <code>--text</code>, give CR LF line endings and a Ctrl-Z at the end; and everything else,
+            <code>.cas</code> and <code>.3bn</code> files included, is copied byte for byte. The last 128-byte record of
+            a file is padded with Ctrl-Z. Names keep every character that CP/M allows (digits first, hyphens, and so
+            on), upper-cased. <code>--ascii</code> and <code>--date</code> are errors, and <code>--system</code> and
+            <code>--invisible</code> both set the SYS attribute.</p>
 
             <table class="flags">
                 <tr>
@@ -308,7 +330,9 @@
             <code>del</code>, <code>delete</code>, and <code>remove</code>.</p>
             <p>The directory entry is changed the way the disk’s own DOS’s KILL changes it. TRSDOS 1.3 and
             TRSDOS 2.x zero the whole entry; the others only mark it free and leave the rest, so that
-            their UNKILL or an undelete utility can bring the file back (until its space is reused).</p>
+            their UNKILL or an undelete utility can bring the file back (until its space is reused). A CP/M
+            disk’s entries are only marked free, as CP/M’s own ERA does, and its names are shown
+            as <code>HELLO.TXT</code>.</p>
 
             <h3 id="rename"><code>rename</code></h3>
             <div><pre><code>rename OLDNAME NEWNAME</code></pre>
@@ -318,7 +342,8 @@
             must not belong to another file. System files can be renamed, but
             <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be. Only the name changes, not the file’s contents, dates or attributes.
             It prints <code class="wrap">Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>mv</code>,
-            <code>ren</code>, and <code>move</code>.</p>
+            <code>ren</code>, and <code>move</code>. On a CP/M disk the names are CP/M names
+            (<code>HELLO.TXT</code>), and the file’s attributes are kept.</p>
 
             <h3 id="attrib"><code>attrib</code></h3>
             <div><pre><code>attrib PATTERN...</code></pre>
@@ -337,6 +362,11 @@
                 <tr>
                     <td><code>--system</code>, <code>--no-system</code></td>
                     <td>Make the files system files, or user files. <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t change.</td>
+                </tr>
+                <tr>
+                    <td><code>--read-only</code>, <code>--no-read-only</code></td>
+                    <td>Make the files read-only (CP/M’s R/O), or read-write. Only on CP/M disks, since TRSDOS has
+                        protection levels instead.</td>
                 </tr>
                 <tr>
                     <td><code>--protect LEVEL</code></td>
@@ -361,6 +391,14 @@
                 </tr>
             </table>
 
+            <p>On a CP/M disk <code>attrib</code> changes R/O and SYS, in every directory entry of each file
+            (<code>--invisible</code> and <code>--system</code> both mean SYS, which hides the file from
+            <code>DIR</code>, and asking for different things is an error), and leaves the archive bit alone. With no
+            options it shows <code>read-only</code>, <code>system</code>, and <code>archived</code>. The protection,
+            password, and date options are errors there, since CP/M 2.2 has none of them. With
+            <code>--json</code> a CP/M file’s entry has the same fields, with <code>protection</code> FULL, no passwords,
+            a <code>null</code> date, and a <code>readOnly</code> field that TRSDOS files don’t have.</p>
+
             <p>On MultiDOS disks <code>attrib</code> doesn’t set passwords or dates. MultiDOS 2.10 keeps a time
             in the access password’s bytes, and 4.01 on keep the access password where 1.x keeps the date and the
             date where 1.x keeps the passwords. A file that a later release copied onto a 1.x disk looks just like
@@ -375,7 +413,8 @@
             LS-DOS 6. An unknown name lists the ones that fit the disk.</p>
 
             <h3 id="label"><code>label</code></h3>
-            <p>Show or change the disk’s name, date, master password and AUTO command. With no
+            <p>Show or change the disk’s name, date, master password and AUTO command. (CP/M 2.2 disks have none
+            of these, so it’s an error on them.) With no
             options it shows them, and needs no write access: the name, the date as the disk
             stores it, whether the master password is <code>PASSWORD</code> (the usual one), blank,
             or something else (shown as its hash, since the password itself isn’t stored), and the
@@ -498,7 +537,12 @@ partition --delete [N|NAME] [--force]</code></pre>
 
             <h3 id="free"><code>free</code></h3>
             <p>Show the space left for new files on a TRSDOS-family disk: granules that
-            the GAT says are free and that no file uses, and that a new file could be given. Free granules
+            the GAT says are free and that no file uses, and that a new file could be given. On a CP/M disk, which has
+            no allocation table, it counts the blocks that no directory entry claims
+            (<code>170 KB free (85 blocks of 2,048 bytes each)</code>), less those with a sector that’s missing or
+            has a CRC error, which new files skip. The JSON result has a <code>unit</code> field, <code>"granule"</code>
+            or <code>"block"</code>, and a CP/M disk’s has <code>freeBlocks</code>, <code>blockBytes</code>,
+            <code>freeBytes</code>, and <code>missingBlocks</code> instead of the granule fields. Free granules
             that new files never get are counted after it: those that the image doesn’t fully hold (a sector
             is missing, often lost by the imager, or the wrong size), which
             <a href="#check"><code>check</code></a> notes, and those past the disk’s end, which only a
@@ -928,6 +972,7 @@ Type "help" for a list of commands, and "quit" to leave.
       ],
       "warnings": [],
       "result": {
+        "unit": "granule",
         "freeGranules": 115,
         "granuleBytes": 1536,
         "freeBytes": 176640

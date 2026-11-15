@@ -56,6 +56,8 @@ export function saveDiskSession(session: DiskSession): string | undefined {
  * @returns what happened: the pathname written (null if nothing was written, because there were no
  * changes, or --dry-run, or abort), and whether --dry-run kept changes from being written.
  * @throws ToolError if the file can't be written.
+ * @throws DiskError if the session can't be saved as it is (see {@link DiskSession.getSaveBlocker}), which
+ * --dry-run reports too.
  */
 export function saveAndReport(session: DiskSession, announceNoChanges: boolean,
                               out: DiskOutput = TEXT_OUTPUT): SaveOutcome {
@@ -70,6 +72,9 @@ export function saveAndReport(session: DiskSession, announceNoChanges: boolean,
         }
         return {saved: null, wouldHaveChanged: false};
     }
+
+    // The check comes before the dry run's message, so that --dry-run says the save would fail.
+    session.requireSaveable();
 
     let outcome: SaveOutcome;
     if (session.dryRun) {

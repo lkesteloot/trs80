@@ -3,7 +3,7 @@ import {describe, expect, it} from "vitest";
 import {checkDisk, describeFixablePrograms, describeFreeableUnclaimed, repairDisk} from "./DiskCheck.js";
 import {DiskError} from "./DiskError.js";
 import {getWriteProtect, setWriteProtect} from "./DiskImageOperations.js";
-import {DiskSession} from "./DiskSession.js";
+import {AllocationUnit, DiskSession} from "./DiskSession.js";
 import {TrimCylindersReason, TrimNothingReason, trimDisk} from "./DiskTrim.js";
 
 const HELLO: TestFile = {name: "HELLO/BAS", extents: [{lump: 3, granuleOffset: 0, granuleCount: 2}], size: 1000};
@@ -94,6 +94,9 @@ describe("DiskSession free space", () => {
     it("gives the free space as numbers and as text", () => {
         const session = makeSession();
         const free = session.getFreeSpace();
+        if (free.unit !== AllocationUnit.GRANULE) {
+            throw new Error("Expected free space in granules");
+        }
         expect(free.granuleBytes).to.equal(1280);
         expect(free.freeBytes).to.equal(free.freeGranules*free.granuleBytes);
         expect(session.getFreeSpaceText()).to.contain(free.freeGranules.toLocaleString() + " granules of 1,280 bytes each");

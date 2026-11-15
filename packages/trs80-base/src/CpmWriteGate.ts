@@ -222,6 +222,13 @@ function side1IsFullyFormatted(cpm: Cpm): boolean {
 }
 
 /**
+ * Whether the image has no sector at all on side 1.
+ */
+function side1IsEmpty(cpm: Cpm): boolean {
+    return cpm.geometry.sectorInfos.every(info => info.sectorPosition.side !== 1);
+}
+
+/**
  * Whether the disk's banner names a Montezuma BIOS version that didn't use skew 4.
  */
 function bannerRulesOutSkew4(cpm: Cpm): boolean {
@@ -237,6 +244,8 @@ function bannerRulesOutSkew4(cpm: Cpm): boolean {
  * - A candidate that differs only in its cylinder count, with the same pointer size and extent mask.
  * - A one-side candidate, when the disk uses two sides and the image has every sector of the data
  *   layout on side 1 of every cylinder.
+ * - A two-side candidate, when the disk uses one side and the image has no sector at all on side 1, since such an
+ *   image can't be a two-sided disk's. (The mirror of the rule above.)
  * - A skew-4 Montezuma candidate, when the disk's banner names a Montezuma BIOS version other than
  *   1.26 and 1.30, the only ones with skew 4.
  *
@@ -247,6 +256,7 @@ function bannerRulesOutSkew4(cpm: Cpm): boolean {
  */
 export function findCpmLayoutDoubts(cpm: Cpm, ranked: Cpm[]): Cpm[] {
     let side1Proven: boolean | undefined;
+    let side1Empty: boolean | undefined;
     const bannerExcludesSkew4 = bannerRulesOutSkew4(cpm);
 
     return ranked.filter(other => {
@@ -262,6 +272,13 @@ export function findCpmLayoutDoubts(cpm: Cpm, ranked: Cpm[]): Cpm[] {
         const isSkew4Montezuma = other.format.name === MONTEZUMA_FORMAT_NAME && other.format.skew === 4;
         if (bannerExcludesSkew4 && isSkew4Montezuma) {
             return false;
+        }
+
+        if (cpm.allocationSides === 1 && other.allocationSides === 2) {
+            side1Empty ??= side1IsEmpty(cpm);
+            if (side1Empty) {
+                return false;
+            }
         }
 
         if (cpm.allocationSides === 2 && other.allocationSides === 1) {
@@ -297,12 +314,25 @@ function describeDifference(cpm: Cpm, other: Cpm): string {
 }
 
 /**
+ * What a caller of evaluateCpmWriteGate() can tell it.
+ */
+export interface CpmWriteGateOptions {
+    /**
+     * Whether the layout was settled earlier (a session remembers the layout of a disk it has changed, undone, or
+     * redone, and the user may have forced past a doubt then), so that other readings that tie aren't a
+     * LAYOUT_DOUBT. False or missing for a layout that was just detected.
+     */
+    layoutSettled?: boolean | undefined;
+}
+
+/**
  * Decide whether we'll write to a CP/M disk, and what blocks us otherwise. Ranks the layouts of
  * the disk itself (to look for doubts), reads the directory, and changes nothing.
  *
  * @param cpm the decoded file system, on a floppy or an overlay over one. Decode it with whole records.
+ * @param options what the caller knows that the disk doesn't say.
  */
-export function evaluateCpmWriteGate(cpm: Cpm): CpmWriteGate {
+export function evaluateCpmWriteGate(cpm: Cpm, options: CpmWriteGateOptions = {}): CpmWriteGate {
     const blockers: CpmWriteBlocker[] = [];
 
     const verified = findCpmVerifiedLayout(cpm);
@@ -339,8 +369,8 @@ export function evaluateCpmWriteGate(cpm: Cpm): CpmWriteGate {
         }
     }
 
-    // Other readings matter only for a layout that we can write.
-    if (!unsupported) {
+    // Other readings matter only for a layout that we can write, and not when the caller says the layout is settled.
+    if (!unsupported && options.layoutSettled !== true) {
         const ranked = rankCpmCandidates(cpm.disk, cpm.geometry, true);
         const doubts = findCpmLayoutDoubts(cpm, ranked);
         if (doubts.length > 0) {

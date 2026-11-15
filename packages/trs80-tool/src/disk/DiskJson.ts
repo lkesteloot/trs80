@@ -1,11 +1,11 @@
 import {
-    knownTrsdosPassword, parseTrsdosGatDate, type DecodedPartition, type TrsdosFinding, TrsdosFindingKind,
+    CpmFile, knownTrsdosPassword, parseTrsdosGatDate, type DecodedPartition, type TrsdosFinding, TrsdosFindingKind,
     trsdosFindingKindSeverity, TrsdosFindingSeverity,
-    type TrsdosDirEntry, type TrsdosDiskInfo, type TrsdosProtectionLevel, type TrsdosProtectionNames,
+    type TrsdosDirEntry, type TrsdosDiskInfo, TrsdosProtectionLevel, type TrsdosProtectionNames,
     trsdosProtectionLevelToString, type TrsdosRuleSet, type TrsdosVersion,
 } from "trs80-base";
 import {
-    type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind, mapGridToString, trsdosPasswordIsSet,
+    AllocationUnit, allocationUnitToString, type DiskMapModel, type DiskSession, type FreeSpace, formatYmd, MapCellKind, mapGridToString, trsdosPasswordIsSet,
     TrimCylindersReason, type TrimDoneResult, TrimNothingReason, type TrimNothingResult,
 } from "trs80-disk";
 import {assertNever} from "z80-base";
@@ -255,6 +255,8 @@ export interface AttribChangesJson {
     invisible?: boolean;
     /** Whether the files became system files (true) or user files (false). Missing if that wasn't changed. */
     system?: boolean;
+    /** Whether the files became read-only (true) or read-write (false). CP/M disks only. Missing if that wasn't changed. */
+    readOnly?: boolean;
     /** The new protection level. Missing if it wasn't changed. */
     protection?: ProtectionJson;
     /** Whether the update (owner) password was set or removed. Missing if it wasn't changed. */
@@ -276,7 +278,9 @@ export interface AttribChangeResultJson {
 }
 
 /**
- * The attributes of one file, shown by "attrib" with no options that change them.
+ * The attributes of one file, shown by "attrib" with no options that change them. A CP/M file has the same fields,
+ * with the ones it can't have at their "none" values: protection is FULL, the passwords are false, and the date is
+ * null. Invisible and system are both its SYS attribute, which hides it from DIR.
  */
 export interface AttribFileJson {
     /** The file's name, such as "HELLO.BAS". */
@@ -287,6 +291,11 @@ export interface AttribFileJson {
     invisible: boolean;
     /** Whether the file is a system file. */
     system: boolean;
+    /**
+     * Whether the file is read-only (R/O). Only on a CP/M disk, since TRSDOS has protection levels and no such
+     * attribute, so it's missing on a TRSDOS disk (and its JSON is as it always was).
+     */
+    readOnly?: boolean;
     /** Whether the file has an update (owner) password. The password isn't known, only its hash. */
     updatePassword: boolean;
     /** Whether the file has an access (user) password. */
@@ -346,9 +355,17 @@ export interface ProtectResultJson {
 }
 
 /**
- * The free space on a disk.
+ * The free space on a disk: counted in granules on a TRSDOS-family disk and in blocks on a CP/M one. The "unit"
+ * field says which.
  */
-export interface FreeResultJson {
+export type FreeResultJson = GranuleFreeResultJson | BlockFreeResultJson;
+
+/**
+ * The free space on a TRSDOS-family disk.
+ */
+export interface GranuleFreeResultJson {
+    /** What the space is counted in: "granule". */
+    unit: "granule";
     /**
      * The number of granules that new files could be given: those the GAT calls free, less the two counts
      * below.
@@ -365,6 +382,26 @@ export interface FreeResultJson {
     missingGranules: number;
     /** The number of granules that the GAT calls free past the disk's proven size, which new files never get. */
     pastEndGranules: number;
+}
+
+/**
+ * The free space on a CP/M disk, which has no allocation map: the free blocks are the data blocks that no
+ * directory entry claims.
+ */
+export interface BlockFreeResultJson {
+    /** What the space is counted in: "block". */
+    unit: "block";
+    /** The number of blocks that new files could be given. */
+    freeBlocks: number;
+    /** The number of bytes in a block. */
+    blockBytes: number;
+    /** The number of bytes in the blocks that new files could be given. */
+    freeBytes: number;
+    /**
+     * The number of blocks that no entry claims but that have a sector the image doesn't have or that has a
+     * CRC error, which new files skip.
+     */
+    missingBlocks: number;
 }
 
 /**
@@ -1039,10 +1076,22 @@ export function dateToJson(date: Date | null): string | null {
 /**
  * The attributes of one file, for "attrib" with nothing to change.
  *
- * @param dirEntry the file's primary directory entry.
+ * @param dirEntry the file's primary directory entry, or the CP/M file.
  * @param names which DOS's protection names the disk uses.
  */
-export function attribFileToJson(dirEntry: TrsdosDirEntry, names: TrsdosProtectionNames): AttribFileJson {
+export function attribFileToJson(dirEntry: TrsdosDirEntry | CpmFile, names: TrsdosProtectionNames): AttribFileJson {
+    if (dirEntry instanceof CpmFile) {
+        return {
+            name: dirEntry.getFilename("."),
+            protection: protectionToJson(TrsdosProtectionLevel.FULL, names),
+            invisible: dirEntry.isHidden(),
+            system: dirEntry.isSystemFile(),
+            readOnly: dirEntry.isReadOnly(),
+            updatePassword: false,
+            accessPassword: false,
+            date: null,
+        };
+    }
     return {
         name: dirEntry.getFilename("."),
         protection: protectionToJson(dirEntry.getProtectionLevel(), names),
@@ -1091,13 +1140,29 @@ export function diskInfoToJson(info: TrsdosDiskInfo, ruleSet: TrsdosRuleSet | un
  * The free space as JSON.
  */
 export function freeSpaceToJson(freeSpace: FreeSpace): FreeResultJson {
-    return {
-        freeGranules: freeSpace.freeGranules,
-        granuleBytes: freeSpace.granuleBytes,
-        freeBytes: freeSpace.freeBytes,
-        missingGranules: freeSpace.missingGranules,
-        pastEndGranules: freeSpace.pastEndGranules,
-    };
+    switch (freeSpace.unit) {
+        case AllocationUnit.GRANULE:
+            return {
+                unit: allocationUnitToString(freeSpace.unit) as "granule",
+                freeGranules: freeSpace.freeGranules,
+                granuleBytes: freeSpace.granuleBytes,
+                freeBytes: freeSpace.freeBytes,
+                missingGranules: freeSpace.missingGranules,
+                pastEndGranules: freeSpace.pastEndGranules,
+            };
+
+        case AllocationUnit.BLOCK:
+            return {
+                unit: allocationUnitToString(freeSpace.unit) as "block",
+                freeBlocks: freeSpace.freeBlocks,
+                blockBytes: freeSpace.blockBytes,
+                freeBytes: freeSpace.freeBytes,
+                missingBlocks: freeSpace.missingBlocks,
+            };
+
+        default:
+            assertNever(freeSpace);
+    }
 }
 
 /**

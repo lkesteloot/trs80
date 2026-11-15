@@ -37,8 +37,10 @@ const RECORDS_PER_EXTENT = 128;
 // point at blocks that the image doesn't hold.
 const NOMINAL_CYLINDER_COUNTS = [35, 40, 80];
 
-// Characters that can't be in a filename, besides control characters.
-const BAD_FILENAME_CHARACTERS = "<>.,;:=?*[]";
+/**
+ * Characters that can't be in a filename, besides control characters, space, and DEL.
+ */
+export const BAD_FILENAME_CHARACTERS = "<>.,;:=?*[]";
 
 // Ctrl-Z, which ends a CP/M text file.
 const CTRL_Z = 0x1A;
@@ -360,9 +362,11 @@ export class CpmExtent {
     public readonly recordCount: number;
     // Allocation blocks, without the zeros of unused pointers.
     public readonly blocks: number[];
+    // The directory slot (from 0) that holds this entry, or -1 if it isn't in a directory.
+    public readonly slot: number;
 
     constructor(user: number, name: string, extension: string, readOnly: boolean, system: boolean,
-                archived: boolean, extentNumber: number, recordCount: number, blocks: number[]) {
+                archived: boolean, extentNumber: number, recordCount: number, blocks: number[], slot: number) {
 
         this.user = user;
         this.name = name;
@@ -373,6 +377,7 @@ export class CpmExtent {
         this.extentNumber = extentNumber;
         this.recordCount = recordCount;
         this.blocks = blocks;
+        this.slot = slot;
     }
 }
 
@@ -511,6 +516,19 @@ interface CpmRecordLocation {
 }
 
 /**
+ * Which layout a CP/M disk was read with, without the file system that the layout gave. A session keeps this to
+ * decode the disk the same way again after a change, an undo, or a redo, without searching.
+ */
+export interface CpmLayout {
+    // The geometry of the whole disk.
+    readonly geometry: FloppyDiskGeometry;
+    readonly format: CpmFormat;
+    readonly allocationSides: number;
+    readonly reservedTrackCount: number;
+    readonly cylinderCount: number;
+}
+
+/**
  * A CP/M diskette, as one candidate layout.
  */
 export class Cpm implements FloppyFileSystem<CpmFile> {
@@ -620,6 +638,19 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         }
 
         return findDosBanner(CPM_BANNERS, [text]);
+    }
+
+    /**
+     * This file system's layout, as a small object that doesn't keep the disk or the files alive.
+     */
+    public getLayout(): CpmLayout {
+        return {
+            geometry: this.geometry,
+            format: this.format,
+            allocationSides: this.allocationSides,
+            reservedTrackCount: this.reservedTrackCount,
+            cylinderCount: this.cylinderCount,
+        };
     }
 
     /**
@@ -737,8 +768,11 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     /**
      * Decode a directory entry, returning undefined if it's not a file (unused, or a CP/M 3
      * label, date stamp, or password), and a string if it can't be valid under this layout.
+     *
+     * @param bytes the entry's 32 bytes.
+     * @param slot the entry's directory slot, which the extent records.
      */
-    private decodeDirEntry(bytes: Uint8Array): CpmExtent | undefined | string {
+    private decodeDirEntry(bytes: Uint8Array, slot: number): CpmExtent | undefined | string {
         const user = bytes[0];
         if (user === UNUSED_USER || (user > MAX_FILE_USER && user <= MAX_OTHER_USER)) {
             return undefined;
@@ -803,7 +837,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         const archived = (bytes[11] & 0x80) !== 0;
 
         return new CpmExtent(user, name, extension, readOnly, system, archived,
-            extentNumber, recordCount, blocks);
+            extentNumber, recordCount, blocks, slot);
     }
 
     /**
@@ -900,7 +934,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         let badEntryCount = 0;
         const extentsByFile = new Map<string, CpmExtent[]>();
         for (let i = 0; i < this.format.dirEntryCount; i++) {
-            const extent = this.decodeDirEntry(dir.subarray(i*DIR_ENTRY_SIZE, (i + 1)*DIR_ENTRY_SIZE));
+            const extent = this.decodeDirEntry(dir.subarray(i*DIR_ENTRY_SIZE, (i + 1)*DIR_ENTRY_SIZE), i);
             if (typeof extent === "string") {
                 badEntryCount += 1;
             } else if (extent !== undefined) {
@@ -1057,13 +1091,14 @@ export function decodeCpm(disk: FloppyDisk, wholeRecords = false): Cpm | undefin
 
 /**
  * Decode a disk with the layout of an earlier decoding, without searching, so that a changed
- * disk is read the way it was before even if it would now rank differently.
+ * disk is read the way it was before even if it would now rank differently. Unlike decodeCpm() this
+ * gives a file system even when the directory is empty.
  *
  * @param disk the floppy, or an overlay over one, whose geometry is the same as like's.
- * @param like the file system whose format, sides, reserved tracks, and cylinder count to use.
+ * @param like the layout to use: a file system's (a Cpm is one), or one that it gave from getLayout().
  * @param wholeRecords see decodeCpm().
  */
-export function decodeCpmWithLayout(disk: DiskVolume, like: Cpm, wholeRecords: boolean): Cpm {
+export function decodeCpmWithLayout(disk: DiskVolume, like: CpmLayout, wholeRecords: boolean): Cpm {
     return new Cpm(disk, like.geometry, like.format, like.allocationSides, like.reservedTrackCount,
         like.cylinderCount, wholeRecords);
 }

@@ -4,7 +4,7 @@ import {
 } from "trs80-base";
 import {describe, expect, it} from "vitest";
 import {buildDiskMap, MapCellKind, totalsText} from "./DiskMap.js";
-import {DiskSession, unusableFreeText} from "./DiskSession.js";
+import {AllocationUnit, DiskSession, type GranuleFreeSpace, unusableFreeText} from "./DiskSession.js";
 
 // Tests of how "free", "info" and "map" count the granules that the GAT calls free but new files never get.
 
@@ -20,6 +20,17 @@ function format(dos: TrsdosFormatDos, cylinders: number): DmkFloppyDisk {
 }
 
 /**
+ * The session's free space, which a TRSDOS disk counts in granules.
+ */
+function granuleFreeSpace(session: DiskSession): GranuleFreeSpace {
+    const free = session.getFreeSpace();
+    if (free.unit !== AllocationUnit.GRANULE) {
+        throw new Error("Expected free space in granules");
+    }
+    return free;
+}
+
+/**
  * Open an image in a session.
  */
 function open(disk: DmkFloppyDisk): DiskSession {
@@ -28,13 +39,13 @@ function open(disk: DmkFloppyDisk): DiskSession {
 
 describe("free space the writer can't use", () => {
     it("leaves out granules that the image doesn't fully hold", () => {
-        const whole = open(format(TrsdosFormatDos.TRSDOS_2_3, 35)).getFreeSpace();
+        const whole = granuleFreeSpace(open(format(TrsdosFormatDos.TRSDOS_2_3, 35)));
         expect(whole.missingGranules).to.equal(0);
         expect(whole.pastEndGranules).to.equal(0);
 
         // TRSDOS 2.3's cylinder 0, sector 7, is in granule 1, which is free on a blank disk.
         const session = open(removeDmkId(format(TrsdosFormatDos.TRSDOS_2_3, 35), SectorPosition.make(0, 0, 7)));
-        const free = session.getFreeSpace();
+        const free = granuleFreeSpace(session);
         expect(free.missingGranules).to.equal(1);
         expect(free.pastEndGranules).to.equal(0);
         expect(free.freeGranules).to.equal(whole.freeGranules - 1);
@@ -55,7 +66,7 @@ describe("free space the writer can't use", () => {
         const disk = appendDmkTestTracks(format(TrsdosFormatDos.TRSDOS_1_3, 40), [[{kind: "reRead", cylinder: 39}]],
             TRSDOS_13_TRACK_LAYOUT);
         const session = open(disk);
-        const free = session.getFreeSpace();
+        const free = granuleFreeSpace(session);
         expect(free.pastEndGranules).to.equal(6);
         expect(free.missingGranules).to.equal(0);
         expect(session.getFreeSpaceText()).to.contain("; the GAT calls 6 more granules free, which are past the disk's end");

@@ -1,5 +1,5 @@
 import {
-    findBlockingProtectionSigns, FloppyDisk, protectionSignKindToString, type TrsdosFinding, TrsdosFindingSeverity,
+    Cpm, findBlockingProtectionSigns, FloppyDisk, protectionSignKindToString, type TrsdosFinding, TrsdosFindingSeverity,
     type TrsdosRepairResult, TrsdosWriteAccess,
 } from "trs80-base";
 import {assertNever} from "z80-base";
@@ -97,6 +97,9 @@ export function repairDisk(session: DiskSession,
                            options: {freeUnclaimed: boolean, fixProgramSizes: boolean, markMissingUsed: boolean}): RepairResult {
     // A disk that is unreadable for any reason but damage can't be repaired, --force or not.
     const gate = session.getWriteGate();
+    if (session.fileSystem instanceof Cpm) {
+        throw new DiskError("Repairing CP/M disks isn't supported.", DiskErrorKind.READ_ONLY);
+    }
     if (session.fileSystem !== undefined && gate === undefined) {
         throw new DiskError("Repairing " + session.fileSystem.nameAndVersion + " disks isn't supported yet");
     }
