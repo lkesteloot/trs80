@@ -72,8 +72,9 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 ## Generated files
 
 - `src/build.ts` in trs80-tool and the three apps is written by `printBuildInfo`
-  on every build and is gitignored. The root `pretypecheck` script writes them
-  too, since `tsc` needs them and a fresh checkout or worktree has none.
+  on every build and is gitignored. The root `pretypecheck` and `pretest` scripts
+  write them too, since `tsc` and the tests need them and a fresh checkout or
+  worktree has none.
 - trs80-emulator's `src/CompiledRoms.ts` holds a compiled-Basic ROM per model,
   assembled from `apps/basic/basic.asm` by `tools/GenerateCompiledRoms.ts`
   (`npm run generateRoms -w packages/trs80-emulator`). It's gitignored and
