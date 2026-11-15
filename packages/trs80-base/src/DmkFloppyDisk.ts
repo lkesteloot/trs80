@@ -256,11 +256,14 @@ class DmkSector {
 
         let crc = this.initialCrc();
 
-        // Include the DAM.
-        const begin = this.dataIndex - 1;
-        const end = this.dataIndex + this.getSectorSize();
-        for (let i = begin; i < end; i++) {
-            crc = CRC_16_CCITT.update(crc, this.getByte(i));
+        // Include the DAM. Read the bytes directly rather than through getByte(), since every
+        // sector read computes this, and decoding a disk reads its sectors many times.
+        const binary = this.track.floppyDisk.binary;
+        const byteStride = this.getByteStride();
+        const begin = this.track.offset + this.offset + (this.dataIndex - 1)*byteStride;
+        const end = this.track.offset + this.offset + (this.dataIndex + this.getSectorSize())*byteStride;
+        for (let i = begin; i < end; i += byteStride) {
+            crc = CRC_16_CCITT.update(crc, binary[i]);
         }
 
         return crc;
