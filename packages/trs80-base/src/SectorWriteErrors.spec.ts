@@ -46,6 +46,17 @@ describe("writeSector", () => {
                 expect(disk.readSector(position)?.data).to.eql(new Uint8Array(256).fill(0x42));
             });
 
+            it("reads a sector it has read and then written with a CRC that matches", () => {
+                // Some formats keep the CRC they computed from the data, which the write must discard.
+                const disk = diskIn(format);
+                const position = SectorPosition.make(3, 0, 4);
+                expect(disk.readSector(position)?.crcError).to.equal(false);
+                disk.writeSector(position, sectorData(position));
+                const sector = disk.readSector(position);
+                expect(sector?.data).to.eql(new Uint8Array(256).fill(0x42));
+                expect(sector?.crcError).to.equal(false);
+            });
+
             it("refuses a sector the image doesn't have", () => {
                 const disk = diskIn(format);
                 const before = disk.binary.slice();

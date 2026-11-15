@@ -1,5 +1,5 @@
 import {
-    BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosOnOverlay,
+    BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosWithLayout,
     evaluateTrsdosWriteGate, findHardDiskPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     compressForName, isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type DecodedPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
@@ -1517,10 +1517,12 @@ export class DiskSession {
         }
 
         const overlay = new SectorOverlay(this.writableVolume());
-        let committed = false;
+        let flushed: Trsdos | undefined = undefined;
         try {
-            const trsdos = decodeTrsdosOnOverlay(overlay, sessionTrsdos);
-            if (trsdos === undefined || !DiskSession.sameLayout(sessionTrsdos, trsdos)) {
+            // The session's file system was decoded from these bytes, so use its layout rather than
+            // search again. If the change makes another layout read better, the flush refuses it.
+            const trsdos = decodeTrsdosWithLayout(overlay, sessionTrsdos);
+            if (trsdos === undefined) {
                 throw new DiskError("Can't change this disk: it doesn't decode the same way when it is prepared for writing.",
                     DiskErrorKind.READ_ONLY);
             }
@@ -1533,9 +1535,8 @@ export class DiskSession {
             const writer = new TrsdosWriter(trsdos, ruleSet);
             change(writer);
             if (writer.hasChanges()) {
-                writer.flush();
+                flushed = writer.flush();
                 overlay.commit();
-                committed = true;
             }
         } catch (e) {
             overlay.discard();
@@ -1545,8 +1546,8 @@ export class DiskSession {
             throw e;
         }
 
-        if (committed) {
-            this.currentFileSystem = this.decodeFileSystemAfterChange(sessionTrsdos);
+        if (flushed !== undefined) {
+            this.currentFileSystem = this.decodeFileSystemAfterChange(sessionTrsdos, flushed);
             this.granuleMap = null;
             this.writeGate = null;
             if (!(this.currentFileSystem instanceof Trsdos)) {
@@ -1578,18 +1579,19 @@ export class DiskSession {
     }
 
     /**
-     * Decode the file system again after a change was committed to the disk. A floppy's layout is found
-     * again, and a partition's is the one it had, since a partition's layout is given by its GAT and not
-     * guessed. The partition's entry in the list gets the new file system, and its disk name, which a change
-     * can make different.
+     * Decode the file system again after a change was committed to the disk. A floppy has the layout that
+     * the writer's flush found when it searched afresh, and a partition's is the one it had, since a
+     * partition's layout is given by its GAT and not guessed. The partition's entry in the list gets the new
+     * file system, and its disk name, which a change can make different.
      *
      * @param before the file system as it was decoded before the change.
+     * @param flushed the file system that the writer's flush decoded on the overlay, before it was committed.
      * @return the new file system, or undefined if it doesn't decode.
      */
-    private decodeFileSystemAfterChange(before: Trsdos): KnownFloppyFileSystem | undefined {
+    private decodeFileSystemAfterChange(before: Trsdos, flushed: Trsdos): KnownFloppyFileSystem | undefined {
         const image = this.image;
         if (image instanceof FloppyDisk) {
-            return decodeFloppyFileSystem(image);
+            return decodeTrsdosWithLayout(image, flushed);
         }
 
         const index = this.selectedPartitionIndex;
@@ -1621,22 +1623,6 @@ export class DiskSession {
             image.setMountedWriteProtected(false);
         }
         image.clearImageWriteProtected();
-    }
-
-    /**
-     * Whether two decodings of the same disk have the same layout, using the fields that
-     * {@link TrsdosWriter} checks after a change.
-     */
-    private static sameLayout(a: Trsdos, b: Trsdos): boolean {
-        return a.version === b.version &&
-            a.allocationSides === b.allocationSides &&
-            a.granulesPerLump === b.granulesPerLump &&
-            a.sectorsPerGranule === b.sectorsPerGranule &&
-            a.dirLumpNumber === b.dirLumpNumber &&
-            a.granulesPerDir === b.granulesPerDir &&
-            a.firstDataCylinder === b.firstDataCylinder &&
-            a.hitIgnored === b.hitIgnored &&
-            a.lumpCount === b.lumpCount;
     }
 
     /**

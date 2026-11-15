@@ -4327,6 +4327,28 @@ export function decodeTrsdos(disk: DiskVolume): Trsdos | undefined {
 }
 
 /**
+ * Decode a disk with the layout of an earlier decoding, rather than search for its layout as
+ * {@link decodeTrsdos} does, which tries thousands of layouts. For when the caller knows the layout
+ * hasn't changed, such as a disk just changed by a {@link TrsdosWriter}, whose flush searched afresh
+ * and checked that it found the same layout.
+ *
+ * @param disk the disk, which may be the same one that "like" is on, or an overlay on it.
+ * @param like the earlier decoding, whose layout is used.
+ * @return the file system, or undefined if the disk doesn't decode with that layout.
+ */
+export function decodeTrsdosWithLayout(disk: DiskVolume, like: Trsdos): Trsdos | undefined {
+    const candidate = new Trsdos(disk, disk.getGeometry(), like.version, like.allocationSides,
+        like.granulesPerLump, like.sectorsPerGranule, like.dirLumpNumber, like.granulesPerDir,
+        like.firstDataCylinder, like.hitIgnored, like.newdos80Partition);
+
+    // decodeTrsdos() accepts a reading that ignores the HIT only if its GAT passes the strict check.
+    if (candidate.hitIgnored && !candidate.gatPassesStrictCheck) {
+        return undefined;
+    }
+    return findBestCandidate([candidate]);
+}
+
+/**
  * Decode the file system in a partition of a hard disk, whose directory cylinder the caller found
  * from the partition's boot sector. A partition is a disk with one side, whose tracks are as long
  * as all its heads together, so this reads it as the 2.3 family with a lump per cylinder, and the

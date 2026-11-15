@@ -120,6 +120,17 @@ class DmkSector {
      * Where the sector is physically on the disk.
      */
     public readonly physicalSectorPosition: SectorPosition;
+    /**
+     * The CRC computed from the ID field, once computeIdamCrc() has computed it. Nothing changes
+     * a sector's ID field, since formatTrack() makes new sectors.
+     */
+    private idamCrc: number | undefined = undefined;
+    /**
+     * The CRC computed from the data field, once computeDataCrc() has computed it, or undefined.
+     * Decoding a disk reads each sector many times, and computing this was most of the time.
+     * Cleared by dataChanged().
+     */
+    private dataCrc: number | undefined = undefined;
 
     constructor(track: DmkTrack, density: Density, alwaysUseStride1: boolean, offset: number) {
         this.track = track;
@@ -217,12 +228,17 @@ class DmkSector {
      * Compute the CRC for the IDAM.
      */
     public computeIdamCrc(): number {
+        if (this.idamCrc !== undefined) {
+            return this.idamCrc;
+        }
+
         let crc = this.initialCrc();
 
         for (let i = 0; i < 5; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
         }
 
+        this.idamCrc = crc;
         return crc;
     }
 
@@ -253,17 +269,31 @@ class DmkSector {
         if (this.dataIndex === undefined) {
             return undefined;
         }
+        if (this.dataCrc !== undefined) {
+            return this.dataCrc;
+        }
 
         let crc = this.initialCrc();
 
-        // Include the DAM.
-        const begin = this.dataIndex - 1;
-        const end = this.dataIndex + this.getSectorSize();
-        for (let i = begin; i < end; i++) {
-            crc = CRC_16_CCITT.update(crc, this.getByte(i));
+        // Include the DAM. Read the bytes directly rather than through getByte(), since every
+        // sector read computes this, and decoding a disk reads its sectors many times.
+        const binary = this.track.floppyDisk.binary;
+        const byteStride = this.getByteStride();
+        const begin = this.track.offset + this.offset + (this.dataIndex - 1)*byteStride;
+        const end = this.track.offset + this.offset + (this.dataIndex + this.getSectorSize())*byteStride;
+        for (let i = begin; i < end; i += byteStride) {
+            crc = CRC_16_CCITT.update(crc, binary[i]);
         }
 
+        this.dataCrc = crc;
         return crc;
+    }
+
+    /**
+     * Forget what we computed from the data field, because it was written.
+     */
+    public dataChanged(): void {
+        this.dataCrc = undefined;
     }
 
     /**
@@ -670,6 +700,7 @@ export class DmkFloppyDisk extends FloppyDisk {
 
         const begin = sector.track.offset + sector.offset + (sector.dataIndex - 1)*byteStride;
         this.write(new FloppyWrite(bytes, begin));
+        sector.dataChanged();
 
         // Keep the geometry's copy in sync. The sector's layout didn't change, so the rest
         // of the geometry is still right.

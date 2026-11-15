@@ -7,13 +7,28 @@
  * https://en.wikipedia.org/wiki/Mathematics_of_cyclic_redundancy_checks
  */
 export class Crc16 {
-    private readonly generator: number;
+    /**
+     * For each value of the CRC's high byte XORed with the next data byte, what the eight
+     * shift-and-XOR steps of that byte contribute to the CRC. Reading the disk's sectors spends
+     * most of its time computing CRCs, so we do one lookup per byte rather than eight steps.
+     */
+    private readonly table = new Uint16Array(256);
 
     /**
      * Specifies the generator, which must be a 16-bit value.
      */
     constructor(generator: number) {
-        this.generator = generator;
+        for (let i = 0; i < 256; i++) {
+            let crc = i << 8;
+            for (let bit = 0; bit < 8; bit++) {
+                const isOne = (crc & 0x8000) !== 0;
+                crc <<= 1;
+                if (isOne) {
+                    crc ^= generator;
+                }
+            }
+            this.table[i] = crc & 0xFFFF;
+        }
     }
 
     /**
@@ -22,15 +37,7 @@ export class Crc16 {
      * @return the new CRC.
      */
     public update(crc: number, data: number): number {
-        for (let shift = 8; shift < 16; shift++) {
-            const isOne = ((crc ^ (data << shift)) & 0x8000) !== 0;
-            crc <<= 1;
-            if (isOne) {
-                crc ^= this.generator;
-            }
-        }
-
-        return crc & 0xFFFF;
+        return ((crc << 8) ^ this.table[((crc >> 8) ^ data) & 0xFF]) & 0xFFFF;
     }
 }
 
