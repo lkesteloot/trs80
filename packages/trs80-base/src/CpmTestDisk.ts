@@ -55,6 +55,13 @@ function makeMontezumaTrackLayout(sectorCount: number, sectorSize: number): Trac
     };
 }
 
+// What Montezuma's FORMAT leaves in the first sector of a system format that hasn't been SYSGENed: a boot sector
+// that starts with code and says there's no CP/M on the disk. The code here is a stand-in, since only the way the
+// sector isn't a directory matters. See "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md.
+const BOOT_SECTOR_CODE_BYTE = 0x3E;
+const BOOT_SECTOR_MESSAGE = "There is NO CP/M on this disk.";
+const BOOT_SECTOR_MESSAGE_OFFSET = 0x40;
+
 /**
  * A file to put on a test disk.
  */
@@ -111,6 +118,13 @@ export interface CpmTestDiskOptions {
      * Text to put at the start of the first reserved sector, such as a BIOS banner. Needs a reserved track.
      */
     banner?: string | undefined;
+
+    /**
+     * Leave the first sector of a layout with reserved tracks as 0xE5, with no boot sector in it. By default it
+     * has FORMAT's boot sector, so that it doesn't look like the start of a directory. A banner then goes in the
+     * second sector, so that the first stays 0xE5.
+     */
+    noBootSector?: boolean | undefined;
 
     /**
      * Raw directory slots to write after the files, by slot number, each 32 bytes: for making bad
@@ -273,9 +287,17 @@ export function makeMontezumaTestDisk(layout: CpmVerifiedLayout, files: CpmTestF
         floppy.writeSector(position, sector);
     };
 
+    if (layout.reservedTracks > 0 && options.noBootSector !== true) {
+        const firstSector = SectorPosition.make(0, 0, FIRST_SECTOR_NUMBER);
+        writeBytes(firstSector, 0, new Uint8Array([BOOT_SECTOR_CODE_BYTE]));
+        const message = new Uint8Array(BOOT_SECTOR_MESSAGE.split("").map(ch => ch.charCodeAt(0)));
+        writeBytes(firstSector, BOOT_SECTOR_MESSAGE_OFFSET, message);
+    }
+
     if (options.banner !== undefined) {
         const banner = new Uint8Array(options.banner.split("").map(ch => ch.charCodeAt(0)));
-        writeBytes(SectorPosition.make(0, 0, FIRST_SECTOR_NUMBER), 0, banner);
+        const bannerSector = options.noBootSector === true ? FIRST_SECTOR_NUMBER + 1 : FIRST_SECTOR_NUMBER;
+        writeBytes(SectorPosition.make(0, 0, bannerSector), 0, banner);
     }
 
     // The layout with the image's cylinder count.

@@ -925,6 +925,25 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     }
 
     /**
+     * Whether the directory is blank: every sector that holds it is readable, and every slot's user byte is
+     * 0xE5 (unused). That's how FORMAT leaves a disk, and how it looks after every file is erased, which keeps
+     * the rest of each slot's old entry. See "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md.
+     */
+    public isDirectoryBlank(): boolean {
+        const readable = this.dirSectorsReadable();
+        if (!readable) {
+            return false;
+        }
+        const dir = this.readDirectoryBytes();
+        for (let i = 0; i < this.format.dirEntryCount; i++) {
+            if (dir[i*DIR_ENTRY_SIZE] !== UNUSED_USER) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Read the directory, group its entries into files, and evaluate how well this layout fits.
      */
     private readDirectory(): { files: CpmFile[], evaluation: CpmEvaluation } {

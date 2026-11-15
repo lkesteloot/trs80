@@ -3059,6 +3059,45 @@ there's no CP/M on the disk, so nothing on them names the version.
   nothing in the directory tells them apart, and the table's order picks
   skew 2.
 
+**Montezuma's physical layout and blank disks.** Measured on FORMAT1 to FORMAT16
+(the rules that `findBlankCpmCandidates()` uses to recognize a disk with no files):
+
+- FORMAT writes each track's sectors in plain order, 1 to N (the skew is the BIOS's,
+  not the track's), and numbers them from 1 on both sides. In the DMK images one ID
+  mark follows another every 342 bytes on 18 × 256 tracks and every 598 bytes on
+  10 × 512 tracks (tracks 0, 1, and the last, on all 16 disks). The disks in
+  double-sided images that are really single-sided (FORMAT5, 6, and 11) have no
+  sectors at all on side 1.
+- On a system format that hasn't been SYSGENed (FORMAT3, 5, 7, and 9 to 16), track 0 sector
+  1 is a boot sector that starts with code and has "There is NO CP/M on this disk!"
+  at byte 36, followed by more code, and the rest of the reserved tracks is 0xE5. The
+  same bytes are on all of them, so it names no version. A SYSGENed disk (FORMAT1)
+  has real boot code there and the BIOS banner further on. On a data format that
+  sector is the start of the directory, so its slots' first bytes are all 0xE5 on a
+  blank disk.
+- A directory emptied by ERA keeps the rest of every entry, so track 0 sector 1 of a data
+  disk with its files erased isn't all 0xE5: only each slot's first byte is. A test
+  for "sector 1 is all 0xE5" would take an erased data disk for a system disk, so the
+  rule is that every slot's first byte is 0xE5 (the sector looks like a directory), which
+  a boot sector never does.
+- With the files erased, 15 of the 16 disks read one way, since the leftover file data under
+  the other skew's or the other reserved-track count's directory sectors isn't 0xE5.
+  FORMAT16 reads three ways (2 or 4 reserved tracks, skew 2 or 4 with 2 sides),
+  and a really blank disk ties the skews too, because nothing on a blank disk tells
+  them apart. Without a banner these tie: the one-sided and two-sided standard system
+  formats with their skew-4 versions, and the two-sided one with the 4-reserved-track
+  version. A banner for a version other than 1.26 and 1.30 rules out skew 4. A banner
+  for 1.42 or 1.44 rules out the standard two-sided system format.
+  The collection's one-sided 1.42 and 1.44 disks read as the standard system
+  format, so the banner doesn't rule that out for one side.
+- The numbering from 1 doesn't tell Montezuma's disks from TRSDOS's: Model III
+  TRSDOS also numbers from 1, and a blank one has a blank directory under a
+  Montezuma system layout too. What separates them is the boot sector, so a system
+  format counts as blank Montezuma only with its "There is NO CP/M" boot sector or
+  a banner. (Data formats have no such evidence, so a blank 10 × 512 disk from
+  another system with the same geometry reads as a blank "Standard data" disk when
+  nothing else recognizes it.)
+
 **Montezuma "Super Data"** (220K). Ira's three `CP-M Public Domain Disk C354`,
 `C900` and `C901` disks (`ira/lk-410-to-do`, labeled "40T SS DD 220K M M Super
 Data") are in a format not among the 12 above, worked out from the disks with

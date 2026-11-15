@@ -3,6 +3,7 @@ import type {DiskVolume} from "./DiskVolume.js";
 import type {FloppyFileContents} from "./FileDamage.js";
 import {decodeTrsdos, Trsdos} from "./Trsdos.js";
 import {Cpm, type CpmLayout, decodeCpm, decodeCpmWithLayout} from "./Cpm.js";
+import {decodeBlankCpm} from "./CpmWriteGate.js";
 import {decodeMicroDos, MicroDos} from "./MicroDos.js";
 import {decodeModelIITrsdos, ModelIITrsdos} from "./ModelIITrsdos.js";
 import {decodeTrsdosII, TrsdosII} from "./TrsdosII.js";
@@ -114,13 +115,16 @@ export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false
     // decoders are strict, while the TRSDOS decoder searches the whole disk and can find a
     // directory-like sector on their disks. Then TRSDOS, because CP/M disks don't fool its
     // decoder, but its disks could conceivably have something that looks like a CP/M directory.
-    // Xenix tar, MicroDOS, and UCSD Pascal last: their data is at a fixed place, so we rely on
-    // their decoders being strict.
+    // Xenix tar, MicroDOS, and UCSD Pascal next: their data is at a fixed place, so we rely on
+    // their decoders being strict. A CP/M disk with a blank directory goes after all of them. Its only evidence
+    // is that nothing else fits (a blank directory is just 0xE5, which every operating system's formatted
+    // disk has), so it must never win over a decoder that found something.
     return decodeTrsdosII(disk) ??
         decodeModelIITrsdos(disk) ??
         decodeTrsdos(disk) ??
         decodeCpm(disk, cpmWholeRecords) ??
         decodeXenixTar(disk) ??
         decodeMicroDos(disk) ??
-        decodeUcsdPascal(disk);
+        decodeUcsdPascal(disk) ??
+        decodeBlankCpm(disk, cpmWholeRecords);
 }

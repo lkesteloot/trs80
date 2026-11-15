@@ -154,8 +154,14 @@
             files of more than one user is an error that names the users. CP/M names are 1 to 8 characters and
             an extension of 0 to 3, and CP/M records sizes in whole 128-byte records. CP/M 2.2 has no dates,
             passwords or protection levels, and <code>label</code> and <code>repair</code> don’t apply to it. You can remove a CP/M
-            disk’s last file, and add to it again, but an empty CP/M disk can’t be saved, because it can’t be
-            recognized when it’s opened again: add a file before saving.</p>
+            disk’s last file, and add to it again. A Montezuma disk with no files, whether it was just formatted or
+            had its files removed, is recognized when it’s opened, from its geometry, its sectors numbered from 1,
+            and its first sector, as long as nothing else recognizes it first. If more than one layout fits, which
+            happens with a system disk that has no banner, the first is used and writing to it needs
+            <code>--cpm-format</code> to settle which. An empty disk that isn’t recognized, such as a system format
+            whose first sector is all 0xE5, is refused when you save, because it couldn’t be recognized when it’s
+            opened again, unless you named the layout with <code>--cpm-format</code> (which then warns you to name it
+            again), or you add a file before saving.</p>
 
             <p id="cpm-formats"><strong>CP/M formats.</strong> <code>--cpm-format NAME</code> names the layout
             instead of leaving the tool to work it out. The disk is then read with that layout, even if it would

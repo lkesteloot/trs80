@@ -233,11 +233,13 @@ describe("--cpm-format", () => {
             expect(lines).to.eql(["Removed A.TXT.", "Saved " + imagePathname + "."]);
         });
 
-        it("still refuses to save an empty directory", async () => {
-            makeImage(preset("mm-system"));
-            await expect(runDisk("--cpm-format", "mm-system", "kill", "*", "A.TXT")).rejects.toThrow();
-            await expect(runDisk("--cpm-format", "mm-system", "kill", "A.TXT", "B.BIN", "D.DAT"))
-                .rejects.toThrow(/Can't save: an empty CP\/M disk/);
+        it("saves an empty directory, with a warning when it wouldn't be recognized", async () => {
+            // With no boot sector the disk reads as a data format's directory, so a system format isn't recognized.
+            makeImage(preset("mm-system"), standardFiles(), {noBootSector: true});
+            const lines = await runDisk("--cpm-format", "mm-system", "kill", "A.TXT", "B.BIN", "D.DAT");
+            expect(lines.slice(-2)).to.eql(["To read this disk again, give --cpm-format mm-system.",
+                "Saved " + imagePathname + "."]);
+            expect(fileNames(preset("mm-system"))).to.eql([]);
         });
 
         it("forgets the named layout when a new floppy replaces the disk", () => {
@@ -250,9 +252,11 @@ describe("--cpm-format", () => {
 
     describe("the command line", () => {
         it("lists an empty disk with it, which isn't recognized without it", async () => {
-            makeImage(preset("mm-data"), []);
+            // No boot sector: track 0's first sector looks like a directory, which a system format's never does, and
+            // no data format has 18 sectors of 256 bytes.
+            makeImage(preset("mm-system"), [], {noBootSector: true});
             await expect(runDisk("dir")).rejects.toThrow(/Can't find a DOS directory/);
-            const lines = await runDisk("--cpm-format", "mm-data", "dir");
+            const lines = await runDisk("--cpm-format", "mm-system", "dir");
             expect(lines.join("\n")).to.not.contain("Can't find");
         });
 
@@ -316,17 +320,17 @@ describe("--cpm-format", () => {
         }
 
         it("takes cpmFormat in dir, info, disk, and disk_write", async () => {
-            makeImage(preset("mm-data"), []);
+            makeImage(preset("mm-system"), [], {noBootSector: true});
             const withoutFlag = JSON.parse((await call("dir", {images: [imagePathname]})).text);
             expect(withoutFlag.infiles[0].errorCode).to.not.equal(undefined);
-            const dirResult = await call("dir", {images: [imagePathname], cpmFormat: "mm-data"});
+            const dirResult = await call("dir", {images: [imagePathname], cpmFormat: "mm-system"});
             expect(dirResult.isError).to.equal(false);
             expect(JSON.parse(dirResult.text).infiles[0].files).to.eql([]);
 
-            const infoJson = JSON.parse((await call("info", {images: [imagePathname], cpmFormat: "mm-data"})).text);
-            expect(infoJson.infiles[0].floppy.os.name).to.equal("Montezuma Micro CP/M");
+            const infoJson = JSON.parse((await call("info", {images: [imagePathname], cpmFormat: "mm-system"})).text);
+            expect(infoJson.infiles[0].floppy.os.name).to.contain("Montezuma Micro CP/M");
 
-            const diskResult = await call("disk", {image: imagePathname, cpmFormat: "mm-data", words: ["dir"]});
+            const diskResult = await call("disk", {image: imagePathname, cpmFormat: "mm-system", words: ["dir"]});
             expect(diskResult.isError).to.equal(false);
 
             makeImage(preset("mm-system"), doubtfulFiles(), {banner: ""});

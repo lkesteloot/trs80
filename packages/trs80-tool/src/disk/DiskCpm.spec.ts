@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import {
     CPM_VERIFIED_LAYOUTS, Cpm, cpmTestRecordLocation, type CpmTestFile, type CpmVerifiedLayout, type CpmTestDiskOptions,
-    makeMontezumaTestDisk, setDmkConverterCrcMarker,
+    findCpmVerifiedLayout, makeMontezumaTestDisk, setDmkConverterCrcMarker,
 } from "trs80-base";
 import {DiskSession} from "trs80-disk";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
@@ -186,19 +186,31 @@ describe("disk commands on a CP/M disk", () => {
             expect(fileNames()).to.eql(["A.TXT", "C.TXT", "D.DAT", "A.TXT"]);
         });
 
-        it("refuses to save when the last file is killed, and leaves the image alone", async () => {
+        it("saves when the last file is killed, and the empty disk is recognized when opened again", async () => {
             makeImage();
+            const lines = await runDisk("kill", "A.TXT", "B.BIN", "C.TXT", "D.DAT");
+            expect(lines).to.include("Saved " + imagePathname + ".");
+            expect(fileNames()).to.eql([]);
+            expect(openCpm().getDirEntries(true)).to.eql([]);
+            const layout = findCpmVerifiedLayout(openCpm());
+            expect(layout?.id).to.equal("mm-system");
+        });
+
+        it("refuses to save when the last file is killed on a disk that wouldn't be recognized empty, and leaves the " +
+            "image alone", async () => {
+            // With no boot sector, track 0's first sector looks like a directory, which a system format's never does.
+            makeImage(standardFiles(), STANDARD, {noBootSector: true});
             const before = fs.readFileSync(imagePathname);
             await expect(runDisk("kill", "A.TXT", "B.BIN", "C.TXT", "D.DAT")).rejects.toThrow(
-                /Can't save: an empty CP\/M disk can't be recognized/);
+                /Can't save: when it's opened again, this empty disk wouldn't be recognized as mm-system. Give --cpm-format mm-system, or add a file first/);
             expect(fs.readFileSync(imagePathname)).to.eql(before);
         });
 
         it("says in a dry run that the save would fail", async () => {
-            makeImage();
+            makeImage(standardFiles(), STANDARD, {noBootSector: true});
             const before = fs.readFileSync(imagePathname);
             await expect(runDisk("--dry-run", "kill", "A.TXT", "B.BIN", "C.TXT", "D.DAT", "D.DAT")).rejects.toThrow(
-                /Can't save: an empty CP\/M disk/);
+                /Can't save: when it's opened again, this empty disk/);
             expect(fs.readFileSync(imagePathname)).to.eql(before);
         });
 
@@ -507,14 +519,14 @@ describe("disk commands on a CP/M disk", () => {
         }
 
         it("keeps a CP/M file system when the last file is killed, undone, and redone", async () => {
-            makeImage();
+            makeImage(standardFiles(), STANDARD, {noBootSector: true});
             const session = open();
             await session.runUndoable("kill all", () => {
                 session.changeCpm(0, writer => writer.getFiles().forEach(file => writer.deleteFile(file)));
             });
             expect(session.fileSystem).to.be.instanceOf(Cpm);
             expect(session.fileSystem!.getDirEntries(true)).to.eql([]);
-            expect(session.getSaveBlocker()).to.contain("empty CP/M disk");
+            expect(session.getSaveBlocker()).to.contain("this empty disk wouldn't be recognized as mm-system");
             // It's still writable.
             expect(session.getReadOnlyReason()).to.equal(undefined);
 
@@ -526,22 +538,36 @@ describe("disk commands on a CP/M disk", () => {
             session.redo();
             expect(session.fileSystem).to.be.instanceOf(Cpm);
             expect(session.fileSystem!.getDirEntries(true).length).to.equal(0);
-            expect(session.getSaveBlocker()).to.contain("empty CP/M disk");
+            expect(session.getSaveBlocker()).to.contain("this empty disk wouldn't be recognized as mm-system");
 
             // Revert goes back to the disk as opened.
             expect(session.revert()).to.equal(true);
             expect(session.fileSystem!.getDirEntries(true).length).to.equal(4);
         });
 
-        it("refuses to save an empty disk, leaves the image alone, and saves once a file is added", async () => {
+        it("saves an empty disk that is recognized as blank, and reads it back", async () => {
             makeImage();
+            const session = open();
+            session.changeCpm(0, writer => writer.getFiles().forEach(file => writer.deleteFile(file)));
+            expect(session.hasChanges()).to.equal(true);
+            expect(session.getSaveBlocker()).to.equal(undefined);
+
+            saveAndReport(session, false);
+            expect(session.hasChanges()).to.equal(false);
+            expect(fileNames()).to.eql([]);
+            expect(findCpmVerifiedLayout(openCpm())?.id).to.equal("mm-system");
+        });
+
+        it("refuses to save an empty disk that isn't recognized, leaves the image alone, and saves once a file is " +
+            "added", async () => {
+            makeImage(standardFiles(), STANDARD, {noBootSector: true});
             const before = fs.readFileSync(imagePathname);
             const session = open();
             session.changeCpm(0, writer => writer.getFiles().forEach(file => writer.deleteFile(file)));
             expect(session.hasChanges()).to.equal(true);
 
-            expect(() => saveAndReport(session, false)).to.throw(/Can't save: an empty CP\/M disk/);
-            expect(() => session.save(() => {})).to.throw(/Can't save: an empty CP\/M disk/);
+            expect(() => saveAndReport(session, false)).to.throw(/Can't save: when it's opened again, this empty disk/);
+            expect(() => session.save(() => {})).to.throw(/Give --cpm-format mm-system, or add a file first/);
             expect(fs.readFileSync(imagePathname)).to.eql(before);
             expect(session.hasChanges()).to.equal(true);
 

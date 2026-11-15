@@ -130,9 +130,10 @@ describe("CP/M presets", () => {
     });
 
     describe("decodeFloppyFileSystem with a named layout", () => {
-        it("reads a disk with an empty directory, which detection doesn't recognize", () => {
-            const layout = findCpmVerifiedLayoutById("mm-data")!;
-            const disk = makeMontezumaTestDisk(layout, []);
+        it("reads a disk with an empty directory that detection doesn't recognize", () => {
+            // A system format whose first sector looks like a directory isn't a blank Montezuma disk.
+            const layout = findCpmVerifiedLayoutById("mm-system")!;
+            const disk = makeMontezumaTestDisk(layout, [], {noBootSector: true});
             expect(decodeFloppyFileSystem(disk)).to.equal(undefined);
 
             const cpmLayout = makeCpmLayout(layout, disk.getGeometry());
@@ -141,7 +142,7 @@ describe("CP/M presets", () => {
             }
             const cpm = decodeFloppyFileSystem(disk, false, {cpmLayout});
             expect(cpm).to.be.instanceOf(Cpm);
-            expect(findCpmVerifiedLayout(cpm as Cpm)?.id).to.equal("mm-data");
+            expect(findCpmVerifiedLayout(cpm as Cpm)?.id).to.equal("mm-system");
         });
 
         it("reads a disk with the named layout even when detection finds something else", () => {

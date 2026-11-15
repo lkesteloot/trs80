@@ -1,7 +1,7 @@
 import {
     BasicDialect, Cpm, type CpmVerifiedLayout, type CpmLayout, CpmWriteBlockerKind, CpmWriteError, CpmWriteErrorKind, type CpmWriteGate,
     CpmWriter, decodeCpmWithLayout, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition,
-    decodeTrsdosWithLayout, describeCpmWithPreset, evaluateCpmWriteGate, findCpmFreeBlocks,
+    decodeTrsdosWithLayout, describeCpmWithPreset, evaluateCpmWriteGate, findCpmFreeBlocks, findCpmVerifiedLayout,
     evaluateTrsdosWriteGate, findHardDiskPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     compressForName, isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type DecodedPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
@@ -368,9 +368,13 @@ function cpmWriteErrorKindToDiskErrorKind(kind: CpmWriteErrorKind): DiskErrorKin
 
 /**
  * Why a CP/M disk with no files can't be saved, which is also what the session says when it refuses to.
+ *
+ * @param layoutName the name of the layout that the session reads the disk with: its preset, if it has one.
  */
-const EMPTY_CPM_SAVE_MESSAGE = "Can't save: an empty CP/M disk can't be recognized when it's opened again. " +
-    "Add a file first.";
+function emptyCpmSaveMessage(layoutName: string): string {
+    return `Can't save: when it's opened again, this empty disk wouldn't be recognized as ${layoutName}. ` +
+        `Give --cpm-format ${layoutName}, or add a file first.`;
+}
 
 /**
  * How a session saves its changes. These come from the global options of the "disk" command.
@@ -1295,12 +1299,14 @@ export class DiskSession {
     /**
      * Why the disk can't be saved as it is, or undefined if it can. Only CP/M disks are ever refused. A CP/M disk
      * doesn't record its layout, so it's found by trying each layout and keeping the one whose directory reads best
-     * (see decodeCpm() in trs80-base). A session remembers the layout of a disk that it changed, so it can work on a
-     * disk that a fresh open wouldn't recognize: one with no files (an empty directory doesn't decode at all), or
-     * with so few good entries left, next to bad ones, that another layout or none scores better. The saved image
-     * would be misread or unrecognized when it's opened again, so this decodes the current image afresh, as opening a
-     * file does, and refuses unless that gives the same layout. Every path that writes the session's image out (not
-     * an in-memory conversion) must check this: see {@link requireSaveable}.
+     * (see decodeCpm() in trs80-base), or, for a disk with no files, the layouts that the blank-disk rules leave
+     * (see decodeBlankCpm()). A session remembers the layout of a disk that it changed, so it can work on a disk that
+     * a fresh open wouldn't recognize that way: one with no files that the blank-disk rules read some other way or
+     * not at all, or with so few good entries left, next to bad ones, that another layout or none scores better. The
+     * saved image would be misread or unrecognized when it's opened again, so this decodes the current image afresh,
+     * as opening a file does, and refuses unless that gives the same layout, unless the user named the layout. Every
+     * path that writes the session's image out (not an in-memory conversion) must check this: see
+     * {@link requireSaveable}.
      *
      * @returns the message to show the user, or undefined if saving is allowed.
      */
@@ -1313,22 +1319,25 @@ export class DiskSession {
         if (!(fileSystem instanceof Cpm) || !(image instanceof FloppyDisk)) {
             return undefined;
         }
-        // A file is an entry of user 0 to 15, which is what the decoder keeps.
-        if (fileSystem.getDirEntries(true).length === 0) {
-            return EMPTY_CPM_SAVE_MESSAGE;
-        }
 
         // A layout that the user named is allowed to need the flag again (see getSaveWarning).
         if (this.namedCpmFormat !== undefined) {
             return undefined;
         }
 
-        if (!this.reopensAsSameLayout(fileSystem, image)) {
-            return "Can't save: when it's opened again, this disk wouldn't be recognized as " +
-                fileSystem.nameAndVersion + " with its current layout, because too few good directory entries are " +
-                "left to tell. Add a file, or undo the change.";
+        if (this.reopensAsSameLayout(fileSystem, image)) {
+            return undefined;
         }
-        return undefined;
+
+        // A file is an entry of user 0 to 15, which is what the decoder keeps.
+        const empty = fileSystem.getDirEntries(true).length === 0;
+        if (empty) {
+            const preset = findCpmVerifiedLayout(fileSystem);
+            return emptyCpmSaveMessage(preset === undefined ? fileSystem.nameAndVersion : preset.id);
+        }
+        return "Can't save: when it's opened again, this disk wouldn't be recognized as " +
+            fileSystem.nameAndVersion + " with its current layout, because too few good directory entries are " +
+            "left to tell. Add a file, or undo the change.";
     }
 
     /**

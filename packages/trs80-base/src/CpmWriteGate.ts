@@ -7,7 +7,8 @@
  */
 
 import {assertNever} from "z80-base";
-import {Cpm, CPM_FORMATS, type CpmFormat, type CpmLayout, rankCpmCandidates} from "./Cpm.js";
+import {Cpm, CPM_FORMATS, type CpmFormat, type CpmLayout, decodeCpmWithLayout, rankCpmCandidates} from "./Cpm.js";
+import type {DiskVolume} from "./DiskVolume.js";
 import {FloppyDisk, type FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import {TrsdosWriteAccess, writeProtectionMessage} from "./TrsdosWriteGate.js";
 
@@ -16,6 +17,16 @@ const MONTEZUMA_FORMAT_NAME = "Montezuma Micro";
 
 // The versions of Montezuma Micro's BIOS that used skew 4.
 const MONTEZUMA_SKEW_4_VERSIONS = ["1.26", "1.30"];
+
+// The versions of Montezuma Micro's BIOS that reserved 4 tracks (and only they did).
+const MONTEZUMA_RESERVED_4_VERSIONS = ["1.42", "1.44"];
+
+// Bytes in a CP/M directory entry, whose first byte is the user number (0xE5 for an unused slot).
+const DIR_ENTRY_SIZE = 32;
+const UNUSED_USER = 0xE5;
+
+// What the boot sector of a Montezuma system format that hasn't been SYSGENed says, as ASCII.
+const MONTEZUMA_NO_SYSTEM_MESSAGE = "There is NO CP/M";
 
 // Bytes in an allocation block of Montezuma's formats, which all have 2K blocks.
 const MONTEZUMA_BLOCK_SIZE = 2048;
@@ -398,6 +409,156 @@ export function findCpmLayoutDoubts(cpm: Cpm, ranked: Cpm[]): Cpm[] {
 }
 
 /**
+ * Whether every track of the sides that a layout uses that the image has (every one with a readable sector ID) is
+ * numbered from the given first sector number, as the format numbers its sectors. Montezuma's FORMAT numbers from 1,
+ * and Model I TRSDOS-family disks from 0, so this keeps a blank TRSDOS disk that we can't decode from reading as a
+ * blank CP/M one. (Model III TRSDOS also numbers from 1, so this is only a guard.) A track's own numbering
+ * (TrackGeometry.coreFirstSectorNumber) is used, which ignores the stray IDs of copy protection. A side that the layout
+ * doesn't use may hold anything.
+ */
+function sectorsNumberedFrom(geometry: FloppyDiskGeometry, sides: number, firstSectorNumber: number): boolean {
+    for (const track of geometry.trackMap.values()) {
+        if (track.trackPosition.side < sides && track.coreFirstSectorNumber !== firstSectorNumber) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Whether track 0's first sector reads as the start of a directory: every 32-byte slot in it starts with 0xE5. On a
+ * data format that sector holds the first directory slots, and on a system format it holds the boot sector (or the
+ * system's first sector), which never looks like that. See "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md.
+ *
+ * @returns whether it does, or undefined if the sector can't be read.
+ */
+function firstSectorLooksLikeDirectory(cpm: Cpm): boolean | undefined {
+    const sector = cpm.disk.readSector(SectorPosition.make(0, 0, cpm.format.firstSectorNumber));
+    if (sector === undefined) {
+        return undefined;
+    }
+    for (let offset = 0; offset + DIR_ENTRY_SIZE <= sector.data.length; offset += DIR_ENTRY_SIZE) {
+        if (sector.data[offset] !== UNUSED_USER) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Whether a system format's reserved tracks say that Montezuma's BIOS wrote them: they have a Montezuma BIOS banner
+ * (a SYSGENed disk), or track 0's first sector is the boot sector that FORMAT leaves, which says there's no CP/M on the
+ * disk. A system format with a blank directory and neither could be another system's disk with an empty directory,
+ * which is all 0xE5 too. See "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md.
+ */
+function hasMontezumaSystemEvidence(cpm: Cpm): boolean {
+    if (MONTEZUMA_BIOS_NAME.test(cpm.nameAndVersion)) {
+        return true;
+    }
+    const sector = cpm.disk.readSector(SectorPosition.make(0, 0, cpm.format.firstSectorNumber));
+    if (sector === undefined) {
+        return false;
+    }
+    let text = "";
+    for (const byte of sector.data) {
+        text += String.fromCharCode(byte);
+    }
+    return text.includes(MONTEZUMA_NO_SYSTEM_MESSAGE);
+}
+
+/**
+ * The readings of a disk with a blank directory, in table order: the verified layouts that the image can hold
+ * and that every directory slot's user byte is 0xE5 under (so an erased disk counts, though the rest of its
+ * entries are left). A blank directory fits many layouts, since it has nothing to tell them apart, so the list is
+ * narrowed by what else the disk says (see "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md):
+ *
+ * - The image's cylinder count must equal the layout's, and the tracks it uses must have their sectors numbered
+ *   from the format's first sector number.
+ * - Sides: a two-side layout is dropped when the image has no sector on side 1, and a one-side layout when side 1 of
+ *   every cylinder has every sector. (The rules of {@link findCpmLayoutDoubts}.)
+ * - Data or system: track 0's first sector is the start of the directory on a data format (no reserved tracks),
+ *   and the boot sector on a system format, so a layout with reserved tracks is kept only if that sector doesn't
+ *   look like a directory, and one without only if it does. A system format must also have Montezuma's boot sector
+ *   or a Montezuma BIOS banner, since without them it's no more likely to be Montezuma's than any other
+ *   system's.
+ * - Banner: if the reserved tracks have a Montezuma BIOS banner, a skew-4 layout is dropped unless the version is
+ *   1.26 or 1.30, and the 4-reserved-track layout is dropped unless it's 1.42 or 1.44. For those versions a
+ *   two-sided layout must have the 4 reserved tracks (a one-sided disk of these versions reads as the standard
+ *   system format, as FLOPPY_FORMATS.md says).
+ *
+ * @param disk the floppy, or an overlay over one.
+ * @param geometry the geometry of the whole disk.
+ * @param wholeRecords see decodeCpm(). It makes no difference to a blank disk, but the readings are decoded this way.
+ */
+export function findBlankCpmCandidates(disk: DiskVolume, geometry: FloppyDiskGeometry, wholeRecords: boolean): Cpm[] {
+    let candidates: {verified: CpmVerifiedLayout, cpm: Cpm}[] = [];
+    for (const verified of CPM_VERIFIED_LAYOUTS) {
+        if (verified.cylinders !== geometry.cylinderCount) {
+            continue;
+        }
+        const layout = makeCpmLayout(verified, geometry);
+        if (typeof layout === "string" || !sectorsNumberedFrom(geometry, verified.sides, layout.format.firstSectorNumber)) {
+            continue;
+        }
+        const cpm = decodeCpmWithLayout(disk, layout, wholeRecords);
+        if (!cpm.isDirectoryBlank()) {
+            continue;
+        }
+        const isDirectory = firstSectorLooksLikeDirectory(cpm);
+        const hasReservedTracks = verified.reservedTracks > 0;
+        if (isDirectory === undefined || isDirectory === hasReservedTracks) {
+            continue;
+        }
+        if (hasReservedTracks && !hasMontezumaSystemEvidence(cpm)) {
+            continue;
+        }
+        candidates.push({verified, cpm});
+    }
+    if (candidates.length === 0) {
+        return [];
+    }
+
+    // Everything but the layout is the same for all the readings, so the first one decides the sides.
+    const first = candidates[0].cpm;
+    if (side1IsEmpty(first)) {
+        candidates = candidates.filter(candidate => candidate.verified.sides === 1);
+    } else if (side1IsFullyFormatted(first)) {
+        candidates = candidates.filter(candidate => candidate.verified.sides === 2);
+    }
+
+    // The banner's version, if a reserved track has one. Readings with fewer reserved tracks may not search as far.
+    const bannerVersion = candidates
+        .map(candidate => MONTEZUMA_BIOS_NAME.exec(candidate.cpm.nameAndVersion)?.[1])
+        .find(version => version !== undefined);
+    if (bannerVersion !== undefined) {
+        const reserved4 = MONTEZUMA_RESERVED_4_VERSIONS.includes(bannerVersion);
+        const skew4 = MONTEZUMA_SKEW_4_VERSIONS.includes(bannerVersion);
+        candidates = candidates.filter(candidate => {
+            const isReserved4 = candidate.verified.reservedTracks === 4;
+            const isSkew4 = candidate.verified.skew === 4;
+            const twoSided = candidate.verified.sides === 2;
+            const versionAllows = reserved4 ? isReserved4 || !twoSided : !isReserved4;
+            return versionAllows && (skew4 || !isSkew4);
+        });
+    }
+
+    return candidates.map(candidate => candidate.cpm);
+}
+
+/**
+ * Decode a disk whose directory is blank, such as a freshly formatted Montezuma disk, which {@link decodeCpm}
+ * deliberately doesn't recognize (a blank directory is what any operating system's formatted disk looks like).
+ *
+ * @param disk the floppy.
+ * @param wholeRecords see decodeCpm().
+ * @returns the first reading of {@link findBlankCpmCandidates}, which has no files, or undefined if there is none.
+ * A disk that more than one layout reads is ambiguous, and the write gate says so.
+ */
+export function decodeBlankCpm(disk: FloppyDisk, wholeRecords = false): Cpm | undefined {
+    return findBlankCpmCandidates(disk, disk.getGeometry(), wholeRecords)[0];
+}
+
+/**
  * Describe in a few words how another reading differs from the chosen one, such as "one side" or
  * "skew 4".
  */
@@ -487,8 +648,12 @@ export function evaluateCpmWriteGate(cpm: Cpm, options: CpmWriteGateOptions = {}
 
     // Other readings matter only for a layout that we can write, and not when the caller says the layout is settled.
     if (!unsupported && options.layoutSettled !== true) {
-        const ranked = rankCpmCandidates(cpm.disk, cpm.geometry, true);
-        const doubts = findCpmLayoutDoubts(cpm, ranked);
+        // A blank directory scores the same under every layout, so ranking can't find the doubts. Ask which blank
+        // readings the disk's other evidence leaves.
+        const blank = cpm.isDirectoryBlank();
+        const doubts = blank ?
+            findBlankCpmCandidates(cpm.disk, cpm.geometry, true).filter(other => !other.sameLayout(cpm)) :
+            findCpmLayoutDoubts(cpm, rankCpmCandidates(cpm.disk, cpm.geometry, true));
         if (doubts.length > 0) {
             const differences = Array.from(new Set(doubts.map(other => describeDifference(cpm, other))));
             const readings = differences.map(difference => {
