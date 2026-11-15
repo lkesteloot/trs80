@@ -35,12 +35,29 @@ export class DiskError extends Error {
     public readonly kind: DiskErrorKind;
 
     /**
+     * Reference text to show after the message, such as a table of the values an option takes, or undefined if
+     * there's none. It isn't part of the error, so a terminal shows it in the normal color, and it's shown as it
+     * is, without wrapping.
+     */
+    public readonly details: string | undefined;
+
+    /**
      * @param message the complete message to show the user.
      * @param kind what caused the error.
+     * @param details reference text to show after the message (see {@link details}).
      */
-    constructor(message: string, kind: DiskErrorKind = DiskErrorKind.GENERAL) {
+    constructor(message: string, kind: DiskErrorKind = DiskErrorKind.GENERAL, details?: string) {
         super(message);
         this.name = "DiskError";
         this.kind = kind;
+        this.details = details;
+    }
+
+    /**
+     * The message followed by the details, if any, for places that show an error as a single string, such as
+     * JSON output.
+     */
+    public fullText(): string {
+        return this.details === undefined ? this.message : this.message + "\n" + this.details;
     }
 }

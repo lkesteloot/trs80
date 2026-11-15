@@ -5,7 +5,7 @@ import readline from "readline";
 import {assertNever} from "z80-base";
 import {colors} from "../colors.js";
 import {colorError} from "../lscolors.js";
-import {ToolError, wrapMessage} from "../utils.js";
+import {ToolError, ToolErrorKind, wrapMessage} from "../utils.js";
 import {DISK_COMMANDS, runDiskCommands} from "./DiskCommands.js";
 import {
     type DiskCommandSpec, DiskOptionValues, HostPathKind, parseDiskCommandLine, splitCommandLine,
@@ -200,7 +200,7 @@ export async function runDiskScript(lines: string[], runLine: (line: string) => 
             ended = await runLine(lines[i]);
         } catch (e) {
             if (e instanceof ToolError) {
-                throw new ToolError("Line " + (i + 1) + ": " + e.message);
+                throw new ToolError("Line " + (i + 1) + ": " + e.message, ToolErrorKind.GENERAL, e.details);
             }
             throw e;
         }
@@ -310,6 +310,10 @@ function runInteractiveDiskShell(session: DiskSession, globalOptions: DiskOption
             } catch (e) {
                 if (e instanceof ToolError) {
                     console.log(colorError(wrapMessage(e.message)));
+                    // Reference text, such as a table of choices, isn't the error, so it's in the normal color.
+                    if (e.details !== undefined) {
+                        console.log(e.details);
+                    }
                 } else {
                     // A bug, but losing the session would be worse.
                     console.log(colorError(e instanceof Error ? e.stack ?? e.message : String(e)));

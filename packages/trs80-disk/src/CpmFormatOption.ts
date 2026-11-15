@@ -7,7 +7,7 @@ import {
     Cpm, type CpmVerifiedLayout, decodeFloppyFileSystem, describeCpmWithPreset, findCpmVerifiedLayoutById,
     type FloppyDisk, formatCpmPresetTable, makeCpmLayout, sameBlockMapping,
 } from "trs80-base";
-import {DiskError} from "./DiskError.js";
+import {DiskError, DiskErrorKind} from "./DiskError.js";
 
 /**
  * A disk read with the layout that the user named.
@@ -32,10 +32,28 @@ export interface NamedCpmDecoding {
 export function resolveCpmFormat(name: string): CpmVerifiedLayout {
     const layout = findCpmVerifiedLayoutById(name);
     if (layout === undefined) {
-        throw new DiskError(`Unknown CP/M format "${name}" for --cpm-format. The choices are:\n` +
-            formatCpmPresetTable().map(line => "  " + line).join("\n"));
+        throw new DiskError(`Unknown CP/M format "${name}" for --cpm-format.`, DiskErrorKind.GENERAL,
+            describeCpmFormatChoices());
     }
     return layout;
+}
+
+/**
+ * The error for --cpm-format given without a name. Users who type it bare are usually asking what the names are,
+ * so the error lists them.
+ *
+ * @param prefix what to put before the message, such as "create: ", or an empty string.
+ */
+export function cpmFormatNameMissingError(prefix: string): DiskError {
+    return new DiskError(`${prefix}--cpm-format needs the name of a CP/M format.`, DiskErrorKind.GENERAL,
+        describeCpmFormatChoices());
+}
+
+/**
+ * The names that --cpm-format takes, as an indented table with a line before it, for the details of an error.
+ */
+function describeCpmFormatChoices(): string {
+    return "The names are:\n" + formatCpmPresetTable().map(line => "  " + line).join("\n");
 }
 
 /**

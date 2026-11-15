@@ -638,7 +638,7 @@ export function infilesExitCode(infiles: InfileJson[]): ToolExitCode {
  * The fields of an infile's JSON for an error.
  */
 export function infileErrorJson(error: ToolError): Pick<InfileJson, "error" | "errorCode"> {
-    return { error: error.message, errorCode: toolErrorExitCode(error) };
+    return { error: error.fullText(), errorCode: toolErrorExitCode(error) };
 }
 
 /**

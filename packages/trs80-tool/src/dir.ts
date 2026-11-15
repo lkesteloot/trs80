@@ -38,6 +38,9 @@ export async function dir(inFilenames: string[], showSystemFiles: boolean, cpmWh
                 throw e;
             }
             console.log(colorError(e.message));
+            if (e.details !== undefined) {
+                console.log(e.details);
+            }
             exitCodes.push(toolErrorExitCode(e));
         }
         firstFile = false;

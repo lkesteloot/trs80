@@ -132,7 +132,7 @@ export class JsonDiskRun implements DiskRunOutput {
         if (command === undefined) {
             throw new Error("No command to fail");
         }
-        command.error = error.message;
+        command.error = error.fullText();
         command.errorCode = toolErrorExitCode(error);
         delete command.result;
         this.commandExitCode = command.errorCode;
@@ -209,7 +209,7 @@ export class JsonDiskRun implements DiskRunOutput {
             ...(dryRun ? {wouldHaveChanged: this.dryRunWouldHaveChanged} : {}),
             warnings: [...logWarnings, ...this.warnings],
             ...(this.runError === undefined ? {} : {
-                error: this.runError.message,
+                error: this.runError.fullText(),
                 errorCode: toolErrorExitCode(this.runError),
             }),
         };

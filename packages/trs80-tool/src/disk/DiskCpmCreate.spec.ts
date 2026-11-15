@@ -392,7 +392,9 @@ describe("create cpm and format cpm", () => {
 
             it("lists the presets for an unknown one", async () => {
                 await expect(runDisk("create", "cpm", "--cpm-format", "mm-nothing"))
-                    .rejects.toThrow(/Unknown CP\/M format "mm-nothing"[\s\S]*mm-1\.42-ds-system/);
+                    .rejects.toThrow(/Unknown CP\/M format "mm-nothing"/);
+                await expect(runDisk("create", "cpm", "--cpm-format", "mm-nothing"))
+                    .rejects.toHaveProperty("details", expect.stringContaining("mm-1.42-ds-system"));
             });
 
             it("refuses cpm options for other DOSes and for hard disks", async () => {

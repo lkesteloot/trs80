@@ -24,7 +24,7 @@ import {printJson} from "./json.js";
 import {diskOverviewSections, renderHelpSections} from "./disk/DiskHelp.js";
 import {LogLevel, LogSink, MAIN_SINK, MODULE_NAME_TO_LOGGER} from "z80-logger";
 import { CassetteSpeed, type CpmVerifiedLayout } from "trs80-base";
-import {resolveCpmFormat} from "trs80-disk";
+import {cpmFormatNameMissingError, resolveCpmFormat} from "trs80-disk";
 import {
     EXIT_CODES_HELP, expandInputPattern, expandInputPatterns, ToolError, toolErrorExitCode, wordsAfterSubcommand,
     wrapMessage,
@@ -67,10 +67,14 @@ const COLORED_SINK = (level: LogLevel, message: string): void => {
 /**
  * The CP/M layout that the user named with --cpm-format.
  *
- * @param name the option's value, or undefined if the option wasn't given.
- * @throws ToolError if it isn't a preset, listing them.
+ * @param name the option's value: a name, true if the option was given without one, or undefined if it wasn't
+ * given.
+ * @throws ToolError if it isn't a preset, or there's no name, listing the names.
  */
-function parseCpmFormatOption(name: string | undefined): CpmVerifiedLayout | undefined {
+function parseCpmFormatOption(name: string | true | undefined): CpmVerifiedLayout | undefined {
+    if (name === true) {
+        throw cpmFormatNameMissingError("");
+    }
     return name === undefined ? undefined : resolveCpmFormat(name);
 }
 
@@ -180,8 +184,8 @@ async function main(): Promise<void> {
         })
         .option("--system", "include system files from floppies and hard disks")
         .option("--cpm-records", "keep CP/M files' whole 128-byte records instead of ending text files at Ctrl-Z")
-        .option("--cpm-format <name>", "read a CP/M floppy with this layout, whatever it would be detected as " +
-            "(\"trs80-tool disk IMAGE help cpm-format\" lists the names)")
+        .option("--cpm-format [name]", "read a CP/M floppy with this layout, whatever it would be detected as " +
+            "(give it alone to list the names)")
         .option("--json", "output one JSON object for all the infiles instead of text")
         .action(paged(async (infiles, options) => {
             await dir(expandInputPatterns(infiles), options.system ?? false, options.cpmRecords ?? false,
@@ -193,8 +197,8 @@ async function main(): Promise<void> {
             infiles: "any TRS-80 files",
         })
         .option("--verbose", "output more information about each file")
-        .option("--cpm-format <name>", "read a CP/M floppy with this layout, whatever it would be detected as " +
-            "(\"trs80-tool disk IMAGE help cpm-format\" lists the names)")
+        .option("--cpm-format [name]", "read a CP/M floppy with this layout, whatever it would be detected as " +
+            "(give it alone to list the names)")
         .option("--json", "output one JSON object for all the infiles instead of text")
         .addOption(new Option("--report", "output a detailed JSON report, for regression testing").hideHelp())
         .action(paged(async (infiles, options) => {
@@ -236,8 +240,8 @@ async function main(): Promise<void> {
         .option("--ucsd-pascal-raw", "keep UCSD Pascal text files as they are on the disk instead of converting them to host text")
         .option("--mark-damaged", "add \"[DAMAGED]\" to the name of files with unreadable sectors or other damage")
         .option("--lowercase", "write the files with lowercase names")
-        .option("--cpm-format <name>", "read a CP/M floppy with this layout, whatever it would be detected as " +
-            "(\"trs80-tool disk IMAGE help cpm-format\" lists the names)")
+        .option("--cpm-format [name]", "read a CP/M floppy with this layout, whatever it would be detected as " +
+            "(give it alone to list the names)")
         .option("--json", "write one JSON object, with the files' contents in base64, to standard output instead of writing files")
         .action((infile, names, options) => {
             const expandedInfile = expandInputPattern(infile);
@@ -450,6 +454,9 @@ async function main(): Promise<void> {
     } catch (e) {
         if (e instanceof ToolError) {
             console.log(wrapMessage(e.message));
+            if (e.details !== undefined) {
+                console.log(e.details);
+            }
             process.exitCode = toolErrorExitCode(e);
         } else if (!(e instanceof PagerClosedError)) {
             error = e;

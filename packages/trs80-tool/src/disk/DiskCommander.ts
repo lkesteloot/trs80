@@ -1,4 +1,5 @@
 import {Command, CommanderError, Option} from "commander";
+import {cpmFormatNameMissingError} from "trs80-disk";
 import {HELP_OUTPUT_COLORS, HELP_STYLE} from "../helpStyle.js";
 import {ToolError} from "../utils.js";
 import type {DiskCommandSpec, DiskOptionSpec, DiskOptionValues} from "./DiskCommandParser.js";
@@ -154,6 +155,13 @@ export function makeDiskOptionParser(specs: DiskOptionSpec[], values: DiskOption
 export function commanderErrorToToolError(error: unknown, commandName: string | undefined): unknown {
     if (!(error instanceof CommanderError)) {
         return error;
+    }
+
+    // Someone who types --cpm-format without a name usually wants to know the names, so list them.
+    const missingCpmFormat = error.code === "commander.optionMissingArgument" &&
+        error.message.includes("'--cpm-format ");
+    if (missingCpmFormat) {
+        return cpmFormatNameMissingError(commandName === undefined ? "" : commandName + ": ");
     }
 
     const message = error.message.replace(/^error: /, "");

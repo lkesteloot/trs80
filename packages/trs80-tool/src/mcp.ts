@@ -41,7 +41,7 @@ import {
 import {
     type CpmVerifiedLayout, decodeBasicProgram, decodeTrs80File, isFloppy, MODEL3_FONT, parseBasicText,
 } from "trs80-base";
-import {resolveCpmFormat} from "trs80-disk";
+import {DiskError, resolveCpmFormat} from "trs80-disk";
 import {Disasm} from "z80-disasm";
 import {setColorLevel} from "./colors.js";
 import {dirJsonInfiles} from "./dir.js";
@@ -810,8 +810,10 @@ export async function handleRequest(request: any): Promise<object | undefined> {
             } catch (e) {
                 // Report tool failures in the result, not as protocol errors, so the
                 // assistant sees what went wrong and can try something else.
+                // A DiskError's details (such as a list of choices) help the assistant try again.
+                const message = e instanceof DiskError ? e.fullText() : e instanceof Error ? e.message : String(e);
                 return reply(id, {
-                    content: [{type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e))}],
+                    content: [{type: "text", text: "Error: " + message}],
                     isError: true,
                 });
             }

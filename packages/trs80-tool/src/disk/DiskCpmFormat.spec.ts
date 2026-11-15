@@ -163,15 +163,29 @@ describe("--cpm-format", () => {
 
         it("resolves a name in any case, and lists the presets for an unknown one", () => {
             expect(resolveCpmFormat("MM-System").id).to.equal("mm-system");
-            let message = "";
+            let error: any = undefined;
             try {
                 resolveCpmFormat("mm-nothing");
             } catch (e: any) {
-                message = e.message;
+                error = e;
             }
-            expect(message).to.contain("Unknown CP/M format \"mm-nothing\" for --cpm-format. The choices are:");
-            expect(message).to.contain("mm-1.42-ds-system");
-            expect(message).to.contain("18 × 256");
+            // The table is reference text after the error, not part of its message.
+            expect(error.message).to.equal("Unknown CP/M format \"mm-nothing\" for --cpm-format.");
+            expect(error.details).to.contain("The names are:");
+            expect(error.details).to.contain("mm-1.42-ds-system");
+            expect(error.details).to.contain("18 × 256");
+            expect(error.fullText()).to.contain("for --cpm-format.\nThe names are:");
+        });
+
+        it("lists the presets when the name is missing", async () => {
+            let error: any = undefined;
+            try {
+                await runDisk("create", "cpm", "--cpm-format");
+            } catch (e: any) {
+                error = e;
+            }
+            expect(error.message).to.contain("--cpm-format needs the name of a CP/M format.");
+            expect(error.details).to.contain("mm-80-ds-data");
         });
     });
 
