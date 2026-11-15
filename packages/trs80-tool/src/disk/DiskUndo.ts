@@ -62,7 +62,7 @@ export const REVERT_COMMAND: DiskCommand = {
         name: "revert",
         aliases: [],
         args: "",
-        summary: "go back to the disk as last saved (or as opened); \"undo\" takes it back",
+        summary: "go back to the disk as last saved (or as opened), by undoing or redoing the changes since",
         options: [],
     },
 
@@ -71,8 +71,9 @@ export const REVERT_COMMAND: DiskCommand = {
     managesHistory: true,
 
     /**
-     * Restore the disk to how it was when it was last saved, as one change that "undo" can take back.
-     * Having nothing to revert isn't an error.
+     * Restore the disk to how it was when it was last saved, by undoing (or redoing) the changes since, or as
+     * one change that "undo" can take back if the saved disk is no longer in the history. Having nothing to
+     * revert isn't an error.
      */
     run(session, command, globalOptions, out) {
         const reverted = session.revert();

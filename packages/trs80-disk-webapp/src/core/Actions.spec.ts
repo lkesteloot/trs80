@@ -171,6 +171,55 @@ describe("Actions", () => {
         expect(revert(session).result).to.equal(false);
     });
 
+    it("reverts by moving through the history while the saved disk is in it", async () => {
+        const disk = await makeDiskWithFiles();
+        const session = disk.session;
+        session.markSaved();
+        const savedPosition = session.getHistory().position;
+        await kill(session, ["HELLO/BAS"]);
+        await kill(session, ["PROG/CMD"]);
+        const entries = session.getHistory().entries;
+
+        // Back: the two kills are undone, and stay as redos.
+        expect(revert(session).result).to.equal(true);
+        expect(names(session)).to.eql(["HELLO/BAS", "PROG/CMD"]);
+        expect(session.hasChanges()).to.equal(false);
+        expect(session.getHistory().entries).to.eql(entries);
+        expect(session.getHistory().position).to.equal(savedPosition);
+        expect(undo(session).result.labels.length).to.be.greaterThan(0);
+
+        // Forward: saved after the kills, then undone past them.
+        const disk2 = await makeDiskWithFiles();
+        const session2 = disk2.session;
+        await kill(session2, ["HELLO/BAS"]);
+        await kill(session2, ["PROG/CMD"]);
+        session2.markSaved();
+        const entries2 = session2.getHistory().entries;
+        const savedPosition2 = session2.getHistory().position;
+        goToHistoryPosition(session2, savedPosition2 - 2);
+        expect(revert(session2).result).to.equal(true);
+        expect(names(session2)).to.eql([]);
+        expect(session2.hasChanges()).to.equal(false);
+        expect(session2.getHistory().entries).to.eql(entries2);
+        expect(session2.getHistory().position).to.equal(savedPosition2);
+    });
+
+    it("reverts with a new history entry when the saved disk has left the history", async () => {
+        const disk = await makeDiskWithFiles();
+        const session = disk.session;
+        await kill(session, ["HELLO/BAS"]);
+        session.markSaved();
+        undo(session);
+        await kill(session, ["PROG/CMD"]);
+        const length = session.getHistory().entries.length;
+
+        expect(revert(session).result).to.equal(true);
+        expect(names(session)).to.eql(["PROG/CMD"]);
+        expect(session.hasChanges()).to.equal(false);
+        expect(session.getHistory().entries.length).to.equal(length + 1);
+        expect(session.getHistory().entries[length]).to.equal("revert");
+    });
+
     it("throws the engine's errors", async () => {
         const disk = await makeDiskWithFiles();
         let message = "";

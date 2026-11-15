@@ -244,7 +244,7 @@ export function redo(session: DiskSession): ActionResult<HistoryMoveResult> {
 }
 
 /**
- * Put the disk back as it was when last saved. This is a change like any other, and can be undone.
+ * Put the disk back as it was when last saved, by moving through the history (see DiskSession.revert()).
  *
  * @param session the disk's session.
  * @returns whether anything was reverted.
@@ -318,6 +318,7 @@ function engineAddOptions(session: DiskSession, options: AddActionOptions): AddO
         binary: options.binary,
         text: options.text,
         basic: options.basic ?? session.getBasicDialect(),
+        sourceBasic: options.sourceBasic,
         system: options.system,
         invisible: options.invisible,
         overwrite: options.overwrite,

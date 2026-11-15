@@ -590,7 +590,7 @@ export class MapView {
         const left = el("div", "mapleft");
         if (focus !== undefined) {
             left.append(el("div", "focusbar", "Showing only the granules for: " + focus.title + " ",
-                makeButton("Show everything", () => this.host.clearFocus())));
+                makeButton("Show Everything", () => this.host.clearFocus())));
         }
         left.append(el("div", "mapscroll", grid), this.tip, el("div", "hint", summary));
         this.element.replaceChildren(el("div", "mapwrap", left, legend));

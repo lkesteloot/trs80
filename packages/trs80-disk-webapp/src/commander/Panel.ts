@@ -2,7 +2,7 @@ import {assertNever} from "z80-base";
 import {formatNumber, el, formatKilobytes} from "../core/Dom.js";
 import {getDiskFacts} from "../core/DiskFacts.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
-import {attributeText, attributeTitle, type DiskFileItem, type HostFileItem, isMarkable, type Item, ItemKind} from "./Items.js";
+import {attributeText, attributeTitle, type DiskFileItem, type HostFileItem, isMarkable, type Item, ItemKind, nextSort, SortColumn, sortColumnToString, type SortState, sortItems} from "./Items.js";
 
 // One of the commander's two panels: what it shows, its cursor and marks, and how it draws its file list.
 
@@ -113,6 +113,8 @@ export interface PanelRenderContext {
     rememberedFolderName: string | undefined;
     /** Whether the browser can show a folder picker. */
     canPickFolder: boolean;
+    /** Make this panel the active one. The panel's buttons call it first, so that they act on this panel. */
+    activate(): void;
     /** Ask the user for a folder to show. */
     chooseFolder(): void;
     /** Reopen the remembered folder. */
@@ -182,6 +184,8 @@ export class Panel {
     public anchorKey: string | undefined = undefined;
     /** What the panel shows: its own list, or a view of the other panel. */
     public mode = PanelMode.FILES;
+    /** How the listing is sorted, or undefined for the original order. It stays when the panel shows something else. */
+    public sort: SortState | undefined = undefined;
 
     private rowElements: HTMLElement[] = [];
     private footElement: HTMLElement | undefined = undefined;
@@ -200,6 +204,31 @@ export class Panel {
      */
     public currentItem(): Item | undefined {
         return this.items[this.cursor];
+    }
+
+    /**
+     * Set the panel's items, sorted by the panel's sort if it has one.
+     *
+     * @param items the items, in their original order.
+     */
+    public setItems(items: Item[]): void {
+        this.items = this.sort === undefined ? items : sortItems(items, this.sort);
+    }
+
+    /**
+     * Sort by a column, as a click on its header does: ascending the first time, and the other direction when
+     * the list is already sorted by it. The cursor stays on the same item.
+     *
+     * @param column the column.
+     */
+    public sortBy(column: SortColumn): void {
+        const key = this.currentItem()?.key;
+        this.sort = nextSort(this.sort, column);
+        this.items = sortItems(this.items, this.sort);
+        const index = key === undefined ? -1 : this.items.findIndex(item => item.key === key);
+        if (index >= 0) {
+            this.cursor = index;
+        }
     }
 
     /**
@@ -310,12 +339,30 @@ export class Panel {
     private headerCells(columns: string): HTMLElement[] {
         switch (columns) {
             case DISK_COLUMNS:
-                return [cell("Name"), cell("Ext"), cell("Size", "r"), cell("Date"), cell("Attr")];
+                return [this.headerCell(SortColumn.NAME), this.headerCell(SortColumn.EXTENSION), this.headerCell(SortColumn.SIZE, "r"),
+                    this.headerCell(SortColumn.DATE), this.headerCell(SortColumn.ATTRIBUTES)];
             case PARTITION_COLUMNS:
                 return [cell("Partition"), cell("Contents"), cell("")];
             default:
-                return [cell("Name"), cell("Size", "r"), cell("Date")];
+                return [this.headerCell(SortColumn.NAME), this.headerCell(SortColumn.SIZE, "r"), this.headerCell(SortColumn.DATE)];
         }
+    }
+
+    /**
+     * Make a column header that sorts by its column when clicked, with ▲ or ▼ after the text if the list is
+     * sorted by it.
+     *
+     * @param column the column.
+     * @param className the CSS class, such as "r" for right-aligned.
+     */
+    private headerCell(column: SortColumn, className = ""): HTMLElement {
+        const name = sortColumnToString(column);
+        const sorted = this.sort !== undefined && this.sort.column === column;
+        const arrow = !sorted ? "" : this.sort?.descending ? " ▼" : " ▲";
+        const header = cell(name + arrow, ("sortable " + className).trim());
+        header.dataset.sort = String(column);
+        header.title = "Sort by " + name;
+        return header;
     }
 
     /**
@@ -467,7 +514,11 @@ export class Panel {
         const makeButton = (label: string, action: () => void): void => {
             const button = el("button", "", label);
             button.type = "button";
-            button.addEventListener("click", action);
+            button.addEventListener("click", () => {
+                // The button acts on this panel, which may not be the active one.
+                context.activate();
+                action();
+            });
             buttons.append(button);
         };
         if (context.canPickFolder) {

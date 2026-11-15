@@ -175,7 +175,7 @@ export function diskItems(rows: readonly FileRow[]): Item[] {
 }
 
 /**
- * The name that an item shows, for the message area and the command line's prompt.
+ * The name that an item shows, for the message area.
  *
  * @param item the item.
  */
@@ -276,4 +276,164 @@ export function wildcardTest(pattern: string): (name: string) => boolean {
         return new RegExp("^" + escaped + "$", "i");
     });
     return name => regularExpressions.some(regularExpression => regularExpression.test(name));
+}
+
+/**
+ * The columns that a panel's listing can be sorted by.
+ */
+export enum SortColumn {
+    /** The file's name. */
+    NAME,
+    /** A disk file's extension. */
+    EXTENSION,
+    /** The size in bytes. */
+    SIZE,
+    /** The date. */
+    DATE,
+    /** A disk file's attributes. */
+    ATTRIBUTES,
+}
+
+/**
+ * The name of a sort column as its header shows it, which is also what the header's tooltip says.
+ *
+ * @param column the column.
+ */
+export function sortColumnToString(column: SortColumn): string {
+    switch (column) {
+        case SortColumn.NAME:
+            return "Name";
+        case SortColumn.EXTENSION:
+            return "Ext";
+        case SortColumn.SIZE:
+            return "Size";
+        case SortColumn.DATE:
+            return "Date";
+        case SortColumn.ATTRIBUTES:
+            return "Attr";
+        default:
+            assertNever(column);
+    }
+}
+
+/**
+ * How a panel's listing is sorted.
+ */
+export interface SortState {
+    /** The column that the rows are ordered by. */
+    column: SortColumn;
+    /** Whether the order is descending rather than ascending. */
+    descending: boolean;
+}
+
+/**
+ * The sort that a click on a column's header leads to: the first click sorts ascending, another click on the same
+ * column toggles the direction, and a click on another column sorts that one ascending.
+ *
+ * @param current the current sort, or undefined if the listing is in its original order.
+ * @param column the column that was clicked.
+ */
+export function nextSort(current: SortState | undefined, column: SortColumn): SortState {
+    if (current !== undefined && current.column === column) {
+        return {column, descending: !current.descending};
+    }
+    return {column, descending: false};
+}
+
+/**
+ * Compare two names the way the listing sorts them: ignoring case.
+ */
+function compareText(a: string, b: string): number {
+    const lowerA = a.toLowerCase();
+    const lowerB = b.toLowerCase();
+    return lowerA < lowerB ? -1 : lowerA > lowerB ? 1 : 0;
+}
+
+/**
+ * Compare two numbers, where undefined (a missing value) is always last, whichever the direction.
+ *
+ * @param a the first value.
+ * @param b the second value.
+ * @param descending whether the order is descending.
+ */
+function compareNumbers(a: number | undefined, b: number | undefined, descending: boolean): number {
+    if (a === undefined || b === undefined) {
+        return a === b ? 0 : a === undefined ? 1 : -1;
+    }
+    return descending ? b - a : a - b;
+}
+
+/**
+ * Compare two items of the same group by a column, in the given direction. Items that the column doesn't apply to
+ * compare equal.
+ */
+function compareByColumn(a: Item, b: Item, sort: SortState): number {
+    const sign = sort.descending ? -1 : 1;
+    if (a.kind === ItemKind.DISK_FILE && b.kind === ItemKind.DISK_FILE) {
+        switch (sort.column) {
+            case SortColumn.NAME:
+                return sign*(compareText(a.row.name, b.row.name) || compareText(a.row.extension, b.row.extension));
+            case SortColumn.EXTENSION:
+                return sign*compareText(a.row.extension, b.row.extension);
+            case SortColumn.SIZE:
+                return compareNumbers(a.row.size, b.row.size, sort.descending);
+            case SortColumn.DATE:
+                return compareNumbers(a.row.date?.getTime(), b.row.date?.getTime(), sort.descending);
+            case SortColumn.ATTRIBUTES:
+                return sign*compareText(attributeText(a.row), attributeText(b.row));
+            default:
+                assertNever(sort.column);
+        }
+    }
+    if (a.kind === ItemKind.HOST_FILE && b.kind === ItemKind.HOST_FILE) {
+        switch (sort.column) {
+            case SortColumn.NAME:
+                return sign*compareText(a.name, b.name);
+            case SortColumn.SIZE:
+                return compareNumbers(a.size, b.size, sort.descending);
+            case SortColumn.DATE:
+                return compareNumbers(a.date?.getTime(), b.date?.getTime(), sort.descending);
+            case SortColumn.EXTENSION:
+            case SortColumn.ATTRIBUTES:
+                return 0;
+            default:
+                assertNever(sort.column);
+        }
+    }
+    if (a.kind === ItemKind.FOLDER && b.kind === ItemKind.FOLDER && sort.column === SortColumn.NAME) {
+        return sign*compareText(a.name, b.name);
+    }
+    return 0;
+}
+
+/**
+ * Which group an item sorts in: the row that goes back out first, then folders, then everything else. Sorting
+ * never mixes groups.
+ */
+function sortGroup(item: Item): number {
+    switch (item.kind) {
+        case ItemKind.UP:
+            return 0;
+        case ItemKind.FOLDER:
+            return 1;
+        case ItemKind.HOST_FILE:
+        case ItemKind.DISK_FILE:
+        case ItemKind.PARTITION:
+            return 2;
+        default:
+            assertNever(item);
+    }
+}
+
+/**
+ * Sort a panel's items by a column. The ".." row stays first and folders stay before files, each group sorted
+ * within itself; names compare ignoring case, sizes and dates numerically, and items with no date go last in either
+ * direction. Items that tie keep their original order.
+ *
+ * @param items the items, in their original order.
+ * @param sort how to sort them.
+ * @returns a new array.
+ */
+export function sortItems(items: readonly Item[], sort: SortState): Item[] {
+    return [...items].sort((a, b) => sortGroup(a) - sortGroup(b) || compareByColumn(a, b, sort));
 }

@@ -1,5 +1,6 @@
 import {
-    BasicDialect, CassetteSpeed, decodeBasicProgram, decodeTrs80File, encodeSystemProgram, parseBasicText, SystemProgramBuilder,
+    BasicDialect, CassetteSpeed, decodeBasicProgram, decodeTrs80File, encodeSystemProgram, guessBasicDialect, parseBasicText,
+    SystemProgramBuilder,
 } from "trs80-base";
 import {binaryAsCasFile} from "trs80-cassette";
 import {describe, expect, it} from "vitest";
@@ -58,6 +59,21 @@ describe("importHostFile", () => {
         const result = importHostFile("hello.bas", tokenized, DEFAULT_OPTIONS);
         expect(result.contents).to.eql(tokenized);
         expect(result.messages).to.eql([]);
+    });
+
+    it("reads a program as the BASIC of the disk it was copied from when its bytes don't say", () => {
+        const text = "10 CLS\r20 A=1\r";
+        const tokenized = parseBasicText(text, BasicDialect.MODEL_III) as Uint8Array;
+        expect(guessBasicDialect(tokenized)).to.equal(undefined);
+        const model4 = {...DEFAULT_OPTIONS, basic: BasicDialect.MODEL_4};
+
+        // Without knowing where it came from, it's read as the disk's BASIC, and kept.
+        expect(importHostFile("hello.bas", tokenized, model4).contents).to.eql(tokenized);
+
+        // Copied from a Model III disk, it's tokenized again for Model 4 BASIC.
+        const result = importHostFile("hello.bas", tokenized, {...model4, sourceBasic: BasicDialect.MODEL_III});
+        expect(result.contents).to.eql(parseBasicText(text, BasicDialect.MODEL_4));
+        expect(result.messages).to.eql(["Converted hello.bas from Model III to Model 4 BASIC tokens."]);
     });
 
     it("converts cassette-format BASIC to disk format", () => {

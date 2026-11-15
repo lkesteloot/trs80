@@ -53,6 +53,12 @@ export interface ImportOptions {
      * when the bytes don't say which BASIC they're for.
      */
     basic: BasicDialect;
+    /**
+     * The BASIC of the disk that the file was copied from, when it came from one, or undefined. A tokenized
+     * program whose bytes don't say which BASIC they're for is read as this one's rather than the disk's, so that
+     * a program copied from a Model I or III disk to a Model 4 disk is converted.
+     */
+    sourceBasic?: BasicDialect | undefined;
 }
 
 /**
@@ -96,7 +102,7 @@ export function importHostFile(hostName: string, bytes: Uint8Array, options: Imp
     const hostExtension = extensionOf(hostName).toLowerCase();
 
     if (hostExtension === ".bas") {
-        return importBasicFile(hostName, bytes, options.ascii, options.basic);
+        return importBasicFile(hostName, bytes, options.ascii, options.basic, options.sourceBasic);
     } else if (hostExtension === ".cas") {
         return importCassetteFile(hostName, bytes, options.ascii, options.basic);
     } else if (hostExtension === ".3bn") {
@@ -201,16 +207,20 @@ function readAsNote(basic: BasicDialect): string {
  * text is tokenized (or kept as text with --ascii).
  *
  * A tokenized program doesn't say which BASIC it's for. We read it as the one its bytes fit (see
- * guessBasicDialect()) or else as the disk's, and if it's clearly for the other BASIC we convert it to the disk's.
+ * guessBasicDialect()), or else as the BASIC of the disk it was copied from, or else as the disk's. If that isn't
+ * the disk's BASIC, we convert it to the disk's.
  *
  * @param hostName the host file's name.
  * @param bytes the host file's contents.
  * @param ascii whether the BASIC program should be stored as text.
  * @param basic the disk's BASIC.
+ * @param copiedFromBasic the BASIC of the disk that the file was copied from, or undefined.
  * @throws DiskError if the file is neither tokenized BASIC nor BASIC text.
  */
-function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean, basic: BasicDialect): ImportResult {
-    const sourceBasic = guessBasicDialect(bytes) ?? basic;
+function importBasicFile(hostName: string, bytes: Uint8Array, ascii: boolean, basic: BasicDialect,
+                         copiedFromBasic: BasicDialect | undefined): ImportResult {
+
+    const sourceBasic = guessBasicDialect(bytes) ?? copiedFromBasic ?? basic;
     const program = decodeBasicProgram(bytes, sourceBasic);
     if (program !== undefined) {
         if (program.error !== undefined) {

@@ -7,7 +7,7 @@ import {boot, describeBoot} from "../core/Booting.js";
 import {DiskStore} from "../core/DiskStore.js";
 import {countOf, el} from "../core/Dom.js";
 import {
-    downloadFile, downloadZip, extractToFolder, type ExtractOptions, planExtraction,
+    downloadFile, downloadZip, extractToFolder, type ExtractOptions, planExtraction, putFilesOnDrag, zipNameForDisk,
 } from "../core/Extracting.js";
 import {type FileRow, getFileRows} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
@@ -33,7 +33,7 @@ import {
 import {infoHtmlOf} from "./InfoText.js";
 import {
     archiveItems, type DiskFileItem, diskItems, folderItems, type HostFileItem, isMarkable, type Item, ItemKind, makeUpItem,
-    type PartitionItem, wildcardTest, yourFilesItems,
+    type PartitionItem, SortColumn, wildcardTest, yourFilesItems,
 } from "./Items.js";
 import {mapHtmlOf} from "./MapText.js";
 import {MessageLog} from "./MessageLog.js";
@@ -53,11 +53,6 @@ const MAX_PREVIEW_BYTES = 4*1024*1024;
  * from the desktop.
  */
 const DRAG_TYPE = "application/x-disk-commander-files";
-
-/**
- * What the commander says when a command is typed, until typed commands work.
- */
-const TYPED_COMMANDS_MESSAGE = "Typed commands are coming soon. Until then, the function keys do what they say.";
 
 /**
  * Whether a function key can be used now, and if not, why.
@@ -97,7 +92,7 @@ const HELP_SECTIONS: HelpSection[] = [
     {
         heading: "Moving and marking",
         entries: [
-            ["Tab, Left, Right", "Switch panels. Left and Right work while the command line is empty."],
+            ["Tab, Left, Right", "Switch panels."],
             ["Up, Down, Page Up, Page Down, Home, End", "Move the cursor."],
             ["Space, Insert", "Mark the file under the cursor and move down. Shift-click marks a range, and " +
                 "Cmd-click or Ctrl-click marks one file."],
@@ -156,8 +151,7 @@ const HELP_SECTIONS: HelpSection[] = [
     },
     {
         heading: "Commands",
-        paragraph: "Under the panels, the message area shows the trs80-tool command that each action equals. " +
-            "Typed commands are coming soon.",
+        paragraph: "Under the panels, the message area shows the trs80-tool command that each action equals.",
     },
 ];
 
@@ -179,7 +173,7 @@ function makeHelpBody(): HTMLElement {
 }
 
 /**
- * The commander page: two panels, the message area and command line, the function-key bar, and the viewer, with
+ * The commander page: two panels, the message area, the function-key bar, and the viewer, with
  * the disks that they show. It owns the state and the keys, and runs every change through the core's actions.
  */
 export class Commander implements ActionHost {
@@ -190,8 +184,6 @@ export class Commander implements ActionHost {
     private readonly panels = [new Panel(0), new Panel(1)];
     private readonly log: MessageLog;
     private readonly viewer: Viewer;
-    private readonly commandInput = document.getElementById("cmd") as HTMLInputElement;
-    private readonly promptElement = document.getElementById("prompt") as HTMLElement;
     private readonly functionBar = document.getElementById("fkeys") as HTMLElement;
     private readonly panelsElement = document.getElementById("panels") as HTMLElement;
     private readonly fileInput = el("input");
@@ -321,6 +313,7 @@ export class Commander implements ActionHost {
         return {
             rememberedFolderName: this.rememberedFolder?.name,
             canPickFolder: supportsDirectoryPicker(),
+            activate: () => this.activatePanel(panel),
             chooseFolder: () => void this.chooseFolder(),
             reopenFolder: () => void this.reopenFolder(),
             chooseFiles: () => this.fileInput.click(),
@@ -396,7 +389,7 @@ export class Commander implements ActionHost {
             panel.diskInfo = {freeBytes: undefined, fileCount: 0, note: "Choose the partition to work on", readOnlyReason: undefined};
         } else {
             const listing = this.listingOf(disk);
-            panel.items = diskItems(listing.rows);
+            panel.setItems(diskItems(listing.rows));
             panel.diskInfo = listing.info;
         }
         panel.clampCursor();
@@ -440,7 +433,7 @@ export class Commander implements ActionHost {
             // The panel changed while we read the folder.
             return;
         }
-        panel.items = items;
+        panel.setItems(items);
         panel.clampCursor();
         panel.pruneMarks();
     }
@@ -490,9 +483,7 @@ export class Commander implements ActionHost {
         for (const panel of this.panels) {
             this.renderPanel(panel);
         }
-        this.updatePrompt();
         this.renderFunctionBar();
-        this.focusCommandLine();
     }
 
     /**
@@ -514,24 +505,6 @@ export class Commander implements ActionHost {
             if (panel.mode !== PanelMode.FILES) {
                 this.renderViewPanel(panel);
             }
-        }
-    }
-
-    /**
-     * Put what the active panel's prompt names in the command line's prompt: its disk, or its folder.
-     */
-    private updatePrompt(): void {
-        const panel = this.active;
-        const name = panel.disk !== undefined ? panel.disk.name : panel.host === undefined ? "" : panel.titleText();
-        this.promptElement.textContent = (name === "" ? "" : name + " ") + "> ";
-    }
-
-    /**
-     * Keep the command line focused, unless a dialog or the viewer wants the keys.
-     */
-    private focusCommandLine(): void {
-        if (!this.dialogs.isOpen && !this.viewer.isOpen && document.activeElement !== this.commandInput) {
-            this.commandInput.focus();
         }
     }
 
@@ -940,6 +913,20 @@ export class Commander implements ActionHost {
         this.dragged = {panel, items};
         event.dataTransfer.setData(DRAG_TYPE, String(items.length));
         event.dataTransfer.effectAllowed = "copy";
+
+        // Dropped outside the page, a disk's files are saved where they land (several as a ZIP).
+        const rows = items.filter((dragged): dragged is DiskFileItem => dragged.kind === ItemKind.DISK_FILE)
+            .map(dragged => dragged.row);
+        if (panel.disk !== undefined && rows.length > 0) {
+            putFilesOnDrag(event.dataTransfer, rows, zipNameForDisk(panel.disk.name));
+        }
+        if (items.length > 1) {
+            // The browser would drag only the row under the mouse, so draw a label that says how many.
+            const label = el("div", "dragimage", countOf(items.length, "file"));
+            document.body.append(label);
+            event.dataTransfer.setDragImage(label, 0, 0);
+            setTimeout(() => label.remove(), 0);
+        }
     }
 
     /**
@@ -971,8 +958,13 @@ export class Commander implements ActionHost {
         const panel = this.panels.find(candidate => candidate.element === panelElement);
         if (panel !== undefined && panel.mode === PanelMode.FILES) {
             const rowElement = target.closest<HTMLElement>("[data-row]");
-            if (this.activeIndex !== panel.index && this.other.mode === PanelMode.FILES) {
-                this.setActive(panel.index);
+            this.activatePanel(panel);
+            const sortHeader = target.closest<HTMLElement>("[data-sort]");
+            if (sortHeader !== null && this.active === panel) {
+                panel.sortBy(Number(sortHeader.dataset.sort) as SortColumn);
+                this.renderPanel(panel);
+                this.afterCursorMove();
+                return;
             }
             if (rowElement !== null && this.active === panel) {
                 const previous = panel.currentItem();
@@ -991,7 +983,6 @@ export class Commander implements ActionHost {
                 this.afterCursorMove();
             }
         }
-        this.focusCommandLine();
     }
 
     /**
@@ -1000,16 +991,26 @@ export class Commander implements ActionHost {
     private setActive(index: number): void {
         this.activeIndex = index;
         this.panels.forEach(panel => panel.setActive(panel.index === index));
-        this.updatePrompt();
         this.afterCursorMove();
     }
 
     /**
-     * Redraw what follows the active panel's cursor: the view panels, the prompt, and the function-key bar.
+     * Make a panel the active one, as clicking in it does, unless it already is or the other panel is showing a
+     * view of it (which has no files to switch between).
+     *
+     * @param panel the panel.
+     */
+    private activatePanel(panel: Panel): void {
+        if (this.activeIndex !== panel.index && this.other.mode === PanelMode.FILES) {
+            this.setActive(panel.index);
+        }
+    }
+
+    /**
+     * Redraw what follows the active panel's cursor: the view panels and the function-key bar.
      */
     private afterCursorMove(): void {
         this.refreshViewPanels();
-        this.updatePrompt();
         this.renderFunctionBar();
     }
 
@@ -1163,49 +1164,28 @@ export class Commander implements ActionHost {
     }
 
     /**
-     * The keys that move, mark and open, and the command line's. Typing goes to the command line unless the key is
-     * a panel key, and the panel keys that are also letters or symbols (Space, +, -, *, Delete, Backspace) belong
-     * to the panels only while the command line is empty.
+     * The keys that move, mark and open.
      */
     private handlePanelKey(event: KeyboardEvent): void {
         if (event.ctrlKey || event.metaKey || event.altKey) {
             return;
         }
-        this.focusCommandLine();
-        const empty = this.commandInput.value === "";
         const panel = this.active;
 
-        if (event.key === "Tab") {
-            event.preventDefault();
-            this.switchPanel(1 - this.activeIndex);
-            return;
-        }
-        if (event.key === "Enter") {
-            event.preventDefault();
-            if (empty) {
-                void this.enter();
-            } else {
-                this.log.error(TYPED_COMMANDS_MESSAGE);
-            }
-            return;
-        }
-        if (event.key === "Escape") {
-            if (!empty) {
-                event.preventDefault();
-                this.commandInput.value = "";
-            }
-            return;
-        }
-        if (event.key === "Insert") {
-            event.preventDefault();
-            this.markAndMoveDown(panel);
-            return;
-        }
-        if (!empty) {
-            return;
-        }
-
         switch (event.key) {
+            case "Tab":
+                event.preventDefault();
+                this.switchPanel(1 - this.activeIndex);
+                break;
+            case "Enter":
+                event.preventDefault();
+                void this.enter();
+                break;
+            case "Insert":
+            case " ":
+                event.preventDefault();
+                this.markAndMoveDown(panel);
+                break;
             case "ArrowLeft":
             case "ArrowRight":
                 event.preventDefault();
@@ -1234,10 +1214,6 @@ export class Commander implements ActionHost {
             case "End":
                 event.preventDefault();
                 this.moveCursor(panel.items.length);
-                break;
-            case " ":
-                event.preventDefault();
-                this.markAndMoveDown(panel);
                 break;
             case "+":
                 event.preventDefault();
@@ -2269,13 +2245,16 @@ export class Commander implements ActionHost {
 
         const files = rows.map(row => new File([row.bytes as BlobPart], row.hostName.substring(row.hostName.lastIndexOf("/") + 1),
             {lastModified: row.date?.getTime() ?? 0}));
+        const sameBasic = sourceDisk.session.getBasicDialect() === disk.session.getBasicDialect();
         openAddPlanDialog(this, {
             disk,
             files,
             title: "Copy " + countOf(files.length, "file") + " to " + disk.name,
-            subtitle: "From " + sourceDisk.name + ", byte for byte. Here's what will happen to each file. " +
-                "This can be undone.",
+            subtitle: "From " + sourceDisk.name + (sameBasic ? ", byte for byte" :
+                    ", with BASIC programs converted for this disk's BASIC") +
+                ". Here's what will happen to each file. This can be undone.",
             copyMode: true,
+            sourceBasic: sourceDisk.session.getBasicDialect(),
             afterAdd: result => {
                 source.marks.clear();
                 this.refreshNow();
@@ -2346,7 +2325,7 @@ export class Commander implements ActionHost {
                     this.log.command(disk.name, result.commandLine);
                     this.log.out("Downloaded " + result.written[0] + ".");
                 } else {
-                    const result = await downloadZip(rows, disk.name.replace(/\.[^.]*$/, "") + ".zip", options);
+                    const result = await downloadZip(rows, zipNameForDisk(disk.name), options);
                     this.log.command(disk.name, result.commandLine);
                     this.log.out("Downloaded " + countOf(result.written.length, "file") + " as a ZIP.");
                 }

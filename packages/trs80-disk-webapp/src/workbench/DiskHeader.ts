@@ -113,7 +113,7 @@ export class DiskHeader {
      * Make the "Save as" button.
      */
     private makeSaveAs(disk: OpenDisk): HTMLElement {
-        const button = makeButton("Save as…", () => this.host.saveAs(disk));
+        const button = makeButton("Save As…", () => this.host.saveAs(disk));
         if (disk.session.isHardDisk()) {
             button.disabled = true;
             button.title = "A hard disk image can only be saved as it is.";

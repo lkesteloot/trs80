@@ -110,9 +110,9 @@ button.primary.danger-fill { background: var(--danger); border-color: var(--dang
 }
 .tab .dot { width: 7px; height: 7px; border-radius: 50%; background: transparent; }
 .tab.dirty .dot { background: var(--warn); }
-.tab.start { font-family: var(--sans); color: var(--fg-muted); }
-.tab.start .tablabel { padding-right: 10px; }
-.tab.start.active { color: var(--fg-strong); }
+.tab.opentab { font-family: var(--sans); color: var(--fg-muted); }
+.tab.opentab .tablabel { padding-right: 10px; }
+.tab.opentab.active { color: var(--fg-strong); }
 .top-actions { display: flex; gap: 6px; }
 .mock-note {
     font-size: 12px; color: var(--fg-muted); text-align: center; padding: 4px 16px;
@@ -290,27 +290,22 @@ pre.preview .op { color: #6c71c4; }
 canvas.pic { width: 100%; image-rendering: pixelated; border-radius: 6px; background: #000; }
 .inspector .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
 
-/* Command strip and console */
+/* The label that follows the mouse when several files are dragged. It's made offscreen, for the browser to snapshot. */
+.dragimage {
+    position: fixed; top: -1000px; left: 0; padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+    font: 13px var(--sans); color: var(--fg-strong); background: var(--panel); border: 1px solid var(--line);
+}
+
+/* Command strip: the command line that the last action equals */
 .strip {
     position: fixed; left: 0; right: 0; bottom: 0; height: 40px; z-index: 6;
     display: flex; align-items: center; gap: 12px; padding: 0 16px;
-    background: var(--fg-strong); color: var(--bg); font: 12.5px var(--mono); cursor: pointer;
+    background: var(--fg-strong); color: var(--bg); font: 12.5px var(--mono);
 }
 .strip .prompt { opacity: .55; }
 .strip .cmd { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .strip .out { opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 .strip button { background: transparent; color: var(--bg); border-color: color-mix(in srgb, var(--bg) 35%, transparent); padding: 2px 8px; font-size: 12px; }
-.console {
-    position: fixed; left: 0; right: 0; bottom: 40px; height: 300px; z-index: 6;
-    background: #002b36; color: #93a1a1; font: 13px/1.5 var(--mono); display: flex; flex-direction: column;
-    border-top: 2px solid #2aa198; box-shadow: 0 -6px 18px rgba(0,0,0,.25);
-}
-.console[hidden] { display: none; }
-.console .log { flex: 1; overflow: auto; padding: 10px 16px; white-space: pre-wrap; }
-.console .log .in { color: #eee8d5; }
-.console .log .err { color: #dc322f; }
-.console .inrow { display: flex; gap: 8px; padding: 6px 16px 10px; align-items: center; }
-.console input { flex: 1; background: #073642; color: #eee8d5; border-color: #0f4351; font-family: var(--mono); }
 
 /* Sheet (modal) */
 .backdrop { position: fixed; inset: 0; background: rgba(0, 20, 26, .45); z-index: 10; display: flex; align-items: flex-start; justify-content: center; padding: 60px 16px; overflow: auto; }
