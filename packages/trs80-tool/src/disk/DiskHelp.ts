@@ -1,6 +1,6 @@
 import {
     BasicDialect, parseBasicDialect, parseTrsdosFormatDos, parseTrsdosRuleSet, TRSDOS_FORMAT_DOSES, TrsdosFormatDos, trsdosFormatDosCliName, TRSDOS_RULE_SETS,
-    TrsdosRuleSet, trsdosRuleSetAliases, trsdosRuleSetCliName, trsdosRuleSetToString,
+    formatCpmPresetTable, TrsdosRuleSet, trsdosRuleSetAliases, trsdosRuleSetCliName, trsdosRuleSetToString,
 } from "trs80-base";
 import {Command} from "commander";
 import {assertNever} from "z80-base";
@@ -14,6 +14,9 @@ import {
 
 // The topic of "help" that lists the DOS names. A command of the same name takes precedence.
 const DOS_HELP_TOPIC = "dos";
+
+// The topic of "help" that lists the CP/M formats that --cpm-format takes. A command of the same name takes precedence.
+const CPM_FORMAT_HELP_TOPIC = "cpm-format";
 
 /**
  * The value of --dos as the rules it names.
@@ -152,6 +155,22 @@ export function dosHelpSections(): DiskHelpSection[] {
 }
 
 /**
+ * The help for the names that --cpm-format takes: what it does, then the table of presets.
+ */
+export function cpmFormatHelpSections(): DiskHelpSection[] {
+    return [
+        "--cpm-format NAME reads a CP/M floppy with the named layout, whatever it would be detected as, and " +
+        "writes by it. CP/M disks don't say how they're laid out, so this settles a disk that could be read " +
+        "more than one way. The layouts are Montezuma Micro CP/M 2.2's, and are listed here with Montezuma's " +
+        "names for them.",
+        {
+            title: "The names are:",
+            lines: formatCpmPresetTable(),
+        },
+    ];
+}
+
+/**
  * The parts of the help for the whole "disk" command: every command with its summary, the global options if
  * there are any, and how to get help on one command. Aliases are left out, so that each
  * command appears once; "help COMMAND" names them.
@@ -178,7 +197,8 @@ export function diskOverviewSections(commandSpecs: DiskCommandSpec[], globalOpti
         });
     }
 
-    sections.push("\"help COMMAND\" describes a command and its options; \"help dos\" lists the names for --dos.");
+    sections.push("\"help COMMAND\" describes a command and its options; \"help dos\" lists the names for --dos, and " +
+        "\"help cpm-format\" those for --cpm-format.");
 
     return sections;
 }
@@ -224,6 +244,9 @@ export function renderHelpSections(command: Command, sections: DiskHelpSection[]
         if (typeof section === "string") {
             return helper.boxWrap(section, width);
         }
+        if ("lines" in section) {
+            return [helper.styleTitle(section.title), ... section.lines.map(line => "  " + line)].join("\n");
+        }
 
         const terms = section.items.map(item => section.style === "command" ?
             helper.styleSubcommandText(item.term) : helper.styleOptionTerm(item.term));
@@ -239,9 +262,10 @@ export function renderHelpSections(command: Command, sections: DiskHelpSection[]
 /**
  * Show the help for the whole "disk" command, for one command, or for the topic "dos", wrapped to
  * the terminal's width and colored. The help for a command is its usage, summary, options, other
- * names and extra help. The topic "dos" is {@link dosHelpSections}, unless a command has that name.
+ * names and extra help. The topic "dos" is {@link dosHelpSections} and "cpm-format" is
+ * {@link cpmFormatHelpSections}, unless a command has that name.
  *
- * @param topic the command's name or one of its aliases, in any case, or "dos"; or undefined for
+ * @param topic the command's name or one of its aliases, in any case, or "dos" or "cpm-format"; or undefined for
  * the list of commands.
  * @param commandSpecs all the commands.
  * @param globalOptionSpecs the options that apply to the whole run.
@@ -261,6 +285,11 @@ export function printDiskHelp(topic: string | undefined, commandSpecs: DiskComma
     if (spec === undefined && topic.toLowerCase() === DOS_HELP_TOPIC) {
         const carrier = configureDiskCommand(new Command(), output);
         output.write(renderHelpSections(carrier, dosHelpSections()) + "\n");
+        return;
+    }
+    if (spec === undefined && topic.toLowerCase() === CPM_FORMAT_HELP_TOPIC) {
+        const carrier = configureDiskCommand(new Command(), output);
+        output.write(renderHelpSections(carrier, cpmFormatHelpSections()) + "\n");
         return;
     }
     if (spec === undefined) {

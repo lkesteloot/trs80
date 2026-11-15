@@ -3,9 +3,10 @@ import * as path from "path";
 import {exceptionToString, hostFileError, pluralizeWithCount} from "./utils.js";
 import {infoJson} from "./report.js";
 import {pagerYield} from "./pager.js";
+import {decodeNamedCpmFormat} from "./InputFile.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {
-    Cpm, decodeFloppyFileSystem, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findHardDiskPartitions, getFloppyDetails, isFloppy,
+    Cpm, type CpmVerifiedLayout, decodeFloppyFileSystem, describeCpmWithPreset, decodeTrs80File, densityToString, type FloppyDisk, type KnownFloppyFileSystem, findHardDiskPartitions, getFloppyDetails, isFloppy,
     isHardDisk, knownTrsdosPassword, MicroDos,
     modelIITrsdosLayoutToString, ModelIITrsdos, type PdriveSettings, pdriveSettingsToString, pdriveSourceToString, TrackGeometry, Trs80Floppy, Trs80HardDisk, Trsdos, TrsdosII,
     UcsdPascal, uncompressFile, XenixTar} from "trs80-base";
@@ -48,9 +49,24 @@ export function floppyDetailLines(floppy: FloppyDisk, fileSystem: KnownFloppyFil
 }
 
 /**
- * Print one-line string description of the input file, and more if verbose.
+ * Decode the file system of a floppy for "info", with the CP/M layout that the user named if they did.
+ *
+ * @param floppy the decoded floppy image.
+ * @param cpmFormat the layout named with --cpm-format, or undefined to detect it.
+ * @throws ToolError if the image can't hold the named layout.
  */
-function printInfoForFile(inFilename: string, verbose: boolean): void {
+function decodeInfoFileSystem(floppy: FloppyDisk, cpmFormat: CpmVerifiedLayout | undefined):
+    KnownFloppyFileSystem | undefined {
+
+    return cpmFormat === undefined ? decodeFloppyFileSystem(floppy) : decodeNamedCpmFormat(floppy, cpmFormat, false);
+}
+
+/**
+ * Print one-line string description of the input file, and more if verbose.
+ *
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
+ */
+function printInfoForFile(inFilename: string, verbose: boolean, cpmFormat: CpmVerifiedLayout | undefined): void {
     let description: string;
     const verboseLines: string[] = [];
     // One line for each partition of a hard disk, shown whether verbose or not.
@@ -105,10 +121,13 @@ function printInfoForFile(inFilename: string, verbose: boolean): void {
                 }
 
                 if (isFloppy(trs80File)) {
-                    const fileSystem = decodeFloppyFileSystem(trs80File);
+                    const fileSystem = decodeInfoFileSystem(trs80File, cpmFormat);
                     if (fileSystem !== undefined) {
+                        // A CP/M disk with a verified layout shows its preset's name, which is how users learn it.
+                        const name = fileSystem instanceof Cpm ? describeCpmWithPreset(fileSystem) :
+                            fileSystem.nameAndVersion;
                         // Users don't care about system files.
-                        description += ", " + fileSystem.nameAndVersion +
+                        description += ", " + name +
                             " with " + pluralizeWithCount(fileSystem.getDirEntries(false).length, "file");
                     }
 
@@ -533,9 +552,12 @@ function fileSystemDetailsToJson(fileSystem: KnownFloppyFileSystem):
  *
  * @param floppy the decoded floppy image.
  * @param verbose whether to include the layout of the disk and the details of the file system.
+ * @param cpmFormat the layout named with --cpm-format, or undefined to detect it.
  */
-function floppyToInfoJson(floppy: Trs80Floppy, verbose: boolean): FloppyInfoJson {
-    const fileSystem = decodeFloppyFileSystem(floppy);
+function floppyToInfoJson(floppy: Trs80Floppy, verbose: boolean, cpmFormat: CpmVerifiedLayout | undefined):
+    FloppyInfoJson {
+
+    const fileSystem = decodeInfoFileSystem(floppy, cpmFormat);
     const json: FloppyInfoJson = {
         format: floppyFormatOf(floppy),
         os: fileSystem === undefined ? null : osToJson(fileSystem, verbose),
@@ -610,7 +632,9 @@ function hardDiskToInfoJson(hardDisk: Trs80HardDisk, verbose: boolean): HardDisk
  * Decode one input file and convert what we know about it to JSON. Never throws because of the contents
  * of the file; problems are in the "error" field.
  */
-function infoFileToJson(inFilename: string, verbose: boolean): Omit<InfoJson, "warnings"> {
+function infoFileToJson(inFilename: string, verbose: boolean, cpmFormat: CpmVerifiedLayout | undefined):
+    Omit<InfoJson, "warnings"> {
+
     let buffer;
     try {
         buffer = fs.readFileSync(inFilename);
@@ -657,7 +681,7 @@ function infoFileToJson(inFilename: string, verbose: boolean): Omit<InfoJson, "w
             } else if (trs80File.className === "Cassette") {
                 json.cassette = { fileCount: trs80File.files.length };
             } else if (isFloppy(trs80File)) {
-                json.floppy = floppyToInfoJson(trs80File, verbose);
+                json.floppy = floppyToInfoJson(trs80File, verbose, cpmFormat);
             } else if (isHardDisk(trs80File)) {
                 json.hardDisk = hardDiskToInfoJson(trs80File, verbose);
             }
@@ -674,10 +698,11 @@ function infoFileToJson(inFilename: string, verbose: boolean): Omit<InfoJson, "w
  *
  * @param infiles the input files, with wildcards already expanded.
  * @param verbose whether to include more information about each file.
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
  */
-export function infoJsonInfiles(infiles: string[], verbose: boolean): InfoJson[] {
+export function infoJsonInfiles(infiles: string[], verbose: boolean, cpmFormat?: CpmVerifiedLayout): InfoJson[] {
     return infiles.map((infile): InfoJson => {
-        const {result, warnings} = captureLogs(() => infoFileToJson(infile, verbose));
+        const {result, warnings} = captureLogs(() => infoFileToJson(infile, verbose, cpmFormat));
         return { ...result, warnings };
     });
 }
@@ -685,8 +710,8 @@ export function infoJsonInfiles(infiles: string[], verbose: boolean): InfoJson[]
 /**
  * Handle the "info --json" command: print one JSON object for all the input files.
  */
-function printInfoJson(infiles: string[], verbose: boolean): void {
-    printInfilesJson(infoJsonInfiles(infiles, verbose));
+function printInfoJson(infiles: string[], verbose: boolean, cpmFormat: CpmVerifiedLayout | undefined): void {
+    printInfilesJson(infoJsonInfiles(infiles, verbose, cpmFormat));
 }
 
 /**
@@ -695,20 +720,22 @@ function printInfoJson(infiles: string[], verbose: boolean): void {
  * @param verbose whether to include more information about each file.
  * @param json whether to print one JSON object instead of text.
  * @param report whether to print the detailed report for regression testing instead (see report.ts).
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
  */
-export async function info(infiles: string[], verbose: boolean, json: boolean, report: boolean): Promise<void> {
+export async function info(infiles: string[], verbose: boolean, json: boolean, report: boolean,
+                           cpmFormat?: CpmVerifiedLayout): Promise<void> {
     if (report) {
         infoJson(infiles);
         return;
     }
 
     if (json) {
-        printInfoJson(infiles, verbose);
+        printInfoJson(infiles, verbose, cpmFormat);
         return;
     }
 
     for (const infile of infiles) {
-        printInfoForFile(infile, verbose);
+        printInfoForFile(infile, verbose, cpmFormat);
         await pagerYield();
     }
 }

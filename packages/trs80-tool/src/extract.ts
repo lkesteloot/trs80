@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { type XenixTarExtent } from "trs80-base";
+import { type CpmVerifiedLayout, type XenixTarExtent } from "trs80-base";
 import { expandContainer, type InputFile, selectInputFiles, XenixTarInputFile } from "./InputFile.js";
 import { filesInfileJson, printInfilesJson } from "./json.js";
 import {
@@ -182,17 +182,18 @@ function checkOutputDirectory(outDirname: string): void {
  * @param markDamaged whether to add " [DAMAGED]" to the name of each file that had unreadable
  * sectors, CRC errors, or directory problems. Damaged files are mentioned in the output either way.
  * @param lowercase whether to write the files with lowercase names, as in "foo.cmd" for "FOO.CMD".
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
  * @throws ToolError if the output path exists but isn't a directory, if the input isn't a readable
  * container, or if a pattern matches no file. Nothing is written in the last two cases.
  */
 export function extract(inFilename: string, outDirname: string, patterns: string[], includeSystemFiles: boolean,
                         cpmWholeRecords: boolean, ucsdPascalRawText: boolean, markDamaged: boolean,
-                        lowercase: boolean): void {
+                        lowercase: boolean, cpmFormat?: CpmVerifiedLayout): void {
 
     // Check the destination before reading the input.
     checkOutputDirectory(outDirname);
 
-    const allFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords);
+    const allFiles = expandContainer(inFilename, includeSystemFiles, cpmWholeRecords, cpmFormat);
     extractInputFiles(allFiles, inFilename, outDirname, patterns, ucsdPascalRawText, markDamaged, lowercase);
 }
 
@@ -363,10 +364,12 @@ export function extractOneInputFile(allFiles: InputFile[], containerName: string
  * ending text files at their Ctrl-Z.
  * @param markDamaged whether the output name of each damaged file has " [DAMAGED]" added.
  * @param lowercase whether the output names are lowercase.
+ * @param cpmFormat the CP/M layout to read floppies with (--cpm-format), or undefined to detect it.
  */
 export function extractJson(inFilename: string, patterns: string[], includeSystemFiles: boolean,
-                            cpmWholeRecords: boolean, markDamaged: boolean, lowercase: boolean): void {
+                            cpmWholeRecords: boolean, markDamaged: boolean, lowercase: boolean,
+                            cpmFormat?: CpmVerifiedLayout): void {
 
     printInfilesJson([filesInfileJson(inFilename, includeSystemFiles, cpmWholeRecords,
-        { lowercase, markDamaged, patterns })]);
+        { lowercase, markDamaged, patterns }, cpmFormat)]);
 }

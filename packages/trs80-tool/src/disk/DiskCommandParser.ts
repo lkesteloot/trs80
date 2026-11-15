@@ -52,9 +52,19 @@ export interface DiskHelpList {
 }
 
 /**
- * A part of help text: a paragraph, which is wrapped to the terminal's width, or a list.
+ * A block of help text that's shown as it is, never wrapped, such as a table with aligned columns.
  */
-export type DiskHelpSection = string | DiskHelpList;
+export interface DiskHelpPreformatted {
+    /** The heading above the block, such as "The CP/M formats are:". */
+    title: string;
+    /** The lines, which are indented under the title. */
+    lines: string[];
+}
+
+/**
+ * A part of help text: a paragraph, which is wrapped to the terminal's width, a list, or a preformatted block.
+ */
+export type DiskHelpSection = string | DiskHelpList | DiskHelpPreformatted;
 
 /**
  * Describes one disk command, such as "dir" or "kill". The parser and the help are both made from this

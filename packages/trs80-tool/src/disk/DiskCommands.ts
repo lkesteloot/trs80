@@ -117,6 +117,11 @@ export const DISK_GLOBAL_OPTIONS: DiskOptionSpec[] = [
         description: "write by the rules of this DOS, if the disk doesn't say or says otherwise (\"help dos\" lists them)",
     },
     {
+        name: "--cpm-format",
+        valueName: "NAME",
+        description: "read a CP/M floppy with this layout, whatever it would be detected as (\"help cpm-format\" lists them)",
+    },
+    {
         name: "--force",
         valueName: undefined,
         description: "write even where the disk looks doubtful, if the doubt can be overridden",

@@ -7,8 +7,8 @@
  */
 
 import {assertNever} from "z80-base";
-import {Cpm, rankCpmCandidates} from "./Cpm.js";
-import {FloppyDisk, SectorPosition} from "./FloppyDisk.js";
+import {Cpm, CPM_FORMATS, type CpmFormat, type CpmLayout, rankCpmCandidates} from "./Cpm.js";
+import {FloppyDisk, type FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import {TrsdosWriteAccess, writeProtectionMessage} from "./TrsdosWriteGate.js";
 
 // The name of the format that has verified layouts.
@@ -16,6 +16,9 @@ const MONTEZUMA_FORMAT_NAME = "Montezuma Micro";
 
 // The versions of Montezuma Micro's BIOS that used skew 4.
 const MONTEZUMA_SKEW_4_VERSIONS = ["1.26", "1.30"];
+
+// Bytes in an allocation block of Montezuma's formats, which all have 2K blocks.
+const MONTEZUMA_BLOCK_SIZE = 2048;
 
 // Matches the name that CPM_BANNERS makes for a Montezuma Micro BIOS, capturing the version.
 const MONTEZUMA_BIOS_NAME = /^Montezuma Micro CP\/M BIOS (\d+\.\d+)$/;
@@ -25,6 +28,8 @@ const MONTEZUMA_BIOS_NAME = /^Montezuma Micro CP\/M BIOS (\d+\.\d+)$/;
  * PROBE program.
  */
 export interface CpmVerifiedLayout {
+    // Our name for the layout (a preset), as --cpm-format takes it, such as "mm-ds-system".
+    readonly id: string;
     // Montezuma's name for the format, such as "Standard DS system".
     readonly name: string;
     // Distance between consecutive logical sectors.
@@ -50,21 +55,21 @@ export interface CpmVerifiedLayout {
  * "Standard DS system".)
  */
 export const CPM_VERIFIED_LAYOUTS: readonly CpmVerifiedLayout[] = [
-    {name: "Standard system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 1, cylinders: 40, reservedTracks: 2, dsm: 84},
-    {name: "Standard data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 40, reservedTracks: 0, dsm: 99},
-    {name: "Standard DS system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 40, reservedTracks: 2, dsm: 174},
-    {name: "Standard DS data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 40, reservedTracks: 0, dsm: 199},
-    {name: "80T system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 1, cylinders: 80, reservedTracks: 2, dsm: 174},
-    {name: "80T data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 80, reservedTracks: 0, dsm: 199},
-    {name: "80T DS system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 80, reservedTracks: 2, dsm: 354},
-    {name: "80T DS data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 80, reservedTracks: 0, dsm: 399},
-    {name: "Extended system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 40, reservedTracks: 2, dsm: 94},
-    {name: "Extended DS system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 40, reservedTracks: 2, dsm: 194},
-    {name: "Extended 80T system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 80, reservedTracks: 2, dsm: 194},
-    {name: "Extended 80T DS system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 80, reservedTracks: 2, dsm: 394},
-    {name: "Version 1.26 and 1.30 system", skew: 4, sectorSize: 256, sectorsPerTrack: 18, sides: 1, cylinders: 40, reservedTracks: 2, dsm: 84},
-    {name: "Version 1.26 and 1.30 DS system", skew: 4, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 40, reservedTracks: 2, dsm: 174},
-    {name: "Version 1.42 and 1.44 DS system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 40, reservedTracks: 4, dsm: 170},
+    {id: "mm-system", name: "Standard system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 1, cylinders: 40, reservedTracks: 2, dsm: 84},
+    {id: "mm-data", name: "Standard data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 40, reservedTracks: 0, dsm: 99},
+    {id: "mm-ds-system", name: "Standard DS system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 40, reservedTracks: 2, dsm: 174},
+    {id: "mm-ds-data", name: "Standard DS data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 40, reservedTracks: 0, dsm: 199},
+    {id: "mm-80-system", name: "80T system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 1, cylinders: 80, reservedTracks: 2, dsm: 174},
+    {id: "mm-80-data", name: "80T data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 80, reservedTracks: 0, dsm: 199},
+    {id: "mm-80-ds-system", name: "80T DS system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 80, reservedTracks: 2, dsm: 354},
+    {id: "mm-80-ds-data", name: "80T DS data", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 80, reservedTracks: 0, dsm: 399},
+    {id: "mm-ext-system", name: "Extended system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 40, reservedTracks: 2, dsm: 94},
+    {id: "mm-ext-ds-system", name: "Extended DS system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 40, reservedTracks: 2, dsm: 194},
+    {id: "mm-ext-80-system", name: "Extended 80T system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 1, cylinders: 80, reservedTracks: 2, dsm: 194},
+    {id: "mm-ext-80-ds-system", name: "Extended 80T DS system", skew: 2, sectorSize: 512, sectorsPerTrack: 10, sides: 2, cylinders: 80, reservedTracks: 2, dsm: 394},
+    {id: "mm-1.26-system", name: "Version 1.26 and 1.30 system", skew: 4, sectorSize: 256, sectorsPerTrack: 18, sides: 1, cylinders: 40, reservedTracks: 2, dsm: 84},
+    {id: "mm-1.26-ds-system", name: "Version 1.26 and 1.30 DS system", skew: 4, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 40, reservedTracks: 2, dsm: 174},
+    {id: "mm-1.42-ds-system", name: "Version 1.42 and 1.44 DS system", skew: 2, sectorSize: 256, sectorsPerTrack: 18, sides: 2, cylinders: 40, reservedTracks: 4, dsm: 170},
 ];
 
 /**
@@ -82,6 +87,106 @@ export function findCpmVerifiedLayout(cpm: Cpm): CpmVerifiedLayout | undefined {
         layout.cylinders === cpm.cylinderCount &&
         layout.reservedTracks === cpm.reservedTrackCount &&
         layout.dsm === cpm.blockCount - 1);
+}
+
+/**
+ * The verified layout (preset) with this name, ignoring case, or undefined if there is none.
+ */
+export function findCpmVerifiedLayoutById(id: string): CpmVerifiedLayout | undefined {
+    const wanted = id.trim().toLowerCase();
+    return CPM_VERIFIED_LAYOUTS.find(layout => layout.id === wanted);
+}
+
+/**
+ * The format entry of CPM_FORMATS that a verified layout is read with: Montezuma's, with the layout's skew and
+ * sector shape.
+ */
+function findMontezumaFormat(layout: CpmVerifiedLayout): CpmFormat | undefined {
+    return CPM_FORMATS.find(format =>
+        format.name === MONTEZUMA_FORMAT_NAME &&
+        format.skew === layout.skew &&
+        format.sectorSizes.includes(layout.sectorSize) &&
+        format.sectorsPerTrack.includes(layout.sectorsPerTrack) &&
+        format.reservedTrackCounts.includes(layout.reservedTracks));
+}
+
+/**
+ * The layout to read an image with when the user names a verified layout, with no search. The layout's
+ * sides, reserved tracks, and cylinders are used as they are, so an image with more cylinders than the layout
+ * has is read as if it had only the layout's (the DSM comes from the layout, so nothing past it is used), and one
+ * with fewer has its missing sectors reported as missing.
+ *
+ * @param layout the preset.
+ * @param geometry the image's geometry.
+ * @returns the layout, or a message saying why the image can't hold this layout.
+ */
+export function makeCpmLayout(layout: CpmVerifiedLayout, geometry: FloppyDiskGeometry): CpmLayout | string {
+    if (geometry.modalDataSectorSize !== layout.sectorSize) {
+        return `the image's sectors are ${geometry.modalDataSectorSize} bytes, not ${layout.sectorSize}`;
+    }
+    if (geometry.modalDataSectorSpan !== layout.sectorsPerTrack) {
+        return `the image has ${geometry.modalDataSectorSpan} sectors per track, not ${layout.sectorsPerTrack}`;
+    }
+    if (layout.sides === 2 && geometry.sideCount < 2) {
+        return "the image has only one side";
+    }
+    const format = findMontezumaFormat(layout);
+    if (format === undefined) {
+        // The table and the formats have drifted apart (a bug, which a test catches).
+        return "no Montezuma format matches it";
+    }
+
+    return {
+        geometry,
+        format,
+        allocationSides: layout.sides,
+        reservedTrackCount: layout.reservedTracks,
+        cylinderCount: layout.cylinders,
+    };
+}
+
+/**
+ * The presets that an image can hold, as makeCpmLayout() sees it, in table order.
+ */
+export function findCpmLayoutsForGeometry(geometry: FloppyDiskGeometry): CpmVerifiedLayout[] {
+    return CPM_VERIFIED_LAYOUTS.filter(layout => typeof makeCpmLayout(layout, geometry) !== "string");
+}
+
+/**
+ * The capacity of a verified layout in Montezuma's terms, such as "170K": its blocks (DSM + 1) of 2K each.
+ */
+function cpmVerifiedLayoutCapacity(layout: CpmVerifiedLayout): string {
+    return `${(layout.dsm + 1)*MONTEZUMA_BLOCK_SIZE/1024}K`;
+}
+
+/**
+ * The table of presets as lines of text, with a header: the name to give --cpm-format, Montezuma's name for
+ * the format, sides, cylinders, sectors per track and their size (such as "18 × 256"), and capacity. The columns
+ * are lined up, and the lines are meant to be shown as they are (not wrapped). The same table is in site/disk.html,
+ * written by hand, so change both together.
+ */
+export function formatCpmPresetTable(): string[] {
+    const rows: string[][] = [["Name", "Montezuma's name", "Sides", "Cylinders", "Sectors", "Capacity"]];
+    for (const layout of CPM_VERIFIED_LAYOUTS) {
+        rows.push([layout.id, layout.name, String(layout.sides), String(layout.cylinders),
+            `${layout.sectorsPerTrack} × ${layout.sectorSize}`, cpmVerifiedLayoutCapacity(layout)]);
+    }
+
+    // Numbers are right-aligned, and the text left-aligned.
+    const rightAligned = [false, false, true, true, true, true];
+    const widths = rows[0].map((_, column) => Math.max(...rows.map(row => row[column].length)));
+    return rows.map(row => row.map((cell, column) =>
+        rightAligned[column] ? cell.padStart(widths[column]) : cell.padEnd(widths[column])).join("  ").trimEnd());
+}
+
+/**
+ * The name of a decoded disk's operating system, with its verified layout (preset) if it has one, such as
+ * "Montezuma Micro CP/M BIOS 2.25, Standard system (mm-system)". That's how users learn the names.
+ */
+export function describeCpmWithPreset(cpm: Cpm): string {
+    const verified = findCpmVerifiedLayout(cpm);
+    return verified === undefined ? cpm.nameAndVersion :
+        `${cpm.nameAndVersion}, ${verified.name} (${verified.id})`;
 }
 
 /**
@@ -197,7 +302,7 @@ export interface CpmWriteGate {
  * in the cylinder count and that doesn't change the pointer size or the extent mask. (Directory
  * entries then mean the same thing under both.)
  */
-function sameBlockMapping(a: Cpm, b: Cpm): boolean {
+export function sameBlockMapping(a: Cpm, b: Cpm): boolean {
     return a.format === b.format &&
         a.allocationSides === b.allocationSides &&
         a.reservedTrackCount === b.reservedTrackCount &&
@@ -314,6 +419,16 @@ function describeDifference(cpm: Cpm, other: Cpm): string {
 }
 
 /**
+ * A sentence suggesting --cpm-format with the presets that the disk's image can hold, starting with a space, or
+ * an empty string if it can hold none.
+ */
+function suggestCpmFormats(cpm: Cpm): string {
+    const ids = findCpmLayoutsForGeometry(cpm.geometry).map(layout => layout.id);
+    return ids.length === 0 ? "" :
+        ` If you know the disk's format, name it with --cpm-format (this image fits ${ids.join(", ")}).`;
+}
+
+/**
  * What a caller of evaluateCpmWriteGate() can tell it.
  */
 export interface CpmWriteGateOptions {
@@ -341,7 +456,8 @@ export function evaluateCpmWriteGate(cpm: Cpm, options: CpmWriteGateOptions = {}
         blockers.push({
             kind: CpmWriteBlockerKind.UNSUPPORTED_LAYOUT,
             message: `Writing ${cpm.nameAndVersion} disks with this layout (${cpm.summary()}) isn't supported yet. ` +
-                `So far only Montezuma Micro's PROBE-verified layouts can be written.`,
+                `So far only Montezuma Micro's PROBE-verified layouts can be written.` +
+                suggestCpmFormats(cpm),
             forceable: false,
         });
     }
@@ -375,10 +491,19 @@ export function evaluateCpmWriteGate(cpm: Cpm, options: CpmWriteGateOptions = {}
         const doubts = findCpmLayoutDoubts(cpm, ranked);
         if (doubts.length > 0) {
             const differences = Array.from(new Set(doubts.map(other => describeDifference(cpm, other))));
+            const readings = differences.map(difference => {
+                const presetIds = doubts
+                    .filter(other => describeDifference(cpm, other) === difference)
+                    .map(other => findCpmVerifiedLayout(other)?.id)
+                    .filter(id => id !== undefined);
+                return presetIds.length === 0 ? difference : `${difference} (${presetIds.join(" or ")})`;
+            });
+            const chosenId = verified.id;
             blockers.push({
                 kind: CpmWriteBlockerKind.LAYOUT_DOUBT,
-                message: `The disk reads equally well with ${differences.join(", or with ")}, and nothing on it tells ` +
-                    `the readings apart. Writing with the wrong one would put data where CP/M won't look.`,
+                message: `The disk reads equally well with ${readings.join(", or with ")}, and nothing on it tells ` +
+                    `the readings apart. Writing with the wrong one would put data where CP/M won't look. ` +
+                    `The reading in use is ${chosenId}; --cpm-format settles it.`,
                 forceable: true,
             });
         }

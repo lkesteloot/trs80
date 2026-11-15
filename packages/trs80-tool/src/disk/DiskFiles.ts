@@ -75,6 +75,10 @@ export function saveAndReport(session: DiskSession, announceNoChanges: boolean,
 
     // The check comes before the dry run's message, so that --dry-run says the save would fail.
     session.requireSaveable();
+    const saveWarning = session.getSaveWarning();
+    if (saveWarning !== undefined) {
+        out.warning(saveWarning);
+    }
 
     let outcome: SaveOutcome;
     if (session.dryRun) {

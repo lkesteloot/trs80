@@ -118,6 +118,13 @@
                         writable. Put it before the first command.</td>
                 </tr>
                 <tr>
+                    <td><code>--cpm-format NAME</code></td>
+                    <td>Read a CP/M floppy with the named layout, whatever it would be detected as, and write by
+                        it. The names are in <a href="#cpm-formats">the table below</a>, and <code>help
+                        cpm-format</code> lists them. Unlike detection it works on a disk with no files. Put it
+                        before the first command.</td>
+                </tr>
+                <tr>
                     <td><code>--force</code></td>
                     <td>Write even where the disk looks doubtful (a layout that had to be guessed, a damaged file
                         system), after printing a warning. It can’t override a problem with no safe way
@@ -149,6 +156,149 @@
             passwords or protection levels, and <code>label</code> and <code>repair</code> don’t apply to it. You can remove a CP/M
             disk’s last file, and add to it again, but an empty CP/M disk can’t be saved, because it can’t be
             recognized when it’s opened again: add a file before saving.</p>
+
+            <p id="cpm-formats"><strong>CP/M formats.</strong> <code>--cpm-format NAME</code> names the layout
+            instead of leaving the tool to work it out. The disk is then read with that layout, even if it would
+            have been read as something else (the tool says what it would have found), and a layout that was
+            in doubt needs no <code>--force</code>. The image has to be able to hold the layout, with the same
+            sector size and sectors per track, and two sides if the layout uses two. An image with more
+            cylinders than the layout has is fine. If a saved disk wouldn’t be recognized as that layout when
+            it’s opened again, which is allowed when you named the layout, the tool says so after saving and
+            tells you which name to give next time. <code>dir</code>, <code>info</code>, and
+            <code>extract</code> take the same option, and so do the MCP tools. The names are Montezuma Micro
+            CP/M 2.2’s formats, and <code>info</code> shows the name of the one in use. The last three are the
+            earlier versions’ formats.</p>
+
+            <table class="flags presets">
+                <tr>
+                    <th>Name</th>
+                    <th>Montezuma’s name</th>
+                    <th>Sides</th>
+                    <th>Cylinders</th>
+                    <th>Sectors</th>
+                    <th>Capacity</th>
+                </tr>
+                <tr>
+                    <td><code>mm-system</code></td>
+                    <td>Standard system</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>170K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-data</code></td>
+                    <td>Standard data</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>200K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ds-system</code></td>
+                    <td>Standard DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>350K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ds-data</code></td>
+                    <td>Standard DS data</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>400K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-system</code></td>
+                    <td>80T system</td>
+                    <td>1</td>
+                    <td>80</td>
+                    <td>18 × 256</td>
+                    <td>350K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-data</code></td>
+                    <td>80T data</td>
+                    <td>1</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>400K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-ds-system</code></td>
+                    <td>80T DS system</td>
+                    <td>2</td>
+                    <td>80</td>
+                    <td>18 × 256</td>
+                    <td>710K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-ds-data</code></td>
+                    <td>80T DS data</td>
+                    <td>2</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>800K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-system</code></td>
+                    <td>Extended system</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>190K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-ds-system</code></td>
+                    <td>Extended DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>390K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-80-system</code></td>
+                    <td>Extended 80T system</td>
+                    <td>1</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>390K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-80-ds-system</code></td>
+                    <td>Extended 80T DS system</td>
+                    <td>2</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>790K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-1.26-system</code></td>
+                    <td>Version 1.26 and 1.30 system</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>170K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-1.26-ds-system</code></td>
+                    <td>Version 1.26 and 1.30 DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>350K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-1.42-ds-system</code></td>
+                    <td>Version 1.42 and 1.44 DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>342K</td>
+                </tr>
+            </table>
 
             <h3 id="dir"><code>dir</code></h3>
             <div><pre><code>dir [NAME...]</code></pre>

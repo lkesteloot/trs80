@@ -2,7 +2,7 @@ import {FloppyDisk, SectorPosition} from "./FloppyDisk.js";
 import type {DiskVolume} from "./DiskVolume.js";
 import type {FloppyFileContents} from "./FileDamage.js";
 import {decodeTrsdos, Trsdos} from "./Trsdos.js";
-import {Cpm, decodeCpm} from "./Cpm.js";
+import {Cpm, type CpmLayout, decodeCpm, decodeCpmWithLayout} from "./Cpm.js";
 import {decodeMicroDos, MicroDos} from "./MicroDos.js";
 import {decodeModelIITrsdos, ModelIITrsdos} from "./ModelIITrsdos.js";
 import {decodeTrsdosII, TrsdosII} from "./TrsdosII.js";
@@ -84,14 +84,31 @@ export interface FloppyFileSystem<T extends FloppyDirEntry = FloppyDirEntry> {
 export type KnownFloppyFileSystem = Trsdos | Cpm | MicroDos | ModelIITrsdos | TrsdosII | UcsdPascal | XenixTar;
 
 /**
+ * What a caller of decodeFloppyFileSystem() can tell it about the disk.
+ */
+export interface FloppyFileSystemOptions {
+    /**
+     * The CP/M layout that the user named (see makeCpmLayout()). The disk is then read as CP/M with this layout and
+     * nothing else, even if it would decode as something else without it.
+     */
+    cpmLayout?: CpmLayout | undefined;
+}
+
+/**
  * Decode whichever file system the floppy has, or return undefined if we don't recognize one.
  *
  * @param disk the floppy.
  * @param cpmWholeRecords if true, CP/M files keep their whole 128-byte records instead of
  * ending text files at their first Ctrl-Z. See decodeCpm(). TRSDOS files aren't affected.
+ * @param options what the caller knows about the disk. With a CP/M layout the result is always CP/M.
  */
-export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false):
-    KnownFloppyFileSystem | undefined {
+export function decodeFloppyFileSystem(disk: FloppyDisk, cpmWholeRecords = false,
+                                       options: FloppyFileSystemOptions = {}): KnownFloppyFileSystem | undefined {
+
+    // The user named the layout, so detection has no say. This works for a disk with an empty directory too.
+    if (options.cpmLayout !== undefined) {
+        return decodeCpmWithLayout(disk, {...options.cpmLayout, geometry: disk.getGeometry()}, cpmWholeRecords);
+    }
 
     // The Model II's TRSDOS-II and TRSDOS first: their structures are at known places and their
     // decoders are strict, while the TRSDOS decoder searches the whole disk and can find a

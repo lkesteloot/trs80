@@ -1,7 +1,7 @@
 import {
-    BasicDialect, Cpm, type CpmLayout, CpmWriteBlockerKind, CpmWriteError, CpmWriteErrorKind, type CpmWriteGate,
+    BasicDialect, Cpm, type CpmVerifiedLayout, type CpmLayout, CpmWriteBlockerKind, CpmWriteError, CpmWriteErrorKind, type CpmWriteGate,
     CpmWriter, decodeCpmWithLayout, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition,
-    decodeTrsdosWithLayout, evaluateCpmWriteGate, findCpmFreeBlocks,
+    decodeTrsdosWithLayout, describeCpmWithPreset, evaluateCpmWriteGate, findCpmFreeBlocks,
     evaluateTrsdosWriteGate, findHardDiskPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     compressForName, isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type DecodedPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
@@ -9,6 +9,7 @@ import {
     TrsdosWriteErrorKind, type TrsdosWriteGate, TrsdosWriter, type WritableDiskVolume,
 } from "trs80-base";
 import {assertNever} from "z80-base";
+import {decodeWithCpmFormat} from "./CpmFormatOption.js";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
 import type {DiskTemplateSource} from "./DiskTemplates.js";
 import {pluralizeWithCount} from "./Plural.js";
@@ -386,6 +387,11 @@ export interface DiskSessionOptions {
     dryRun?: boolean | undefined;
     /** The DOS whose rules to write by (--dos), or undefined to go by what the disk says. */
     ruleSet?: TrsdosRuleSet | undefined;
+    /**
+     * The CP/M layout to read a floppy with (--cpm-format), whatever it would be detected as. Only for floppies.
+     * Use resolveCpmFormat() to make it from what the user typed.
+     */
+    cpmFormat?: CpmVerifiedLayout | undefined;
     /** Whether to write despite blockers that can be overridden (--force). */
     force?: boolean | undefined;
     /**
@@ -562,6 +568,12 @@ export class DiskSession {
      * floppy. Set wherever currentFileSystem is.
      */
     private layoutSettled = false;
+    /**
+     * The layout that the user named (--cpm-format) for the floppy's CP/M file system, or undefined if the user
+     * named none (or this isn't a CP/M disk). The saved disk may not be recognized as this layout when opened
+     * again, which is allowed, with a warning (see {@link getSaveWarning}). Cleared by {@link setFloppy}.
+     */
+    private namedCpmFormat: CpmVerifiedLayout | undefined = undefined;
     /** Cache for getGranuleMap(), null until the first call (undefined is a valid result). */
     private granuleMap: TrsdosGranuleMap | string | undefined | null = null;
     /** Cache for getWriteGate(), null until the first call (undefined is a valid result). */
@@ -756,12 +768,39 @@ export class DiskSession {
             throw new DiskError("--partition only applies to hard disks");
         }
 
+        if (options.cpmFormat !== undefined) {
+            return DiskSession.fromFloppyWithCpmFormat(name, trs80File, options.cpmFormat, options);
+        }
+
         const fileSystem = decodeFloppyFileSystem(trs80File);
         if (options.ruleSet !== undefined && !(fileSystem instanceof Trsdos)) {
             throw new DiskError("--dos only applies to TRSDOS-family disks");
         }
 
         return new DiskSession(name, trs80File, fileSystem, options);
+    }
+
+    /**
+     * Open a floppy whose CP/M layout the user named. The layout is settled (the write gate doesn't doubt it), the
+     * session remembers that it was named, and a warning says so if the disk reads as something else without it.
+     *
+     * @throws DiskError if the image can't hold the layout, or --dos is also given (CP/M isn't TRSDOS-family).
+     */
+    private static fromFloppyWithCpmFormat(name: string, floppy: FloppyDisk, cpmFormat: CpmVerifiedLayout,
+                                           options: DiskSessionOptions): DiskSession {
+
+        if (options.ruleSet !== undefined) {
+            throw new DiskError("--dos only applies to TRSDOS-family disks, and --cpm-format makes this a CP/M disk");
+        }
+        const {cpm, warning} = decodeWithCpmFormat(floppy, cpmFormat, false);
+        const session = new DiskSession(name, floppy, cpm, options);
+        session.layoutSettled = true;
+        session.namedCpmFormat = cpmFormat;
+        if (warning !== undefined) {
+            session.warn(warning);
+        }
+
+        return session;
     }
 
     /**
@@ -1069,6 +1108,7 @@ export class DiskSession {
         // A new disk is detected afresh, whatever layout the old one had.
         this.currentFileSystem = decodeFloppyFileSystem(floppy);
         this.layoutSettled = false;
+        this.namedCpmFormat = undefined;
         this.granuleMap = null;
         this.writeGate = null;
         this.cpmWriteGate = null;
@@ -1173,6 +1213,8 @@ export class DiskSession {
     public refreshFileSystem(): void {
         this.currentFileSystem = decodeFloppyFileSystem(this.floppy);
         this.layoutSettled = false;
+        // Detection chose the layout again, so it's no longer the one the user named.
+        this.namedCpmFormat = undefined;
         this.granuleMap = null;
         this.writeGate = null;
         this.cpmWriteGate = null;
@@ -1276,13 +1318,41 @@ export class DiskSession {
             return EMPTY_CPM_SAVE_MESSAGE;
         }
 
-        const reopened = decodeFloppyFileSystem(image);
-        if (!(reopened instanceof Cpm) || !reopened.sameLayout(fileSystem)) {
+        // A layout that the user named is allowed to need the flag again (see getSaveWarning).
+        if (this.namedCpmFormat !== undefined) {
+            return undefined;
+        }
+
+        if (!this.reopensAsSameLayout(fileSystem, image)) {
             return "Can't save: when it's opened again, this disk wouldn't be recognized as " +
                 fileSystem.nameAndVersion + " with its current layout, because too few good directory entries are " +
                 "left to tell. Add a file, or undo the change.";
         }
         return undefined;
+    }
+
+    /**
+     * Whether a fresh decoding of the image, as opening it does, gives the same CP/M layout as the session's.
+     */
+    private reopensAsSameLayout(fileSystem: Cpm, image: FloppyDisk): boolean {
+        const reopened = decodeFloppyFileSystem(image);
+        return reopened instanceof Cpm && reopened.sameLayout(fileSystem);
+    }
+
+    /**
+     * A warning to show when saving, or undefined if there's none. It's for a CP/M disk whose layout the user named
+     * (--cpm-format) and that wouldn't be recognized as that layout when it's opened again, so that the user knows
+     * to name it again.
+     */
+    public getSaveWarning(): string | undefined {
+        const fileSystem = this.currentFileSystem;
+        const image = this.currentImage;
+        const named = this.namedCpmFormat;
+        if (named === undefined || !(fileSystem instanceof Cpm) || !(image instanceof FloppyDisk)) {
+            return undefined;
+        }
+        return this.reopensAsSameLayout(fileSystem, image) ? undefined :
+            `To read this disk again, give --cpm-format ${named.id}.`;
     }
 
     /**
@@ -2084,8 +2154,11 @@ export class DiskSession {
             description += ", no file system found";
         } else {
             // Users don't care about system files.
-            description += ", " + this.fileSystem.nameAndVersion + ", " +
-                pluralizeWithCount(this.fileSystem.getDirEntries(false).length, "file");
+            const fileSystem = this.fileSystem;
+            // A CP/M disk with a verified layout gets its preset's name, which is how users learn it.
+            const name = fileSystem instanceof Cpm ? describeCpmWithPreset(fileSystem) : fileSystem.nameAndVersion;
+            description += ", " + name + ", " +
+                pluralizeWithCount(fileSystem.getDirEntries(false).length, "file");
 
             // The free space is only known for some file systems, and not if the GAT is unreadable.
             const granuleMap = this.getGranuleMap();

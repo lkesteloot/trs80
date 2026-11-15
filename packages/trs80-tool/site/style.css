@@ -143,6 +143,19 @@ table.flags tr + tr td {
     border-top: 1px solid var(--background-highlights);
 }
 
+/* A table of values in columns, such as the CP/M formats, with the numbers right-aligned. */
+table.presets th,
+table.presets td {
+    padding: 0.4em 1em 0.4em 0;
+    text-align: left;
+    white-space: nowrap;
+}
+
+table.presets th:nth-child(n+3),
+table.presets td:nth-child(n+3) {
+    text-align: right;
+}
+
 pre {
     font-size: 14pt;
     padding: 1.3em 2em;
