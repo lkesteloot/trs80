@@ -8,7 +8,8 @@
  */
 
 import {FileDamage, type FloppyFileContents} from "./FileDamage.js";
-import {FloppyDisk, FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
+import type {DiskVolume} from "./DiskVolume.js";
+import {type FloppyDisk, FloppyDiskGeometry, SectorPosition} from "./FloppyDisk.js";
 import type {FloppyDirEntry, FloppyFileSystem} from "./FloppyFileSystem.js";
 import {bytesToText, type DosBanner, findDosBanner, makeSkewTable} from "./DiskUtils.js";
 
@@ -96,6 +97,9 @@ export interface CpmFormat {
     // it's shorter than the others, as on Montezuma's "Super Data" format. Absent means all
     // sectors are the same size (the geometry's modal size).
     readonly lastSectorSize?: number;
+    // The number of blocks that the directory's allocation bitmap (the DPB's AL0 and AL1) reserves,
+    // when that's more than the directory fills. Absent means the directory's blocks.
+    readonly reservedBlockCount?: number;
 }
 
 /**
@@ -169,6 +173,8 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         reservedTrackCounts: [1],
         blockSize: 1024,
         dirEntryCount: 64,
+        // AL0 is F0. See "Holmes Engineering CP/M 2.2" in FLOPPY_FORMATS.md.
+        reservedBlockCount: 4,
     },
     // LNW Research's CP/M 2.2 for the LNW80 (R. M. Stiles's BIOS, "LNW-II ver 2.80"), measured
     // from the disks (see FLOPPY_FORMATS.md). Cylinder 0 is single density; the other two
@@ -508,7 +514,8 @@ interface CpmRecordLocation {
  * A CP/M diskette, as one candidate layout.
  */
 export class Cpm implements FloppyFileSystem<CpmFile> {
-    public readonly disk: FloppyDisk;
+    // What the file system lives on: a floppy, or an overlay laid over one.
+    public readonly disk: DiskVolume;
     public readonly geometry: FloppyDiskGeometry;
     public readonly format: CpmFormat;
     // Sides the file system uses, which may be fewer than the image has.
@@ -535,6 +542,8 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     // Mask of the extent number bits that count logical extents within one entry (EXM).
     public readonly extentMask: number;
     public readonly dirBlockCount: number;
+    // The first block that files can use: the format's reserved blocks, or else the directory's.
+    public readonly firstDataBlock: number;
     public readonly nameAndVersion: string;
     // Files, from all users, in directory order.
     private readonly files: CpmFile[];
@@ -543,15 +552,18 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     public readonly wholeRecords: boolean;
 
     /**
+     * @param disk what the file system lives on.
+     * @param geometry the geometry of the whole disk, which an overlay doesn't have of its own and
+     * which writes never change.
      * @param cylinderCount the cylinders to assume the disk has, which is the geometry's unless the
      * image is truncated.
      */
-    constructor(disk: FloppyDisk, format: CpmFormat, allocationSides: number, reservedTrackCount: number,
-                cylinderCount: number, wholeRecords: boolean) {
+    constructor(disk: DiskVolume, geometry: FloppyDiskGeometry, format: CpmFormat, allocationSides: number,
+                reservedTrackCount: number, cylinderCount: number, wholeRecords: boolean) {
 
         this.disk = disk;
         this.wholeRecords = wholeRecords;
-        this.geometry = disk.getGeometry();
+        this.geometry = geometry;
         this.format = format;
         this.allocationSides = allocationSides;
         this.reservedTrackCount = reservedTrackCount;
@@ -580,6 +592,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         this.wideBlockPointers = this.blockCount > 256;
         this.extentMask = format.blockSize/(this.wideBlockPointers ? 2048 : 1024) - 1;
         this.dirBlockCount = Math.ceil(format.dirEntryCount*DIR_ENTRY_SIZE/format.blockSize);
+        this.firstDataBlock = format.reservedBlockCount ?? this.dirBlockCount;
         this.nameAndVersion = this.findBanner() ?? format.name + " CP/M";
 
         const {files, evaluation} = this.readDirectory();
@@ -607,6 +620,17 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         }
 
         return findDosBanner(CPM_BANNERS, [text]);
+    }
+
+    /**
+     * Whether another decoding has the same layout as this one: the same format (the same object, not
+     * just an equal one), sides, reserved tracks, and cylinder count.
+     */
+    public sameLayout(other: Cpm): boolean {
+        return this.format === other.format &&
+            this.allocationSides === other.allocationSides &&
+            this.reservedTrackCount === other.reservedTrackCount &&
+            this.cylinderCount === other.cylinderCount;
     }
 
     /**
@@ -647,7 +671,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      * Where a record of the data area is, which starts after the reserved tracks and is counted
      * in 128-byte records.
      */
-    private recordLocation(record: number): {position: SectorPosition, offset: number} {
+    public getRecordLocation(record: number): {position: SectorPosition, offset: number} {
         const track = this.reservedTrackCount + Math.floor(record/this.recordsPerTrack);
         const location = this.recordLocations[record % this.recordsPerTrack];
         const position = SectorPosition.make(Math.floor(track/this.allocationSides), track % this.allocationSides,
@@ -658,7 +682,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     /**
      * The records of an allocation block, as indices into the data area.
      */
-    private blockRecords(block: number): number[] {
+    public getBlockRecords(block: number): number[] {
         const records: number[] = [];
         for (let i = 0; i < this.recordsPerBlock; i++) {
             records.push(block*this.recordsPerBlock + i);
@@ -672,7 +696,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      */
     private fileRecords(blocks: number[], recordSize: number): number[] {
         return blocks
-            .flatMap(block => this.blockRecords(block))
+            .flatMap(block => this.getBlockRecords(block))
             .slice(0, Math.ceil(recordSize/RECORD_SIZE));
     }
 
@@ -688,7 +712,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         // Data of each sector read, or undefined if it's missing.
         const sectors = new Map<string, Uint8Array | undefined>();
         for (let i = 0; i < records.length; i++) {
-            const {position, offset} = this.recordLocation(records[i]);
+            const {position, offset} = this.getRecordLocation(records[i]);
             const key = position.key();
             if (!sectors.has(key)) {
                 const sector = this.disk.readSector(position);
@@ -758,7 +782,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
                 sawEnd = true;
             } else if (sawEnd) {
                 return "gap in block list";
-            } else if (block < this.dirBlockCount || block >= this.blockCount) {
+            } else if (block < this.firstDataBlock || block >= this.blockCount) {
                 return `block ${block} out of range`;
             } else {
                 blocks.push(block);
@@ -798,15 +822,79 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     }
 
     /**
+     * The records that hold the directory, which fills the first blocks.
+     */
+    private getDirRecords(): number[] {
+        const dirRecords: number[] = [];
+        for (let block = 0; block < this.dirBlockCount; block++) {
+            dirRecords.push(... this.getBlockRecords(block));
+        }
+        return dirRecords;
+    }
+
+    /**
+     * The raw bytes of the directory, dirEntryCount*32 of them, in slot order. Sectors that can't be
+     * read give zeros, and no damage is recorded.
+     */
+    public readDirectoryBytes(): Uint8Array {
+        return this.readRecords(this.getDirRecords(), undefined).subarray(0, this.format.dirEntryCount*DIR_ENTRY_SIZE);
+    }
+
+    /**
+     * Where a directory slot's 32 bytes are: its sector, and the offset of its first byte in the
+     * sector. A slot never straddles two sectors, since sectors are whole numbers of 128-byte records.
+     *
+     * @param slot the slot number, 0 to dirEntryCount - 1.
+     */
+    public getDirSlotLocation(slot: number): {position: SectorPosition, offset: number} {
+        if (!Number.isInteger(slot) || slot < 0 || slot >= this.format.dirEntryCount) {
+            throw new Error(`Directory slot ${slot} out of range`);
+        }
+        const byteOffset = slot*DIR_ENTRY_SIZE;
+        const {position, offset} = this.getRecordLocation(Math.floor(byteOffset/RECORD_SIZE));
+        return {position, offset: offset + byteOffset % RECORD_SIZE};
+    }
+
+    /**
+     * Whether every sector that holds the directory is present and has no CRC error.
+     */
+    public dirSectorsReadable(): boolean {
+        const recordCount = Math.ceil(this.format.dirEntryCount*DIR_ENTRY_SIZE/RECORD_SIZE);
+        const checked = new Set<string>();
+        for (let record = 0; record < recordCount; record++) {
+            const {position} = this.getRecordLocation(record);
+            const key = position.key();
+            if (!checked.has(key)) {
+                checked.add(key);
+                const sector = this.disk.readSector(position);
+                if (sector === undefined || sector.crcError) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether any directory slot has a user byte that CP/M 3 uses for something other than a file
+     * (16 to 0x21: passwords, the disk label, and date stamps).
+     */
+    public hasCpm3Entries(): boolean {
+        const dir = this.readDirectoryBytes();
+        for (let i = 0; i < this.format.dirEntryCount; i++) {
+            const user = dir[i*DIR_ENTRY_SIZE];
+            if (user > MAX_FILE_USER && user <= MAX_OTHER_USER) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Read the directory, group its entries into files, and evaluate how well this layout fits.
      */
     private readDirectory(): { files: CpmFile[], evaluation: CpmEvaluation } {
-        // The directory fills the first blocks.
-        const dirRecords: number[] = [];
-        for (let block = 0; block < this.dirBlockCount; block++) {
-            dirRecords.push(... this.blockRecords(block));
-        }
-        const dir = this.readRecords(dirRecords, undefined).subarray(0, this.format.dirEntryCount*DIR_ENTRY_SIZE);
+        const dir = this.readDirectoryBytes();
 
         let goodEntryCount = 0;
         let badEntryCount = 0;
@@ -875,7 +963,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         const positions: SectorPosition[] = [];
         const seen = new Set<string>();
         for (const record of this.fileRecords(file.getBlocks(), file.getRecordSize())) {
-            const {position} = this.recordLocation(record);
+            const {position} = this.getRecordLocation(record);
             const key = position.key();
             if (!seen.has(key)) {
                 seen.add(key);
@@ -907,8 +995,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
 /**
  * Generate every layout to try on this disk. See decodeCpm() for wholeRecords.
  */
-function generateCpmCandidates(disk: FloppyDisk, wholeRecords: boolean): Cpm[] {
-    const geometry = disk.getGeometry();
+function generateCpmCandidates(disk: DiskVolume, geometry: FloppyDiskGeometry, wholeRecords: boolean): Cpm[] {
     const candidates: Cpm[] = [];
 
     // The image's own size, then each bigger drive size, in case the image is truncated.
@@ -928,13 +1015,26 @@ function generateCpmCandidates(disk: FloppyDisk, wholeRecords: boolean): Cpm[] {
         for (const allocationSides of [1, 2]) {
             for (const reservedTrackCount of format.reservedTrackCounts) {
                 for (const cylinderCount of cylinderCounts) {
-                    candidates.push(new Cpm(disk, format, allocationSides, reservedTrackCount,
+                    candidates.push(new Cpm(disk, geometry, format, allocationSides, reservedTrackCount,
                         cylinderCount, wholeRecords));
                 }
             }
         }
     }
 
+    return candidates;
+}
+
+/**
+ * Every layout that we try on the disk, best first, whether or not it reads as a CP/M disk at all.
+ * See decodeCpm() for wholeRecords.
+ *
+ * @param disk the floppy, or an overlay over one.
+ * @param geometry the geometry of the whole disk.
+ */
+export function rankCpmCandidates(disk: DiskVolume, geometry: FloppyDiskGeometry, wholeRecords: boolean): Cpm[] {
+    const candidates = generateCpmCandidates(disk, geometry, wholeRecords);
+    candidates.sort((a, b) => a.compareTo(b));
     return candidates;
 }
 
@@ -947,14 +1047,23 @@ function generateCpmCandidates(disk: FloppyDisk, wholeRecords: boolean): Cpm[] {
  * (see findCpmTextEnd()).
  */
 export function decodeCpm(disk: FloppyDisk, wholeRecords = false): Cpm | undefined {
-    const candidates = generateCpmCandidates(disk, wholeRecords);
-
-    // Best first.
-    candidates.sort((a, b) => a.compareTo(b));
-
+    const candidates = rankCpmCandidates(disk, disk.getGeometry(), wholeRecords);
     if (candidates.length === 0) {
         return undefined;
     }
     const best = candidates[0];
     return best.evaluation.score > 0 ? best : undefined;
+}
+
+/**
+ * Decode a disk with the layout of an earlier decoding, without searching, so that a changed
+ * disk is read the way it was before even if it would now rank differently.
+ *
+ * @param disk the floppy, or an overlay over one, whose geometry is the same as like's.
+ * @param like the file system whose format, sides, reserved tracks, and cylinder count to use.
+ * @param wholeRecords see decodeCpm().
+ */
+export function decodeCpmWithLayout(disk: DiskVolume, like: Cpm, wholeRecords: boolean): Cpm {
+    return new Cpm(disk, like.geometry, like.format, like.allocationSides, like.reservedTrackCount,
+        like.cylinderCount, wholeRecords);
 }

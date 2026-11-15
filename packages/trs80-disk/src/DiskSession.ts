@@ -1,5 +1,5 @@
 import {
-    BasicDialect, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosWithLayout,
+    BasicDialect, CpmWriteBlockerKind, type CpmWriteGate, decodeFloppyFileSystem, decodeTrs80File, decodeTrsdosHardDiskPartition, decodeTrsdosWithLayout,
     evaluateTrsdosWriteGate, findHardDiskPartitions, findUnusableFreeGranules, FloppyDisk, hardDiskWriteProtectionMessage, type HdvHardDisk,
     compressForName, isFloppy, isHardDisk,
     type KnownFloppyFileSystem, type DecodedPartition, SectorOverlay, Trsdos, trsdosBasicDialect, TrsdosGranuleMap,
@@ -103,19 +103,45 @@ export type DiskWriteDecision =
     { allowed: false, error: string, errorKind: DiskErrorKind };
 
 /**
+ * One reason that a disk's file system isn't fully writable, in terms that don't depend on the
+ * file system's family.
+ */
+export interface DiskWriteBlocker {
+    /** One or two complete sentences for the user. */
+    message: string;
+
+    /** Whether the user may override this blocker (with --force). */
+    forceable: boolean;
+
+    /** The kind of error for a write refused because of this blocker. */
+    errorKind: DiskErrorKind;
+}
+
+/**
+ * Whether a disk's file system is safe to write, in terms that don't depend on the file system's
+ * family: the TRSDOS gate and the CP/M gate both convert to this.
+ */
+export interface DiskWriteGate {
+    access: TrsdosWriteAccess;
+
+    /** Why the access isn't {@link TrsdosWriteAccess.WRITABLE}. Empty when the disk is writable. */
+    blockers: DiskWriteBlocker[];
+}
+
+/**
  * The kind of error for a write refused because of these blockers: write protection or damage if that's all
  * there is, and otherwise read-only.
  *
  * @param blockers the gate's blockers, at least one.
  */
-export function writeBlockersErrorKind(blockers: TrsdosWriteBlocker[]): DiskErrorKind {
-    const kinds = new Set(blockers.map(blocker => writeBlockerErrorKind(blocker.kind)));
+export function writeBlockersErrorKind(blockers: DiskWriteBlocker[]): DiskErrorKind {
+    const kinds = new Set(blockers.map(blocker => blocker.errorKind));
     const onlyKind = kinds.size === 1 ? kinds.values().next().value : undefined;
     return onlyKind ?? DiskErrorKind.READ_ONLY;
 }
 
 /**
- * The kind of error for a write refused because of one kind of blocker.
+ * The kind of error for a write refused because of one kind of TRSDOS blocker.
  */
 function writeBlockerErrorKind(kind: TrsdosWriteBlockerKind): DiskErrorKind {
     switch (kind) {
@@ -139,16 +165,62 @@ function writeBlockerErrorKind(kind: TrsdosWriteBlockerKind): DiskErrorKind {
 }
 
 /**
+ * The kind of error for a write refused because of one kind of CP/M blocker.
+ */
+function cpmWriteBlockerErrorKind(kind: CpmWriteBlockerKind): DiskErrorKind {
+    switch (kind) {
+        case CpmWriteBlockerKind.WRITE_PROTECTED:
+            return DiskErrorKind.WRITE_PROTECTED;
+        case CpmWriteBlockerKind.DAMAGE:
+            return DiskErrorKind.DAMAGED;
+        case CpmWriteBlockerKind.UNSUPPORTED_LAYOUT:
+        case CpmWriteBlockerKind.CPM3_ENTRIES:
+        case CpmWriteBlockerKind.DIRECTORY_UNREADABLE:
+        case CpmWriteBlockerKind.LAYOUT_DOUBT:
+            return DiskErrorKind.READ_ONLY;
+        default:
+            assertNever(kind);
+    }
+}
+
+/**
+ * Convert a TRSDOS write gate to the family-independent one.
+ */
+export function trsdosWriteGateToDiskWriteGate(gate: TrsdosWriteGate): DiskWriteGate {
+    return {
+        access: gate.access,
+        blockers: gate.blockers.map((blocker: TrsdosWriteBlocker) => ({
+            message: blocker.message,
+            forceable: blocker.forceable,
+            errorKind: writeBlockerErrorKind(blocker.kind),
+        })),
+    };
+}
+
+/**
+ * Convert a CP/M write gate to the family-independent one.
+ */
+export function cpmWriteGateToDiskWriteGate(gate: CpmWriteGate): DiskWriteGate {
+    return {
+        access: gate.access,
+        blockers: gate.blockers.map(blocker => ({
+            message: blocker.message,
+            forceable: blocker.forceable,
+            errorKind: cpmWriteBlockerErrorKind(blocker.kind),
+        })),
+    };
+}
+
+/**
  * Decide whether a command may write to a disk. (Exported for tests.)
  *
- * @param gate the write gate of the disk's TRSDOS-family file system, or undefined if the file
- * system is some other family.
+ * @param gate the write gate of the disk's file system, or undefined if we can't write its family.
  * @param fileSystemName the name and version of the disk's file system, for the message when the gate is
  * undefined.
  * @param purpose why the command wants to write.
  * @param force whether the user gave --force, which overrides every blocker that is forceable.
  */
-export function decideWrite(gate: TrsdosWriteGate | undefined, fileSystemName: string, purpose: DiskWritePurpose,
+export function decideWrite(gate: DiskWriteGate | undefined, fileSystemName: string, purpose: DiskWritePurpose,
                             force: boolean): DiskWriteDecision {
 
     if (gate === undefined) {
@@ -1430,6 +1502,17 @@ export class DiskSession {
     }
 
     /**
+     * The family-independent write gate of the disk's file system, which the checks before a write use.
+     * For now only TRSDOS-family file systems have one.
+     *
+     * @returns the gate, or undefined if we can't write the disk's file system family.
+     */
+    private getDiskWriteGate(): DiskWriteGate | undefined {
+        const trsdosGate = this.getWriteGate();
+        return trsdosGate === undefined ? undefined : trsdosWriteGateToDiskWriteGate(trsdosGate);
+    }
+
+    /**
      * Why the disk's file system can't be written, in one or more sentences, or undefined if it can.
      */
     public getReadOnlyReason(): string | undefined {
@@ -1443,7 +1526,7 @@ export class DiskSession {
         if (this.fileSystem === undefined) {
             return "No file system was found on the disk.";
         }
-        const gate = this.getWriteGate();
+        const gate = this.getDiskWriteGate();
         if (gate === undefined) {
             return "Writing " + this.fileSystem.nameAndVersion + " disks isn't supported.";
         }
@@ -1471,7 +1554,7 @@ export class DiskSession {
             throw new DiskError("Can't find a DOS directory on \"" + this.name + "\"");
         }
 
-        const decision = decideWrite(this.getWriteGate(), this.fileSystem.nameAndVersion, purpose, this.force);
+        const decision = decideWrite(this.getDiskWriteGate(), this.fileSystem.nameAndVersion, purpose, this.force);
         if (!decision.allowed) {
             throw new DiskError(decision.error, decision.errorKind);
         }

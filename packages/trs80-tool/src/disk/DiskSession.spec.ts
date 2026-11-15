@@ -2,12 +2,14 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
-    Density, SectorData, SectorPosition, type TrsdosCheckResult, TrsdosWriteAccess, type TrsdosWriteBlocker,
+    CpmWriteBlockerKind, Density, SectorData, SectorPosition, type TrsdosCheckResult, TrsdosWriteAccess, type TrsdosWriteBlocker,
     TrsdosWriteBlockerKind, type TrsdosWriteGate,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {ToolError} from "../utils.js";
-import {decideWrite, DiskErrorKind, DiskSession, DiskWritePurpose} from "trs80-disk";
+import {
+    cpmWriteGateToDiskWriteGate, decideWrite, type DiskWriteGate, DiskErrorKind, DiskSession, DiskWritePurpose, trsdosWriteGateToDiskWriteGate,
+} from "trs80-disk";
 import {openDiskSession, saveDiskSession, saveAndReport, sessionInputFiles} from "./DiskFiles.js";
 
 const BYTES_PER_SECTOR = 256;
@@ -190,10 +192,12 @@ describe("DiskSession saving", () => {
 });
 
 /**
- * A gate with the given access and blockers, for testing decideWrite(), which doesn't look at the rest.
+ * A gate with the given access and blockers, converted as DiskSession does, for testing decideWrite(),
+ * which doesn't look at the rest.
  */
-function makeGate(access: TrsdosWriteAccess, blockers: TrsdosWriteBlocker[]): TrsdosWriteGate {
-    return { access, blockers, check: {} as TrsdosCheckResult, ruleSet: undefined };
+function makeGate(access: TrsdosWriteAccess, blockers: TrsdosWriteBlocker[]): DiskWriteGate {
+    const trsdosGate: TrsdosWriteGate = { access, blockers, check: {} as TrsdosCheckResult, ruleSet: undefined };
+    return trsdosWriteGateToDiskWriteGate(trsdosGate);
 }
 
 /**
@@ -202,6 +206,24 @@ function makeGate(access: TrsdosWriteAccess, blockers: TrsdosWriteBlocker[]): Tr
 function makeBlocker(kind: TrsdosWriteBlockerKind, message: string, forceable: boolean): TrsdosWriteBlocker {
     return { kind, message, forceable };
 }
+
+describe("cpmWriteGateToDiskWriteGate", () => {
+    it("maps CP/M blocker kinds to error kinds", () => {
+        const kinds = [
+            CpmWriteBlockerKind.UNSUPPORTED_LAYOUT, CpmWriteBlockerKind.CPM3_ENTRIES, CpmWriteBlockerKind.DIRECTORY_UNREADABLE,
+            CpmWriteBlockerKind.WRITE_PROTECTED, CpmWriteBlockerKind.LAYOUT_DOUBT, CpmWriteBlockerKind.DAMAGE,
+        ];
+        const gate = cpmWriteGateToDiskWriteGate({
+            access: TrsdosWriteAccess.READ_ONLY,
+            blockers: kinds.map(kind => ({kind, message: "m", forceable: true})),
+        });
+        expect(gate.access).to.equal(TrsdosWriteAccess.READ_ONLY);
+        expect(gate.blockers.map(blocker => blocker.errorKind)).to.eql([
+            DiskErrorKind.READ_ONLY, DiskErrorKind.READ_ONLY, DiskErrorKind.READ_ONLY,
+            DiskErrorKind.WRITE_PROTECTED, DiskErrorKind.READ_ONLY, DiskErrorKind.DAMAGED,
+        ]);
+    });
+});
 
 describe("decideWrite", () => {
     const damage = makeBlocker(TrsdosWriteBlockerKind.DAMAGE, "It is damaged.", true);

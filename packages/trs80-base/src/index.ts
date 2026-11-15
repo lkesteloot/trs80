@@ -38,6 +38,8 @@ export * from "./TrsdosTestDisk.js";
 export * from "./TrsdosWriteGate.js";
 export * from "./TrsdosWriter.js";
 export * from "./Cpm.js";
+export * from "./CpmWriteGate.js";
+export * from "./CpmTestDisk.js";
 export * from "./MicroDos.js";
 export * from "./ModelIITrsdos.js";
 export * from "./TrsdosII.js";
