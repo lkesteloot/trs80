@@ -62,7 +62,7 @@ export function getDiskFacts(session: DiskSession): DiskFacts {
  * The colors given to files, in order, as the mockup has them. A file's color is the one at its index in the
  * map's legend, wrapping around.
  */
-const FILE_COLORS = [
+export const FILE_COLORS = [
     "#268bd2", "#2aa198", "#859900", "#b58900", "#cb4b16", "#d33682", "#6c71c4",
     "#3f9b70", "#a0682c", "#5d88b8", "#a35fa6", "#2f7f8f", "#7a8f1f", "#c25a5a",
 ];
