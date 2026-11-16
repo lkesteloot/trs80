@@ -1,0 +1,13 @@
+{
+  "name": "trs80-site",
+  "description": "The shared app switcher and the list of apps on www.my-trs-80.com",
+  "exports": "./src/index.ts",
+  "type": "module",
+  "private": true,
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "keywords": [
+    "trs-80"
+  ],
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT"
+}

@@ -35,6 +35,14 @@
     --foreground-secondary: var(--base1);
     --accent-color: var(--red);
     --accent-foreground-color: var(--base3);
+
+    --site-fg: var(--accent-color);
+    --site-menu-fg: var(--foreground-emphasized);
+    --site-muted: var(--foreground-secondary);
+    --site-menu-bg: var(--background);
+    --site-menu-border: var(--base1);
+    --site-menu-hover-bg: var(--background-highlights);
+    --site-accent: var(--accent-color);
 }
 .dark-mode {
     --background: var(--base03);
@@ -44,6 +52,14 @@
     --foreground-secondary: var(--base01);
     --accent-color: var(--cyan);
     --accent-foreground-color: var(--base3);
+
+    --site-fg: var(--accent-color);
+    --site-menu-fg: var(--foreground-emphasized);
+    --site-muted: var(--foreground-secondary);
+    --site-menu-bg: var(--background);
+    --site-menu-border: var(--base01);
+    --site-menu-hover-bg: var(--background-highlights);
+    --site-accent: var(--accent-color);
 }
 
 * {
@@ -137,12 +153,8 @@ i.material-icons-round {
     align-items: center;
 }
 
-.navbar .home-button:link,
-.navbar .home-button:visited,
-.navbar .home-button:active {
+.navbar .trs80-site-switcher {
     grid-area: home-button;
-    color: var(--accent-color);
-    text-decoration: none;
 }
 
 .navbar .library-button {

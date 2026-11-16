@@ -17,6 +17,7 @@ import {
 } from "trs80-cassette";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import { CassetteSpeed } from "trs80-base";
+import {createSiteSwitcher} from "trs80-site";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -513,6 +514,9 @@ function handleNewLocation() {
 export function main() {
     console.log("Build hash: " + BUILD_GIT_HASH);
     console.log("Build date: " + new Date(BUILD_DATE*1000));
+
+    const siteSwitcher = document.getElementById("site-switcher") as HTMLElement;
+    siteSwitcher.append(createSiteSwitcher("cassette"));
 
     showScreen("drop_screen");
 

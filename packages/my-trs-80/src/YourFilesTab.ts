@@ -116,7 +116,7 @@ export class YourFilesTab extends PageTab {
         this.emptyTitle = document.createElement("h2");
         this.emptyBody = document.createElement("article");
         const demon = document.createElement("img");
-        demon.src = "/demon.png";
+        demon.src = import.meta.env.BASE_URL + "demon.png";
         this.emptyLibrary.append(this.emptyTitle, this.emptyBody, demon);
 
         // Register for changes to library.

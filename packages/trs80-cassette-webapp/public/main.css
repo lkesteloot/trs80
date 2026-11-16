@@ -29,6 +29,13 @@
     --foreground-secondary: var(--base1);
     --accent-color: var(--red);
     --accent-foreground-color: var(--base3);
+
+    --site-fg: var(--foreground);
+    --site-muted: var(--foreground-secondary);
+    --site-menu-bg: var(--background);
+    --site-menu-border: var(--foreground-secondary);
+    --site-menu-hover-bg: var(--background-highlights);
+    --site-accent: var(--accent-color);
 }
 .dark-mode {
     --background: var(--base03);
@@ -38,6 +45,13 @@
     --foreground-secondary: var(--base01);
     --accent-color: var(--red);
     --accent-foreground-color: var(--base3);
+
+    --site-fg: var(--foreground);
+    --site-muted: var(--foreground-secondary);
+    --site-menu-bg: var(--background);
+    --site-menu-border: var(--foreground-secondary);
+    --site-menu-hover-bg: var(--background-highlights);
+    --site-accent: var(--accent-color);
 }
 body {
     margin: 0;
@@ -98,7 +112,8 @@ textarea, input[type=text] {
     background-color: var(--background-highlights);
     padding: 5px var(--horiz-margin);
 }
-.navbar h1 {
+.navbar h1,
+#site-switcher {
     font-size: 20pt;
     font-weight: 100;
     color: var(--foreground);

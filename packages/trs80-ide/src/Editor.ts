@@ -905,7 +905,7 @@ export class Editor {
     private updateName() {
         const title = document.head.querySelector("title");
         if (title !== null) {
-            title.textContent = "TRS-80 IDE - " + this.getName();
+            title.textContent = this.getName() + " · IDE · my-trs-80";
         }
     }
 

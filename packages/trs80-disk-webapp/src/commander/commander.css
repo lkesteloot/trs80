@@ -5,6 +5,15 @@
     --mark: #cb4b16; --disk: #268bd2; --head: #2aa198; --dlg: #eee8d5; --err: #dc322f; --ok: #859900; --warn: #b58900;
     --key-bg: #073642; --key-fg: #93a1a1;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+    /* The site switcher (trs80-site). These are all on :root, so they follow the theme's values. */
+    --site-font: var(--mono);
+    --site-fg: var(--head);
+    --site-muted: var(--fg-muted);
+    --site-menu-bg: var(--bg);
+    --site-menu-border: var(--line);
+    --site-menu-hover-bg: var(--hl);
+    --site-accent: var(--head);
     color-scheme: light;
 }
 :root[data-theme="dark"] {
@@ -119,7 +128,6 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 .viewer pre { margin: 0; padding: 10px 14px; overflow: auto; font: inherit; color: var(--fg-strong); }
 .screen { background: #0b1a10; color: #8cf5a6; text-shadow: 0 0 6px rgba(140,245,166,.45); font-size: 16px; line-height: 1.3; padding: 20px 26px; }
 
-.title a { color: var(--head); }
 .fkeys button:disabled { cursor: default; }
 .panel.over { border-color: var(--warn); }
 

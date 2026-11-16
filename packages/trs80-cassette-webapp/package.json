@@ -29,6 +29,7 @@
     "trs80-cassette-player": "*",
     "trs80-emulator": "*",
     "trs80-emulator-web": "*",
+    "trs80-site": "*",
     "z80-base": "*"
   }
 }

@@ -1,12 +1,13 @@
 # Deploying www.my-trs-80.com
 
-The site is a Cloudflare Worker that serves static files: my-trs-80 at the
-root, plus trs80-cassette-webapp at `/cassette`, trs80-ide at `/ide`,
-trs80-disk-webapp's two pages at `/disk` and `/commander` (their shared files
-are in `/disk-assets`), and trs80-tool's documentation at `/tool`. The
-trs80-tool binaries aren't part of it. They're attached to GitHub Releases
-(see `release-trs80-tool` in `.github/workflows/build.yml`), and `_redirects`
-sends the old download URLs there.
+The site is a Cloudflare Worker that serves static files: trs80-landing-webapp
+at the root, plus my-trs-80 at `/library`, trs80-cassette-webapp at
+`/cassette`, trs80-ide at `/ide`, trs80-disk-webapp's two pages at `/disk` and
+`/commander` (their shared files are in `/disk-assets`), and trs80-tool's
+documentation at `/tool`. The trs80-tool binaries aren't part of it. They're
+attached to GitHub Releases (see `release-trs80-tool` in
+`.github/workflows/build.yml`), and `_redirects` sends the old download URLs
+there.
 
 ## Staging and production
 

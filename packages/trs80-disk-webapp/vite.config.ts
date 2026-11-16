@@ -10,7 +10,8 @@ export default defineConfig({
     base: "/",
     build: {
         // Shared chunks go in dist/disk-assets rather than dist/assets, because deploy/my-trs-80
-        // merges this app's dist into the site next to my-trs-80's own site/assets.
+        // merges this app's dist into the site next to the landing page's own site/assets.
+        // (my-trs-80's assets are under site/library, so they don't conflict.)
         assetsDir: "disk-assets",
         rolldownOptions: {
             input: {
