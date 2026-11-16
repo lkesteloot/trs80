@@ -181,19 +181,11 @@
 
             <p id="gzip"><strong>Gzipped files.</strong> A file name that ends in <code>.gz</code> is read
             decompressed and written compressed, for every command and every kind of file: the tool reads
-            <code>game.dmk.gz</code> as the <code>game.dmk</code> inside it (the rest of the name says what kind
-            of file it is, and <code>foo.gz</code> is treated like a file with no extension), and writes a
-            file compressed when you name it with <code>.gz</code>.
-            <code>convert in.3bn.gz out.cmd</code> writes a plain <code>.cmd</code>, and
-            <code>convert in.3bn out.cmd.gz</code> a compressed one. The name decides, not the contents:
-            a <code>.gz</code> file that isn’t gzip data is an error, and gzip data under any other name is
-            not decompressed (a JV1 image has no header to recognize, so the tool never guesses). Changes
-            made in place, such as <code>disk game.dmk.gz add HELLO.BAS</code>, are written back
-            compressed, so the image inside comes out as the edit made it even though the compressed bytes
-            may differ from the original’s. <code>info</code> and <code>info --json</code> report the size and
-            SHA-256 of the file inside. Files that the tool names itself, such as the ones
-            <code>extract</code> writes into a directory, are always written plain; <code>extract --as</code>
-            uses the name you give it. <code>.zip</code> files aren’t supported.</p>
+            <code>game.dmk.gz</code> as the <code>game.dmk</code> inside it, and writes a
+            file compressed when you name it with <code>.gz</code>. This is especially useful for hard disk
+            images (<code>.hdv.gz</code>), since they're large and compress well:</li>
+
+            <div><pre><code>% trs80-tool disk large.hdv.gz add newfile.txt</code></pre></div>
 
             <h2 id="usage">Usage</h2>
             <p>The tool takes a command as its first argument:</p>
@@ -997,6 +989,41 @@ vtos301.dmk: Floppy disk (DMK), VTOS 3.0.1
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+
+            <h3 id="2026-11-15">November 15, 2026</h3>
+            <ul>
+                <li>The site has a new <a href="/">home page</a> that lists its apps, and a menu at the top
+                    of each app goes to the others. My TRS-80’s library moves to
+                    <a href="/library/"><code>/library</code></a>.</li>
+                <li>A new <a href="/disk/">disk workbench</a> opens floppy and hard disk images
+                    and shows their files, map, health, and history. It adds, extracts, renames,
+                    and deletes files, and boots the disk in the emulator.</li>
+                <li>A new <a href="/commander/">two-panel file manager</a> copies files
+                    between disks and folders, and lets you drag files in and out of the page.</li>
+                <li><code>trs80-tool</code> v5.2.0:
+                    <ul>
+                        <li><a href="disk.html#cpm"><code>disk</code></a> writes to CP/M disks:
+                            <code>add</code>, <code>kill</code>, <code>rename</code>, <code>attrib</code>,
+                            and <code>free</code> work on Montezuma Micro CP/M 2.2 disks, and on the other
+                            systems’ layouts in <a href="disk.html#cpm-formats">the table of CP/M
+                            formats</a>.</li>
+                        <li><a href="disk.html#create-cpm"><code>disk create cpm</code></a> and
+                            <code>format cpm</code> make blank Montezuma CP/M disks, or system disks with
+                            Montezuma CP/M 2.32.</li>
+                        <li><code>--cpm-format</code> names a CP/M disk’s layout instead of leaving the tool
+                            to work it out, for <code>dir</code>, <code>info</code>, <code>extract</code>,
+                            <code>disk</code>, and the MCP tools.</li>
+                        <li>Recognizes Montezuma CP/M disks with no files, and reads the formats of Super
+                            Data, Lifeboat, Holmes Engineering, Aton, and Radio Shack CP/M Plus.</li>
+                        <li>Reads NEWDOS/80 hard disk partitions.</li>
+                        <li><a href="disk.html#map"><code>disk map</code></a> draws hard disk
+                            partitions.</li>
+                        <li>Every command reads and writes <a href="#gzip">gzipped files</a>, such as
+                            <code>game.dmk.gz</code>. This is especially useful for hard disk
+                            images (<code>.hdv.gz</code>), since they're large and compress well.</li>
+                    </ul>
+                </li>
+            </ul>
 
             <h3 id="2026-11-12">November 12, 2026</h3>
             <ul>

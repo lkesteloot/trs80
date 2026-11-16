@@ -84,6 +84,11 @@
                 <li><a href="#prompt">The prompt and scripts</a></li>
                 <li><a href="#json">JSON output</a></li>
                 <li><a href="#hard-disks">Hard disks</a></li>
+                <li><a href="#cpm">CP/M disks</a>
+                    <ul>
+                        <li><a href="#cpm-formats">CP/M formats</a></li>
+                    </ul>
+                </li>
             </ul>
 
             <h2 id="options">Options</h2>
@@ -120,7 +125,7 @@
                 <tr>
                     <td><code>--cpm-format NAME</code></td>
                     <td>Read a CP/M floppy with the named layout, whatever it would be detected as, and write by
-                        it. The names are in <a href="#cpm-formats">the table below</a>, and <code>help
+                        it. The names are in <a href="#cpm-formats">the table of CP/M formats</a>, and <code>help
                         cpm-format</code> lists them. Unlike detection it works on a disk with no files. Put it
                         before the first command.</td>
                 </tr>
@@ -142,236 +147,8 @@
             <p>Each command can be given after the image or typed at the prompt. In the summaries,
             brackets mark what can be left out, and <code>...</code> means one or more.</p>
 
-            <p><strong>CP/M disks.</strong> <code>add</code>, <code>kill</code>, <code>rename</code>,
-            <code>attrib</code> and <code>free</code> also work on CP/M disks in the layouts whose disk parameters
-            were checked against a real system: Montezuma Micro CP/M 2.2’s (the 12 formats that Montezuma’s PROBE
-            program describes, its 1.26, 1.30, 1.42 and 1.44 formats, and Super Data), and one or two formats each of
-            Lifeboat CP/M 1.4, Holmes Engineering CP/M 2.2, Radio Shack CP/M Plus, and Lifeboat and Aton CP/M 2.2 for the
-            Model II. A CP/M disk doesn’t say what its layout is, so
-            the tool works it out from the directory; if two layouts read the disk equally well, or the directory
-            is damaged, the disk is refused unless you give <code>--force</code> (and it’s refused for good if
-            the layout isn’t one of those, or a directory sector can’t be read, or the directory has CP/M 3 entries).
-            Every other CP/M disk is read but not written yet. Files you add go in user 0. <code>kill</code>,
-            <code>rename</code> and <code>attrib</code> find files of every user by name, and a name that belongs to
-            files of more than one user is an error that names the users. CP/M names are 1 to 8 characters and
-            an extension of 0 to 3, and CP/M records sizes in whole 128-byte records. CP/M 2.2 has no dates,
-            passwords or protection levels, and <code>label</code> and <code>repair</code> don’t apply to it. You can remove a CP/M
-            disk’s last file, and add to it again. A Montezuma disk with no files, whether it was just formatted or
-            had its files removed, is recognized when it’s opened, from its geometry, its sectors numbered from 1,
-            and its first sector, as long as nothing else recognizes it first. If more than one layout fits, which
-            happens with a system disk that has no banner, the first is used and writing to it needs
-            <code>--cpm-format</code> to settle which. An empty disk that isn’t recognized, such as a system format
-            whose first sector is all 0xE5, is refused when you save, because it couldn’t be recognized when it’s
-            opened again, unless you named the layout with <code>--cpm-format</code> (which then warns you to name it
-            again), or you add a file before saving. Empty disks of the other systems aren’t recognized.</p>
-
-            <p id="cpm-formats"><strong>CP/M formats.</strong> <code>--cpm-format NAME</code> names the layout
-            instead of leaving the tool to work it out. The disk is then read with that layout, even if it would
-            have been read as something else (the tool says what it would have found), and a layout that was
-            in doubt needs no <code>--force</code>. The image has to be able to hold the layout, with the same
-            sector size and sectors per track, and two sides if the layout uses two. An image with more
-            cylinders than the layout has is fine. If a saved disk wouldn’t be recognized as that layout when
-            it’s opened again, which is allowed when you named the layout, the tool says so after saving and
-            tells you which name to give next time. <code>dir</code>, <code>info</code>, and
-            <code>extract</code> take the same option, and so do the MCP tools. The names are the layouts in the
-            table, grouped by the system whose disk parameters verified them, and <code>info</code> shows the name of
-            the one in use. <code>mm-1.26-system</code>, <code>mm-1.26-ds-system</code>, and <code>mm-1.42-ds-system</code>
-            are the earlier versions’ formats. Only Montezuma’s can be made for now, and not Super Data:
-            <code>create cpm</code> and <code>format cpm</code> refuse the others.</p>
-
-            <table class="flags presets">
-                <tr>
-                    <th>Name</th>
-                    <th>Format</th>
-                    <th>Sides</th>
-                    <th>Cylinders</th>
-                    <th>Sectors</th>
-                    <th>Capacity</th>
-                </tr>
-                <tr class="group">
-                    <th colspan="6">Montezuma Micro CP/M 2.2 (Model 4)</th>
-                </tr>
-                <tr>
-                    <td><code>mm-system</code></td>
-                    <td>Standard system</td>
-                    <td>1</td>
-                    <td>40</td>
-                    <td>18 × 256</td>
-                    <td>170K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-data</code></td>
-                    <td>Standard data</td>
-                    <td>1</td>
-                    <td>40</td>
-                    <td>10 × 512</td>
-                    <td>200K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-ds-system</code></td>
-                    <td>Standard DS system</td>
-                    <td>2</td>
-                    <td>40</td>
-                    <td>18 × 256</td>
-                    <td>350K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-ds-data</code></td>
-                    <td>Standard DS data</td>
-                    <td>2</td>
-                    <td>40</td>
-                    <td>10 × 512</td>
-                    <td>400K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-80-system</code></td>
-                    <td>80T system</td>
-                    <td>1</td>
-                    <td>80</td>
-                    <td>18 × 256</td>
-                    <td>350K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-80-data</code></td>
-                    <td>80T data</td>
-                    <td>1</td>
-                    <td>80</td>
-                    <td>10 × 512</td>
-                    <td>400K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-80-ds-system</code></td>
-                    <td>80T DS system</td>
-                    <td>2</td>
-                    <td>80</td>
-                    <td>18 × 256</td>
-                    <td>710K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-80-ds-data</code></td>
-                    <td>80T DS data</td>
-                    <td>2</td>
-                    <td>80</td>
-                    <td>10 × 512</td>
-                    <td>800K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-ext-system</code></td>
-                    <td>Extended system</td>
-                    <td>1</td>
-                    <td>40</td>
-                    <td>10 × 512</td>
-                    <td>190K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-ext-ds-system</code></td>
-                    <td>Extended DS system</td>
-                    <td>2</td>
-                    <td>40</td>
-                    <td>10 × 512</td>
-                    <td>390K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-ext-80-system</code></td>
-                    <td>Extended 80T system</td>
-                    <td>1</td>
-                    <td>80</td>
-                    <td>10 × 512</td>
-                    <td>390K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-ext-80-ds-system</code></td>
-                    <td>Extended 80T DS system</td>
-                    <td>2</td>
-                    <td>80</td>
-                    <td>10 × 512</td>
-                    <td>790K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-1.26-system</code></td>
-                    <td>Version 1.26 and 1.30 system</td>
-                    <td>1</td>
-                    <td>40</td>
-                    <td>18 × 256</td>
-                    <td>170K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-1.26-ds-system</code></td>
-                    <td>Version 1.26 and 1.30 DS system</td>
-                    <td>2</td>
-                    <td>40</td>
-                    <td>18 × 256</td>
-                    <td>350K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-1.42-ds-system</code></td>
-                    <td>Version 1.42 and 1.44 DS system</td>
-                    <td>2</td>
-                    <td>40</td>
-                    <td>18 × 256</td>
-                    <td>342K</td>
-                </tr>
-                <tr>
-                    <td><code>mm-superdata</code></td>
-                    <td>Super Data</td>
-                    <td>1</td>
-                    <td>40</td>
-                    <td>5 × 1024 + 512</td>
-                    <td>220K</td>
-                </tr>
-                <tr class="group">
-                    <th colspan="6">Lifeboat CP/M 1.4 (Model I)</th>
-                </tr>
-                <tr>
-                    <td><code>lb-system</code></td>
-                    <td>35-track system</td>
-                    <td>1</td>
-                    <td>35</td>
-                    <td>18 × 128</td>
-                    <td>72K</td>
-                </tr>
-                <tr class="group">
-                    <th colspan="6">Holmes Engineering CP/M 2.2 (Model I)</th>
-                </tr>
-                <tr>
-                    <td><code>holmes-system</code></td>
-                    <td>System</td>
-                    <td>1</td>
-                    <td>40</td>
-                    <td>10 × 512</td>
-                    <td>195K</td>
-                </tr>
-                <tr class="group">
-                    <th colspan="6">Radio Shack CP/M Plus (Model 4)</th>
-                </tr>
-                <tr>
-                    <td><code>cpm3-system</code></td>
-                    <td>System</td>
-                    <td>1</td>
-                    <td>40</td>
-                    <td>8 × 512</td>
-                    <td>156K</td>
-                </tr>
-                <tr class="group">
-                    <th colspan="6">Lifeboat and Aton CP/M 2.2 (Model II)</th>
-                </tr>
-                <tr>
-                    <td><code>lb-m2-system</code></td>
-                    <td>Lifeboat 2.24A, Aton</td>
-                    <td>1</td>
-                    <td>77</td>
-                    <td>8 × 1024</td>
-                    <td>600K</td>
-                </tr>
-                <tr>
-                    <td><code>lb-m2-ds-system</code></td>
-                    <td>Lifeboat 2.24A, Aton DS</td>
-                    <td>2</td>
-                    <td>77</td>
-                    <td>8 × 1024</td>
-                    <td>1216K</td>
-                </tr>
-            </table>
+            <p>Most commands work on CP/M disks too, with some differences; see
+            <a href="#cpm">CP/M disks</a>.</p>
 
             <h3 id="dir"><code>dir</code></h3>
             <div><pre><code>dir [NAME...]</code></pre>
@@ -1394,6 +1171,239 @@ Deleted partition 1 (HARDA). Its space (cylinders 0-139, heads 0-5) is free. The
             aren’t read at all yet; and the HDV
             version 2 format. A write-protected HDV (its header’s flag) can be written only with <code>--force</code>,
             and the saved image keeps its flag.</p>
+
+            <h2 id="cpm">CP/M disks</h2>
+            <p><a href="#add"><code>add</code></a>, <a href="#kill"><code>kill</code></a>, <a href="#rename"><code>rename</code></a>,
+            <a href="#attrib"><code>attrib</code></a> and <a href="#free"><code>free</code></a> work on CP/M disks in the layouts whose disk parameters
+            were checked against a real system: Montezuma Micro CP/M 2.2’s (the 12 formats that Montezuma’s PROBE
+            program describes, its 1.26, 1.30, 1.42 and 1.44 formats, and Super Data), and one or two formats each of
+            Lifeboat CP/M 1.4, Holmes Engineering CP/M 2.2, Radio Shack CP/M Plus, and Lifeboat and Aton CP/M 2.2 for the
+            Model II. A CP/M disk doesn’t say what its layout is, so
+            the tool works it out from the directory; if two layouts read the disk equally well, or the directory
+            is damaged, the disk is refused unless you give <code>--force</code> (and it’s refused for good if
+            the layout isn’t one of those, or a directory sector can’t be read, or the directory has CP/M 3 entries).
+            Every other CP/M disk is read but not written yet. Files you add go in user 0. <code>kill</code>,
+            <code>rename</code> and <code>attrib</code> find files of every user by name, and a name that belongs to
+            files of more than one user is an error that names the users. CP/M names are 1 to 8 characters and
+            an extension of 0 to 3, and CP/M records sizes in whole 128-byte records. CP/M 2.2 has no dates,
+            passwords or protection levels, and <code>label</code> and <code>repair</code> don’t apply to it. You can remove a CP/M
+            disk’s last file, and add to it again. A Montezuma disk with no files, whether it was just formatted or
+            had its files removed, is recognized when it’s opened, from its geometry, its sectors numbered from 1,
+            and its first sector, as long as nothing else recognizes it first. If more than one layout fits, which
+            happens with a system disk that has no banner, the first is used and writing to it needs
+            <code>--cpm-format</code> to settle which. An empty disk that isn’t recognized, such as a system format
+            whose first sector is all 0xE5, is refused when you save, because it couldn’t be recognized when it’s
+            opened again, unless you named the layout with <code>--cpm-format</code> (which then warns you to name it
+            again), or you add a file before saving. Empty disks of the other systems aren’t recognized.</p>
+
+            <h3 id="cpm-formats">CP/M formats</h3>
+            <p><code>--cpm-format NAME</code> names the layout
+            instead of leaving the tool to work it out. The disk is then read with that layout, even if it would
+            have been read as something else (the tool says what it would have found), and a layout that was
+            in doubt needs no <code>--force</code>. The image has to be able to hold the layout, with the same
+            sector size and sectors per track, and two sides if the layout uses two. An image with more
+            cylinders than the layout has is fine. If a saved disk wouldn’t be recognized as that layout when
+            it’s opened again, which is allowed when you named the layout, the tool says so after saving and
+            tells you which name to give next time. <code>dir</code>, <code>info</code>, and
+            <code>extract</code> take the same option, and so do the MCP tools. The names are the layouts in the
+            table, grouped by the system whose disk parameters verified them, and <code>info</code> shows the name of
+            the one in use. <code>mm-1.26-system</code>, <code>mm-1.26-ds-system</code>, and <code>mm-1.42-ds-system</code>
+            are the earlier versions’ formats. Only Montezuma’s can be made for now, and not Super Data:
+            <code>create cpm</code> and <code>format cpm</code> refuse the others.</p>
+
+            <table class="flags presets">
+                <tr>
+                    <th>Name</th>
+                    <th>Format</th>
+                    <th>Sides</th>
+                    <th>Cylinders</th>
+                    <th>Sectors</th>
+                    <th>Capacity</th>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Montezuma Micro CP/M 2.2 (Model 4)</th>
+                </tr>
+                <tr>
+                    <td><code>mm-system</code></td>
+                    <td>Standard system</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>170K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-data</code></td>
+                    <td>Standard data</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>200K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ds-system</code></td>
+                    <td>Standard DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>350K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ds-data</code></td>
+                    <td>Standard DS data</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>400K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-system</code></td>
+                    <td>80T system</td>
+                    <td>1</td>
+                    <td>80</td>
+                    <td>18 × 256</td>
+                    <td>350K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-data</code></td>
+                    <td>80T data</td>
+                    <td>1</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>400K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-ds-system</code></td>
+                    <td>80T DS system</td>
+                    <td>2</td>
+                    <td>80</td>
+                    <td>18 × 256</td>
+                    <td>710K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-80-ds-data</code></td>
+                    <td>80T DS data</td>
+                    <td>2</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>800K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-system</code></td>
+                    <td>Extended system</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>190K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-ds-system</code></td>
+                    <td>Extended DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>390K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-80-system</code></td>
+                    <td>Extended 80T system</td>
+                    <td>1</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>390K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-ext-80-ds-system</code></td>
+                    <td>Extended 80T DS system</td>
+                    <td>2</td>
+                    <td>80</td>
+                    <td>10 × 512</td>
+                    <td>790K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-1.26-system</code></td>
+                    <td>Version 1.26 and 1.30 system</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>170K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-1.26-ds-system</code></td>
+                    <td>Version 1.26 and 1.30 DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>350K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-1.42-ds-system</code></td>
+                    <td>Version 1.42 and 1.44 DS system</td>
+                    <td>2</td>
+                    <td>40</td>
+                    <td>18 × 256</td>
+                    <td>342K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-superdata</code></td>
+                    <td>Super Data</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>5 × 1024 + 512</td>
+                    <td>220K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Lifeboat CP/M 1.4 (Model I)</th>
+                </tr>
+                <tr>
+                    <td><code>lb-system</code></td>
+                    <td>35-track system</td>
+                    <td>1</td>
+                    <td>35</td>
+                    <td>18 × 128</td>
+                    <td>72K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Holmes Engineering CP/M 2.2 (Model I)</th>
+                </tr>
+                <tr>
+                    <td><code>holmes-system</code></td>
+                    <td>System</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>195K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Radio Shack CP/M Plus (Model 4)</th>
+                </tr>
+                <tr>
+                    <td><code>cpm3-system</code></td>
+                    <td>System</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>8 × 512</td>
+                    <td>156K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Lifeboat and Aton CP/M 2.2 (Model II)</th>
+                </tr>
+                <tr>
+                    <td><code>lb-m2-system</code></td>
+                    <td>Lifeboat 2.24A, Aton</td>
+                    <td>1</td>
+                    <td>77</td>
+                    <td>8 × 1024</td>
+                    <td>600K</td>
+                </tr>
+                <tr>
+                    <td><code>lb-m2-ds-system</code></td>
+                    <td>Lifeboat 2.24A, Aton DS</td>
+                    <td>2</td>
+                    <td>77</td>
+                    <td>8 × 1024</td>
+                    <td>1216K</td>
+                </tr>
+            </table>
         </section>
     </body>
 </html>
