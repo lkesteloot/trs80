@@ -122,19 +122,21 @@ export class DiskHeader {
     }
 
     /**
-     * Make the Save button, whose label says what it will do.
+     * Make the Save button, whose label says what it will do. Download is always on, since the disk may never
+     * have been downloaded (a sample, a new disk, or a disk dropped on the page), and downloading does no harm;
+     * Save, which writes back to the file, is on only when there are changes to write.
      */
     private makeSave(disk: OpenDisk): HTMLElement {
         const download = disk.saveKind === SaveKind.DOWNLOAD;
         const button = makeButton(download ? "Download" : "Save", () => this.host.save(disk), "primary");
         const hasChanges = disk.session.hasChanges();
-        button.disabled = !hasChanges;
-        if (!hasChanges) {
-            button.title = "There are no unsaved changes.";
-        } else if (download) {
-            button.title = "This browser can't write back to the file, so this downloads the disk image.";
-        } else {
+        if (download) {
+            button.title = "Download the disk image as " + disk.name + ".";
+        } else if (hasChanges) {
             button.title = "Write the changes back to " + disk.name + ".";
+        } else {
+            button.disabled = true;
+            button.title = "There are no unsaved changes.";
         }
         return button;
     }
