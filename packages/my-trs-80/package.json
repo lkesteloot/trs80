@@ -7,7 +7,7 @@
     "prestart": "npm run generateRoms -w trs80-emulator",
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run generateRoms -w trs80-emulator && npm run updateBuildInfo && vite build",
+    "build": "npm run generateRoms -w trs80-emulator && npm run updateBuildInfo && vite build --base=/library/",
     "clean": "rm -rf dist"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
@@ -30,6 +30,7 @@
     "trs80-cassette-player": "*",
     "trs80-emulator": "*",
     "trs80-emulator-web": "*",
+    "trs80-site": "*",
     "z80-base": "*"
   }
 }

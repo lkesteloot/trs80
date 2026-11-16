@@ -13,8 +13,9 @@ own folder and package name, but none is built on its own:
 - Each library's `package.json` has `"exports": "./src/index.ts"`, and depends on
   our other packages with the version `"*"`. To add one, edit `dependencies` by
   hand, then run `npm install`.
-- vite 8 builds the three web apps (`my-trs-80`, `trs80-cassette-webapp`,
-  `trs80-ide`) and serves fp-215's test page. esbuild bundles trs80-tool into
+- vite 8 builds the five web apps (`my-trs-80`, `trs80-landing-webapp`,
+  `trs80-cassette-webapp`, `trs80-disk-webapp`, and `trs80-ide`) and serves
+  fp-215's test page. esbuild bundles trs80-tool into
   `packages/trs80-tool/dist/trs80-tool.cjs`. Vitest runs the tests, and tsx runs
   the code generators. All of them compile the other packages straight from source.
 - Type checking happens only in the root `tsconfig.json`, which covers every

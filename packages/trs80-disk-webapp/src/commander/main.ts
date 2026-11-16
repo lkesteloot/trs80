@@ -1,4 +1,5 @@
 import "../core/preview/preview.css";
+import {createSiteSwitcher} from "trs80-site";
 import {initTheme} from "../theme.js";
 import {Commander} from "./Commander.js";
 
@@ -22,6 +23,8 @@ function labelThemeButton(): void {
  * Wire up the page.
  */
 function main(): void {
+    const siteSwitcher = document.getElementById("site-switcher") as HTMLElement;
+    siteSwitcher.append(createSiteSwitcher("commander"));
     initTheme("commander-theme", "themeBtn");
     labelThemeButton();
     new Commander();

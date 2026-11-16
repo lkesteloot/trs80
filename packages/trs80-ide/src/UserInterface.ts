@@ -1,6 +1,6 @@
 import {breakdwn} from "./breakdwn";
 import {scarfman} from "./scarfman";
-import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
+import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand, MenuParent} from "./Menubar";
 import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
@@ -12,6 +12,7 @@ import {BUILD_DATE, BUILD_GIT_HASH} from "./build";
 import {Settings} from "./Settings";
 import {SCREEN_SIZES} from "./ScreenSize";
 import {downloadBlob} from "trs80-emulator-web";
+import {isSiteTool, SITE_APPS, SITE_HOME_PATH, SITE_NAME} from "trs80-site";
 
 // File System Access API permission methods (WICG, not yet in TS DOM lib).
 declare global {
@@ -210,6 +211,48 @@ function showAboutDialogBox() {
     dialog.showModal();
 }
 
+/**
+ * Make the leftmost menu, "my-trs-80 / IDE", which goes to the site's home page or to the other
+ * apps on the site. The IDE's own entry is checked and does nothing.
+ */
+function makeSiteMenu(): MenuParent {
+    const menu: Menu = [
+        {
+            text: SITE_NAME + " Home",
+            action: () => {
+                window.location.href = SITE_HOME_PATH;
+            },
+        },
+        {
+            separator: true,
+        },
+    ];
+
+    for (const app of SITE_APPS) {
+        if (isSiteTool(app)) {
+            menu.push({
+                separator: true,
+            });
+        }
+
+        const isCurrent = app.id === "ide";
+        menu.push({
+            text: app.name,
+            checked: isCurrent,
+            action: () => {
+                if (!isCurrent) {
+                    window.location.href = app.path;
+                }
+            },
+        });
+    }
+
+    return {
+        text: SITE_NAME + " / IDE",
+        menu,
+    };
+}
+
 // Everything related to the menus and the top-level UI.
 export class UserInterface {
     private readonly settings: Settings;
@@ -221,6 +264,7 @@ export class UserInterface {
 
         // Pull-down menu.
         const menu: Menu = [
+            makeSiteMenu(),
             {
                 text: "File",
                 menu: [

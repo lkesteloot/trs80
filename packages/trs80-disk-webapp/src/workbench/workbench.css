@@ -39,6 +39,15 @@
     --preview-label: var(--warn);
     --preview-ascii: var(--fg);
     --preview-annotation: var(--warn);
+
+    /* The site switcher (trs80-site). These are all on :root, so they follow the theme's values. */
+    --site-font: var(--sans);
+    --site-fg: var(--fg-strong);
+    --site-muted: var(--fg-muted);
+    --site-menu-bg: var(--panel);
+    --site-menu-border: var(--line);
+    --site-menu-hover-bg: var(--hl);
+    --site-accent: var(--accent);
     color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -93,8 +102,7 @@ button.primary.danger-fill { background: var(--danger); border-color: var(--dang
 .topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--line); }
 .topbar .brand, .topbar .top-actions { padding-bottom: 8px; align-self: center; }
 .brand { font-size: 15px; white-space: nowrap; }
-.brand .site { color: var(--fg-muted); }
-.brand b { color: var(--fg-strong); }
+.brand .trs80-site-current { font-weight: 600; }
 .tabs { display: flex; align-items: flex-end; gap: 4px; flex: 1; overflow-x: auto; }
 .tab {
     border-radius: 7px 7px 0 0; border: 1px solid var(--line); border-bottom: none; background: transparent; color: var(--fg);
@@ -364,7 +372,6 @@ table.addplan { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 
 /* Header link to the other page. */
-.topbar .otherlink { color: var(--accent); font-size: 13px; white-space: nowrap; }
 .strip[hidden] { display: none; }
 
 /* Command strip, alerts, and toasts. */

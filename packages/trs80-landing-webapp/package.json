@@ -1,0 +1,22 @@
+{
+  "name": "trs80-landing-webapp",
+  "private": true,
+  "description": "The landing page of www.my-trs-80.com, which links to the other apps.",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "updateBuildInfo": "../../printBuildInfo > src/build.ts",
+    "build": "npm run updateBuildInfo && vite build",
+    "clean": "rm -rf dist"
+  },
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^8.3.6"
+  },
+  "dependencies": {
+    "trs80-site": "*",
+    "z80-base": "*"
+  }
+}

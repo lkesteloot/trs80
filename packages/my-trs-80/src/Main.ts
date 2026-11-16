@@ -32,6 +32,7 @@ import {isRegisterSetField, toHexWord} from "z80-base";
 import {AudioFileCassettePlayer} from "trs80-cassette-player";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {disasmForTrs80} from "trs80-base";
+import {createSiteSwitcher} from "trs80-site";
 import {getFirestore} from "firebase/firestore/lite";
 
 const LOCAL_STORAGE_CONFIG_KEY = "my-trs-80-config";
@@ -42,11 +43,7 @@ function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () =
     const navbar = document.createElement("div");
     navbar.classList.add("navbar");
 
-    const title = document.createElement("a");
-    title.classList.add("home-button");
-    title.textContent = "My TRS-80";
-    title.href = "/";
-    navbar.append(title);
+    navbar.append(createSiteSwitcher("library"));
 
     const libraryButton = makeIconButton(makeIcon("folder_open"), "Open library (Ctrl-L)", openLibrary);
     libraryButton.classList.add("library-button");

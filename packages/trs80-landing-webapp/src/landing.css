@@ -1,0 +1,271 @@
+:root {
+    /* Solarized. */
+    --base03: #002b36;
+    --base02: #073642;
+    --base01: #586e75;
+    --base00: #657b83;
+    --base0: #839496;
+    --base1: #93a1a1;
+    --base2: #eee8d5;
+    --base3: #fdf6e3;
+    --yellow: #b58900;
+    --orange: #cb4b16;
+    --red: #dc322f;
+    --magenta: #d33682;
+    --violet: #6c71c4;
+    --blue: #268bd2;
+    --cyan: #2aa198;
+    --green: #859900;
+
+    --line: #e4dcc4;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+    color-scheme: light;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--base3);
+    color: var(--base00);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Header. ---------- */
+
+.hero {
+    background: var(--base2);
+    border-bottom: 1px solid var(--line);
+    padding: clamp(40px, 8vw, 88px) 16px clamp(36px, 6vw, 64px);
+}
+
+.hero-inner,
+.page {
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.kicker {
+    margin: 0 0 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--orange);
+}
+
+.wordmark {
+    margin: 0;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: clamp(40px, 8vw, 68px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--base02);
+    /* Room for the cursor, which hangs below the line. */
+    padding-bottom: 0.45em;
+}
+
+/* The TRS-80's cursor: graphics character 131, a square block in the bottom of the next
+   character cell (a bit smaller here than a full cell's width), blinking every 233 ms (TRS80_BLINK_PERIOD_MS in trs80-base). Its top is just
+   under the text's baseline, so it hangs below the line; it's shifted down with relative
+   positioning so that it doesn't change the line's height, and the heading's padding makes room
+   for it. */
+.cursor {
+    display: inline-block;
+    position: relative;
+    top: calc(0.8ch + 0.04em);
+    width: 0.8ch;
+    height: 0.8ch;
+    background: var(--cyan);
+    animation: blink 466ms steps(1) infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cursor {
+        animation: none;
+    }
+}
+
+.tagline {
+    max-width: 34em;
+    margin: 4px 0 0;
+    font-size: clamp(17px, 2vw, 19px);
+    color: var(--base01);
+}
+
+/* ---------- App cards. ---------- */
+
+.page {
+    padding: clamp(32px, 5vw, 56px) 16px 24px;
+}
+
+.apps {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+/* Two or three columns, with the featured card twice as wide, so that the five cards fill
+   their rows. */
+@media (min-width: 600px) {
+    .apps {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .card.featured {
+        grid-column: span 2;
+    }
+}
+
+@media (min-width: 900px) {
+    .apps {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.card,
+.tool {
+    position: relative;
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    background: #fffdf6;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: inherit;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(88, 110, 117, 0.06);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.card:hover,
+.tool:hover,
+.card:focus-visible,
+.tool:focus-visible {
+    border-color: var(--app-color);
+    box-shadow: 0 6px 18px rgba(88, 110, 117, 0.14);
+    transform: translateY(-2px);
+}
+
+.card:focus-visible,
+.tool:focus-visible {
+    outline: 2px solid var(--app-color);
+    outline-offset: 2px;
+}
+
+.app-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--app-color) 13%, var(--base3));
+    color: var(--app-color);
+}
+
+.app-icon svg {
+    width: 28px;
+    height: 28px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.app-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.app-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.app-name {
+    font-size: 20px;
+    font-weight: 650;
+    color: var(--base02);
+}
+
+.app-path {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--base1);
+}
+
+.card:hover .app-name,
+.tool:hover .app-name {
+    color: var(--app-color);
+}
+
+.app-description {
+    color: var(--base00);
+}
+
+/* ---------- The tool, with a terminal. ---------- */
+
+.tool {
+    margin-top: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.tool .app-text {
+    flex: 1 1 220px;
+}
+
+.terminal {
+    flex: 1 1 300px;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--base03);
+    color: var(--base1);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.terminal-prompt {
+    color: var(--yellow);
+}
+
+/* ---------- Footer. ---------- */
+
+.footer {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+    font-size: 14px;
+    color: var(--base1);
+}
+
+.footer a {
+    color: var(--blue);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}

@@ -42,6 +42,18 @@
         "--strictPort"
       ],
       "port": 5193
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5194",
+        "--directory",
+        "deploy/my-trs-80/site"
+      ],
+      "port": 5194
     }
   ]
 }
