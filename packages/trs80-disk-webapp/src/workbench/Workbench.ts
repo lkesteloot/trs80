@@ -39,7 +39,7 @@ import {Messages} from "./Messages.js";
 import {NewDiskPanel, type NewDiskChoice} from "./NewDiskPanel.js";
 import {PartitionPicker} from "./PartitionPicker.js";
 import {renderPreviewPanel, describeRow} from "./PreviewPanel.js";
-import {makeSampleDisk} from "./Samples.js";
+import {makeSampleDisk} from "../core/Samples.js";
 import {openSaveAsSheet} from "./SaveAsSheet.js";
 import {confirmSheet} from "./Sheet.js";
 import {TopBar} from "./TopBar.js";

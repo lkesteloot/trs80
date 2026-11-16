@@ -1,8 +1,8 @@
 import {TrsdosFormatDos} from "trs80-base";
 import type {CreateFloppyRequest} from "trs80-disk";
-import {addPlanned, planAddFiles, type AddActionOptions} from "../core/Actions.js";
-import type {OpenDisk} from "../core/OpenDisk.js";
-import {newDisk} from "../core/Opening.js";
+import {addPlanned, planAddFiles, type AddActionOptions} from "./Actions.js";
+import type {OpenDisk} from "./OpenDisk.js";
+import {newDisk} from "./Opening.js";
 
 /**
  * A short BASIC program for the sample disk.

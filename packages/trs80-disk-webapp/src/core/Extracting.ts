@@ -176,6 +176,15 @@ export async function downloadZip(rows: readonly FileRow[], zipName: string,
 const DRAG_URL_LIFETIME_MS = 60_000;
 
 /**
+ * Whether the browser lets files be dragged out of the page, which only Chromium's browsers do. They're also the only
+ * ones with navigator.userAgentData, which names the engine.
+ */
+export function canDragFilesOut(): boolean {
+    const data = (navigator as {userAgentData?: {brands: readonly {brand: string}[]}}).userAgentData;
+    return data?.brands.some(brand => brand.brand === "Chromium") ?? false;
+}
+
+/**
  * Let files be dragged out of the page to the desktop or a folder, as Chromium allows with its "DownloadURL" drag
  * data: one file as itself, named as extracting would name it, or several as one ZIP, since a drag can carry only
  * one. Call it from the dragstart handler, which this must finish in, so the ZIP is made synchronously. Other

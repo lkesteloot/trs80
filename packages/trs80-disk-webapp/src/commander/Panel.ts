@@ -125,6 +125,8 @@ export interface PanelRenderContext {
     openDisk(): void;
     /** Show a new disk dialog. */
     newDisk(): void;
+    /** Make the sample disk and show it. */
+    sampleDisk(): void;
     /** The disk open for a file in a panel's host listing, or undefined. */
     openDiskOf(item: HostFileItem): OpenDisk | undefined;
 }
@@ -531,6 +533,7 @@ export class Panel {
         }
         makeButton("Open Disk", context.openDisk);
         makeButton("New Disk (F7)", context.newDisk);
+        makeButton("Sample Disk", context.sampleDisk);
         body.append(buttons);
         if (context.canPickFolder && context.rememberedFolderName !== undefined) {
             body.append(el("p", "muted", "Enter reopens " + context.rememberedFolderName + ", which the browser asks you to allow again."));

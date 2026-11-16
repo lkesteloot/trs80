@@ -2,7 +2,7 @@ import {TrsdosProtectionLevel} from "trs80-base";
 import {fileKindToString, type FileRow, filterRows, omitHiddenRows} from "../core/FileRows.js";
 import type {OpenDisk} from "../core/OpenDisk.js";
 import {countOf, el, formatNumber, makeButton, makeCheckbox, makeSwitch} from "../core/Dom.js";
-import {putFilesOnDrag, zipNameForDisk} from "../core/Extracting.js";
+import {canDragFilesOut, putFilesOnDrag, zipNameForDisk} from "../core/Extracting.js";
 import {lightFiles, ownerKey} from "./Highlight.js";
 import type {DiskViewState} from "./ViewState.js";
 
@@ -164,7 +164,8 @@ export class FilesView {
                 this.state.extractMarkDamaged = checked;
             }
         });
-        const hint = el("div", "hint", "Drop files from your computer here to add them.");
+        const hint = el("div", "hint", canDragFilesOut() ? "Drag files to and from your computer." :
+            "Drop files from your computer here to add them.");
         const extractOptions = el("div", "hint extractopts", "When extracting: ", this.lowercaseBox.element, " ",
             this.markDamagedBox.element);
         this.element.append(bar, this.tableWrap, hint, extractOptions);

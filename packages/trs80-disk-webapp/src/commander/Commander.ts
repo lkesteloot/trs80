@@ -18,6 +18,7 @@ import {
     availablePreviews, type PreviewFile, renderPreview,
 } from "../core/preview/Previews.js";
 import {previewFileOf} from "../core/preview/RowPreview.js";
+import {makeSampleDisk} from "../core/Samples.js";
 import {downloadBlob, installUnsavedChangesWarning, saveDisk} from "../core/Saving.js";
 import {SaveKind} from "../core/OpenDisk.js";
 import {
@@ -106,8 +107,7 @@ const HELP_SECTIONS: HelpSection[] = [
         heading: "Booting",
         entries: [
             ["Alt-B", "Boot the floppy in the active panel in the TRS-80 emulator, as [Boot] does, on the model that " +
-                "its DOS is for. The other panel's floppy goes in drive 1, and other open floppies in drives 2 and " +
-                "3, write-protected. The DOS's writes stay in memory, as one change that Ctrl-Z undoes, until you " +
+                "its DOS is for. The other panel's floppy goes in drive 1, write-protected. The DOS's writes stay in memory, as one change that Ctrl-Z undoes, until you " +
                 "save. The emulator's panel has the model, a write-protect switch, Reset, and Close."],
         ],
     },
@@ -131,7 +131,8 @@ const HELP_SECTIONS: HelpSection[] = [
                 "F7 picture, Escape closes."],
             ["F4", "Edit the disk's label."],
             ["F5", "Copy the marked files to the other panel: from a folder to a disk is add, from a disk to a " +
-                "folder is extract, and disk to disk is both. Dragging files to the other panel copies them too."],
+                "folder is extract, and disk to disk is both. Dragging files to the other panel copies them too, and dragging them out of the page " +
+                "(in Chrome) extracts them, several as one ZIP."],
             ["F6", "Rename the file under the cursor."],
             ["F7", "Make a new disk."],
             ["F8, Delete", "Delete the marked files."],
@@ -319,6 +320,7 @@ export class Commander implements ActionHost {
             chooseFiles: () => this.fileInput.click(),
             openDisk: () => void this.openImageFiles(),
             newDisk: () => this.newDiskDialog(),
+            sampleDisk: () => void this.sampleDisk(),
             openDiskOf: item => this.openDiskOf(panel, item),
         };
     }
@@ -2034,10 +2036,25 @@ export class Commander implements ActionHost {
     }
 
     /**
-     * Show a new disk in the active panel.
+     * [Sample Disk]: make the sample disk, with three BASIC programs, and show it in the active panel.
      */
-    private async adoptNewDisk(disk: OpenDisk, folder: FileSystemDirectoryHandle | undefined, commandLine: string,
-                               description: string): Promise<void> {
+    private async sampleDisk(): Promise<void> {
+        const folder = this.folderOf(this.active) ?? this.folderOf(this.other);
+        try {
+            const disk = await makeSampleDisk();
+            await this.adoptNewDisk(disk, folder, undefined, "Made a sample disk with three BASIC programs.");
+        } catch (e) {
+            this.reportFailure(undefined, e);
+        }
+    }
+
+    /**
+     * Show a new disk in the active panel.
+     *
+     * @param commandLine the trs80-tool command that makes the same disk, or undefined if there isn't one.
+     */
+    private async adoptNewDisk(disk: OpenDisk, folder: FileSystemDirectoryHandle | undefined,
+                               commandLine: string | undefined, description: string): Promise<void> {
 
         const panel = this.active;
         const key = "new:" + this.nextDropId++ + "/" + disk.name;
@@ -2046,7 +2063,9 @@ export class Commander implements ActionHost {
         }
         await this.showDisk(panel, disk, key);
         if (panel.disk === disk) {
-            this.log.command(disk.name, commandLine);
+            if (commandLine !== undefined) {
+                this.log.command(disk.name, commandLine);
+            }
             this.log.out(description + " It isn't saved until you press Ctrl-S.");
         } else {
             this.homeFolders.delete(disk);

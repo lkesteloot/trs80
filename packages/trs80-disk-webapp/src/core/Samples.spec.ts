@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {getFileRows, FileKind} from "../core/FileRows.js";
+import {getFileRows, FileKind} from "./FileRows.js";
 import {makeSampleDisk, SAMPLE_DISK_NAME, SAMPLE_PROGRAMS} from "./Samples.js";
 
 describe("makeSampleDisk", () => {

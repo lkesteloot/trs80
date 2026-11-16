@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {getFileRows} from "../core/FileRows.js";
-import {makeSampleDisk} from "../workbench/Samples.js";
+import {makeSampleDisk} from "../core/Samples.js";
 import {attributeText, attributeTitle, diskItems, isMarkable, type Item, ItemKind, makeUpItem, nextSort, SortColumn, sortItems, wildcardTest, yourFilesItems} from "./Items.js";
 
 describe("wildcardTest", () => {
