@@ -1458,7 +1458,7 @@ function cpmFormatArg(args: any): CpmVerifiedLayout | undefined {
 }
 
 // The description of the cpmFormat argument of the tools that read disks.
-const CPM_FORMAT_DESCRIPTION = "Read CP/M floppies with this Montezuma Micro layout, such as \"mm-system\" or " +
+const CPM_FORMAT_DESCRIPTION = "Read CP/M floppies with this CP/M layout, such as \"mm-system\" or " +
     "\"mm-ds-data\", whatever they would be detected as. Needed to write to a disk that's in doubt, and to read " +
     "or save one with an empty directory that isn't recognized as blank. An unknown name's error lists them all.";
 

@@ -143,7 +143,7 @@ export interface CpmFreeBlocks {
 export function findCpmFreeBlocks(cpm: Cpm, directory: Uint8Array = cpm.readDirectoryBytes()): CpmFreeBlocks {
     const claimed = new Set<number>();
     const pointerSize = cpm.wideBlockPointers ? 2 : 1;
-    for (let slot = 0; slot < cpm.format.dirEntryCount; slot++) {
+    for (let slot = 0; slot < cpm.dirEntryCount; slot++) {
         const entry = directory.subarray(slot*DIR_ENTRY_SIZE, (slot + 1)*DIR_ENTRY_SIZE);
         const user = entry[0];
         if (user === UNUSED_USER || (user > MAX_FILE_USER && user <= MAX_OTHER_USER)) {
@@ -451,7 +451,7 @@ export class CpmWriter {
         }
         const blocks = free.slice(0, blockCount);
         const slots: number[] = [];
-        for (let slot = 0; slot < cpm.format.dirEntryCount && slots.length < entryCount; slot++) {
+        for (let slot = 0; slot < cpm.dirEntryCount && slots.length < entryCount; slot++) {
             if (this.directory[slot*DIR_ENTRY_SIZE] === UNUSED_USER) {
                 slots.push(slot);
             }
@@ -804,7 +804,7 @@ export class CpmWriter {
         }
 
         // 3. Every slot that wasn't touched is as it was.
-        for (let slot = 0; slot < cpm.format.dirEntryCount; slot++) {
+        for (let slot = 0; slot < cpm.dirEntryCount; slot++) {
             if (!this.touchedSlots.has(slot)) {
                 const range = [slot*DIR_ENTRY_SIZE, (slot + 1)*DIR_ENTRY_SIZE];
                 if (!bytesEqual(this.directory.subarray(range[0], range[1]), this.originalDirectory.subarray(range[0], range[1]))) {

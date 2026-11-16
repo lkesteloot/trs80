@@ -4,7 +4,7 @@ import path from "path";
 import {fileURLToPath} from "url";
 import {
     CPM_VERIFIED_LAYOUTS, Cpm, type CpmVerifiedLayout, decodeFloppyFileSystem, decodeTrs80File, type FloppyDisk,
-    findCpmVerifiedLayout, findCpmVerifiedLayoutById, isFloppy, makeMontezumaTestDisk, SectorPosition,
+    findCpmVerifiedLayout, findCpmVerifiedLayoutById, isCreatableCpmPreset, isFloppy, isMontezumaPreset, makeCpmTestDisk, SectorPosition,
 } from "trs80-base";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {hasMontezumaBiosSystem} from "trs80-base";
@@ -160,7 +160,7 @@ describe("create cpm and format cpm", () => {
     });
 
     describe("create cpm", () => {
-        for (const layout of CPM_VERIFIED_LAYOUTS) {
+        for (const layout of CPM_VERIFIED_LAYOUTS.filter(isCreatableCpmPreset)) {
             it(`makes ${layout.id}, and a 33,000-byte file saved on it reads back`, async () => {
                 await runDisk("create", "cpm", "--cpm-format", layout.id);
                 const blank = readFloppy();
@@ -256,7 +256,7 @@ describe("create cpm and format cpm", () => {
                 });
             }
 
-            for (const layout of CPM_VERIFIED_LAYOUTS.filter(l => l.reservedTracks > 0 && !hasMontezumaBiosSystem(l))) {
+            for (const layout of CPM_VERIFIED_LAYOUTS.filter(l => isCreatableCpmPreset(l) && l.reservedTracks > 0 && !hasMontezumaBiosSystem(l))) {
                 it(`${layout.id} has FORMAT's boot sector and no banner`, async () => {
                     const lines = await runDisk("create", "cpm", "--cpm-format", layout.id);
                     expect(lines.some(line => line.includes("FORMAT's no-system boot sector"))).to.equal(true);
@@ -303,7 +303,7 @@ describe("create cpm and format cpm", () => {
                 await expect(runDisk("create", "cpm", "--system", "--cylinders", "80"))
                     .rejects.toThrow(/--cylinders 80/);
                 const source = path.join(dir, "source.dmk");
-                fs.writeFileSync(source, makeMontezumaTestDisk(preset("mm-system"), [], {banner: "Model 4 64K System CP/M 2.2 v2.30"}).binary);
+                fs.writeFileSync(source, makeCpmTestDisk(preset("mm-system"), [], {banner: "Model 4 64K System CP/M 2.2 v2.30"}).binary);
                 await expect(runDisk("create", "cpm", "--system", "--system-from", source))
                     .rejects.toThrow(/--system-from can't be used with --system/);
                 expect(fs.existsSync(imagePathname)).to.equal(false);
@@ -316,7 +316,7 @@ describe("create cpm and format cpm", () => {
              */
             function writeSystemSource(id: string, banner: string, name = "source.dmk"): string {
                 const layout = preset(id);
-                const source = makeMontezumaTestDisk(layout, [], {banner});
+                const source = makeCpmTestDisk(layout, [], {banner});
                 for (let track = 0; track < layout.reservedTracks; track++) {
                     const position = SectorPosition.make(Math.floor(track/layout.sides), track % layout.sides, 4);
                     const sector = source.readSector(position)!;
@@ -390,6 +390,14 @@ describe("create cpm and format cpm", () => {
                     .rejects.toThrow(/no CP\/M data format with 35 cylinders/);
             });
 
+            for (const layout of CPM_VERIFIED_LAYOUTS.filter(other => !isCreatableCpmPreset(other))) {
+                it(`refuses ${layout.id}, which can't be created, and writes no image`, async () => {
+                    await expect(runDisk("create", "cpm", "--cpm-format", layout.id)).rejects.toThrow(
+                        `Creating ${layout.id} disks isn't supported yet: `);
+                    expect(fs.existsSync(imagePathname)).to.equal(false);
+                });
+            }
+
             it("lists the presets for an unknown one", async () => {
                 await expect(runDisk("create", "cpm", "--cpm-format", "mm-nothing"))
                     .rejects.toThrow(/Unknown CP\/M format "mm-nothing"/);
@@ -453,7 +461,7 @@ describe("create cpm and format cpm", () => {
          * Write a test disk of a preset, with a banner, to the image file.
          */
         function writeTestDisk(id: string, banner: string, files: {name: string, contents: Uint8Array}[] = []): void {
-            fs.writeFileSync(imagePathname, makeMontezumaTestDisk(preset(id), files, {banner}).binary);
+            fs.writeFileSync(imagePathname, makeCpmTestDisk(preset(id), files, {banner}).binary);
         }
 
         const SOME_FILE = {name: "A.TXT", contents: new TextEncoder().encode("Hello.\r\n\x1A")};
@@ -465,6 +473,15 @@ describe("create cpm and format cpm", () => {
             expect(lines[0]).to.contain("Replaced the disk in memory with a blank Montezuma Micro CP/M disk (mm-80-ds-data)");
             expect(detectedId()).to.equal("mm-80-ds-data");
             expect(detected()!.getDirEntries(true)).to.have.length(0);
+        });
+
+        it("refuses a preset of another system than Montezuma's", async () => {
+            writeTestDisk("mm-data", "", [SOME_FILE]);
+            await expect(runDisk("format", "cpm", "--cpm-format", "lb-system", "--force")).rejects.toThrow(
+                "Creating lb-system disks isn't supported yet: only Montezuma Micro's layouts can be created.");
+            // The disk is as it was.
+            expect(detectedId()).to.equal("mm-data");
+            expect(detected()!.getDirEntries(true)).to.have.length(1);
         });
 
         it("formats a CP/M disk again with no DOS", async () => {
@@ -584,7 +601,7 @@ describe("create cpm and format cpm", () => {
             it("--system-from replaces the tracks, as for create", async () => {
                 writeTestDisk("mm-system", "Model 4 60K System CP/M 2.2 v2.25");
                 const source = path.join(dir, "source.dmk");
-                fs.writeFileSync(source, makeMontezumaTestDisk(preset("mm-system"), [], {banner: "Model 4 64K System CP/M 2.2 v2.31"}).binary);
+                fs.writeFileSync(source, makeCpmTestDisk(preset("mm-system"), [], {banner: "Model 4 64K System CP/M 2.2 v2.31"}).binary);
                 await runDisk("format", "cpm", "--system-from", source);
                 expect(detected()!.nameAndVersion).to.equal("Montezuma Micro CP/M BIOS 2.31");
             });

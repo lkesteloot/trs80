@@ -1,4 +1,4 @@
-import {Cpm, CPM_VERIFIED_LAYOUTS, FloppyImageFormat, makeMontezumaTestDisk} from "trs80-base";
+import {Cpm, CPM_VERIFIED_LAYOUTS, FloppyImageFormat, makeCpmTestDisk} from "trs80-base";
 import {DiskError, DiskSession, DiskWritePurpose} from "trs80-disk";
 import {describe, expect, it} from "vitest";
 import {OpenDisk} from "./OpenDisk.js";
@@ -34,7 +34,7 @@ function openCpmDisk(noBootSector = false): {disk: OpenDisk, handle: FakeHandle}
     const files = ["A", "B", "C", "D"].map((name, i) => ({
         name: name + ".BIN", contents: Uint8Array.from({length: 1000*(i + 1)}, (_, j) => (j*7 + i) & 0xFF),
     }));
-    const image = makeMontezumaTestDisk(layout, files, {banner: "Model 4 64K System CP/M 2.2 v2.32", noBootSector});
+    const image = makeCpmTestDisk(layout, files, {banner: "Model 4 64K System CP/M 2.2 v2.32", noBootSector});
     const session = DiskSession.fromBinary("cpm.dmk", new Uint8Array(image.binary));
     const handle = new FakeHandle();
     return {disk: new OpenDisk(session, "cpm.dmk", handle as unknown as FileSystemFileHandle), handle};

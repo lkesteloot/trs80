@@ -1,8 +1,10 @@
 import {describe, expect, it} from "vitest";
 import {type Cpm, CpmFile, decodeCpm, decodeCpmWithLayout} from "./Cpm.js";
 import {type CpmFilename} from "./CpmFilename.js";
-import {cpmTestRecordLocation, type CpmTestFile, makeMontezumaTestDisk} from "./CpmTestDisk.js";
-import {CPM_VERIFIED_LAYOUTS, type CpmVerifiedLayout} from "./CpmWriteGate.js";
+import {cpmTestRecordLocation, type CpmTestFile, makeCpmTestDisk} from "./CpmTestDisk.js";
+import {
+    CPM_VERIFIED_LAYOUTS, type CpmVerifiedLayout, findCpmVerifiedLayout, findCpmVerifiedLayoutById, isMontezumaPreset,
+} from "./CpmWriteGate.js";
 import {CpmWriteError, CpmWriteErrorKind, CpmWriter, findCpmFreeBlocks} from "./CpmWriter.js";
 import {setDmkConverterCrcMarker} from "./DmkTestArtifacts.js";
 import type {DmkFloppyDisk} from "./DmkFloppyDisk.js";
@@ -74,10 +76,10 @@ function readRecords(disk: DmkFloppyDisk, layout: CpmVerifiedLayout, firstRecord
  * Read the first byteCount bytes held in a list of blocks, with the test helper's own mapping.
  */
 function readBlocks(disk: DmkFloppyDisk, layout: CpmVerifiedLayout, blocks: number[], byteCount: number): Uint8Array {
-    const recordsPerBlock = BLOCK_SIZE/RECORD_SIZE;
+    const recordsPerBlock = layout.blockSize/RECORD_SIZE;
     const parts = blocks.map(block => readRecords(disk, layout, block*recordsPerBlock, recordsPerBlock));
-    const all = new Uint8Array(parts.length*BLOCK_SIZE);
-    parts.forEach((part, i) => all.set(part, i*BLOCK_SIZE));
+    const all = new Uint8Array(parts.length*layout.blockSize);
+    parts.forEach((part, i) => all.set(part, i*layout.blockSize));
     return all.subarray(0, byteCount);
 }
 
@@ -180,14 +182,14 @@ describe("CpmWriter", () => {
 
         describe(shapeName, () => {
             it("starts from the shape it should", () => {
-                const cpm = decodeCpm(makeMontezumaTestDisk(layout, seedFiles()), true)!;
+                const cpm = decodeCpm(makeCpmTestDisk(layout, seedFiles()), true)!;
                 expect(cpm.wideBlockPointers).to.equal(wide);
                 expect(cpm.extentMask).to.equal(wide ? 0 : 1);
             });
 
             for (const size of [0, 1, 127, 128, 129, 16384, 16385, 32768, 32896]) {
                 it(`adds and kills a file of ${size} bytes`, () => {
-                    const disk = makeMontezumaTestDisk(layout, seedFiles());
+                    const disk = makeCpmTestDisk(layout, seedFiles());
                     const before = readDirectory(disk, layout);
                     const contents = pattern(size, 9);
                     const cpm = change(disk, writer => {
@@ -254,7 +256,7 @@ describe("CpmWriter", () => {
     const standard = layoutNamed("Standard data");
 
     it("reuses the lowest slot and blocks after a delete", () => {
-        const disk = makeMontezumaTestDisk(standard, [...seedFiles(), {name: "C.TXT", contents: pattern(100, 3)}]);
+        const disk = makeCpmTestDisk(standard, [...seedFiles(), {name: "C.TXT", contents: pattern(100, 3)}]);
         // A is in slot 0 and block 2, B in slot 1 and blocks 3 and 4, and C in slot 2 and block 5.
         const cpm = change(disk, writer => {
             writer.deleteFile(fileNamed(writer, "B.BIN"));
@@ -273,7 +275,7 @@ describe("CpmWriter", () => {
         bad.set(Array.from("BAD     TXT", c => c.charCodeAt(0)), 1);
         bad[12] = 0xFF;
         bad.set([10, 11, 12], 16);
-        const disk = makeMontezumaTestDisk(standard, [...seedFiles(),
+        const disk = makeCpmTestDisk(standard, [...seedFiles(),
             {name: "C.TXT", contents: pattern(100, 3)}, {name: "D.TXT", contents: pattern(100, 4)},
             {name: "E.TXT", contents: pattern(100, 5)}], {rawEntries: [{slot: 9, bytes: bad}]});
         const {writer} = openWriter(disk);
@@ -287,7 +289,7 @@ describe("CpmWriter", () => {
     });
 
     it("never allocates a block with a sector that has a CRC error", () => {
-        let disk = makeMontezumaTestDisk(standard, seedFiles());
+        let disk = makeCpmTestDisk(standard, seedFiles());
         // Block 5's first record.
         disk = setDmkConverterCrcMarker(disk, cpmTestRecordLocation(standard, 5*16).position);
         const {writer} = openWriter(disk);
@@ -302,7 +304,7 @@ describe("CpmWriter", () => {
     });
 
     it("throws NO_SPACE when the blocks run out, and leaves the disk alone", () => {
-        const disk = makeMontezumaTestDisk(standard, seedFiles());
+        const disk = makeCpmTestDisk(standard, seedFiles());
         const before = new Uint8Array(disk.binary);
         const {writer, overlay} = openWriter(disk);
         const freeCount = findCpmFreeBlocks(writer.cpm).free.length;
@@ -330,7 +332,7 @@ describe("CpmWriter", () => {
         for (let i = 0; i < 126; i++) {
             files.push({name: `Z${i}.EMP`, contents: new Uint8Array(0)});
         }
-        const disk = makeMontezumaTestDisk(standard, files);
+        const disk = makeCpmTestDisk(standard, files);
         const before = new Uint8Array(disk.binary);
         const {writer, overlay} = openWriter(disk);
         let thrown: unknown;
@@ -347,7 +349,7 @@ describe("CpmWriter", () => {
     });
 
     it("refuses a name that user 0 already has, in any case", () => {
-        const disk = makeMontezumaTestDisk(standard, seedFiles());
+        const disk = makeCpmTestDisk(standard, seedFiles());
         const {writer} = openWriter(disk);
         expect(() => writer.addFile(name("A.TXT"), new Uint8Array(1))).to.throw("already on the disk");
         expect(writer.hasChanges()).to.equal(false);
@@ -356,7 +358,7 @@ describe("CpmWriter", () => {
 
     it("renames in every slot and keeps the high bits", () => {
         // A file in two entries, whose names have f1' and R/O bits set.
-        const disk = makeMontezumaTestDisk(standard, [
+        const disk = makeCpmTestDisk(standard, [
             {name: "OLD.DAT", contents: pattern(40000, 7), readOnly: true},
             {name: "OTHER.TXT", contents: pattern(50, 8)},
         ]);
@@ -378,7 +380,7 @@ describe("CpmWriter", () => {
     });
 
     it("keeps the high bits of the name's first 8 bytes when renaming", () => {
-        const disk = makeMontezumaTestDisk(standard, seedFiles());
+        const disk = makeCpmTestDisk(standard, seedFiles());
         // Put f1' and f8' on A.TXT's entry, which the reader accepts (it takes the low 7 bits).
         const directory = readDirectory(disk, standard);
         const entry = slotOf(directory, 0);
@@ -403,7 +405,7 @@ describe("CpmWriter", () => {
     });
 
     it("refuses to rename onto another file's name, but not onto another user's", () => {
-        const disk = makeMontezumaTestDisk(standard, [...seedFiles(), {name: "A.TXT", contents: pattern(10, 1), user: 3}]);
+        const disk = makeCpmTestDisk(standard, [...seedFiles(), {name: "A.TXT", contents: pattern(10, 1), user: 3}]);
         const {writer} = openWriter(disk);
         expect(() => writer.renameFile(fileNamed(writer, "B.BIN"), name("a.txt"))).not.to.throw();
         const {writer: writer2} = openWriter(disk);
@@ -412,7 +414,7 @@ describe("CpmWriter", () => {
     });
 
     it("sets and clears R/O and SYS in every slot and leaves the archive bit", () => {
-        const disk = makeMontezumaTestDisk(standard, [{name: "OLD.DAT", contents: pattern(40000, 7)}, ...seedFiles()]);
+        const disk = makeCpmTestDisk(standard, [{name: "OLD.DAT", contents: pattern(40000, 7)}, ...seedFiles()]);
         // Archive bit (high bit of the extension's third byte) in both entries, as a backup program sets it.
         for (const slot of [0, 1]) {
             const {position, offset} = cpmTestRecordLocation(standard, 0);
@@ -439,7 +441,7 @@ describe("CpmWriter", () => {
     });
 
     it("replaces a file in place, keeping its attributes and the lowest slot and blocks", () => {
-        const disk = makeMontezumaTestDisk(standard, [
+        const disk = makeCpmTestDisk(standard, [
             {name: "A.TXT", contents: pattern(100, 1), system: true},
             {name: "B.BIN", contents: pattern(3000, 2), readOnly: true},
             {name: "C.TXT", contents: pattern(100, 3)},
@@ -460,7 +462,7 @@ describe("CpmWriter", () => {
     });
 
     it("leaves a file alone when its replacement doesn't fit", () => {
-        const disk = makeMontezumaTestDisk(standard, seedFiles());
+        const disk = makeCpmTestDisk(standard, seedFiles());
         const {writer} = openWriter(disk);
         expect(() => writer.replaceFile(fileNamed(writer, "B.BIN"), new Uint8Array(500*BLOCK_SIZE))).to.throw("no room");
         expect(writer.hasChanges()).to.equal(false);
@@ -468,7 +470,7 @@ describe("CpmWriter", () => {
     });
 
     it("leaves a directory of unused slots when the last file is deleted, and can add to it", () => {
-        const disk = makeMontezumaTestDisk(standard, seedFiles());
+        const disk = makeCpmTestDisk(standard, seedFiles());
         const emptied = change(disk, writer => {
             for (const file of writer.getFiles()) {
                 writer.deleteFile(file);
@@ -495,7 +497,7 @@ describe("CpmWriter", () => {
     it("allows a change that leaves the disk reading equally well another way", () => {
         // With one small file left, a two-sided reading with 4 reserved tracks finds the same directory and the same
         // file. The writer doesn't judge that; the session checks the layout when the disk is saved.
-        const disk = makeMontezumaTestDisk(standard, [{name: "A.TXT", contents: pattern(100, 1)},
+        const disk = makeCpmTestDisk(standard, [{name: "A.TXT", contents: pattern(100, 1)},
             {name: "B.BIN", contents: pattern(100, 2)}, {name: "C.BIN", contents: pattern(3000, 3)}]);
         const cpm = change(disk, writer => {
             writer.deleteFile(fileNamed(writer, "B.BIN"));
@@ -505,7 +507,7 @@ describe("CpmWriter", () => {
     });
 
     it("does nothing, and verifies, when there are no changes", () => {
-        const disk = makeMontezumaTestDisk(standard, seedFiles());
+        const disk = makeCpmTestDisk(standard, seedFiles());
         const before = new Uint8Array(disk.binary);
         const {writer, overlay} = openWriter(disk);
         expect(writer.hasChanges()).to.equal(false);
@@ -515,7 +517,7 @@ describe("CpmWriter", () => {
     });
 
     it("refuses to be used again after a flush", () => {
-        const disk = makeMontezumaTestDisk(standard, seedFiles());
+        const disk = makeCpmTestDisk(standard, seedFiles());
         const {writer} = openWriter(disk);
         writer.addFile(name("NEW.TXT"), new Uint8Array(5));
         writer.flush();
@@ -524,7 +526,7 @@ describe("CpmWriter", () => {
 
     it("leaves the reserved tracks as they were", () => {
         const layout = layoutNamed("Standard system");
-        const disk = makeMontezumaTestDisk(layout, seedFiles(), {banner: "Model 4 64K System CP/M 2.2 v2.32"});
+        const disk = makeCpmTestDisk(layout, seedFiles(), {banner: "Model 4 64K System CP/M 2.2 v2.32"});
         /**
          * The bytes of every sector of the reserved tracks.
          */
@@ -542,5 +544,143 @@ describe("CpmWriter", () => {
         expect(cpm.reservedTrackCount).to.equal(2);
         expect(reserved()).to.eql(before);
         expect(readNamed(cpm, "NEW.BIN").subarray(0, 20000)).to.eql(pattern(20000, 3));
+    });
+});
+
+// The presets of other systems than Montezuma's, and Montezuma's Super Data format, which has its own block layout.
+const OTHER_PRESET_IDS = ["mm-superdata", "lb-system", "holmes-system", "cpm3-system", "lb-m2-system", "lb-m2-ds-system"];
+
+/**
+ * The preset with an id, which must exist.
+ */
+function presetOf(id: string): CpmVerifiedLayout {
+    const layout = findCpmVerifiedLayoutById(id);
+    if (layout === undefined) {
+        throw new Error("No preset " + id);
+    }
+    return layout;
+}
+
+/**
+ * Files that every preset can hold: one that fits in a block, one that's bigger than a block, and one that's bigger
+ * than an extent (the most that a directory entry holds is 16K with 1K blocks, and 32K with narrow 2K ones).
+ */
+function presetFiles(): CpmTestFile[] {
+    return [
+        {name: "A.TXT", contents: pattern(100, 1)},
+        {name: "B.BIN", contents: pattern(3000, 2)},
+        {name: "C.DAT", contents: pattern(40000, 3)},
+    ];
+}
+
+describe("CpmWriter on the presets of other systems", () => {
+    for (const id of OTHER_PRESET_IDS) {
+        const layout = presetOf(id);
+
+        describe(id, () => {
+            it("reads the test disk as this preset, with its files", () => {
+                const files = presetFiles();
+                const disk = makeCpmTestDisk(layout, files);
+                const cpm = decodeCpm(disk, true)!;
+                expect(findCpmVerifiedLayout(cpm)?.id).to.equal(id);
+                expect(names(cpm)).to.eql(["A.TXT", "B.BIN", "C.DAT"]);
+                for (const file of files) {
+                    expect(readNamed(cpm, file.name).subarray(0, file.contents.length)).to.eql(file.contents);
+                }
+
+                // The test helper's own record mapping agrees with where the reader found the file.
+                const entry = cpm.getDirEntries(true).find(e => e.getFilename(".") === "B.BIN")!;
+                expect(readBlocks(disk, layout, entry.getBlocks(), 3000)).to.eql(files[1].contents);
+            });
+
+            it("adds, renames, and deletes files, and the disk reads back with the same contents", () => {
+                const files = presetFiles();
+                const disk = makeCpmTestDisk(layout, files);
+                const added = pattern(20000, 8);
+                let cpm = change(disk, writer => {
+                    expect(writer.addFile(name("NEW.DAT"), added)).to.eql({name: "NEW.DAT", size: added.length});
+                });
+                expect(findCpmVerifiedLayout(cpm)?.id).to.equal(id);
+                expect(names(cpm)).to.eql(["A.TXT", "B.BIN", "C.DAT", "NEW.DAT"]);
+                expect(readNamed(cpm, "NEW.DAT").subarray(0, added.length)).to.eql(added);
+
+                cpm = change(disk, writer => {
+                    writer.renameFile(fileNamed(writer, "B.BIN"), name("RENAMED.BIN"));
+                });
+                expect(names(cpm)).to.eql(["A.TXT", "C.DAT", "NEW.DAT", "RENAMED.BIN"]);
+                expect(readNamed(cpm, "RENAMED.BIN").subarray(0, 3000)).to.eql(files[1].contents);
+
+                cpm = change(disk, writer => {
+                    writer.deleteFile(fileNamed(writer, "C.DAT"));
+                });
+                expect(names(cpm)).to.eql(["A.TXT", "NEW.DAT", "RENAMED.BIN"]);
+                expect(readNamed(cpm, "NEW.DAT").subarray(0, added.length)).to.eql(added);
+                expect(readNamed(cpm, "A.TXT").subarray(0, 100)).to.eql(files[0].contents);
+                expect(findCpmFreeBlocks(cpm).free.length).to.be.greaterThan(0);
+            });
+        });
+    }
+
+    it("never allocates blocks 2 or 3 on a Holmes disk, whose bitmap reserves them", () => {
+        const layout = presetOf("holmes-system");
+        const disk = makeCpmTestDisk(layout, presetFiles());
+        const cpm = decodeCpm(disk, true)!;
+        expect(cpm.dirBlockCount).to.equal(2);
+        expect(cpm.firstDataBlock).to.equal(4);
+        for (const file of cpm.getDirEntries(true)) {
+            expect(Math.min(...file.getBlocks()), file.getFilename(".")).to.be.greaterThanOrEqual(4);
+        }
+
+        // Fill the disk, so that every free block is used.
+        const freeCount = findCpmFreeBlocks(cpm).free.length;
+        expect(Math.min(...findCpmFreeBlocks(cpm).free)).to.be.greaterThanOrEqual(4);
+        const full = change(disk, writer => {
+            writer.addFile(name("FILL.BIN"), pattern(freeCount*layout.blockSize, 5));
+        });
+        expect(findCpmFreeBlocks(full).free).to.eql([]);
+        for (const file of full.getDirEntries(true)) {
+            const blocks = file.getBlocks();
+            expect(blocks, file.getFilename(".")).to.not.include(2);
+            expect(blocks, file.getFilename(".")).to.not.include(3);
+        }
+        expect(readNamed(full, "FILL.BIN")).to.eql(pattern(freeCount*layout.blockSize, 5));
+    });
+
+    it("has 192 directory entries on a double-sided Model II disk, and reads the ones past 127", () => {
+        const layout = presetOf("lb-m2-ds-system");
+        const files: CpmTestFile[] = [];
+        for (let i = 0; i < 150; i++) {
+            files.push({name: `F${i}.DAT`, contents: pattern(10 + i, i)});
+        }
+        const disk = makeCpmTestDisk(layout, files);
+        const cpm = decodeCpm(disk, true)!;
+        expect(findCpmVerifiedLayout(cpm)?.id).to.equal("lb-m2-ds-system");
+        expect(cpm.dirEntryCount).to.equal(192);
+        expect(cpm.dirBlockCount).to.equal(3);
+        expect(cpm.getDirEntries(true)).to.have.length(150);
+        for (const i of [0, 127, 128, 149]) {
+            expect(readNamed(cpm, `F${i}.DAT`).subarray(0, 10 + i)).to.eql(pattern(10 + i, i));
+        }
+
+        // The writer uses the slots past 127, and fills the directory at 192.
+        const more = change(disk, writer => {
+            for (let i = 150; i < 192; i++) {
+                writer.addFile(name(`G${i}.DAT`), pattern(5, i));
+            }
+        });
+        expect(more.getDirEntries(true)).to.have.length(192);
+        const {writer} = openWriter(disk);
+        expect(() => writer.addFile(name("ONEMORE.DAT"), pattern(5, 1))).to.throw(CpmWriteError);
+    });
+
+    it("keeps a single-sided Model II disk at 128 directory entries", () => {
+        const cpm = decodeCpm(makeCpmTestDisk(presetOf("lb-m2-system"), presetFiles()), true)!;
+        expect(cpm.dirEntryCount).to.equal(128);
+        expect(cpm.format.doubleSidedDirEntryCount).to.equal(192);
+    });
+
+    it("has only Montezuma's presets in the Montezuma list", () => {
+        expect(CPM_VERIFIED_LAYOUTS.filter(layout => !isMontezumaPreset(layout)).map(layout => layout.id)).to.eql(
+            ["lb-system", "holmes-system", "cpm3-system", "lb-m2-system", "lb-m2-ds-system"]);
     });
 });

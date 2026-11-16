@@ -53,7 +53,7 @@ export function cpmFormatNameMissingError(prefix: string): DiskError {
  * The names that --cpm-format takes, as an indented table with a line before it, for the details of an error.
  */
 function describeCpmFormatChoices(): string {
-    return "The names are:\n" + formatCpmPresetTable().map(line => "  " + line).join("\n");
+    return "The names are:\n" + formatCpmPresetTable().map(line => line === "" ? line : "  " + line).join("\n");
 }
 
 /**

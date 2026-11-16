@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import {
     CPM_VERIFIED_LAYOUTS, Cpm, cpmTestRecordLocation, type CpmTestFile, type CpmVerifiedLayout, type CpmTestDiskOptions,
-    findCpmVerifiedLayout, makeMontezumaTestDisk, setDmkConverterCrcMarker,
+    findCpmVerifiedLayout, makeCpmTestDisk, setDmkConverterCrcMarker,
 } from "trs80-base";
 import {DiskSession} from "trs80-disk";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
@@ -74,7 +74,7 @@ describe("disk commands on a CP/M disk", () => {
      * Write a test disk to the image file.
      */
     function makeImage(files: CpmTestFile[] = standardFiles(), layout = STANDARD, options: CpmTestDiskOptions = {}): void {
-        fs.writeFileSync(imagePathname, makeMontezumaTestDisk(layout, files, {banner: BANNER, ...options}).binary);
+        fs.writeFileSync(imagePathname, makeCpmTestDisk(layout, files, {banner: BANNER, ...options}).binary);
     }
 
     /**
@@ -448,7 +448,7 @@ describe("disk commands on a CP/M disk", () => {
     describe("free with a damaged block", () => {
         it("counts a free block with a CRC error apart", async () => {
             // Block 20 holds no file, and one of its sectors has a CRC error.
-            const image = setDmkConverterCrcMarker(makeMontezumaTestDisk(STANDARD, standardFiles(), {banner: BANNER}),
+            const image = setDmkConverterCrcMarker(makeCpmTestDisk(STANDARD, standardFiles(), {banner: BANNER}),
                 cpmTestRecordLocation(STANDARD, 20*16).position);
             fs.writeFileSync(imagePathname, image.binary);
             const lines = await runDisk("free");

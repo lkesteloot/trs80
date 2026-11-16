@@ -189,8 +189,8 @@ export function cpmFormatHelpSections(): DiskHelpSection[] {
     return [
         "--cpm-format NAME reads a CP/M floppy with the named layout, whatever it would be detected as, and " +
         "writes by it. CP/M disks don't say how they're laid out, so this settles a disk that could be read " +
-        "more than one way. The layouts are Montezuma Micro CP/M 2.2's, and are listed here with Montezuma's " +
-        "names for them.",
+        "more than one way. The layouts are listed by the system whose disk parameters were checked on the real " +
+        "thing. \"create cpm\" and \"format cpm\" take only Montezuma's for now.",
         {
             title: "The names are:",
             lines: formatCpmPresetTable(),

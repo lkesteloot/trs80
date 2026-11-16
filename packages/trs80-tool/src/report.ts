@@ -699,7 +699,7 @@ function reportCpm(cpm: Cpm, report: Omit<DiskReport, "warnings">): void {
             skew: cpm.format.skew,
             blockSize: cpm.format.blockSize,
             blockCount: cpm.blockCount,
-            dirEntryCount: cpm.format.dirEntryCount,
+            dirEntryCount: cpm.dirEntryCount,
         },
     };
 

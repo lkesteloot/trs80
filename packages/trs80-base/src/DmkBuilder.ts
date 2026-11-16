@@ -4,7 +4,7 @@
 
 import {hi, lo} from "z80-base";
 import {decodeDmkFloppyDisk, DMK_MAX_CYLINDERS, DmkFloppyDisk, FILE_HEADER_SIZE, FLAG_SINGLE_SIDED, makeDmkTrackBlob} from "./DmkFloppyDisk.js";
-import {FormattedTrack, TrackPosition} from "./FloppyDisk.js";
+import {Density, FormattedTrack, TrackPosition} from "./FloppyDisk.js";
 import {buildFormattedTrack, TrackLayout} from "./TrackLayout.js";
 
 /**
@@ -14,6 +14,22 @@ import {buildFormattedTrack, TrackLayout} from "./TrackLayout.js";
  */
 export const DMK_TRACK_LENGTH = 0x1900;
 
+// Bytes of ID pointers at the start of every DMK track.
+const DMK_TRACK_HEADER_SIZE = 128;
+
+/**
+ * The DMK track length for tracks of a layout: {@link DMK_TRACK_LENGTH}, or longer (to a multiple of 256) if the
+ * layout's track, such as an 8-inch one, doesn't fit in it. Single-density bytes are stored doubled.
+ */
+export function getDmkTrackLength(layout: TrackLayout): number {
+    if (layout.trackByteCount === undefined) {
+        return DMK_TRACK_LENGTH;
+    }
+    const stride = layout.density === Density.SINGLE ? 2 : 1;
+    const needed = layout.trackByteCount*stride + DMK_TRACK_HEADER_SIZE;
+    return Math.max(DMK_TRACK_LENGTH, Math.ceil(needed/256)*256);
+}
+
 /**
  * Build a DMK image from formatted tracks, and decode it.
  *
@@ -21,22 +37,24 @@ export const DMK_TRACK_LENGTH = 0x1900;
  * unformatted, with no ID fields.
  * @param cylinderCount cylinders in the image.
  * @param sideCount sides in the image, 1 or 2. One side sets the header's single-sided flag.
+ * @param trackLength the DMK track length, which includes the table of ID pointers.
  * @return the image, writable and not write-protected, or undefined if the arguments are out
  * of range, a track is outside the image or won't fit in a DMK track, or the result has no
  * sectors at all.
  */
-export function makeDmkImage(tracks: FormattedTrack[], cylinderCount: number, sideCount: number): DmkFloppyDisk | undefined {
+export function makeDmkImage(tracks: FormattedTrack[], cylinderCount: number, sideCount: number,
+                             trackLength: number = DMK_TRACK_LENGTH): DmkFloppyDisk | undefined {
     const validCounts = Number.isInteger(cylinderCount) && cylinderCount >= 1 && cylinderCount <= DMK_MAX_CYLINDERS &&
         (sideCount === 1 || sideCount === 2);
     if (!validCounts) {
         return undefined;
     }
 
-    const binary = new Uint8Array(FILE_HEADER_SIZE + cylinderCount*sideCount*DMK_TRACK_LENGTH);
+    const binary = new Uint8Array(FILE_HEADER_SIZE + cylinderCount*sideCount*trackLength);
     binary[0] = 0x00; // Not write-protected.
     binary[1] = cylinderCount;
-    binary[2] = lo(DMK_TRACK_LENGTH);
-    binary[3] = hi(DMK_TRACK_LENGTH);
+    binary[2] = lo(trackLength);
+    binary[3] = hi(trackLength);
     binary[4] = sideCount === 1 ? FLAG_SINGLE_SIDED : 0;
 
     // Lay the tracks out in the file in DMK's order.
@@ -51,14 +69,14 @@ export function makeDmkImage(tracks: FormattedTrack[], cylinderCount: number, si
     }
     for (let cylinder = 0; cylinder < cylinderCount; cylinder++) {
         for (let side = 0; side < sideCount; side++) {
-            const offset = FILE_HEADER_SIZE + (cylinder*sideCount + side)*DMK_TRACK_LENGTH;
+            const offset = FILE_HEADER_SIZE + (cylinder*sideCount + side)*trackLength;
             const track = tracksByKey.get(new TrackPosition(cylinder, side).key());
             if (track === undefined) {
                 // Unformatted: a zero pointer table and zero bytes, which is what the array already has.
                 continue;
             }
 
-            const {trackBytes, pointerCount} = makeDmkTrackBlob(track, DMK_TRACK_LENGTH, false);
+            const {trackBytes, pointerCount} = makeDmkTrackBlob(track, trackLength, false);
             if (pointerCount < track.idamIndices.length) {
                 // Some of the track doesn't fit, or there are too many sectors for the table.
                 return undefined;
@@ -106,7 +124,7 @@ export function makeBlankFloppy(layout: TrackLayout, cylinderCount: number, side
         }
     }
 
-    return makeDmkImage(tracks, cylinderCount, sideCount);
+    return makeDmkImage(tracks, cylinderCount, sideCount, getDmkTrackLength(layout));
 }
 
 /**
