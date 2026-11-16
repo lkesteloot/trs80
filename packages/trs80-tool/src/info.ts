@@ -499,7 +499,7 @@ function fileSystemDetailsToJson(fileSystem: KnownFloppyFileSystem):
                 skew: fileSystem.format.skew,
                 blockSize: fileSystem.format.blockSize,
                 blockCount: fileSystem.blockCount,
-                dirEntryCount: fileSystem.format.dirEntryCount,
+                dirEntryCount: fileSystem.dirEntryCount,
             },
         };
     } else if (fileSystem instanceof MicroDos) {

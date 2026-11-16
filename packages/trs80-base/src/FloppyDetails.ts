@@ -101,7 +101,7 @@ export function getFloppyDetails(floppy: FloppyDisk, fileSystem: FloppyFileSyste
         add("Sector skew", cpm.format.skew.toString());
         add("Block size", `${cpm.format.blockSize} bytes`);
         add("Blocks", withCommas(cpm.blockCount));
-        add("Directory entries", cpm.format.dirEntryCount.toString());
+        add("Directory entries", cpm.dirEntryCount.toString());
     } else if (fileSystem instanceof MicroDos) {
         add("Directory", "Sectors 20-29");
     } else if (fileSystem instanceof UcsdPascal) {

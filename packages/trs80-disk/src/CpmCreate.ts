@@ -1,7 +1,7 @@
 import {
     Cpm, CpmCreateError, type CpmDiskOptions, CpmSystemKind, type CpmVerifiedLayout, defaultCpmSystemKind, Density,
     type DmkFloppyDisk, type FloppyDisk, findCpmDataLayout, findCpmVerifiedLayout, findCpmVerifiedLayoutById,
-    makeCpmDisk,
+    makeCpmDisk, requireCreatableCpmLayout,
 } from "trs80-base";
 import {assertNever} from "z80-base";
 import {countFilesToErase, describeShape, requireDmkPathname, type SystemDiskCopy} from "./DiskCreate.js";
@@ -184,10 +184,10 @@ function chooseDataPreset(sides: number, cylinders: number): CpmVerifiedLayout {
 /**
  * Run something that makes a CP/M disk, turning its failures into errors for the user.
  *
- * @param make makes the disk.
+ * @param make makes the disk (or checks that it can be made).
  * @throws DiskError with the message of a {@link CpmCreateError} that make raised.
  */
-function makeOrExplain(make: () => DmkFloppyDisk): DmkFloppyDisk {
+function makeOrExplain<T>(make: () => T): T {
     try {
         return make();
     } catch (e) {
@@ -208,12 +208,15 @@ function makeOrExplain(make: () => DmkFloppyDisk): DmkFloppyDisk {
  * @param systemFromLayout the layout of that disk if the caller knows it, or undefined to find it by decoding.
  * @param copiedTracks what to call the tracks when they're copied (COPIED or KEPT).
  * @returns the disk, and what its reserved tracks got.
- * @throws DiskError if the tracks to copy don't fit the preset, the preset has no system tracks to copy to, or a
+ * @throws DiskError if the preset isn't Montezuma's, the tracks to copy don't fit the preset, the preset has no system tracks to copy to, or a
  * template isn't in this build.
  */
 function makeCpmDiskForSession(session: DiskSession, preset: CpmVerifiedLayout, systemFrom: FloppyDisk | undefined,
                                systemFromLayout: CpmVerifiedLayout | undefined, copiedTracks: CpmSystemTracks):
     {floppy: DmkFloppyDisk, systemTracks: CpmSystemTracks} {
+
+    // Before anything that looks up Montezuma's templates for the preset.
+    makeOrExplain(() => requireCreatableCpmLayout(preset));
 
     if (systemFrom !== undefined) {
         if (preset.reservedTracks === 0) {

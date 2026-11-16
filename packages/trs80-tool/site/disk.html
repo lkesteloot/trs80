@@ -143,9 +143,11 @@
             brackets mark what can be left out, and <code>...</code> means one or more.</p>
 
             <p><strong>CP/M disks.</strong> <code>add</code>, <code>kill</code>, <code>rename</code>,
-            <code>attrib</code> and <code>free</code> also work on Montezuma Micro CP/M 2.2 disks in the layouts whose
-            disk parameters were checked against a real system (the 12 formats that Montezuma’s PROBE program
-            describes, and its 1.26, 1.30, 1.42 and 1.44 formats). A CP/M disk doesn’t say what its layout is, so
+            <code>attrib</code> and <code>free</code> also work on CP/M disks in the layouts whose disk parameters
+            were checked against a real system: Montezuma Micro CP/M 2.2’s (the 12 formats that Montezuma’s PROBE
+            program describes, its 1.26, 1.30, 1.42 and 1.44 formats, and Super Data), and one or two formats each of
+            Lifeboat CP/M 1.4, Holmes Engineering CP/M 2.2, Radio Shack CP/M Plus, and Lifeboat and Aton CP/M 2.2 for the
+            Model II. A CP/M disk doesn’t say what its layout is, so
             the tool works it out from the directory; if two layouts read the disk equally well, or the directory
             is damaged, the disk is refused unless you give <code>--force</code> (and it’s refused for good if
             the layout isn’t one of those, or a directory sector can’t be read, or the directory has CP/M 3 entries).
@@ -161,7 +163,7 @@
             <code>--cpm-format</code> to settle which. An empty disk that isn’t recognized, such as a system format
             whose first sector is all 0xE5, is refused when you save, because it couldn’t be recognized when it’s
             opened again, unless you named the layout with <code>--cpm-format</code> (which then warns you to name it
-            again), or you add a file before saving.</p>
+            again), or you add a file before saving. Empty disks of the other systems aren’t recognized.</p>
 
             <p id="cpm-formats"><strong>CP/M formats.</strong> <code>--cpm-format NAME</code> names the layout
             instead of leaving the tool to work it out. The disk is then read with that layout, even if it would
@@ -171,18 +173,23 @@
             cylinders than the layout has is fine. If a saved disk wouldn’t be recognized as that layout when
             it’s opened again, which is allowed when you named the layout, the tool says so after saving and
             tells you which name to give next time. <code>dir</code>, <code>info</code>, and
-            <code>extract</code> take the same option, and so do the MCP tools. The names are Montezuma Micro
-            CP/M 2.2’s formats, and <code>info</code> shows the name of the one in use. The last three are the
-            earlier versions’ formats.</p>
+            <code>extract</code> take the same option, and so do the MCP tools. The names are the layouts in the
+            table, grouped by the system whose disk parameters verified them, and <code>info</code> shows the name of
+            the one in use. <code>mm-1.26-system</code>, <code>mm-1.26-ds-system</code>, and <code>mm-1.42-ds-system</code>
+            are the earlier versions’ formats. Only Montezuma’s can be made for now, and not Super Data:
+            <code>create cpm</code> and <code>format cpm</code> refuse the others.</p>
 
             <table class="flags presets">
                 <tr>
                     <th>Name</th>
-                    <th>Montezuma’s name</th>
+                    <th>Format</th>
                     <th>Sides</th>
                     <th>Cylinders</th>
                     <th>Sectors</th>
                     <th>Capacity</th>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Montezuma Micro CP/M 2.2 (Model 4)</th>
                 </tr>
                 <tr>
                     <td><code>mm-system</code></td>
@@ -303,6 +310,66 @@
                     <td>40</td>
                     <td>18 × 256</td>
                     <td>342K</td>
+                </tr>
+                <tr>
+                    <td><code>mm-superdata</code></td>
+                    <td>Super Data</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>5 × 1024 + 512</td>
+                    <td>220K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Lifeboat CP/M 1.4 (Model I)</th>
+                </tr>
+                <tr>
+                    <td><code>lb-system</code></td>
+                    <td>35-track system</td>
+                    <td>1</td>
+                    <td>35</td>
+                    <td>18 × 128</td>
+                    <td>72K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Holmes Engineering CP/M 2.2 (Model I)</th>
+                </tr>
+                <tr>
+                    <td><code>holmes-system</code></td>
+                    <td>System</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>10 × 512</td>
+                    <td>195K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Radio Shack CP/M Plus (Model 4)</th>
+                </tr>
+                <tr>
+                    <td><code>cpm3-system</code></td>
+                    <td>System</td>
+                    <td>1</td>
+                    <td>40</td>
+                    <td>8 × 512</td>
+                    <td>156K</td>
+                </tr>
+                <tr class="group">
+                    <th colspan="6">Lifeboat and Aton CP/M 2.2 (Model II)</th>
+                </tr>
+                <tr>
+                    <td><code>lb-m2-system</code></td>
+                    <td>Lifeboat 2.24A, Aton</td>
+                    <td>1</td>
+                    <td>77</td>
+                    <td>8 × 1024</td>
+                    <td>600K</td>
+                </tr>
+                <tr>
+                    <td><code>lb-m2-ds-system</code></td>
+                    <td>Lifeboat 2.24A, Aton DS</td>
+                    <td>2</td>
+                    <td>77</td>
+                    <td>8 × 1024</td>
+                    <td>1216K</td>
                 </tr>
             </table>
 
@@ -937,7 +1004,8 @@ create [DOS] [--heads N] [--cylinders N] [--partitions N]     (a hard disk, for 
             ask.</p>
 
             <p id="create-cpm"><strong>CP/M disks.</strong> <code>create cpm</code> makes a Montezuma Micro CP/M 2.2
-            floppy in one of <a href="#cpm-formats">the layouts</a>. With no <code>--cpm-format</code> it is a data
+            floppy in one of <a href="#cpm-formats">Montezuma’s layouts</a> (the other systems’ layouts can be read and
+            written but not created yet). With no <code>--cpm-format</code> it is a data
             format: <code>mm-data</code> (10 sectors of 512 bytes, 40 tracks, one side, 200K), or
             <code>mm-ds-data</code> with <code>--sides 2</code>, <code>mm-80-data</code> with
             <code>--cylinders 80</code>, or <code>mm-80-ds-data</code> with both. <code>--cpm-format</code> names any

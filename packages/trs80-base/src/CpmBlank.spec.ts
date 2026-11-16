@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {Cpm, decodeCpm} from "./Cpm.js";
-import {makeMontezumaTestDisk, type CpmTestFile} from "./CpmTestDisk.js";
+import {makeCpmTestDisk, type CpmTestFile} from "./CpmTestDisk.js";
 import {
     CPM_VERIFIED_LAYOUTS,
     CpmWriteBlockerKind,
@@ -9,6 +9,7 @@ import {
     findBlankCpmCandidates,
     findCpmVerifiedLayout,
     findCpmVerifiedLayoutById,
+    isMontezumaPreset,
     type CpmVerifiedLayout,
 } from "./CpmWriteGate.js";
 import {Density, type FloppyDisk, SectorPosition} from "./FloppyDisk.js";
@@ -54,7 +55,7 @@ function someFiles(): CpmTestFile[] {
  */
 function eraseAllFiles(disk: FloppyDisk): void {
     const cpm = decodeCpm(disk, true)!;
-    for (let slot = 0; slot < cpm.format.dirEntryCount; slot++) {
+    for (let slot = 0; slot < cpm.dirEntryCount; slot++) {
         const {position, offset} = cpm.getDirSlotLocation(slot);
         const sector = disk.readSector(position)!;
         sector.data[offset] = 0xE5;
@@ -74,9 +75,9 @@ function bannerFor(layout: CpmVerifiedLayout): string {
 
 describe("blank Montezuma disks", () => {
     describe("findBlankCpmCandidates", () => {
-        for (const layout of CPM_VERIFIED_LAYOUTS) {
+        for (const layout of CPM_VERIFIED_LAYOUTS.filter(isMontezumaPreset)) {
             it(`recognizes a blank ${layout.id}, with the banner of its BIOS`, () => {
-                const disk = makeMontezumaTestDisk(layout, [], layout.reservedTracks > 0 ? {banner: bannerFor(layout)} : {});
+                const disk = makeCpmTestDisk(layout, [], layout.reservedTracks > 0 ? {banner: bannerFor(layout)} : {});
                 const ids = blankIds(disk);
                 if (layout.skew === 4) {
                     // Nothing on a blank disk tells skew 2 from skew 4, and version 1.26's banner allows both.
@@ -89,28 +90,36 @@ describe("blank Montezuma disks", () => {
             });
         }
 
+        for (const layout of CPM_VERIFIED_LAYOUTS.filter(other => !isMontezumaPreset(other))) {
+            it(`doesn't recognize a blank ${layout.id}, since only Montezuma's blank disks are recognized`, () => {
+                const disk = makeCpmTestDisk(layout, []);
+                expect(blankIds(disk)).to.eql([]);
+                expect(decodeBlankCpm(disk)).to.equal(undefined);
+            });
+        }
+
         it("is ambiguous for a double-sided system disk with no banner, as FORMAT leaves it", () => {
             // The skews tie on a blank directory, and so do the reserved tracks, since all that's on them is E5.
-            const disk = makeMontezumaTestDisk(preset("mm-ds-system"), []);
+            const disk = makeCpmTestDisk(preset("mm-ds-system"), []);
             expect(blankIds(disk)).to.eql(["mm-ds-system", "mm-1.26-ds-system", "mm-1.42-ds-system"]);
             expect(decodeBlankCpm(disk)).not.to.equal(undefined);
             expect(findCpmVerifiedLayout(decodeBlankCpm(disk)!)?.id).to.equal("mm-ds-system");
         });
 
         it("is ambiguous only between skews for a single-sided system disk with no banner", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-system"), []);
+            const disk = makeCpmTestDisk(preset("mm-system"), []);
             expect(blankIds(disk)).to.eql(["mm-system", "mm-1.26-system"]);
         });
 
         it("uses a 2.x banner to rule out skew 4 and the 4 reserved tracks", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-ds-system"), [], {banner: BANNER_2});
+            const disk = makeCpmTestDisk(preset("mm-ds-system"), [], {banner: BANNER_2});
             expect(blankIds(disk)).to.eql(["mm-ds-system"]);
         });
 
         it("keeps only the 4 reserved tracks of a two-sided disk for versions 1.42 and 1.44", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-ds-system"), [], {banner: BANNER_142});
+            const disk = makeCpmTestDisk(preset("mm-ds-system"), [], {banner: BANNER_142});
             expect(blankIds(disk)).to.eql(["mm-1.42-ds-system"]);
-            const single = makeMontezumaTestDisk(preset("mm-system"), [], {banner: "Model 4 60K System CP/M 2.2 v1.44"});
+            const single = makeCpmTestDisk(preset("mm-system"), [], {banner: "Model 4 60K System CP/M 2.2 v1.44"});
             // A one-sided disk of these versions reads as the standard system format.
             expect(blankIds(single)).to.eql(["mm-system"]);
         });
@@ -118,26 +127,26 @@ describe("blank Montezuma disks", () => {
         it("recognizes a disk emptied by deleting every file, which keeps most of each entry", () => {
             for (const id of ["mm-ds-data", "mm-system", "mm-80-data", "mm-ext-ds-system"]) {
                 const layout = preset(id);
-                const disk = makeMontezumaTestDisk(layout, someFiles(), layout.reservedTracks > 0 ? {banner: BANNER_2} : {});
+                const disk = makeCpmTestDisk(layout, someFiles(), layout.reservedTracks > 0 ? {banner: BANNER_2} : {});
                 eraseAllFiles(disk);
                 expect(blankIds(disk)).to.eql([id]);
             }
         });
 
         it("reads a blank disk in a double-sided image with side 1 unformatted as one side", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-data"), [], {imageSideCount: 2, unformatSide1: true});
+            const disk = makeCpmTestDisk(preset("mm-data"), [], {imageSideCount: 2, unformatSide1: true});
             expect(disk.getGeometry().sideCount).to.equal(2);
             expect(blankIds(disk)).to.eql(["mm-data"]);
         });
 
         it("reads a blank disk with every sector of side 1 as two sides", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-ds-data"), []);
+            const disk = makeCpmTestDisk(preset("mm-ds-data"), []);
             expect(blankIds(disk)).to.eql(["mm-ds-data"]);
         });
 
         it("doesn't recognize an all-0xE5 disk whose geometry no layout fits", () => {
             // 35 cylinders, which no layout has.
-            expect(blankIds(makeMontezumaTestDisk(preset("mm-system"), [], {cylinderCount: 35}))).to.eql([]);
+            expect(blankIds(makeCpmTestDisk(preset("mm-system"), [], {cylinderCount: 35}))).to.eql([]);
             // 16 sectors of 256 bytes, which no layout has.
             const trackLayout: TrackLayout = makeLayout(16, 256, 1);
             expect(blankIds(makeBlankFloppy(trackLayout, 40, 1)!)).to.eql([]);
@@ -152,12 +161,12 @@ describe("blank Montezuma disks", () => {
         });
 
         it("doesn't recognize a system format whose first sector looks like the start of a directory", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-system"), [], {noBootSector: true, banner: BANNER_2});
+            const disk = makeCpmTestDisk(preset("mm-system"), [], {noBootSector: true, banner: BANNER_2});
             expect(blankIds(disk)).to.eql([]);
         });
 
         it("doesn't recognize a system format that has neither Montezuma's boot sector nor a banner", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-system"), []);
+            const disk = makeCpmTestDisk(preset("mm-system"), []);
             expect(blankIds(disk)).to.eql(["mm-system", "mm-1.26-system"]);
 
             // Another system's boot sector: not a directory, and not Montezuma's.
@@ -170,14 +179,14 @@ describe("blank Montezuma disks", () => {
         });
 
         it("doesn't recognize a disk that has a file", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-data"), someFiles());
+            const disk = makeCpmTestDisk(preset("mm-data"), someFiles());
             expect(blankIds(disk)).to.eql([]);
         });
     });
 
     describe("decodeFloppyFileSystem", () => {
         it("reads a blank disk as CP/M, with no files", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-ds-data"), []);
+            const disk = makeCpmTestDisk(preset("mm-ds-data"), []);
             expect(decodeCpm(disk)).to.equal(undefined);
             const cpm = decodeFloppyFileSystem(disk);
             expect(cpm).to.be.instanceOf(Cpm);
@@ -186,7 +195,7 @@ describe("blank Montezuma disks", () => {
         });
 
         it("still prefers the decoders that find something", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-data"), someFiles());
+            const disk = makeCpmTestDisk(preset("mm-data"), someFiles());
             const cpm = decodeFloppyFileSystem(disk) as Cpm;
             expect(cpm.getDirEntries(true)).to.have.length(2);
         });
@@ -194,7 +203,7 @@ describe("blank Montezuma disks", () => {
 
     describe("the write gate", () => {
         it("doubts an ambiguous blank disk, naming the other presets", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-ds-system"), []);
+            const disk = makeCpmTestDisk(preset("mm-ds-system"), []);
             const cpm = decodeBlankCpm(disk, true)!;
             const gate = evaluateCpmWriteGate(cpm);
             expect(gate.blockers.map(blocker => blocker.kind)).to.eql([CpmWriteBlockerKind.LAYOUT_DOUBT]);
@@ -204,13 +213,13 @@ describe("blank Montezuma disks", () => {
         });
 
         it("has no doubt when the layout is settled, as with --cpm-format", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-ds-system"), []);
+            const disk = makeCpmTestDisk(preset("mm-ds-system"), []);
             const cpm = decodeBlankCpm(disk, true)!;
             expect(evaluateCpmWriteGate(cpm, {layoutSettled: true}).blockers).to.eql([]);
         });
 
         it("has no doubt about a blank disk that the evidence settles", () => {
-            const disk = makeMontezumaTestDisk(preset("mm-ds-data"), []);
+            const disk = makeCpmTestDisk(preset("mm-ds-data"), []);
             expect(evaluateCpmWriteGate(decodeBlankCpm(disk, true)!).blockers).to.eql([]);
         });
     });

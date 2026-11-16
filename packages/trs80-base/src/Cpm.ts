@@ -95,6 +95,9 @@ export interface CpmFormat {
     readonly blockSize: number;
     // Number of directory entries, which fill the first blocks.
     readonly dirEntryCount: number;
+    // The number of directory entries when the file system uses both sides, if that's different from
+    // dirEntryCount.
+    readonly doubleSidedDirEntryCount?: number;
     // The size of the last physical sector on each data track (the highest-numbered one), when
     // it's shorter than the others, as on Montezuma's "Super Data" format. Absent means all
     // sectors are the same size (the geometry's modal size).
@@ -218,7 +221,7 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
     },
     // Lifeboat and Aton CP/M for the Model II ("extended density"): 8 sectors of 1024 bytes
     // after the single-density cylinder 0, which with cylinder 1 makes two system tracks.
-    // Double-sided disks have 192 entries.
+    // Single-sided disks have 128 entries, and double-sided ones 192.
     {
         name: "Lifeboat or Aton",
         sectorSizes: [1024],
@@ -228,9 +231,11 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         reservedTrackCounts: [2],
         blockSize: 2048,
         dirEntryCount: 128,
+        doubleSidedDirEntryCount: 192,
     },
     // Pickles & Trout CP/M and Digital Research's CP/M Plus for the Model II: 16 sectors of
-    // 512 bytes, interleaved physically, so no skew. Double-sided disks have 192 entries.
+    // 512 bytes, interleaved physically, so no skew. Single-sided disks have 128 entries, and
+    // double-sided ones 192.
     {
         name: "Pickles & Trout",
         sectorSizes: [512],
@@ -240,6 +245,7 @@ export const CPM_FORMATS: readonly CpmFormat[] = [
         reservedTrackCounts: [2],
         blockSize: 2048,
         dirEntryCount: 128,
+        doubleSidedDirEntryCount: 192,
     },
     // Montezuma Micro's "Super Data" format for 5¼" double density, measured from the disks
     // (see FLOPPY_FORMATS.md): five sectors of 1024 bytes and one of 512 on every track, since
@@ -559,6 +565,8 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
     public readonly wideBlockPointers: boolean;
     // Mask of the extent number bits that count logical extents within one entry (EXM).
     public readonly extentMask: number;
+    // The number of directory entries: the format's for the sides that the file system uses.
+    public readonly dirEntryCount: number;
     public readonly dirBlockCount: number;
     // The first block that files can use: the format's reserved blocks, or else the directory's.
     public readonly firstDataBlock: number;
@@ -609,7 +617,9 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         this.blockCount = Math.floor(dataTrackCount*this.recordsPerTrack*RECORD_SIZE/format.blockSize);
         this.wideBlockPointers = this.blockCount > 256;
         this.extentMask = format.blockSize/(this.wideBlockPointers ? 2048 : 1024) - 1;
-        this.dirBlockCount = Math.ceil(format.dirEntryCount*DIR_ENTRY_SIZE/format.blockSize);
+        this.dirEntryCount = allocationSides === 2 && format.doubleSidedDirEntryCount !== undefined ?
+            format.doubleSidedDirEntryCount : format.dirEntryCount;
+        this.dirBlockCount = Math.ceil(this.dirEntryCount*DIR_ENTRY_SIZE/format.blockSize);
         this.firstDataBlock = format.reservedBlockCount ?? this.dirBlockCount;
         this.nameAndVersion = this.findBanner() ?? format.name + " CP/M";
 
@@ -871,7 +881,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      * read give zeros, and no damage is recorded.
      */
     public readDirectoryBytes(): Uint8Array {
-        return this.readRecords(this.getDirRecords(), undefined).subarray(0, this.format.dirEntryCount*DIR_ENTRY_SIZE);
+        return this.readRecords(this.getDirRecords(), undefined).subarray(0, this.dirEntryCount*DIR_ENTRY_SIZE);
     }
 
     /**
@@ -881,7 +891,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      * @param slot the slot number, 0 to dirEntryCount - 1.
      */
     public getDirSlotLocation(slot: number): {position: SectorPosition, offset: number} {
-        if (!Number.isInteger(slot) || slot < 0 || slot >= this.format.dirEntryCount) {
+        if (!Number.isInteger(slot) || slot < 0 || slot >= this.dirEntryCount) {
             throw new Error(`Directory slot ${slot} out of range`);
         }
         const byteOffset = slot*DIR_ENTRY_SIZE;
@@ -893,7 +903,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      * Whether every sector that holds the directory is present and has no CRC error.
      */
     public dirSectorsReadable(): boolean {
-        const recordCount = Math.ceil(this.format.dirEntryCount*DIR_ENTRY_SIZE/RECORD_SIZE);
+        const recordCount = Math.ceil(this.dirEntryCount*DIR_ENTRY_SIZE/RECORD_SIZE);
         const checked = new Set<string>();
         for (let record = 0; record < recordCount; record++) {
             const {position} = this.getRecordLocation(record);
@@ -915,7 +925,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
      */
     public hasCpm3Entries(): boolean {
         const dir = this.readDirectoryBytes();
-        for (let i = 0; i < this.format.dirEntryCount; i++) {
+        for (let i = 0; i < this.dirEntryCount; i++) {
             const user = dir[i*DIR_ENTRY_SIZE];
             if (user > MAX_FILE_USER && user <= MAX_OTHER_USER) {
                 return true;
@@ -935,7 +945,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
             return false;
         }
         const dir = this.readDirectoryBytes();
-        for (let i = 0; i < this.format.dirEntryCount; i++) {
+        for (let i = 0; i < this.dirEntryCount; i++) {
             if (dir[i*DIR_ENTRY_SIZE] !== UNUSED_USER) {
                 return false;
             }
@@ -952,7 +962,7 @@ export class Cpm implements FloppyFileSystem<CpmFile> {
         let goodEntryCount = 0;
         let badEntryCount = 0;
         const extentsByFile = new Map<string, CpmExtent[]>();
-        for (let i = 0; i < this.format.dirEntryCount; i++) {
+        for (let i = 0; i < this.dirEntryCount; i++) {
             const extent = this.decodeDirEntry(dir.subarray(i*DIR_ENTRY_SIZE, (i + 1)*DIR_ENTRY_SIZE), i);
             if (typeof extent === "string") {
                 badEntryCount += 1;

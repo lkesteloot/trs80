@@ -2,12 +2,12 @@ import {describe, expect, it} from "vitest";
 import {Cpm} from "./Cpm.js";
 import {
     CpmCreateError, CpmSystemKind, defaultCpmSystemKind, findCpmDataLayout, findMontezumaTrackLayout,
-    hasMontezumaBiosSystem, makeCpmDisk,
+    hasMontezumaBiosSystem, isCreatableCpmPreset, makeCpmDisk,
 } from "./CpmCreate.js";
-import {makeMontezumaTestDisk} from "./CpmTestDisk.js";
+import {makeCpmTestDisk} from "./CpmTestDisk.js";
 import {
     CPM_VERIFIED_LAYOUTS, type CpmVerifiedLayout, findBlankCpmCandidates, findCpmVerifiedLayout,
-    findCpmVerifiedLayoutById,
+    findCpmVerifiedLayoutById, isMontezumaPreset,
 } from "./CpmWriteGate.js";
 import type {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {type FloppyDisk, SectorPosition} from "./FloppyDisk.js";
@@ -58,7 +58,7 @@ function blankIds(disk: FloppyDisk): string[] {
  */
 function makeSystemSource(id: string): {disk: DmkFloppyDisk, marks: {position: SectorPosition, value: number}[]} {
     const layout = preset(id);
-    const disk = makeMontezumaTestDisk(layout, [], {banner: BANNER});
+    const disk = makeCpmTestDisk(layout, [], {banner: BANNER});
     const marks: {position: SectorPosition, value: number}[] = [];
     for (let track = 0; track < layout.reservedTracks; track++) {
         const position = SectorPosition.make(Math.floor(track/layout.sides), track % layout.sides, 3);
@@ -78,7 +78,7 @@ function readMark(disk: FloppyDisk, position: SectorPosition): number {
 }
 
 describe("makeCpmDisk", () => {
-    for (const layout of CPM_VERIFIED_LAYOUTS) {
+    for (const layout of CPM_VERIFIED_LAYOUTS.filter(isCreatableCpmPreset)) {
         describe(layout.id, () => {
             const bootSector = makeBootSector(layout.sectorSize);
             // The 18 x 256 system presets get a system disk's tracks, which have a banner, as they do by default.
@@ -107,7 +107,7 @@ describe("makeCpmDisk", () => {
                         // Copied from the system disk, so not the filler.
                         continue;
                     }
-                    const expected = isBoot ? bootSector : new Uint8Array(layout.sectorSize).fill(0xE5);
+                    const expected = isBoot ? bootSector : new Uint8Array(sector.data.length).fill(0xE5);
                     expect(Array.from(sector.data)).to.eql(Array.from(expected));
                 }
             });
@@ -199,8 +199,8 @@ describe("makeCpmDisk", () => {
             expect(twoSided.binary[4] & 0x10).to.equal(0);
         });
 
-        it("has a track layout for each sector shape", () => {
-            for (const layout of CPM_VERIFIED_LAYOUTS) {
+        it("has a track layout for each sector shape of Montezuma's presets", () => {
+            for (const layout of CPM_VERIFIED_LAYOUTS.filter(isCreatableCpmPreset)) {
                 const trackLayout = findMontezumaTrackLayout(layout);
                 expect(trackLayout.sectorCount).to.equal(layout.sectorsPerTrack);
                 expect(trackLayout.sectorSize).to.equal(layout.sectorSize);
@@ -234,7 +234,7 @@ describe("makeCpmDisk", () => {
 
         it("copies all four reserved tracks of the 1.42 layout", () => {
             // A banner of version 1.42 is what makes a disk read as having 4 reserved tracks.
-            const source = makeMontezumaTestDisk(preset("mm-1.42-ds-system"), [], {banner: "Model 4 60K System CP/M 2.2 v1.42"});
+            const source = makeCpmTestDisk(preset("mm-1.42-ds-system"), [], {banner: "Model 4 60K System CP/M 2.2 v1.42"});
             const marks: {position: SectorPosition, value: number}[] = [];
             for (let track = 0; track < 4; track++) {
                 const position = SectorPosition.make(track >> 1, track & 1, 3);
@@ -251,7 +251,7 @@ describe("makeCpmDisk", () => {
 
         it("uses the layout the caller gives instead of decoding the source", () => {
             // A source that decodes as nothing, such as a system disk with no banner and a boot sector of 0xE5.
-            const source = makeMontezumaTestDisk(preset("mm-system"), [], {noBootSector: true});
+            const source = makeCpmTestDisk(preset("mm-system"), [], {noBootSector: true});
             expect(() => makeCpmDisk(preset("mm-system"), {systemTracksFrom: source})).to.throw(CpmCreateError);
             const made = makeCpmDisk(preset("mm-system"),
                 {systemTracksFrom: source, systemTracksFromLayout: preset("mm-system")});
@@ -331,6 +331,16 @@ describe("makeCpmDisk", () => {
     });
 });
 
+describe("presets of other systems", () => {
+    for (const layout of CPM_VERIFIED_LAYOUTS.filter(other => !isCreatableCpmPreset(other))) {
+        it(`can't be created as ${layout.id}, and have no BIOS 2.x system`, () => {
+            expect(() => makeCpmDisk(layout)).to.throw(CpmCreateError,
+                `Creating ${layout.id} disks isn't supported yet: `);
+            expect(hasMontezumaBiosSystem(layout)).to.equal(false);
+        });
+    }
+});
+
 describe("default system tracks", () => {
     it("gives the BIOS 2.x system to exactly the four 18 x 256 presets", () => {
         const ids = CPM_VERIFIED_LAYOUTS.filter(hasMontezumaBiosSystem).map(layout => layout.id);
@@ -338,7 +348,7 @@ describe("default system tracks", () => {
     });
 
     it("gives FORMAT's boot sector to the other system presets and nothing to the data ones", () => {
-        for (const layout of CPM_VERIFIED_LAYOUTS) {
+        for (const layout of CPM_VERIFIED_LAYOUTS.filter(isCreatableCpmPreset)) {
             const kind = defaultCpmSystemKind(layout);
             if (layout.reservedTracks === 0) {
                 expect(kind).to.equal(CpmSystemKind.NONE);
@@ -356,5 +366,12 @@ describe("default system tracks", () => {
         expect(findCpmDataLayout(1, 80)?.id).to.equal("mm-80-data");
         expect(findCpmDataLayout(2, 80)?.id).to.equal("mm-80-ds-data");
         expect(findCpmDataLayout(1, 35)).to.equal(undefined);
+    });
+
+    it("never offers another system's preset as a data format", () => {
+        for (const [sides, cylinders] of [[1, 35], [1, 40], [2, 40], [1, 77], [2, 77], [1, 80], [2, 80]]) {
+            const found = findCpmDataLayout(sides, cylinders);
+            expect(found === undefined || isMontezumaPreset(found)).to.equal(true);
+        }
     });
 });

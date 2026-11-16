@@ -3278,11 +3278,56 @@ layouts cover all but one disk:
   Plus manual says its 512-byte format is P&T's (page 9). PIP.COM and STAT.COM
   are byte-identical on P&T 2.2mH and TriSoft's boot disk.
 
-The double-sided formats' 192 entries aren't in the table: the one double-sided
-disk, Aton 2.25B, uses only 38 of them, so a reading with 128 finds every file.
-CP/M Plus's 1024-byte format reserves four tracks (page 9) and isn't in the
+The double-sided formats' 192 entries are in the table (`doubleSidedDirEntryCount`
+on the Lifeboat or Aton and the Pickles & Trout entries, used when the file
+system has two sides): the P&T manual says so (PDF page 10), and Aton 2.25B's
+`STAT DSK:` on a double-sided disk reports 192 entries, 1216K, and 2 reserved
+tracks (608 blocks of 2K, DSM 607). The one double-sided disk we have uses only
+38 entries, so reading with 128 never lost a file there, but a fuller disk
+would have. CP/M Plus's 1024-byte format reserves four tracks (page 9) and isn't in the
 table either, since no disk uses it. FMG CP/M 2.21 (26 × 256, interleave 1,
 10, 19) doesn't decode.
+
+**CP/M presets** (`CPM_VERIFIED_LAYOUTS`, the names that `--cpm-format` takes). A
+layout is a preset, and so writable, only if its disk parameter block (DPB) was
+verified on the real system, since a CP/M disk doesn't record its layout. Each preset
+names the `CPM_FORMATS` entry that reads it, and its block size, directory size, and
+DSM are checked against the decoder. Besides Montezuma's 15 above, these were added,
+with the evidence for each:
+
+- `mm-superdata` (Montezuma, 220K): a Montezuma BIOS 2.32 system disk carries this
+  DPB (SPT 44, DSM 109, no reserved tracks). The double-sided Super Data format
+  (DSM 219) is left out, because its side order hasn't been checked.
+- `lb-system` (Lifeboat CP/M 1.4, Model I): CP/M 1.4 has no DPB on the disk, so the
+  layout was measured from the disks (see "Lifeboat CP/M 1.4"), and Omikron's 1980
+  BIOS for the same Model I disks carries the same DPB (SPT 18, BSH 3, DSM 71,
+  DRM 63, OFF 3). Lifeboat's BIOS uses 35 cylinders even when the image has 40: files
+  on 40-cylinder images stay within blocks 2-71. So the preset has 35 cylinders.
+- `holmes-system` (Holmes Engineering CP/M 2.2): PROBE's DPB (see "Holmes Engineering
+  CP/M 2.2"), which a Montezuma 2.32 system also carries (SPT 40, BSH 3, DSM 194,
+  DRM 63, AL0 F0, OFF 1). Its AL0 reserves 4 blocks, so blocks 2 and 3 must never be
+  allocated, which `Cpm.firstDataBlock` (the format's `reservedBlockCount`) does.
+- `cpm3-system` (Radio Shack CP/M Plus, Model 4): the CP/M Plus loader on its
+  system tracks carries the DPB (SPT 32, BSH 3, EXM 0, DSM 155, DRM 63, AL0 C0,
+  OFF 1).
+- `lb-m2-system` (Lifeboat and Aton CP/M 2.2, Model II): Lifeboat 2.24A's `STAT DSK:`
+  reports 600K, 128 entries, and 2 reserved tracks.
+- `lb-m2-ds-system` (the same, double-sided): Aton 2.25B's `STAT DSK:` reports 1216K,
+  192 entries, and 2 reserved tracks. Sides alternate track by track, as cpmtools'
+  `trsf` definition says and the decoder assumes.
+
+Four of them were checked in trs80gp, by booting the system with a disk that
+trs80-tool had added a 3,421-byte text file to: Lifeboat 1.41 (`lb-system`, Model I),
+Radio Shack CP/M Plus 1.00 (`cpm3-system`, Model 4), Lifeboat 2.24A (`lb-m2-system`),
+and Aton 2.25B (`lb-m2-ds-system`, Model II). Each typed the file correctly, and
+the copy that its PIP made read back byte for byte, so blocks and directory entries
+mean the same to both sides. trs80gp doesn't emulate the Holmes board, and Super
+Data would need a Montezuma system configured for it, so those two rest on their DPBs.
+Super Data can't be created either: we haven't measured how FORMAT lays out its tracks.
+
+Only Montezuma's presets can be created (`create cpm`, `format cpm`) and have their
+blank disks recognized: a blank directory says nothing about the layout, and the
+recognition rests on Montezuma's boot sector and banners.
 
 **Records, not sectors.** The BIOS hands the BDOS 128-byte records, and
 blocks are counted in records, so `Cpm` maps each record of a data track to a

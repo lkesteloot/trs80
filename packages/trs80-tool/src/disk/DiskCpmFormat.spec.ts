@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import {
     CPM_VERIFIED_LAYOUTS, Cpm, type CpmTestFile, type CpmTestDiskOptions, type CpmVerifiedLayout,
-    findCpmVerifiedLayoutById, makeMontezumaTestDisk,
+    findCpmVerifiedLayoutById, isMontezumaPreset, makeCpmTestDisk,
 } from "trs80-base";
 import {DiskError, resolveCpmFormat} from "trs80-disk";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
@@ -80,8 +80,10 @@ describe("--cpm-format", () => {
      */
     function makeImage(layout: CpmVerifiedLayout, files: CpmTestFile[] = standardFiles(),
                        options: CpmTestDiskOptions = {}): void {
-        const banner = layout.reservedTracks > 0 ? BANNER : "";
-        fs.writeFileSync(imagePathname, makeMontezumaTestDisk(layout, files, {banner, ...options}).binary);
+        // Only Montezuma's presets can have a banner.
+        const bannerOptions: CpmTestDiskOptions = isMontezumaPreset(layout) ?
+            {banner: layout.reservedTracks > 0 ? BANNER : ""} : {};
+        fs.writeFileSync(imagePathname, makeCpmTestDisk(layout, files, {...bannerOptions, ...options}).binary);
     }
 
     /**
@@ -259,7 +261,7 @@ describe("--cpm-format", () => {
         it("forgets the named layout when a new floppy replaces the disk", () => {
             makeImage(preset("mm-system"));
             const session = openDiskSession(imagePathname, {cpmFormat: preset("mm-system")});
-            session.setFloppy(makeMontezumaTestDisk(preset("mm-system"), standardFiles(), {banner: BANNER}));
+            session.setFloppy(makeCpmTestDisk(preset("mm-system"), standardFiles(), {banner: BANNER}));
             expect(session.getSaveWarning()).to.equal(undefined);
         });
     });

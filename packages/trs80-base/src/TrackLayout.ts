@@ -72,6 +72,18 @@ export interface TrackLayout {
     sectorSize: number;
 
     /**
+     * Bytes in the highest-numbered sector, when it's shorter than the others, as in Montezuma's "Super Data" format
+     * (five sectors of 1024 bytes and one of 512). Absent means all sectors are sectorSize.
+     */
+    lastSectorSize?: number | undefined;
+
+    /**
+     * Bytes in a turn of the track, if it isn't the standard 5.25-inch length for the density (see
+     * {@link getTrackByteCount}), as on an 8-inch drive, whose double-density track is 10,416 bytes.
+     */
+    trackByteCount?: number | undefined;
+
+    /**
      * The number of the lowest-numbered sector. The sectors are numbered consecutively from it.
      */
     firstSectorNumber: number;
@@ -308,7 +320,22 @@ export const MONTEZUMA_512_TRACK_LAYOUT: TrackLayout = {
 };
 
 /**
- * Every layout above, for looking one up by its id.
+ * Montezuma Micro CP/M 2.2's "Super Data" format in double density: five sectors of 1024 bytes and a sixth of 512,
+ * numbered from 1 and in order, since six 1K sectors don't fit on a track. The sector shape is from the disks (see
+ * "Montezuma Micro CP/M 2.2" in FLOPPY_FORMATS.md), but we haven't measured FORMAT's gaps for it, so they're the
+ * other Montezuma layouts'.
+ */
+export const MONTEZUMA_SUPER_DATA_TRACK_LAYOUT: TrackLayout = {
+    ...MONTEZUMA_256_TRACK_LAYOUT,
+    id: "montezuma-super-data",
+    description: "Montezuma Micro CP/M 2.2, Super Data: 5 sectors of 1024 bytes and one of 512, double density",
+    sectorCount: 6,
+    sectorSize: 1024,
+    lastSectorSize: 512,
+};
+
+/**
+ * Every layout above except the Super Data one (whose last sector is shorter), for looking one up by its id.
  */
 export const ALL_TRACK_LAYOUTS: TrackLayout[] = [
     TRSDOS_23_TRACK_LAYOUT,
@@ -397,6 +424,25 @@ export function getTrackByteCount(density: Density): number {
 }
 
 /**
+ * The number of bytes in a turn of a layout's tracks: its own length if it has one, else the standard one for its
+ * density.
+ */
+export function getLayoutTrackByteCount(layout: TrackLayout): number {
+    return layout.trackByteCount ?? getTrackByteCount(layout.density);
+}
+
+/**
+ * The bytes in a layout's sector, which is the layout's sector size except for a shorter last sector.
+ *
+ * @param layout the layout.
+ * @param index the sector's position among the layout's numbers, from 0 for the lowest-numbered.
+ */
+function getSectorSize(layout: TrackLayout, index: number): number {
+    const isLast = index === layout.sectorCount - 1;
+    return isLast && layout.lastSectorSize !== undefined ? layout.lastSectorSize : layout.sectorSize;
+}
+
+/**
  * The bytes that a layout's sectors and gaps take up, through the gap after the last sector.
  * The layout fits on a track if this is no more than the track's length.
  */
@@ -405,11 +451,14 @@ export function getLayoutByteCount(layout: TrackLayout): number {
 
     // The ID field is the mark, four bytes, and the CRC. The data field is the mark, the data,
     // and the CRC.
-    const sectorBytes = layout.idSyncLength + mfmSync + 7 +
-        layout.gap2Length + layout.dataSyncLength + mfmSync + 1 + layout.sectorSize + 2 +
-        layout.gap3Length;
+    let total = layout.leadGapLength;
+    for (let i = 0; i < layout.sectorCount; i++) {
+        total += layout.idSyncLength + mfmSync + 7 +
+            layout.gap2Length + layout.dataSyncLength + mfmSync + 1 + getSectorSize(layout, i) + 2 +
+            layout.gap3Length;
+    }
 
-    return layout.leadGapLength + layout.sectorCount*sectorBytes;
+    return total;
 }
 
 /**
@@ -487,20 +536,21 @@ class TrackWriter {
 export function buildFormattedTrack(layout: TrackLayout, trackPosition: TrackPosition,
                                     sideCount: number): FormattedTrack | undefined {
 
-    const trackByteCount = getTrackByteCount(layout.density);
+    const trackByteCount = getLayoutTrackByteCount(layout);
     const fits = getLayoutByteCount(layout) <= trackByteCount && layout.sectorCount <= MAX_SECTORS_PER_TRACK;
     if (!fits) {
         return undefined;
     }
 
-    const sizeCode = sectorSizeToCode(layout.sectorSize);
-    const data = makeSectorFill(layout);
     const writer = new TrackWriter(layout.density);
     const idamIndices: number[] = [];
     const sectors: SectorData[] = [];
 
     writer.addGap(layout.leadGapLength);
     for (const sectorNumber of getTrackSectorOrder(layout, trackPosition, sideCount)) {
+        const sectorSize = getSectorSize(layout, sectorNumber - layout.firstSectorNumber);
+        const data = makeSectorFill(layout, sectorSize);
+
         // ID field.
         writer.addSync(layout.idSyncLength);
         idamIndices.push(writer.bytes.length);
@@ -508,7 +558,7 @@ export function buildFormattedTrack(layout: TrackLayout, trackPosition: TrackPos
         writer.addCrcByte(trackPosition.cylinderNumber);
         writer.addCrcByte(trackPosition.side);
         writer.addCrcByte(sectorNumber);
-        writer.addCrcByte(sizeCode);
+        writer.addCrcByte(sectorSizeToCode(sectorSize));
         writer.addCrc();
 
         // Data field.
@@ -540,13 +590,16 @@ export function buildFormattedTrack(layout: TrackLayout, trackPosition: TrackPos
 /**
  * The data of a fresh sector in a layout: the filler pattern repeated, with the layout's tail
  * overwriting the end.
+ *
+ * @param layout the layout.
+ * @param sectorSize the sector's size.
  */
-function makeSectorFill(layout: TrackLayout): number[] {
+function makeSectorFill(layout: TrackLayout, sectorSize: number): number[] {
     const data: number[] = [];
-    for (let i = 0; i < layout.sectorSize; i++) {
+    for (let i = 0; i < sectorSize; i++) {
         data.push(layout.fillPattern[i % layout.fillPattern.length]);
     }
-    data.splice(layout.sectorSize - layout.sectorTail.length, layout.sectorTail.length, ...layout.sectorTail);
+    data.splice(sectorSize - layout.sectorTail.length, layout.sectorTail.length, ...layout.sectorTail);
 
     return data;
 }

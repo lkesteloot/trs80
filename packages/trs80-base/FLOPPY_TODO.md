@@ -520,12 +520,21 @@ In planned order. People on a TRS-80 Discord asked for all of these after the
         formats that Montezuma could read.
       - The table assumes double-sided disks alternate sides track by track.
         Other BIOSes go up side 0 and back down side 1, or use side 0 then
-        side 1; add a field to `CpmFormat` when one turns up.
+        side 1; add a field to `CpmFormat` when one turns up. One has: Ira
+        reports a Montezuma BIOS 1.32 80-cylinder double-sided disk whose
+        logical tracks run down all of side 0 first (DSM 354, side 1 blank),
+        where every 2.x disk alternates.
+      - A system disk's reserved tracks usually hold its BIOS's DPBs (15 bytes:
+        SPT, BSH, BLM, EXM, DSM, DRM, AL0, AL1, CKS, OFF), and Montezuma's and
+        Lifeboat's hold their sector-translate tables. Reading them would give
+        the layout and skew directly instead of by score (Ira's notes, November
+        2026). CP/M 1.4 systems have no DPB, and a missing one proves nothing.
+      - Banners on the reserved tracks that we don't read yet, from Ira's notes:
+        Omikron (`OMIKRON CP/M VERS 2.2`), Speed Z80 (`Speed Z80 - 56k CP/m
+        V2.2`), and the CP/M Plus loader (`CP/M V3.0 Loader`).
       - CP/M 3 date stamps (user 0x21 entries) aren't read, so files have no dates.
-      - Model II CP/M (see "Model II CP/M" in `FLOPPY_FORMATS.md`): the
-        double-sided P&T and Aton formats have 192 directory entries, and the
-        table reads them with 128, which loses any file past entry 128 (none
-        of the archive's disks has one). CP/M Plus's 1024-byte format with
+      - Model II CP/M (see "Model II CP/M" in `FLOPPY_FORMATS.md`):
+        CP/M Plus's 1024-byte format with
         four reserved tracks isn't in the table. FMG CP/M 2.21 (26 × 256,
         interleave 1, 10, 19; `FMG221.IMD` in Pete's archive) doesn't decode.
       - `peter/104 Elephant ... CP-M 2.2 ...` is far shorter than its header

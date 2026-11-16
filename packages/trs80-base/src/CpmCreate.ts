@@ -10,13 +10,18 @@
 
 import {assertNever} from "z80-base";
 import {Cpm} from "./Cpm.js";
-import {CPM_VERIFIED_LAYOUTS, type CpmVerifiedLayout, findCpmVerifiedLayout} from "./CpmWriteGate.js";
+import {CPM_VERIFIED_LAYOUTS, type CpmVerifiedLayout, findCpmVerifiedLayout, isMontezumaPreset} from "./CpmWriteGate.js";
 import {makeBlankFloppy} from "./DmkBuilder.js";
 import type {DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import type {FloppyDisk} from "./FloppyDisk.js";
 import {SectorPosition} from "./FloppyDisk.js";
 import {decodeFloppyFileSystem} from "./FloppyFileSystem.js";
 import {MONTEZUMA_256_TRACK_LAYOUT, MONTEZUMA_512_TRACK_LAYOUT, type TrackLayout} from "./TrackLayout.js";
+
+/**
+ * The track layouts of Montezuma's FORMAT that we've measured. Super Data's isn't one of them.
+ */
+const MONTEZUMA_FORMAT_TRACK_LAYOUTS: readonly TrackLayout[] = [MONTEZUMA_256_TRACK_LAYOUT, MONTEZUMA_512_TRACK_LAYOUT];
 
 /**
  * The first sector number on every track of a Montezuma disk.
@@ -79,8 +84,7 @@ export interface CpmDiskOptions {
  * @throws CpmCreateError if there's none for this sector shape (a table that drifted from this code).
  */
 export function findMontezumaTrackLayout(layout: CpmVerifiedLayout): TrackLayout {
-    const candidates = [MONTEZUMA_256_TRACK_LAYOUT, MONTEZUMA_512_TRACK_LAYOUT];
-    const trackLayout = candidates.find(candidate =>
+    const trackLayout = MONTEZUMA_FORMAT_TRACK_LAYOUTS.find(candidate =>
         candidate.sectorCount === layout.sectorsPerTrack && candidate.sectorSize === layout.sectorSize);
     if (trackLayout === undefined) {
         throw new CpmCreateError(`There is no track layout for ${layout.sectorsPerTrack} sectors of ` +
@@ -181,6 +185,37 @@ function copySystemTracks(floppy: DmkFloppyDisk, layout: CpmVerifiedLayout, sour
 }
 
 /**
+ * Whether we know how Montezuma's FORMAT lays out a preset's tracks, which Super Data's we don't.
+ */
+function hasMeasuredTrackLayout(layout: CpmVerifiedLayout): boolean {
+    return MONTEZUMA_FORMAT_TRACK_LAYOUTS.some(candidate =>
+        candidate.sectorCount === layout.sectorsPerTrack && candidate.sectorSize === layout.sectorSize);
+}
+
+/**
+ * Whether we can create disks in a preset: one of Montezuma's whose tracks we know how FORMAT lays out.
+ */
+export function isCreatableCpmPreset(layout: CpmVerifiedLayout): boolean {
+    return isMontezumaPreset(layout) && hasMeasuredTrackLayout(layout);
+}
+
+/**
+ * Check that we can create disks in a preset (see {@link isCreatableCpmPreset}).
+ *
+ * @throws CpmCreateError if the preset isn't Montezuma's, or is Super Data, whose track gaps we haven't measured.
+ */
+export function requireCreatableCpmLayout(layout: CpmVerifiedLayout): void {
+    if (!isMontezumaPreset(layout)) {
+        throw new CpmCreateError(`Creating ${layout.id} disks isn't supported yet: only Montezuma Micro's layouts ` +
+            `can be created.`);
+    }
+    if (!hasMeasuredTrackLayout(layout)) {
+        throw new CpmCreateError(`Creating ${layout.id} disks isn't supported yet: how Montezuma's FORMAT lays out ` +
+            `its tracks hasn't been measured.`);
+    }
+}
+
+/**
  * Make a blank Montezuma Micro CP/M disk in a verified layout: a DMK image with the layout's cylinders and sides,
  * every track formatted as Montezuma's FORMAT does (see {@link MONTEZUMA_256_TRACK_LAYOUT}), and every sector
  * 0xE5, which is a blank directory. A layout with sides of 1 has a one-sided image, as FORMAT's images have.
@@ -193,9 +228,13 @@ function copySystemTracks(floppy: DmkFloppyDisk, layout: CpmVerifiedLayout, sour
  * @param layout the layout to make.
  * @param options what goes in the reserved tracks.
  * @returns the disk, writable and not write-protected.
- * @throws CpmCreateError if the options don't fit the layout, such as a system disk of another shape.
+ * Only Montezuma's presets can be created, since the track layouts and boot sector are Montezuma's.
+ *
+ * @throws CpmCreateError if the layout isn't Montezuma's, or the options don't fit the layout, such as a system
+ * disk of another shape.
  */
 export function makeCpmDisk(layout: CpmVerifiedLayout, options: CpmDiskOptions = {}): DmkFloppyDisk {
+    requireCreatableCpmLayout(layout);
     const systemTracksFrom = options.systemTracksFrom;
     const systemTracks = options.systemTracks;
     const bootSector = options.noSystemBootSector;
@@ -237,7 +276,7 @@ export function makeCpmDisk(layout: CpmVerifiedLayout, options: CpmDiskOptions =
  * reserved tracks have that shape. The extended (10 × 512) and 1.x presets have no system of that shape.
  */
 export function hasMontezumaBiosSystem(layout: CpmVerifiedLayout): boolean {
-    return layout.skew === 2 && layout.sectorSize === 256 && layout.sectorsPerTrack === 18 &&
+    return isMontezumaPreset(layout) && layout.skew === 2 && layout.sectorSize === 256 && layout.sectorsPerTrack === 18 &&
         layout.reservedTracks === 2;
 }
 
@@ -283,7 +322,7 @@ export function defaultCpmSystemKind(layout: CpmVerifiedLayout): CpmSystemKind {
 
 /**
  * The data preset that has the given sides and cylinders (mm-data, mm-ds-data, mm-80-data, or mm-80-ds-data), for
- * "create cpm" when the user names no preset.
+ * "create cpm" when the user names no preset. Only Montezuma's presets are considered.
  *
  * @param sides 1 or 2.
  * @param cylinders 40 or 80.
@@ -291,5 +330,5 @@ export function defaultCpmSystemKind(layout: CpmVerifiedLayout): CpmSystemKind {
  */
 export function findCpmDataLayout(sides: number, cylinders: number): CpmVerifiedLayout | undefined {
     return CPM_VERIFIED_LAYOUTS.find(layout =>
-        layout.reservedTracks === 0 && layout.sides === sides && layout.cylinders === cylinders);
+        isCreatableCpmPreset(layout) && layout.reservedTracks === 0 && layout.sides === sides && layout.cylinders === cylinders);
 }
