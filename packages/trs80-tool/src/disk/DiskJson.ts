@@ -28,8 +28,8 @@ import type {ProtectionSignJson} from "../protection.js";
 // fields keep their names, types and meanings. New values may appear in the lists of string values (such as
 // finding kinds, map cell kinds and trim reasons), so a program should accept values it doesn't know. Fields
 // meant for people can change wording: "messages", "message", "advice", "description", "label",
-// "readOnlyReason", "reason" (of "protect"), "listing", "conversions", "changes" (of "repair"), "error" and
-// "warnings". There's no version number, since the above makes one unnecessary.
+// "readOnlyReason", "reason" (of "protect"), "problem" (of a skipped file), "listing", "conversions", "changes"
+// (of "repair"), "error" and "warnings". There's no version number, since the above makes one unnecessary.
 
 /**
  * A TRSDOS file name as the JSON writes it: "HELLO.BAS", with a "." before the extension, as in json.ts,
@@ -213,11 +213,23 @@ export interface AddedFileJson {
 }
 
 /**
+ * A host file that "add --keep-going" skipped.
+ */
+export interface SkippedHostFileJson {
+    /** The host path of the file, as given. */
+    host: string;
+    /** Why the file wasn't added. */
+    problem: string;
+}
+
+/**
  * The result of "add".
  */
 export interface AddResultJson {
     /** The files added or replaced, in order. */
     files: AddedFileJson[];
+    /** The files that weren't added because of --keep-going, in order. Empty without it. */
+    skipped: SkippedHostFileJson[];
 }
 
 /**

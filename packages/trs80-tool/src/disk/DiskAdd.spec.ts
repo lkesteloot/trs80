@@ -495,6 +495,144 @@ describe("disk add", () => {
 
         await expect(runDisk("add", hostPathname, "--ascii", "--binary")).rejects.toThrow("not both");
     });
+
+    describe("with --keep-going", () => {
+        /**
+         * Make a disk and these host files: small, huge (more than the disk has room for), and after.
+         */
+        function makeSmallHugeAfter(): string[] {
+            makeImage([HELLO]);
+            return [
+                makeHostFile("small.dat", 10, 1),
+                makeHostFile("huge.dat", (freeGranules(imagePathname) + 1)*1280, 2),
+                makeHostFile("after.dat", 20, 3),
+            ];
+        }
+
+        it("adds nothing without it, and suggests it", async () => {
+            const hosts = makeSmallHugeAfter();
+            const before = fs.readFileSync(imagePathname);
+
+            await expect(runDisk("add", ...hosts)).rejects.toThrow(
+                /not enough room.*; use --keep-going to add the others$/);
+            expect(fs.readFileSync(imagePathname)).to.eql(before);
+        });
+
+        it("doesn't suggest it for a single file", async () => {
+            const hosts = makeSmallHugeAfter();
+
+            await expect(runDisk("add", hosts[1])).rejects.toThrow(/^Can't add HUGE\/DAT: not enough room[^;]*$/);
+        });
+
+        it("adds the files that fit, in order, and warns about the others", async () => {
+            const hosts = makeSmallHugeAfter();
+
+            const lines = await runDisk("add", ...hosts, "--keep-going");
+            expect(lines.slice(0, 2)).to.eql(["Added SMALL/DAT (10 bytes).", "Added AFTER/DAT (20 bytes)."]);
+            expect(lines[2]).to.match(/^Can't add HUGE\/DAT: not enough room: .*; skipped it\.$/);
+            expect(lines[lines.length - 1]).to.equal("Saved " + imagePathname + ".");
+            expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "SMALL.DAT", "AFTER.DAT"]);
+            expect(fileBytes(imagePathname, "AFTER.DAT")).to.eql(new Uint8Array(fs.readFileSync(hosts[2])));
+            const checkLines = await runDisk("check");
+            expect(checkLines[checkLines.length - 1]).to.equal("Safe to write.");
+        });
+
+        it("skips a name that's already on the disk, and adds the others", async () => {
+            makeImage([HELLO, WORLD]);
+            const hello = makeHostFile("hello.bas", 10);
+            const other = makeHostFile("other.dat", 10);
+            const helloBytes = fileBytes(imagePathname, "HELLO.BAS");
+
+            const lines = await runDisk("add", hello, other, "--binary", "--keep-going");
+            expect(lines).to.include("HELLO/BAS is already on the disk (use --overwrite to replace it); skipped it.");
+            expect(lines).to.include("Added OTHER/DAT (10 bytes).");
+            expect(fileBytes(imagePathname, "HELLO.BAS")).to.eql(helloBytes);
+        });
+
+        it("skips a replacement that's too big with --overwrite, leaving the old copy", async () => {
+            makeImage([HELLO, WORLD]);
+            const helloBytes = fileBytes(imagePathname, "HELLO.BAS");
+            const huge = makeHostFile("hello.bas", (freeGranules(imagePathname) + 3)*1280);
+            const small = makeHostFile("small.txt", 10);
+
+            const lines = await runDisk("add", huge, small, "--binary", "--overwrite", "--keep-going");
+            expect(lines.some(line => line.startsWith("Can't replace HELLO/BAS: not enough room") &&
+                line.endsWith("; skipped it."))).to.equal(true);
+            expect(lines).to.include("Added SMALL/TXT (10 bytes).");
+            expect(fileBytes(imagePathname, "HELLO.BAS")).to.eql(helloBytes);
+        });
+
+        it("skips a missing host file, and without it the error and the exit code are unchanged", async () => {
+            makeImage([HELLO]);
+            const missing = path.join(dir, "nosuch.txt");
+            const small = makeHostFile("small.dat", 10);
+            const before = fs.readFileSync(imagePathname);
+
+            await expect(runDisk("add", missing, small)).rejects.toThrow(
+                /^Can't read .*nosuch\.txt": no such file; use --keep-going to add the others$/);
+            expect(fs.readFileSync(imagePathname)).to.eql(before);
+
+            const lines = await runDisk("add", missing, small, "--keep-going");
+            expect(lines[0]).to.equal("Added SMALL/DAT (10 bytes).");
+            expect(lines[1]).to.match(/^Can't read .*nosuch\.txt": no such file; skipped it\.$/);
+            expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "SMALL.DAT"]);
+        });
+
+        it("skips a directory", async () => {
+            makeImage([HELLO]);
+            const small = makeHostFile("small.dat", 10);
+            fs.mkdirSync(path.join(dir, "sub"));
+
+            const lines = await runDisk("add", path.join(dir, "sub"), small, "--keep-going");
+            expect(lines.some(line => line.endsWith("isn't a regular file; skipped it."))).to.equal(true);
+            expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "SMALL.DAT"]);
+        });
+
+        it("adds the first of two host files with the same TRSDOS name, and skips the second", async () => {
+            makeImage([HELLO]);
+            const a = makeHostFile("my-file.txt", 5, 1);
+            const b = makeHostFile("myfile.txt", 6, 2);
+
+            const lines = await runDisk("add", a, b, "--keep-going");
+            expect(lines).to.include("Added MYFILE/TXT (5 bytes).");
+            expect(lines.some(line => line.includes("would both be MYFILE/TXT") && line.endsWith("; skipped it.")))
+                .to.equal(true);
+            expect(fileBytes(imagePathname, "MYFILE.TXT")).to.eql(new Uint8Array(fs.readFileSync(a)));
+        });
+
+        it("skips a BASIC file that won't tokenize", async () => {
+            makeImage([HELLO]);
+            const bad = makeHostFile("bad.bas", 0);
+            fs.writeFileSync(bad, "10 PRINT 1\nHELLO\n");
+            const small = makeHostFile("small.dat", 10);
+
+            const lines = await runDisk("add", bad, small, "--keep-going");
+            expect(lines).to.include("Added SMALL/DAT (10 bytes).");
+            expect(lines.some(line => /bad\.bas at line 2.*; skipped it\.$/.test(line))).to.equal(true);
+            expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "SMALL.DAT"]);
+        });
+
+        it("changes and saves nothing when every file is skipped", async () => {
+            makeImage([HELLO]);
+            const before = fs.readFileSync(imagePathname);
+            const huge = makeHostFile("huge.dat", (freeGranules(imagePathname) + 1)*1280);
+            const missing = path.join(dir, "nosuch.txt");
+
+            const lines = await runDisk("add", huge, missing, "--keep-going");
+            expect(lines.filter(line => line.endsWith("; skipped it."))).to.have.length(2);
+            expect(lines.some(line => line.startsWith("Saved"))).to.equal(false);
+            expect(fs.readFileSync(imagePathname)).to.eql(before);
+        });
+
+        it("is taken back whole by one undo", async () => {
+            const hosts = makeSmallHugeAfter();
+            const before = fs.readFileSync(imagePathname);
+
+            const lines = await runDisk("add", ...hosts, "--keep-going", ":", "undo");
+            expect(lines.some(line => line.startsWith("Undid \"add "))).to.equal(true);
+            expect(fs.readFileSync(imagePathname)).to.eql(before);
+        });
+    });
 });
 
 describe("disk add on a TRSDOS 1.3 disk", () => {

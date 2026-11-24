@@ -250,8 +250,14 @@
             8 letters and a 3-letter extension, and the command says when that changed it
             (<code class="wrap">hello-world.bas will be HELLOWOR/BAS.</code>).
             Nothing is added unless every file
-            can be: a name that is already on the disk (unless you give <code>--overwrite</code>),
-            two files with the same TRSDOS name, or too little room is an error. A file that would
+            can be: a file that can’t be read, a name that is already on the disk (unless you give
+            <code>--overwrite</code>), two files with the same TRSDOS name, or too little room is an error, which
+            suggests <code>--keep-going</code>. With <code>--keep-going</code> the files that can’t be added are
+            skipped instead, each with a warning
+            (<code class="wrap">Can’t add HUGE/DAT: not enough room: the file needs 9 granules and the disk has 3 free; skipped it.</code>),
+            and the rest are added, so that a file that doesn’t fit doesn’t stop the smaller ones after it. The command
+            then succeeds even though it skipped files, and one <a href="#undo"><code>undo</code></a> takes back the
+            whole add. A file that would
             need more than four fragments of free space can’t be added yet. It prints
             <code>Added HELLO/BAS (1,234 bytes).</code> for each file. Also called
             <code>put</code>. (To copy files from another disk image, use
@@ -318,7 +324,12 @@
                         written to free space first and the old copy freed afterward, so the new copy never
                         lands on the old one’s sectors; only if it wouldn’t fit that way does it take over the
                         old copy’s space, and the command warns when that happens. As with every change, nothing
-                        is saved unless every file can be added or replaced.</td>
+                        is saved unless every file can be added or replaced (or <code>--keep-going</code> skips
+                        it).</td>
+                </tr>
+                <tr>
+                    <td><code>--keep-going</code></td>
+                    <td>Skip each file that can’t be added, with a warning, and add the rest.</td>
                 </tr>
             </table>
 

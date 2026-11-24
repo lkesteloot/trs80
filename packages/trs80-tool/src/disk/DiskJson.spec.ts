@@ -267,6 +267,32 @@ describe("disk --json", () => {
         expect(process.exitCode).to.equal(3);
     });
 
+    it("lists the files that add --keep-going skipped, and pairs each added file with its own host path", async () => {
+        await runJson("create", "trsdos-1.3");
+        const bigPathname = path.join(dir, "big.dat");
+        fs.writeFileSync(bigPathname, new Uint8Array(400*1024));
+        const afterPathname = path.join(dir, "after.dat");
+        fs.writeFileSync(afterPathname, "after");
+
+        const run = await runJson("add", hostPathname, bigPathname, afterPathname, "--binary", "--keep-going");
+        const result = commandAt<AddResultJson>(run, 0, "add").result;
+        expect(result.files.map(file => [file.host, file.name])).to.eql(
+            [[hostPathname, "HELLO.BAS"], [afterPathname, "AFTER.DAT"]]);
+        expect(result.skipped.length).to.equal(1);
+        expect(result.skipped[0].host).to.equal(bigPathname);
+        expect(result.skipped[0].problem).to.contain("not enough room");
+        expect(process.exitCode).to.equal(undefined);
+
+        // Without the flag, there's nothing skipped, and a missing file is still "not found".
+        const plain = await runJson("add", afterPathname, "--overwrite");
+        expect(commandAt<AddResultJson>(plain, 0, "add").result.skipped).to.eql([]);
+
+        const missing = await runJson("add", path.join(dir, "nosuch.txt"), afterPathname);
+        expect(missing.commands[0].errorCode).to.equal(3);
+        expect(missing.commands[0].error).to.contain("; use --keep-going to add the others");
+        expect(process.exitCode).to.equal(3);
+    });
+
     it("puts a failure to open the image at the top, with no commands", async () => {
         const run = await runJsonOn(dir, "dir");
         expect(run.commands).to.eql([]);

@@ -20,10 +20,11 @@ import {TRIM_COMMAND} from "./DiskTrim.js";
 import {REPAIR_COMMAND} from "./DiskRepair.js";
 import {REDO_COMMAND, REVERT_COMMAND, UNDO_COMMAND} from "./DiskUndo.js";
 import {
-    type AddFileSource, type AddOptions, addFiles, type AttributeRequest, changeAttributes, changeDiskInfo,
+    type AddFileSource, type AddOptions, type AttributeRequest, changeAttributes, changeDiskInfo,
     checkDisk, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
     findingSeverityHeading, formatCommandLine, getWriteProtect, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
 } from "trs80-disk";
+import {addPlannedFiles, type PlannedEntry} from "./AddPlanned.js";
 import {IMPORT_COMMAND} from "./DiskImportCommand.js";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
@@ -466,6 +467,14 @@ const ATTRIB_COMMAND: DiskCommand = {
 };
 
 /**
+ * A host file selected for "add", and what became of it while reading and planning.
+ */
+interface AddEntry extends PlannedEntry {
+    /** What to plan for the file, or undefined if it couldn't be read. */
+    source: AddFileSource | undefined;
+}
+
+/**
  * The "add" command: copy files from the host onto the disk.
  */
 const ADD_COMMAND: DiskCommand = {
@@ -523,6 +532,12 @@ const ADD_COMMAND: DiskCommand = {
                 description: "replace files that are already on the disk, keeping their attributes, passwords, " +
                     "and date unless --system, --invisible, or --date say otherwise",
             },
+            {
+                name: "--keep-going",
+                valueName: undefined,
+                description: "skip a file that can't be added, with a warning, and add the rest, instead " +
+                    "of adding nothing",
+            },
         ],
     },
 
@@ -530,7 +545,8 @@ const ADD_COMMAND: DiskCommand = {
 
     /**
      * Read the host files, convert them for the disk (see importHostFile()), and choose their TRSDOS
-     * names, then add them all in one change, so that either every file is added or none is. The disk
+     * names, then add them all in one change, so that either every file is added or none is (unless --keep-going
+     * says to skip each file that can't be added, with a warning, and add the rest one at a time). The disk
      * image itself (and the --output file) is never added, even when a wildcard matches it.
      * A name that's already on the disk is an error, unless --overwrite says to replace that file
      * in which case the new copy keeps the old file's attributes (a system file included).
@@ -565,56 +581,45 @@ const ADD_COMMAND: DiskCommand = {
             throw new ToolError("Nothing to add: the only file given is the disk image itself");
         }
 
-        // Read every file before changing anything.
-        const sources: AddFileSource[] = [];
-        for (const pathname of pathnames) {
+        // Read every file before changing anything. A file that can't be read is a problem with that file.
+        const entries: AddEntry[] = pathnames.map(pathname => {
+            const entry: AddEntry = {label: pathname, item: undefined, problem: undefined, source: undefined};
             const stat = fs.statSync(pathname, {throwIfNoEntry: false});
             if (stat === undefined) {
-                throw new ToolError("Can't read \"" + pathname + "\": no such file", ToolErrorKind.NOT_FOUND);
+                entry.problem = "Can't read \"" + pathname + "\": no such file";
+                entry.problemKind = ToolErrorKind.NOT_FOUND;
+            } else if (!stat.isFile()) {
+                entry.problem = "Can't add \"" + pathname + "\": it isn't a regular file";
+            } else {
+                try {
+                    const bytes = fs.readFileSync(pathname);
+                    entry.source = {label: pathname, name: path.basename(pathname), bytes};
+                } catch (e: any) {
+                    entry.problem = "Can't read \"" + pathname + "\": " + e.message;
+                }
             }
-            if (!stat.isFile()) {
-                throw new ToolError("Can't add \"" + pathname + "\": it isn't a regular file");
-            }
-            let bytes: Uint8Array;
-            try {
-                bytes = fs.readFileSync(pathname);
-            } catch (e: any) {
-                throw new ToolError("Can't read \"" + pathname + "\": " + e.message);
-            }
-            sources.push({label: pathname, name: path.basename(pathname), bytes});
-        }
+            return entry;
+        });
 
-        // Convert and choose the names, then stop at the first file that can't be added.
-        const plan = planAdd(session, sources, addOptions);
-        for (const item of plan) {
-            if (item.nameChanged) {
-                out.line(item.source.name + " will be " + item.name + ".");
-            }
-            if (item.problem !== undefined) {
-                throw new ToolError(item.problem);
-            }
-        }
+        // Convert and choose the names of the files that could be read.
+        const readable = entries.filter(entry => entry.source !== undefined);
+        const plan = readable.length === 0 ? [] : planAdd(session, readable.map(entry => entry.source!), addOptions);
+        readable.forEach((entry, index) => {
+            entry.item = plan[index];
+            entry.problem = plan[index].problem;
+        });
 
-        const result = addFiles(session, plan, addOptions);
-        for (const file of result.files) {
-            for (const message of file.conversionMessages) {
-                out.line(message);
-            }
-            out.line((file.replaced ? "Replaced " : "Added ") + file.name + " (" +
-                pluralizeWithCount(file.size, "byte") + ").");
-        }
-        for (const warning of result.warnings) {
-            out.warning(warning + ".");
-        }
-        // The files come back in the order of the plan.
+        const keepGoing = command.options.has("--keep-going");
+        const {added, skipped} = addPlannedFiles(session, entries, addOptions, keepGoing, "add", out);
         out.result({
-            files: result.files.map((file, index) => ({
-                host: plan[index].source.label,
+            files: added.map(file => ({
+                host: file.label,
                 name: trsdosNameToJson(file.name),
                 size: file.size,
                 replaced: file.replaced,
-                conversions: file.conversionMessages,
+                conversions: file.item.conversionMessages,
             })),
+            skipped: skipped.map(skip => ({host: skip.label, problem: skip.problem})),
         });
     },
 };

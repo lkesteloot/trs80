@@ -320,6 +320,22 @@ describe("disk commands on a CP/M disk", () => {
             expect(fileBytes("TAPE.CAS").subarray(0, 5)).to.eql(cassette);
         });
 
+        it("skips a file that's too big with --keep-going, and adds the small one", async () => {
+            makeImage();
+            const before = fs.readFileSync(imagePathname);
+            const huge = hostFile("huge.dat", new Uint8Array(2*1024*1024));
+            const small = hostFile("small.dat", "x");
+
+            await expect(runDisk("add", huge, small)).rejects.toThrow(/; use --keep-going to add the others$/);
+            expect(fs.readFileSync(imagePathname)).to.eql(before);
+
+            const lines = await runDisk("add", huge, small, "--keep-going");
+            expect(lines[0]).to.equal("Added SMALL.DAT (1 byte).");
+            expect(lines[1]).to.match(/^There's no room for HUGE\.DAT: .*; skipped it\.$/);
+            expect(fileBytes("SMALL.DAT")).to.eql(ENCODER.encode("x"));
+            expect(fileNames()).not.to.include("HUGE.DAT");
+        });
+
         it("treats a .bas file that isn't tokenized as text", async () => {
             makeImage();
             await runDisk("add", hostFile("prog.bas", "10 PRINT \"HI\"\n20 END\n"));

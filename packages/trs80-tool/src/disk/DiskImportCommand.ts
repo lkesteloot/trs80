@@ -1,10 +1,9 @@
 import path from "path";
 import {BasicDialect, Cpm, trsdosBasicDialect} from "trs80-base";
-import {
-    type AddFileSource, type AddOptions, type AddPlanItem, addFiles, DiskErrorKind, type DiskSession, planAdd,
-} from "trs80-disk";
+import {type AddFileSource, type AddOptions, type DiskSession, planAdd} from "trs80-disk";
 import {CasInputFile, type InputFile, loadInputFile, selectInputFiles, TrsdosInputFile, WavInputFile} from "../InputFile.js";
 import {pluralizeWithCount, systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
+import {addPlannedFiles, type PlannedEntry} from "./AddPlanned.js";
 import type {DiskCommand} from "./DiskCommands.js";
 import {HostPathKind, parseAddDate} from "./DiskCommandParser.js";
 import type {ImportedFileJson, SkippedFileJson} from "./DiskJson.js";
@@ -13,13 +12,9 @@ import {trsdosNameToJson} from "./DiskJson.js";
 /**
  * A file selected for import, and what became of it while planning.
  */
-interface ImportEntry {
+interface ImportEntry extends PlannedEntry {
     /** The file in the other image. */
     inFile: InputFile;
-    /** Why the file can't be copied, or undefined if it can (so far). */
-    problem: string | undefined;
-    /** The plan for the file, or undefined if it was never planned (because it has a problem already). */
-    item: AddPlanItem | undefined;
 }
 
 /**
@@ -78,35 +73,6 @@ function makeSource(inFile: InputFile, session: DiskSession, binary: boolean, da
         source.conversion = {binary: binary || sourceBasic === undefined, sourceBasic};
     }
     return source;
-}
-
-/**
- * Take the period off the end of a message, so that one can be added without doubling it.
- */
-function withoutFinalPeriod(text: string): string {
-    return text.endsWith(".") ? text.substring(0, text.length - 1) : text;
-}
-
-/**
- * Whether an error from adding a file is about the whole disk (it can't be written), rather than about the
- * file, so that skipping the file and going on to the next wouldn't help.
- */
-function isWholeDiskError(e: ToolError): boolean {
-    return e.kind === DiskErrorKind.READ_ONLY || e.kind === DiskErrorKind.WRITE_PROTECTED ||
-        e.kind === DiskErrorKind.DAMAGED;
-}
-
-/**
- * A problem with one file that stops the whole import, with a hint about --keep-going if there are other
- * files that it could have copied.
- *
- * @param problem the file's problem.
- * @param kind what caused it.
- * @param fileCount how many files were to be copied.
- */
-function stoppingError(problem: string, kind: DiskErrorKind, fileCount: number): ToolError {
-    const hint = fileCount > 1 ? "; use --keep-going to copy the others" : "";
-    return new ToolError(withoutFinalPeriod(problem) + hint, kind);
 }
 
 /**
@@ -220,6 +186,7 @@ export const IMPORT_COMMAND: DiskCommand = {
         // Plan every file that isn't damaged. A damaged file is a problem that never gets to the plan.
         const entries: ImportEntry[] = selected.map(inFile => ({
             inFile,
+            label: inFile.filename,
             problem: inFile.damage === undefined ? undefined :
                 inFile.filename + " is damaged: " + inFile.damage.toString(),
             item: undefined,
@@ -232,83 +199,15 @@ export const IMPORT_COMMAND: DiskCommand = {
             entry.problem = plan[index].problem;
         });
 
-        // Say what the names become, then stop at the first file that can't be copied (unless we're skipping them).
-        const skipped: SkippedFileJson[] = [];
-        const toAdd: AddPlanItem[] = [];
-        for (const entry of entries) {
-            const item = entry.item;
-            if (item !== undefined && item.nameChanged) {
-                out.line(item.source.name + " will be " + item.name + ".");
-            }
-
-            let problem = entry.problem;
-            if (problem === undefined && item !== undefined && item.existingName !== undefined &&
-                !addOptions.overwrite) {
-
-                problem = item.existingName + " is already on the disk (use --overwrite to replace it)";
-            }
-            if (problem === undefined) {
-                toAdd.push(item!);
-            } else if (keepGoing) {
-                skipped.push({from: entry.inFile.filename, problem});
-            } else {
-                throw stoppingError(problem, DiskErrorKind.GENERAL, entries.length);
-            }
-        }
-
-        // Add the files, all in one change unless we're skipping those that fail.
-        const added: {item: AddPlanItem, name: string, size: number, replaced: boolean}[] = [];
-        const warnings = new Set<string>();
-        if (!keepGoing) {
-            let result;
-            try {
-                result = addFiles(session, toAdd, addOptions);
-            } catch (e) {
-                if (e instanceof ToolError && !isWholeDiskError(e)) {
-                    throw stoppingError(e.message, e.kind, toAdd.length);
-                }
-                throw e;
-            }
-            result.files.forEach((file, index) => added.push({item: toAdd[index], ...file}));
-            result.warnings.forEach(warning => warnings.add(warning));
-        } else {
-            for (const item of toAdd) {
-                try {
-                    // A failed call changes nothing, so the files that fit still go in.
-                    const result = addFiles(session, [item], addOptions);
-                    added.push({item, ...result.files[0]});
-                    result.warnings.forEach(warning => warnings.add(warning));
-                } catch (e) {
-                    // A problem with the whole disk (it can't be written) is not this file's.
-                    if (!(e instanceof ToolError) || isWholeDiskError(e)) {
-                        throw e;
-                    }
-                    skipped.push({from: item.source.label, problem: e.message});
-                }
-            }
-        }
-
-        for (const file of added) {
-            for (const message of file.item.conversionMessages) {
-                out.line(message);
-            }
-            out.line((file.replaced ? "Replaced " : "Added ") + file.name + " (" +
-                pluralizeWithCount(file.size, "byte") + ").");
-        }
-        for (const skip of skipped) {
-            // The problem names the file already.
-            out.warning(withoutFinalPeriod(skip.problem) + "; skipped it.");
-        }
-        for (const warning of warnings) {
-            out.warning(warning + ".");
-        }
+        const {added, skipped} = addPlannedFiles(session, entries, addOptions, keepGoing, "copy", out);
         const files: ImportedFileJson[] = added.map(file => ({
-            from: file.item.source.label,
+            from: file.label,
             name: trsdosNameToJson(file.name),
             size: file.size,
             replaced: file.replaced,
             conversions: file.item.conversionMessages,
         }));
-        out.result({source: imageName, files, skipped});
+        const skippedJson: SkippedFileJson[] = skipped.map(skip => ({from: skip.label, problem: skip.problem}));
+        out.result({source: imageName, files, skipped: skippedJson});
     },
 };
