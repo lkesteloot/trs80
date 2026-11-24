@@ -1023,6 +1023,24 @@ vtos301.dmk: Floppy disk (DMK), VTOS 3.0.1
                  the app’s name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
 
+            <h3 id="2026-11-23">November 23, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v5.3.0:
+                    <ul>
+                        <li><a href="disk.html#import"><code>disk import</code></a> copies files from another
+                            floppy, hard disk, CAS, or WAV file onto the disk, keeping their dates and system
+                            and hidden flags, and converting BASIC between Model III and Model 4.</li>
+                        <li><a href="disk.html#add"><code>disk add</code></a> has a new
+                            <code>--keep-going</code> flag, which skips the files that can’t be added instead of
+                            adding none. It never adds the disk image to itself, even when a wildcard matches
+                            it.</li>
+                        <li><a href="#wildcards">Wildcards</a> follow the DOS rules everywhere, on the host
+                            too: <code>*.*</code> matches names with no extension, <code>*.</code> matches only
+                            those, case doesn’t matter, and brackets are ordinary characters.</li>
+                    </ul>
+                </li>
+            </ul>
+
             <h3 id="2026-11-15">November 15, 2026</h3>
             <ul>
                 <li>The site has a new <a href="/">home page</a> that lists its apps, and a menu at the top

@@ -258,8 +258,7 @@
             and the rest are added, so that a file that doesn’t fit doesn’t stop the smaller ones after it. The command
             then succeeds even though it skipped files, and one <a href="#undo"><code>undo</code></a> takes back the
             whole add. A file that would
-            need more than four fragments of free space can’t be added yet. It prints
-            <code>Added HELLO/BAS (1,234 bytes).</code> for each file. Also called
+            need more than four fragments of free space can’t be added yet. Also called
             <code>put</code>. (To copy files from another disk image, use
             <a href="#import"><code>import</code></a>.)</p>
             <p>On a CP/M disk the files are converted differently. A <code>.bas</code> file is text, and is copied
@@ -339,33 +338,18 @@
             <p>Copy files from another disk image onto the disk, such as to move the files of a NEWDOS/80 disk to
             a new TRSDOS 1.3 disk without extracting them to your computer first. IMAGE can be anything that
             <a href="./#extract"><code>extract</code></a> reads: a floppy image, a hard disk image, a
-            <code>.cas</code> file, or a <code>.wav</code> file. (It can even be the disk’s own image file, which is
-            read from the computer, not from the disk in memory.) The patterns choose the files the way
+            <code>.cas</code> file, or a <code>.wav</code> file. The patterns choose the files the way
             <code>extract</code>’s names do; with none, every file is copied except the system files. A wildcard
             never matches a system file; to copy one, give its name. A pattern that matches no file is an error, and
             nothing is copied.</p>
-            <p>The files are copied byte for byte, with one exception: a BASIC program (a file whose extension is
-            <code>BAS</code>) is converted when the two disks run different BASICs, as <code>add</code> converts
-            a <code>.bas</code> host file, by way of its text
-            (<code class="wrap">Converted HELLO.BAS from Model III to Model 4 BASIC tokens.</code>). The programs in a
-            <code>.cas</code> or <code>.wav</code> file are converted just as <code>add</code> would convert
-            a host file of that name: BASIC becomes tokenized disk BASIC and system programs become CMD programs. A
-            damaged file in the image can’t be copied (<code class="wrap">HELLO.BAS is damaged: …</code>). Each name on
-            the disk is made from the file’s name in the image, without its partition on a hard disk, and the command
-            says when that changed it, as <code>add</code> does. Two files that would get the same name are an error.</p>
+            <p>The files are copied byte for byte, with one exception: a tokenized BASIC program is converted when the two disks run different BASICs (e.g., Model III and Model 4).</p>
             <p>A system file stays a system file, and a hidden file stays hidden. Protection levels and passwords are not
-            copied. Each copy gets the original’s date, if the disk’s DOS stores dates and can hold that one (TRSDOS 1.3
-            keeps the month and year), and none otherwise, without a warning. A CP/M disk stores no dates. Like
-            <code>add</code>, it prints <code>Added HELLO/BAS (1,234 bytes).</code> for each file.</p>
+            copied. Each copy gets the original’s date, if the disk’s DOS can represent it.</p>
             <p>Nothing is copied unless every file can be: a problem with any file, a name that’s already on the disk
-            (unless you give <code>--overwrite</code>), or too little room is an error, which suggests
-            <code>--keep-going</code>. With
-            <code>--keep-going</code> the files that can’t be copied are skipped instead, each with a warning
-            (<code class="wrap">Can’t add MUSIC/BAS: not enough room: the file needs 2 granules and the disk has 1 free; skipped it.</code>),
-            and the rest are copied, so that a file that doesn’t fit doesn’t stop the smaller ones after it. The command
-            then succeeds even though it skipped files, and one <a href="#undo"><code>undo</code></a> takes back the whole import. If the
-            image has no files to copy, it says so and changes nothing.</p>
-            <p>This converts a NEWDOS/80 disk to a TRSDOS 1.3 disk for the emulator:</p>
+            (unless you give <code>--overwrite</code>), or too little room is an error. With
+            <code>--keep-going</code> the files that can’t be copied are skipped instead,
+            and the rest are copied.</p>
+            <p>This converts a NEWDOS/80 disk to a TRSDOS 1.3 disk:</p>
             <div><pre><code>trs80-tool disk new.dmk create trsdos-1.3 : import old.dmk : dir</code></pre>
             </div>
 
@@ -373,7 +357,7 @@
                 <tr>
                     <td><code>--as NAME</code></td>
                     <td>Give the TRSDOS (or CP/M) name of the one file selected, instead of making it from its name in
-                        the image. It’s an error if the patterns select other than one file.</td>
+                        the image.</td>
                 </tr>
                 <tr>
                     <td><code>--binary</code></td>
@@ -382,21 +366,20 @@
                 </tr>
                 <tr>
                     <td><code>--system</code></td>
-                    <td>Make every copy a system file, in addition to the files that already are.</td>
+                    <td>Make every copy a system file.</td>
                 </tr>
                 <tr>
                     <td><code>--invisible</code></td>
-                    <td>Hide every copy from directory listings, in addition to the files that already are hidden.
+                    <td>Hide every copy from directory listings.
                         On a CP/M disk this and <code>--system</code> both set the SYS attribute.</td>
                 </tr>
                 <tr>
                     <td><code>--date YYYY-MM-DD</code></td>
-                    <td>Record this date on the copies instead of the files’ own, as for <code>add</code> (which says which
-                        DOSes keep one). It’s an error on a CP/M disk.</td>
+                    <td>Record this date on the copies instead of the files’ own. It’s an error on a CP/M disk.</td>
                 </tr>
                 <tr>
                     <td><code>--overwrite</code></td>
-                    <td>Replace the files that are already on the disk, as for <code>add</code>.</td>
+                    <td>Replace the files that are already on the disk.</td>
                 </tr>
                 <tr>
                     <td><code>--keep-going</code></td>
@@ -410,14 +393,8 @@
             <p>Remove files from the disk, freeing the space they used. The names may have wildcards,
             as in <code>dir</code>; every name must match a file, or nothing is removed.
             A wildcard never matches a system file; to remove one, give its name.
-            <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be removed at all. It prints
-            <code>Removed HELLO/BAS.</code> for each file. Also called <code>rm</code>,
+            <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be removed at all. Also called <code>rm</code>,
             <code>del</code>, <code>delete</code>, and <code>remove</code>.</p>
-            <p>The directory entry is changed the way the disk’s own DOS’s KILL changes it. TRSDOS 1.3 and
-            TRSDOS 2.x zero the whole entry; the others only mark it free and leave the rest, so that
-            their UNKILL or an undelete utility can bring the file back (until its space is reused). A CP/M
-            disk’s entries are only marked free, as CP/M’s own ERA does, and its names are shown
-            as <code>HELLO.TXT</code>.</p>
 
             <h3 id="rename"><code>rename</code></h3>
             <div><pre><code>rename OLDNAME NEWNAME</code></pre>
@@ -425,10 +402,8 @@
             <p>Rename a file on the disk. Both names are single TRSDOS names, with no wildcards, and
             either <code>/</code> or <code>.</code> may come before the extension. The new name
             must not belong to another file. System files can be renamed, but
-            <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be. Only the name changes, not the file’s contents, dates or attributes.
-            It prints <code class="wrap">Renamed HELLO/BAS to GREET/BAS.</code> Also called <code>mv</code>,
-            <code>ren</code>, and <code>move</code>. On a CP/M disk the names are CP/M names
-            (<code>HELLO.TXT</code>), and the file’s attributes are kept.</p>
+            <code>BOOT/SYS</code> and <code>DIR/SYS</code> can’t be. Also called <code>mv</code>,
+            <code>ren</code>, and <code>move</code>.</p>
 
             <h3 id="attrib"><code>attrib</code></h3>
             <div><pre><code>attrib PATTERN...</code></pre>
@@ -436,7 +411,6 @@
             <p>Change the attributes of files, or with no attribute options show them. The patterns
             may have wildcards, as in <code>dir</code>; every pattern must match a file, or nothing
             is changed. A wildcard never matches a system file; to change one, give its name.
-            It prints <code class="wrap">Changed HELLO/BAS: invisible, protection READ.</code> for each file.
             Also called <code>attr</code>.</p>
 
             <table class="flags">
@@ -504,8 +478,7 @@
             stores it, whether the master password is <code>PASSWORD</code> (the usual one), blank,
             or something else (shown as its hash, since the password itself isn’t stored), and the
             AUTO command, which is the command the DOS runs when it boots. The options each change one
-            field and leave the others alone. It prints what changed, such as <code class="wrap">Name is now GAMES. AUTO
-            command is now BASIC RUN"MENU".</code></p>
+            field and leave the others alone.</p>
 
             <table class="flags">
                 <tr>
@@ -718,9 +691,7 @@ partition --delete [N|NAME] [--force]</code></pre>
             <p>Fix the damage that <code>check</code> finds, where it can be fixed without guessing, in
             the GAT, the HIT and the directory only: granules that a file uses and the GAT says are free
             are marked used, HIT bytes that aren’t the hash of the file’s name are set to it, and
-            extended directory entries that no file reaches are deleted. It prints what it changed,
-            then the damage it can’t fix (files that share granules, extents past the end of the disk,
-            damaged files), and says whether the disk is now safe to write. It works on a disk that
+            extended directory entries that no file reaches are deleted. It works on a disk that
             is damaged but otherwise sound, which is the only kind of write that such a disk allows, so
             <code>repair : add FILE</code> works. It refuses a disk that can’t be written for another
             reason, such as an uncertain layout, even with <code>--force</code>. It also refuses, even
