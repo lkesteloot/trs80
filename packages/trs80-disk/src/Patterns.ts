@@ -3,6 +3,10 @@
  * case-insensitive. A "*" matches any run of characters except "/", a "?" matches one character
  * except "/", and "**" matches any characters including "/". Every other character is literal.
  *
+ * As in TRSDOS, CP/M, MS-DOS and Windows, a name without an extension also matches as if it ended in ".", so
+ * "*.*" matches every file, and "*." matches only the files without an extension (as does "*" then "/", the
+ * TRSDOS way of writing it).
+ *
  * On file systems with directories, a pattern without a "/" is matched against the last component
  * of the name only, so that "*.cmd" finds files in every directory, and a pattern with a "/" is
  * matched against the whole path. Elsewhere a "/" in the pattern is treated as a ".", so that the
@@ -40,7 +44,12 @@ export function fileNameMatchesPattern(filename: string, hasDirectories: boolean
         }
     }
 
-    return new RegExp("^" + regex + "$", "is").test(name);
+    const matcher = new RegExp("^" + regex + "$", "is");
+    if (matcher.test(name)) {
+        return true;
+    }
+    const lastPart = name.substring(name.lastIndexOf("/") + 1);
+    return !lastPart.includes(".") && matcher.test(name + ".");
 }
 
 /**

@@ -125,14 +125,15 @@ describe("disk add", () => {
     it("works under its other names, and with wildcards", async () => {
         makeImage([HELLO]);
         makeHostFile("a.txt", 10);
-        makeHostFile("b.txt", 20);
-        makeHostFile("c.txt", 30);
+        makeHostFile("b.dat", 20);
+        makeHostFile("c.dat", 30);
 
         await runDisk("put", path.join(dir, "a.txt"));
-        await runDisk("add", path.join(dir, "[bc].txt"));
+        // Matching ignores case, as on Windows (see expandHostPattern()).
+        await runDisk("add", path.join(dir, "*.DAT"));
 
-        expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "A.TXT", "B.TXT", "C.TXT"]);
-        expect(fileBytes(imagePathname, "C.TXT").length).to.equal(30);
+        expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "A.TXT", "B.DAT", "C.DAT"]);
+        expect(fileBytes(imagePathname, "C.DAT").length).to.equal(30);
     });
 
     it("names the file with --as", async () => {

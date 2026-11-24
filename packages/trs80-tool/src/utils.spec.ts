@@ -3,7 +3,7 @@ import * as os from "os";
 import * as path from "path";
 import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 import {
-    combineExitCodes, expandInputPattern, expandInputPatterns, fileNameMatchesPattern, hostFileError, ToolError,
+    combineExitCodes, expandInputPattern, expandInputPatterns, expandHostPattern, fileNameMatchesPattern, hostFileError, ToolError,
     ToolErrorKind, toolErrorExitCode, ToolExitCode, wordsAfterSubcommand, wrapMessage, wrapText, writeFileAtomically,
 } from "./utils.js";
 
@@ -40,7 +40,21 @@ describe("fileNameMatchesPattern", () => {
         expect(flat("HELLO.BAS", "*")).to.be.true;
         expect(flat("HELLO.BAS", "HELLO*.BAS")).to.be.true;
         expect(flat("HELLO.BAS", "*.CMD")).to.be.false;
-        expect(flat("HELLO", "*.*")).to.be.false;
+    });
+
+    it("matches a name without an extension with *.* and *., as TRSDOS, CP/M and Windows do", () => {
+        expect(flat("HELLO", "*.*")).to.be.true;
+        expect(flat("HELLO.BAS", "*.*")).to.be.true;
+        expect(flat("HELLO", "*.")).to.be.true;
+        expect(flat("HELLO.BAS", "*.")).to.be.false;
+        expect(flat("HELLO", "*/")).to.be.true;
+        expect(flat("HELLO", "HELLO.*")).to.be.true;
+        expect(flat("HELLO", "HELLO.")).to.be.true;
+        expect(flat("HELLO", "*.B*")).to.be.false;
+        expect(flat("HELLO", "?????.")).to.be.true;
+        expect(nested("HARDA/README", "*.*")).to.be.true;
+        expect(nested("HARDA/README", "HARDA/*.")).to.be.true;
+        expect(nested("HARDA/README.TXT", "HARDA/*.")).to.be.false;
     });
 
     it("matches one character with ?", () => {
@@ -149,12 +163,18 @@ describe("expandInputPatterns", () => {
         expect(expand("c.dsk", "*.dmk")).to.eql(["c.dsk", "a.dmk", "b.dmk"]);
     });
 
-    it("uses an existing file's name as it is, even with glob characters", () => {
+    it("uses an existing file's name as it is, even with wildcards", () => {
         expect(expand("Zork [a].dsk")).to.eql(["Zork [a].dsk"]);
     });
 
-    it("passes through a missing file without glob characters", () => {
+    it("passes through a missing file without wildcards, brackets and all", () => {
         expect(expand("missing.dmk")).to.eql(["missing.dmk"]);
+        expect(expand("Zork [b].dsk")).to.eql(["Zork [b].dsk"]);
+    });
+
+    it("follows the DOS rules, not the Unix ones", () => {
+        expect(expand("Zork*[a]*")).to.eql(["Zork [a].dsk"]);
+        expect(expand("*.DMK")).to.eql(["a.dmk", "b.dmk"]);
     });
 
     it("throws if a pattern matches nothing", () => {
@@ -164,6 +184,87 @@ describe("expandInputPatterns", () => {
     it("requires exactly one match for a single file", () => {
         expect(path.relative(dir, expandInputPattern(p("c.*")))).to.equal("c.dsk");
         expect(() => expandInputPattern(p("*.dmk"))).to.throw(ToolError, "matches 2 files");
+    });
+});
+
+describe("expandHostPattern", () => {
+    let dir = "";
+
+    beforeAll(() => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), "trs80-tool-test-"));
+        for (const name of ["README", "Game.BAS", "b.dmk", "Zork (1980)(Infocom)[a].dsk", "Zork (1980)(Infocom)a.dsk",
+            "Utility {v3}.dmk", "sub/d.dmk", "sub/NOTES", "sub/deeper/e.dmk", ".hidden.dmk", ".git/f.dmk"]) {
+            const pathname = path.join(dir, name);
+            fs.mkdirSync(path.dirname(pathname), { recursive: true });
+            fs.writeFileSync(pathname, "");
+        }
+        // A symbolic link back up the tree, which "**" mustn't follow forever. Windows may not allow one.
+        try {
+            fs.symlinkSync(dir, path.join(dir, "sub", "loop"), "dir");
+        } catch {
+            // Skip it.
+        }
+    });
+
+    afterAll(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    /**
+     * Expand a pattern in the test directory and return the files it matches, relative to the directory, sorted.
+     */
+    function expand(pattern: string): string[] {
+        return expandHostPattern(dir.replace(/\\/g, "/") + "/" + pattern)
+            .filter(match => fs.statSync(match).isFile())
+            .map(match => path.relative(dir, match).replace(/\\/g, "/"))
+            .sort();
+    }
+
+    it("matches every file with *.*, with or without an extension", () => {
+        expect(expand("*.*")).to.eql(["Game.BAS", "README", "Utility {v3}.dmk", "Zork (1980)(Infocom)[a].dsk",
+            "Zork (1980)(Infocom)a.dsk", "b.dmk"]);
+        expect(expand("*")).to.eql(expand("*.*"));
+    });
+
+    it("matches only the files without an extension with *.", () => {
+        expect(expand("*.")).to.eql(["README"]);
+        expect(expand("sub/*.")).to.eql(["sub/NOTES"]);
+    });
+
+    it("ignores case", () => {
+        expect(expand("*.bas")).to.eql(["Game.BAS"]);
+        expect(expand("*.DMK")).to.eql(["Utility {v3}.dmk", "b.dmk"]);
+    });
+
+    it("treats brackets and braces as ordinary characters", () => {
+        expect(expand("Zork*[a].dsk")).to.eql(["Zork (1980)(Infocom)[a].dsk"]);
+        expect(expand("*[a]*")).to.eql(["Zork (1980)(Infocom)[a].dsk"]);
+        expect(expand("*{v3}.*")).to.eql(["Utility {v3}.dmk"]);
+    });
+
+    it("matches one character with ?", () => {
+        expect(expand("?.dmk")).to.eql(["b.dmk"]);
+    });
+
+    it("matches wildcards in a directory, and any number of directories with **", () => {
+        expect(expand("s*/*.dmk")).to.eql(["sub/d.dmk"]);
+        expect(expand("**/*.dmk")).to.eql(["Utility {v3}.dmk", "b.dmk", "sub/d.dmk", "sub/deeper/e.dmk"]);
+    });
+
+    it("matches nothing in a directory that doesn't exist", () => {
+        expect(expand("missing/*.*")).to.eql([]);
+        expect(expand("missing/**")).to.eql([]);
+    });
+
+    it("matches a hidden name only with a pattern that starts with a dot", () => {
+        expect(expand("*.dmk")).to.not.include(".hidden.dmk");
+        expect(expand(".*.dmk")).to.eql([".hidden.dmk"]);
+        expect(expand("**/*.dmk")).to.not.include(".git/f.dmk");
+        expect(expand(".git/*.dmk")).to.eql([".git/f.dmk"]);
+    });
+
+    it("lists every file under a directory with a final **, without following symbolic links", () => {
+        expect(expand("sub/**")).to.eql(["sub/NOTES", "sub/d.dmk", "sub/deeper/e.dmk"]);
     });
 });
 

@@ -48,6 +48,7 @@
                         <li><a href="#help"><code>help</code></a></li>
                     </ul>
                 </li>
+                <li><a href="#wildcards">Wildcards</a></li>
                 <li><a href="#limitations">Limitations</a></li>
                 <li><a href="#change-log">Change log</a></li>
             </ul>
@@ -246,6 +247,9 @@
             for people, such as <code>messages</code>, <code>message</code>, <code>advice</code>,
             <code>description</code>, <code>readOnlyReason</code>, <code>error</code>, and <code>warnings</code>,
             can change their wording. There is no version number.</p>
+
+            <p>Names of files, on your computer or on a disk, may have wildcards. They follow the rules of TRSDOS,
+            CP/M, and Windows rather than those of the Unix shells; see <a href="#wildcards">Wildcards</a>.</p>
 
             <p id="exit-status">The exit status says why a command failed, so that a script doesn’t have to read the
             message. A failure whose cause is clear gets its own code; anything else is 1, so a script that only
@@ -514,7 +518,8 @@ out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
             files in the current directory first. Matching ignores case. A <code>*</code> matches any
             number of characters except <code>/</code>, a <code>?</code> matches one character other
             than <code>/</code>, and <code>**</code> matches any characters including <code>/</code>.
-            Every other character matches itself. On a hard disk or Xenix floppy, whose files are in directories, a
+            Every other character matches itself, and <code>"*.*"</code> matches every file, even one with no
+            extension (see <a href="#wildcards">Wildcards</a>). On a hard disk or Xenix floppy, whose files are in directories, a
             name without a <code>/</code> is matched against the last part of each path, so
             <code>"*.CMD"</code> finds the <code>.CMD</code> files in every directory; a name with
             a <code>/</code> is matched against the whole path. Elsewhere a <code>/</code> in the name
@@ -941,6 +946,34 @@ vtos301.dmk: Floppy disk (DMK), VTOS 3.0.1
             <div><pre><code>% trs80-tool help --json
 % trs80-tool help --json disk</code></pre>
             </div>
+
+            <h2 id="wildcards">Wildcards</h2>
+            <p>The names of files may have wildcards, both the files on your computer that a command reads
+            and the files on a disk that it picks (as in <a href="#extract"><code>extract</code></a> and
+            <a href="disk.html"><code>disk</code></a>). The tool expands them itself, by the rules of TRSDOS,
+            CP/M, and Windows. If you’re used to macOS or Linux, a few things work differently:</p>
+            <ul>
+                <li>Case doesn’t matter: <code>*.bas</code> matches both <code>HELLO.BAS</code> and
+                    <code>hello.bas</code>.</li>
+                <li><code>*</code> matches any number of characters and <code>?</code> matches one.
+                    They’re the only wildcards: brackets and braces are ordinary characters, so
+                    <code>"Zork*[a].dsk"</code> finds <code>Zork (1980)(Infocom)[a].dsk</code>, the way
+                    archive names are written. There are no sets such as <code>[abc]</code>.</li>
+                <li>A name with no extension counts as ending in <code>.</code>, so <code>*.*</code> matches
+                    every file, <code>README</code> included, and <code>*.</code> matches only the files with no
+                    extension.</li>
+                <li><code>**</code> matches any number of directories, as in <code>"games/**/*.dmk"</code>.</li>
+                <li>The name of a file that exists is used as it is, even if it has wildcards in it.</li>
+            </ul>
+            <div><pre><code>% trs80-tool dir "games/*.dmk"
+% trs80-tool disk work.dmk add "src/*.*"
+% trs80-tool extract games.dmk "*.bas"</code></pre>
+            </div>
+            <p>On macOS and Linux, the shell expands an unquoted wildcard before the tool sees it, by its own
+            rules, so quote a pattern to get the rules above. Always quote the names of files on a disk, or
+            the shell will match them against the files in the current directory. Windows’ <code>cmd.exe</code>
+            and PowerShell leave wildcards alone, and so do the <a href="disk.html#prompt"><code>disk</code>
+            prompt</a> and the <a href="#mcp">MCP server</a>, so there the tool always expands them.</p>
 
             <h2 id="limitations">Limitations</h2>
             <p>The tool reads floppy disks and HDV hard disks. Which DOS wrote a disk decides whether the tool can

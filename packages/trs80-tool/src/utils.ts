@@ -3,7 +3,7 @@ import path from "path";
 import {
     ModelIITrsdosDirEntry, Trs80File, TrsdosIIFile, TrsdosIIFileType, TrsdosIIRecordType, XenixTarFile,
     compressForName, decodeTrs80File, uncompressFile, withoutGzipSuffix } from "trs80-base";
-import {DiskError as ToolError, DiskErrorKind as ToolErrorKind} from "trs80-disk";
+import {DiskError as ToolError, DiskErrorKind as ToolErrorKind, fileNameMatchesPattern, patternHasWildcards} from "trs80-disk";
 import {assertNever} from "z80-base";
 import { AudioFile, readWavFile } from "trs80-cassette";
 
@@ -395,21 +395,125 @@ export function outputPathComponents(filename: string, hasDirectories: boolean, 
 }
 
 /**
- * Whether the string contains a character that makes it a glob pattern.
+ * The names in a host directory, or none if it can't be read.
+ *
+ * @param prefix the directory, ending in "/", or "" for the current directory.
  */
-function hasGlobCharacters(arg: string): boolean {
-    return /[*?\[\]{}]/.test(arg);
+function readHostDirectory(prefix: string): string[] {
+    try {
+        return fs.readdirSync(prefix === "" ? "." : prefix);
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Whether a wildcard may match this name in a host directory. As in the Unix shells and fs.globSync(), a
+ * wildcard doesn't match a hidden name (one that starts with "."), such as ".DS_Store" or ".git", unless the
+ * pattern's part starts with "." too.
+ *
+ * @param entry the name in the directory.
+ * @param part the part of the pattern it's matched against, or "**".
+ */
+function wildcardMayMatchEntry(entry: string, part: string): boolean {
+    return !entry.startsWith(".") || part.startsWith(".");
+}
+
+/**
+ * A directory and then every directory under it, at any depth, each ending in "/", for a "**" in a pattern
+ * (see expandHostPattern()). It doesn't go into hidden directories or follow symbolic links (or Windows
+ * junctions), which could make a loop.
+ *
+ * @param prefix the directory, ending in "/", or "" for the current directory.
+ */
+function directoryAndDescendants(prefix: string): string[] {
+    const result = [prefix];
+    for (const entry of readHostDirectory(prefix)) {
+        if (wildcardMayMatchEntry(entry, "**") &&
+            fs.lstatSync(prefix + entry, { throwIfNoEntry: false })?.isDirectory() === true) {
+
+            result.push(...directoryAndDescendants(prefix + entry + "/"));
+        }
+    }
+    return result;
+}
+
+/**
+ * Expand a pattern of host files by the rules of TRSDOS, CP/M, and Windows (those of cmd.exe's DIR and COPY),
+ * which are also the rules for the names of files on a disk. fs.globSync() follows Unix rules instead: with
+ * it, "*.*" needs a "." in the name, so it misses README; "*." matches nothing, since a host file name
+ * doesn't end in "."; and brackets make a set of characters, so "Zork*[a].dsk" misses
+ * "Zork (1980)(Infocom)[a].dsk", the way archive names are written. Here "*" and "?" are the only wildcards,
+ * matching is case-insensitive, a name without an extension matches "*.*" and "*." (see
+ * fileNameMatchesPattern()), and brackets and braces are ordinary characters. A part that is "**" matches
+ * any number of directories, as it does with fs.globSync(). A wildcard doesn't match a hidden name (see
+ * wildcardMayMatchEntry()).
+ *
+ * @param pattern the pattern, with "/" between its parts. It may start with a drive ("C:/"), "/" or "//server/share/".
+ * @returns the paths that match, files and directories both, in no particular order.
+ */
+export function expandHostPattern(pattern: string): string[] {
+    const parts = pattern.split("/");
+    let current: string[];
+    let first: number;
+    if (pattern.startsWith("//") && parts.length > 4) {
+        current = ["//" + parts[2] + "/" + parts[3] + "/"];
+        first = 4;
+    } else if (parts[0] === "") {
+        current = ["/"];
+        first = 1;
+    } else if (/^[a-z]:$/i.test(parts[0])) {
+        current = [parts[0] + "/"];
+        first = 1;
+    } else {
+        current = [""];
+        first = 0;
+    }
+    const rest = parts.slice(first).filter(part => part !== "");
+
+    for (const [index, part] of rest.entries()) {
+        const isLast = index === rest.length - 1;
+        const next: string[] = [];
+        for (const prefix of current) {
+            if (part === "**") {
+                const directories = directoryAndDescendants(prefix);
+                if (isLast) {
+                    for (const directory of directories) {
+                        for (const entry of readHostDirectory(directory)) {
+                            if (wildcardMayMatchEntry(entry, part)) {
+                                next.push(directory + entry);
+                            }
+                        }
+                    }
+                } else {
+                    next.push(...directories);
+                }
+            } else if (!patternHasWildcards(part)) {
+                next.push(prefix + part + (isLast ? "" : "/"));
+            } else {
+                for (const entry of readHostDirectory(prefix)) {
+                    if (wildcardMayMatchEntry(entry, part) && fileNameMatchesPattern(entry, false, part)) {
+                        next.push(prefix + entry + (isLast ? "" : "/"));
+                    }
+                }
+            }
+        }
+        current = next;
+    }
+
+    // On Windows this puts backslashes between the parts.
+    return [...new Set(current)].map(match => path.normalize(match));
 }
 
 /**
  * Expand one command-line argument that names host files. Cmd.exe and PowerShell don't expand
- * wildcards for native programs, so we do it ourselves on every platform.
+ * wildcards for native programs, and nothing expands them in the interactive "disk" shell or the
+ * MCP server, so we do it ourselves on every platform, by the rules of expandHostPattern().
  *
- * An argument that names an existing file or directory is used unchanged, which matters because
- * names like "Zork (1980)(Infocom)[a].dsk" contain glob syntax, and because the shell has already
- * expanded the arguments on Unix. Otherwise an argument with glob characters is a pattern,
- * and is replaced by the regular files that it matches, sorted. Any other argument is returned
- * unchanged, so that the command reports it as a missing file.
+ * An argument that names an existing file or directory is used unchanged, because the shell has
+ * already expanded the arguments on Unix. Otherwise an argument with wildcards ("*" or "?") is a
+ * pattern, and is replaced by the regular files that it matches, sorted. Any other argument is
+ * returned unchanged, so that the command reports it as a missing file.
  *
  * @param arg the argument from the command line.
  * @returns the files the argument stands for, which is never empty.
@@ -417,13 +521,13 @@ function hasGlobCharacters(arg: string): boolean {
  */
 function expandInputPatternArg(arg: string): string[] {
     const exists = fs.statSync(arg, { throwIfNoEntry: false }) !== undefined;
-    if (exists || !hasGlobCharacters(arg)) {
+    if (exists || !patternHasWildcards(arg)) {
         return [arg];
     }
 
-    // A backslash is a path separator on Windows, not an escape.
+    // A backslash is a path separator on Windows. Elsewhere it's an ordinary character in a name.
     const pattern = process.platform === "win32" ? arg.replace(/\\/g, "/") : arg;
-    const matches = fs.globSync(pattern)
+    const matches = expandHostPattern(pattern)
         .filter(match => fs.statSync(match, { throwIfNoEntry: false })?.isFile() === true)
         .sort();
     if (matches.length === 0) {
