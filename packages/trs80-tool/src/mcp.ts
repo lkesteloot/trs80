@@ -1580,7 +1580,7 @@ TOOLS["disk"] = {
     description: "Run disk commands on one disk image without changing anything, as \"trs80-tool disk " +
         "IMAGE --dry-run --json WORDS...\" would, and return its JSON: {image, commands: [{command, name, " +
         "messages, warnings, result | error}], saved, wouldHaveChanged, warnings}. Commands chain with \":\" " +
-        "and may change the disk in memory (add, kill, attrib, ...): wouldHaveChanged then says whether " +
+        "and may change the disk in memory (add, import, kill, attrib, ...): wouldHaveChanged then says whether " +
         "disk_write would change the image. \"extract\", which writes host files, is refused. Try " +
         "[\"help\"] for the commands. " + PATH_NOTE,
     inputSchema: DISK_TOOL_SCHEMA,

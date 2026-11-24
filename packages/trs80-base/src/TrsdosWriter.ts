@@ -124,6 +124,60 @@ const LAST_YEAR_13 = 1999;
 const LAST_YEAR_WITH_TIME_STAMP = 2011;
 
 /**
+ * The years that a DOS's directory entries can hold as a file's date.
+ *
+ * @param ruleSet the DOS's rules.
+ * @param hasTimeStamps whether the disk is an LDOS 5.3 or LS-DOS 6.3 disk, whose entries hold more years.
+ * @returns the first and last years, or undefined if the DOS doesn't store file dates.
+ */
+export function trsdosFileDateYears(ruleSet: TrsdosRuleSet, hasTimeStamps: boolean):
+    {first: number, last: number} | undefined {
+
+    switch (ruleSet) {
+        case TrsdosRuleSet.TRSDOS_2:
+        case TrsdosRuleSet.DOSPLUS:
+        case TrsdosRuleSet.NEWDOS_80:
+            return undefined;
+
+        case TrsdosRuleSet.MULTIDOS:
+            return {first: FIRST_YEAR, last: LAST_YEAR_WITHOUT_TIME_STAMP};
+
+        case TrsdosRuleSet.LDOS_5:
+        case TrsdosRuleSet.TRSDOS_6:
+            return {first: FIRST_YEAR, last: hasTimeStamps ? LAST_YEAR_WITH_TIME_STAMP : LAST_YEAR_WITHOUT_TIME_STAMP};
+
+        case TrsdosRuleSet.TRSDOS_1_3:
+        case TrsdosRuleSet.TRSDOS_2_7:
+            return {first: FIRST_YEAR, last: LAST_YEAR_13};
+
+        default:
+            assertNever(ruleSet);
+    }
+}
+
+/**
+ * Whether a file's date, which came from somewhere other than the user (such as the file it was copied from),
+ * can be recorded by a DOS, so that a caller can leave it off instead of getting the writer's warning (which
+ * reads as though the user asked for the date) or its error for a year that doesn't fit.
+ *
+ * @param ruleSet the DOS's rules.
+ * @param hasTimeStamps whether the disk is an LDOS 5.3 or LS-DOS 6.3 disk, whose entries hold more years.
+ * @param date the date.
+ * @param replacing whether the file replaces one that's already on the disk, which MultiDOS doesn't give a date
+ * (see TrsdosWriter.replaceFile()).
+ * @returns whether the DOS would record the date as it is.
+ */
+export function trsdosCanStoreDate(ruleSet: TrsdosRuleSet, hasTimeStamps: boolean, date: Date,
+                                   replacing: boolean): boolean {
+    const years = trsdosFileDateYears(ruleSet, hasTimeStamps);
+    if (years === undefined || (replacing && ruleSet === TrsdosRuleSet.MULTIDOS)) {
+        return false;
+    }
+    const year = date.getFullYear();
+    return !Number.isNaN(year) && year >= years.first && year <= years.last;
+}
+
+/**
  * The raw names of the files that can't be deleted or renamed, because the DOS needs them where they are.
  */
 const PROTECTED_RAW_FILENAMES = ["BOOT    SYS", "DIR     SYS"];
@@ -1488,12 +1542,7 @@ export class TrsdosWriter {
                 if (date === undefined) {
                     return {byte1: 0, byte2: 0, timeStamp: undefined, warning: undefined};
                 }
-                const year = date.getFullYear();
-                if (Number.isNaN(year) || year < FIRST_YEAR || year > LAST_YEAR_WITHOUT_TIME_STAMP) {
-                    throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
-                        `${Number.isNaN(year) ? "of that date" : year}; give a date from ${FIRST_YEAR} to ` +
-                        `${LAST_YEAR_WITHOUT_TIME_STAMP}, or none`);
-                }
+                const year = this.checkDateYear(date);
                 const byte2 = (date.getDate() << 3) | ((year - FIRST_YEAR) & 0x07);
                 return {byte1: date.getMonth() + 1, byte2, timeStamp: undefined, warning: undefined};
             }
@@ -1506,13 +1555,8 @@ export class TrsdosWriter {
                     return {byte1: BYTE1_MODIFIED | BYTE1_DATE_NOT_SET, byte2: 0, timeStamp: undefined, warning: undefined};
                 }
 
-                const year = date.getFullYear();
+                const year = this.checkDateYear(date);
                 const hasTimeStamps = this.trsdos.hasTimeStamps;
-                const lastYear = hasTimeStamps ? LAST_YEAR_WITH_TIME_STAMP : LAST_YEAR_WITHOUT_TIME_STAMP;
-                if (Number.isNaN(year) || year < FIRST_YEAR || year > lastYear) {
-                    throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
-                        `${Number.isNaN(year) ? "of that date" : year}; give a date from ${FIRST_YEAR} to ${lastYear}, or none`);
-                }
 
                 const byte1 = BYTE1_MODIFIED | (date.getMonth() + 1);
                 const byte2 = (date.getDate() << 3) | ((year - FIRST_YEAR) & 0x07);
@@ -1527,17 +1571,33 @@ export class TrsdosWriter {
                 if (date === undefined) {
                     return {byte1: 0, byte2: 0, timeStamp: undefined, warning: undefined};
                 }
-                const year = date.getFullYear();
-                if (Number.isNaN(year) || year < FIRST_YEAR || year > LAST_YEAR_13) {
-                    throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
-                        `${Number.isNaN(year) ? "of that date" : year}; give a date from ${FIRST_YEAR} to ${LAST_YEAR_13}, or none`);
-                }
+                const year = this.checkDateYear(date);
                 return {byte1: date.getMonth() + 1, byte2: year - 1900, timeStamp: undefined, warning: undefined};
             }
 
             default:
                 assertNever(this.ruleSet);
         }
+    }
+
+    /**
+     * Check that this DOS's directory entries can hold a date's year (see {@link trsdosFileDateYears}).
+     *
+     * @param date the date, on a DOS that stores file dates.
+     * @return the date's year.
+     * @throws TrsdosWriteError if the year doesn't fit.
+     */
+    private checkDateYear(date: Date): number {
+        const years = trsdosFileDateYears(this.ruleSet, this.trsdos.hasTimeStamps);
+        if (years === undefined) {
+            throw new Error(`${trsdosRuleSetToString(this.ruleSet)} disks don't store file dates`);
+        }
+        const year = date.getFullYear();
+        if (Number.isNaN(year) || year < years.first || year > years.last) {
+            throw new TrsdosWriteError(`${trsdosRuleSetToString(this.ruleSet)} disks can't store the year ` +
+                `${Number.isNaN(year) ? "of that date" : year}; give a date from ${years.first} to ${years.last}, or none`);
+        }
+        return year;
     }
 
     /**

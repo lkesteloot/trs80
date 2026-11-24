@@ -95,6 +95,31 @@ describe("DiskFileOperations", () => {
         expect(result.files.map(file => [file.name, file.replaced])).to.eql([["HELLO/BAS", true]]);
     });
 
+    it("uses a file's own conversion, flags, and date, which a DOS without dates leaves off without a warning", () => {
+        const session = makeSession();
+        const text = new TextEncoder().encode("a\nb\n");
+        const sources = [
+            // Converted like the options say.
+            {...hostFile("one.txt", "a\nb\n")},
+            // Copied byte for byte, and made a system file with a date that TRSDOS 2.3 can't store.
+            {...hostFile("two.txt", "a\nb\n"), conversion: {binary: true, sourceBasic: undefined}, system: true,
+                date: new Date(1985, 2, 4)},
+            {...hostFile("three.dat", "x"), invisible: true},
+        ];
+        const plan = planAdd(session, sources, DEFAULT_OPTIONS);
+        expect(plan[0].conversionMessages).to.eql(["Converted line endings of one.txt."]);
+        expect(plan[1].conversionMessages).to.eql([]);
+        expect(plan[1].contents).to.eql(text);
+
+        const result = addFiles(session, plan, DEFAULT_OPTIONS);
+        expect(result.warnings).to.eql([]);
+        const attributes = listAttributes(session, ["*", "TWO/TXT"]).dirEntries;
+        const byName = (name: string) => attributes.find(dirEntry => dirEntry.getFilename("/") === name)!;
+        expect(byName("TWO/TXT").isSystemFile()).to.equal(true);
+        expect(byName("ONE/TXT").isSystemFile()).to.equal(false);
+        expect(byName("THREE/DAT").isHidden()).to.equal(true);
+    });
+
     it("throws a file's problem from addFiles", () => {
         const session = makeSession();
         const plan = planAdd(session, [hostFile("bad.cas", "x")], DEFAULT_OPTIONS);

@@ -22,7 +22,7 @@
             can then work on it in the same run.</p>
             <div><pre><code>% trs80-tool disk games.dmk create ldos-5.3 : add *.bas</code></pre>
             </div>
-            <p>Most commands only read the disk; <code>add</code>, <code>kill</code>, <code>rename</code>, <code>attrib</code>, <code>label</code>,
+            <p>Most commands only read the disk; <code>add</code>, <code>import</code>, <code>kill</code>, <code>rename</code>, <code>attrib</code>, <code>label</code>,
             <code>create</code> and <code>format</code> change it. Commands that change the disk do
             so in memory, and the image is written once, after the last command: if any
             command in the chain or any line of a script fails, nothing is saved.</p>
@@ -57,6 +57,7 @@
                         <li><a href="#extract"><code>extract</code></a></li>
                         <li><a href="#list"><code>list</code></a></li>
                         <li><a href="#add"><code>add</code></a></li>
+                        <li><a href="#import"><code>import</code></a></li>
                         <li><a href="#kill"><code>kill</code></a></li>
                         <li><a href="#rename"><code>rename</code></a></li>
                         <li><a href="#attrib"><code>attrib</code></a></li>
@@ -252,7 +253,8 @@
             two files with the same TRSDOS name, or too little room is an error. A file that would
             need more than four fragments of free space can’t be added yet. It prints
             <code>Added HELLO/BAS (1,234 bytes).</code> for each file. Also called
-            <code>import</code> and <code>put</code>.</p>
+            <code>put</code>. (To copy files from another disk image, use
+            <a href="#import"><code>import</code></a>.)</p>
             <p>On a CP/M disk the files are converted differently. A <code>.bas</code> file is text, and is copied
             as text, unless its first byte is 0xFF (tokenized MBASIC), when it’s copied as it is; the text extensions
             above, and <code>--text</code>, give CR LF line endings and a Ctrl-Z at the end; and everything else,
@@ -316,6 +318,77 @@
                         lands on the old one’s sectors; only if it wouldn’t fit that way does it take over the
                         old copy’s space, and the command warns when that happens. As with every change, nothing
                         is saved unless every file can be added or replaced.</td>
+                </tr>
+            </table>
+
+            <h3 id="import"><code>import</code></h3>
+            <div><pre><code>import IMAGE [PATTERN...]</code></pre>
+            </div>
+            <p>Copy files from another disk image onto the disk, such as to move the files of a NEWDOS/80 disk to
+            a new TRSDOS 1.3 disk without extracting them to your computer first. IMAGE can be anything that
+            <a href="./#extract"><code>extract</code></a> reads: a floppy image, a hard disk image, a
+            <code>.cas</code> file, or a <code>.wav</code> file. (It can even be the disk’s own image file, which is
+            read from the computer, not from the disk in memory.) The patterns choose the files the way
+            <code>extract</code>’s names do; with none, every file is copied except the system files. A wildcard
+            never matches a system file; to copy one, give its name. A pattern that matches no file is an error, and
+            nothing is copied.</p>
+            <p>The files are copied byte for byte, with one exception: a BASIC program (a file whose extension is
+            <code>BAS</code>) is converted when the two disks run different BASICs, as <code>add</code> converts
+            a <code>.bas</code> host file, by way of its text
+            (<code class="wrap">Converted HELLO.BAS from Model III to Model 4 BASIC tokens.</code>). The programs in a
+            <code>.cas</code> or <code>.wav</code> file are converted just as <code>add</code> would convert
+            a host file of that name: BASIC becomes tokenized disk BASIC and system programs become CMD programs. A
+            damaged file in the image can’t be copied (<code class="wrap">HELLO.BAS is damaged: …</code>). Each name on
+            the disk is made from the file’s name in the image, without its partition on a hard disk, and the command
+            says when that changed it, as <code>add</code> does. Two files that would get the same name are an error.</p>
+            <p>A system file stays a system file, and a hidden file stays hidden. Protection levels and passwords are not
+            copied. Each copy gets the original’s date, if the disk’s DOS stores dates and can hold that one (TRSDOS 1.3
+            keeps the month and year), and none otherwise, without a warning. A CP/M disk stores no dates. Like
+            <code>add</code>, it prints <code>Added HELLO/BAS (1,234 bytes).</code> for each file.</p>
+            <p>Nothing is copied unless every file can be: a problem with any file, a name that’s already on the disk
+            (unless you give <code>--overwrite</code>), or too little room is an error, which suggests
+            <code>--keep-going</code>. With
+            <code>--keep-going</code> the files that can’t be copied are skipped instead, each with a warning
+            (<code class="wrap">Can’t add MUSIC/BAS: not enough room: the file needs 2 granules and the disk has 1 free; skipped it.</code>),
+            and the rest are copied, so that a file that doesn’t fit doesn’t stop the smaller ones after it. The command
+            then succeeds even though it skipped files, and one <a href="#undo"><code>undo</code></a> takes back the whole import. If the
+            image has no files to copy, it says so and changes nothing.</p>
+            <p>This converts a NEWDOS/80 disk to a TRSDOS 1.3 disk for the emulator:</p>
+            <div><pre><code>trs80-tool disk new.dmk create trsdos-1.3 : import old.dmk : dir</code></pre>
+            </div>
+
+            <table class="flags">
+                <tr>
+                    <td><code>--as NAME</code></td>
+                    <td>Give the TRSDOS (or CP/M) name of the one file selected, instead of making it from its name in
+                        the image. It’s an error if the patterns select other than one file.</td>
+                </tr>
+                <tr>
+                    <td><code>--binary</code></td>
+                    <td>Copy every file byte for byte, even BASIC between Model III and Model 4 BASIC, and the programs
+                        in a <code>.cas</code> or <code>.wav</code> file.</td>
+                </tr>
+                <tr>
+                    <td><code>--system</code></td>
+                    <td>Make every copy a system file, in addition to the files that already are.</td>
+                </tr>
+                <tr>
+                    <td><code>--invisible</code></td>
+                    <td>Hide every copy from directory listings, in addition to the files that already are hidden.
+                        On a CP/M disk this and <code>--system</code> both set the SYS attribute.</td>
+                </tr>
+                <tr>
+                    <td><code>--date YYYY-MM-DD</code></td>
+                    <td>Record this date on the copies instead of the files’ own, as for <code>add</code> (which says which
+                        DOSes keep one). It’s an error on a CP/M disk.</td>
+                </tr>
+                <tr>
+                    <td><code>--overwrite</code></td>
+                    <td>Replace the files that are already on the disk, as for <code>add</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>--keep-going</code></td>
+                    <td>Skip each file that can’t be copied, with a warning, and copy the rest.</td>
                 </tr>
             </table>
 

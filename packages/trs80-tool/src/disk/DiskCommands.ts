@@ -24,6 +24,7 @@ import {
     checkDisk, describeAttributes, describeAutoCommand, describeChanges, describeMasterPassword, DiskSession,
     findingSeverityHeading, formatCommandLine, getWriteProtect, killFiles, listAttributes, planAdd, readDiskInfo, renameFile,
 } from "trs80-disk";
+import {IMPORT_COMMAND} from "./DiskImportCommand.js";
 import {LIST_COMMAND} from "./DiskList.js";
 import {MAP_COMMAND} from "./DiskMap.js";
 import {parseBasicName, printDiskHelp} from "./DiskHelp.js";
@@ -470,7 +471,7 @@ const ATTRIB_COMMAND: DiskCommand = {
 const ADD_COMMAND: DiskCommand = {
     spec: {
         name: "add",
-        aliases: ["import", "put"],
+        aliases: ["put"],
         args: "<HOSTFILE...>",
         hostPathArgs: HostPathKind.FILE,
         summary: "copy files from the host onto the disk, converting BASIC, system programs, and text",
@@ -519,8 +520,8 @@ const ADD_COMMAND: DiskCommand = {
             {
                 name: "--overwrite",
                 valueName: undefined,
-                description: "replace files that are already on the disk, keeping their attributes, passwords " +
-                    "and date unless --system, --invisible or --date say otherwise",
+                description: "replace files that are already on the disk, keeping their attributes, passwords, " +
+                    "and date unless --system, --invisible, or --date say otherwise",
             },
         ],
     },
@@ -1078,6 +1079,7 @@ export const DISK_COMMANDS: DiskCommand[] = [
     EXTRACT_COMMAND,
     LIST_COMMAND,
     ADD_COMMAND,
+    IMPORT_COMMAND,
     KILL_COMMAND,
     RENAME_COMMAND,
     ATTRIB_COMMAND,

@@ -4,10 +4,10 @@ import {
     Trsdos, trsdosBlankPasswordHash, type TrsdosVersion, type TrsdosAttributeChanges, type TrsdosDirEntry, type TrsdosDiskInfo,
     type TrsdosAddResult, type TrsdosDiskInfoChanges, type TrsdosFilename, trsdosFilenameFromHost,
     trsdosFilenameToString, type TrsdosProtectionLevel, trsdosProtectionLevels, trsdosProtectionLevelToString,
-    TrsdosProtectionNames, uncompressFile,
+    TrsdosProtectionNames, trsdosCanStoreDate, uncompressFile,
 } from "trs80-base";
 import {DiskError, DiskErrorKind} from "./DiskError.js";
-import {checkImportOptions, importCpmHostFile, importHostFile, stemOf} from "./DiskImport.js";
+import {checkImportOptions, importCpmHostFile, importHostFile, type ImportOptions, stemOf} from "./DiskImport.js";
 import {DiskSession, DiskWritePurpose} from "./DiskSession.js";
 import {selectByPatterns, systemWildcardHint} from "./Patterns.js";
 import {pluralizeWithCount} from "./Plural.js";
@@ -561,6 +561,21 @@ export interface AddFileSource {
     name: string;
     /** Its bytes, before any conversion. */
     bytes: Uint8Array;
+    /**
+     * How to convert this file, instead of the options' binary and sourceBasic (which every file without this
+     * gets), such as to copy a file that came off another disk byte for byte but still convert its BASIC
+     * when the disks' BASICs differ.
+     */
+    conversion?: Pick<ImportOptions, "binary" | "sourceBasic"> | undefined;
+    /**
+     * The file's own date, recorded when options.date is undefined, and only if the DOS can store it as it is
+     * (otherwise the file gets none, without a warning, since the user didn't ask for a date). Ignored on CP/M.
+     */
+    date?: Date | undefined;
+    /** Whether the file is a system file, in addition to the options' system. On CP/M this means SYS. */
+    system?: boolean | undefined;
+    /** Whether the file is hidden from directory listings, in addition to the options' invisible. On CP/M this means SYS. */
+    invisible?: boolean | undefined;
 }
 
 /**
@@ -702,12 +717,13 @@ export function planAdd(session: DiskSession, sources: AddFileSource[], options:
         // Convert before choosing the name, since the conversion can change the extension.
         let imported;
         try {
+            const conversion = source.conversion;
             imported = (isCpm ? importCpmHostFile : importHostFile)(source.name, source.bytes, {
                 ascii: options.ascii,
-                binary: options.binary,
+                binary: conversion === undefined ? options.binary : conversion.binary,
                 text: options.text,
                 basic: options.basic,
-                sourceBasic: options.sourceBasic,
+                sourceBasic: conversion === undefined ? options.sourceBasic : conversion.sourceBasic,
             });
         } catch (e) {
             if (e instanceof DiskError) {
@@ -822,14 +838,13 @@ export function addFiles(session: DiskSession, plan: AddPlanItem[], options: Add
             const contents = item.contents!;
 
             const existing = writer.findFile(trsdosFilenameToString(filename));
+            const system = options.system || item.source.system === true;
+            const invisible = options.invisible || item.source.invisible === true;
+            const date = options.date ?? storableSourceDate(session, item, existing !== undefined);
             let result: TrsdosAddResult;
             let replaced: boolean;
             if (existing === undefined) {
-                result = writer.addFile(filename, contents, {
-                    system: options.system,
-                    invisible: options.invisible,
-                    date: options.date,
-                });
+                result = writer.addFile(filename, contents, {system, invisible, date});
                 replaced = false;
             } else {
                 if (!options.overwrite) {
@@ -839,9 +854,9 @@ export function addFiles(session: DiskSession, plan: AddPlanItem[], options: Add
                 }
                 // Only the flags that were given change; the new copy keeps the rest of the old file's.
                 result = writer.replaceFile(existing, contents, {
-                    system: options.system ? true : undefined,
-                    invisible: options.invisible ? true : undefined,
-                    date: options.date,
+                    system: system ? true : undefined,
+                    invisible: invisible ? true : undefined,
+                    date,
                 });
                 replaced = true;
             }
@@ -861,6 +876,24 @@ export function addFiles(session: DiskSession, plan: AddPlanItem[], options: Add
 }
 
 /**
+ * The date that a planned file brings with it (see AddFileSource.date), if the disk's DOS can store it.
+ *
+ * @param session the open disk, which is TRSDOS-family.
+ * @param item the planned file.
+ * @param replacing whether the file replaces one that's already on the disk.
+ * @returns the date, or undefined if the file has none or the DOS can't record it.
+ */
+function storableSourceDate(session: DiskSession, item: AddPlanItem, replacing: boolean): Date | undefined {
+    const date = item.source.date;
+    const ruleSet = session.getWriteGate()?.ruleSet;
+    const fileSystem = session.fileSystem;
+    if (date === undefined || ruleSet === undefined || !(fileSystem instanceof Trsdos)) {
+        return undefined;
+    }
+    return trsdosCanStoreDate(ruleSet, fileSystem.hasTimeStamps, date, replacing) ? date : undefined;
+}
+
+/**
  * The CP/M half of addFiles(): files go to user 0, and replacing one keeps its R/O and SYS attributes unless
  * --system or --invisible (both mean SYS) say to set SYS.
  */
@@ -873,7 +906,8 @@ function addCpmFiles(session: DiskSession, plan: AddPlanItem[], options: AddOpti
             const contents = item.contents!;
 
             const existing = writer.findFiles(filename).find(file => file.user === 0);
-            const system = options.system || options.invisible ? true : undefined;
+            const system = options.system || options.invisible || item.source.system === true ||
+                item.source.invisible === true ? true : undefined;
             let result: CpmAddResult;
             let replaced: boolean;
             if (existing === undefined) {

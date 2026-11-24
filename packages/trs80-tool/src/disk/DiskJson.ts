@@ -104,6 +104,7 @@ export interface DiskCommandResultsJson {
     extract: ExtractResultJson;
     list: ListResultJson;
     add: AddResultJson;
+    import: ImportResultJson;
     kill: KillResultJson;
     rename: RenameResultJson;
     attrib: AttribChangeResultJson | AttribShowResultJson;
@@ -217,6 +218,44 @@ export interface AddedFileJson {
 export interface AddResultJson {
     /** The files added or replaced, in order. */
     files: AddedFileJson[];
+}
+
+/**
+ * A file that "import" put on the disk.
+ */
+export interface ImportedFileJson {
+    /** The name of the file in the image that it was copied from, such as "HELLO.BAS" (or "HARDA/HELLO.BAS"). */
+    from: string;
+    /** The name on the disk, such as "HELLO.BAS". */
+    name: string;
+    /** The file's size on the disk in bytes, after conversion. */
+    size: number;
+    /** Whether the file replaced one that was already on the disk. */
+    replaced: boolean;
+    /** What the conversion did, as messages such as "Converted HELLO.BAS from Model III to Model 4 BASIC tokens.". */
+    conversions: string[];
+}
+
+/**
+ * A file that "import" left out because it couldn't be copied (only with --keep-going).
+ */
+export interface SkippedFileJson {
+    /** The name of the file in the image, as in {@link ImportedFileJson.from}. */
+    from: string;
+    /** Why the file wasn't copied. */
+    problem: string;
+}
+
+/**
+ * The result of "import".
+ */
+export interface ImportResultJson {
+    /** The image that the files were copied from, as given. */
+    source: string;
+    /** The files added or replaced, in order. */
+    files: ImportedFileJson[];
+    /** The files that were left out, in order. Always empty without --keep-going. */
+    skipped: SkippedFileJson[];
 }
 
 /**

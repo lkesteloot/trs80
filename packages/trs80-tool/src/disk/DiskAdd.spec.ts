@@ -129,7 +129,7 @@ describe("disk add", () => {
         makeHostFile("c.txt", 30);
 
         await runDisk("put", path.join(dir, "a.txt"));
-        await runDisk("import", path.join(dir, "[bc].txt"));
+        await runDisk("add", path.join(dir, "[bc].txt"));
 
         expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "A.TXT", "B.TXT", "C.TXT"]);
         expect(fileBytes(imagePathname, "C.TXT").length).to.equal(30);
