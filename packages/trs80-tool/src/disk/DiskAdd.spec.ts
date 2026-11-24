@@ -359,6 +359,38 @@ describe("disk add", () => {
         expect(fileNames(imagePathname)).to.eql(["HELLO.BAS"]);
     });
 
+    it("never adds the disk image itself, from a wildcard or named outright as the shell would", async () => {
+        makeImage([HELLO]);
+        const a = makeHostFile("a.txt", 10);
+
+        const lines = await runDisk("add", path.join(dir, "*"));
+        expect(lines.some(line => line.includes("TEST/JV1"))).to.equal(false);
+        expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "A.TXT"]);
+
+        // Linux and macOS shells expand "*" themselves, so the image arrives as a name, perhaps spelled another way.
+        makeImage([HELLO]);
+        await runDisk("add", a, dir + path.sep + "." + path.sep + "test.jv1");
+        expect(fileNames(imagePathname)).to.have.members(["HELLO.BAS", "A.TXT"]);
+    });
+
+    it("never adds the --output file", async () => {
+        makeImage([HELLO]);
+        const outputPathname = path.join(dir, "out.jv1");
+        fs.copyFileSync(imagePathname, outputPathname);
+        makeHostFile("a.txt", 10);
+
+        await runDisk("--output", outputPathname, "add", path.join(dir, "*"));
+        expect(fileNames(outputPathname)).to.have.members(["HELLO.BAS", "A.TXT"]);
+    });
+
+    it("refuses an add whose only file is the disk image", async () => {
+        makeImage([HELLO]);
+        const before = fs.readFileSync(imagePathname);
+
+        await expect(runDisk("add", imagePathname)).rejects.toThrow(/Nothing to add/);
+        expect(fs.readFileSync(imagePathname)).to.eql(before);
+    });
+
     it("saves nothing when a later command in the chain fails", async () => {
         makeImage([HELLO]);
         const before = fs.readFileSync(imagePathname);

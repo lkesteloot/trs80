@@ -244,7 +244,8 @@
             <code>.txt</code>, <code>.asm</code>, <code>.jcl</code>, <code>.doc</code>, <code>.hlp</code>,
             <code>.lst</code>, <code>.fix</code>, and <code>.src</code> files become CR
             (<code class="wrap">Converted line endings of notes.txt.</code>). Every other file is copied byte for
-            byte. The host names may have <a href="index.html#wildcards">wildcards</a>. Each file’s TRSDOS name is made
+            byte. The host names may have <a href="index.html#wildcards">wildcards</a>; the disk image itself is
+            never added, even when a wildcard such as <code>*.*</code> matches it. Each file’s TRSDOS name is made
             from its host name, upper-cased, with other characters dropped and the name cut to
             8 letters and a 3-letter extension, and the command says when that changed it
             (<code class="wrap">hello-world.bas will be HELLOWOR/BAS.</code>).

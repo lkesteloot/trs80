@@ -12,7 +12,7 @@ import {selectInputFiles} from "../InputFile.js";
 import {fileToJson} from "../json.js";
 import {imagingArtifactsToLines, imagingArtifactToJson} from "../artifacts.js";
 import {protectionSignsToLines, protectionSignToJson} from "../protection.js";
-import {expandInputPatterns, pluralizeWithCount, systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
+import {expandInputPatterns, isSameHostFile, pluralizeWithCount, systemWildcardHint, ToolError, ToolErrorKind} from "../utils.js";
 import {DiskCommandSpec, DiskOptionSpec, DiskOptionValues, HostPathKind, parseAddDate, ParsedDiskCommand} from "./DiskCommandParser.js";
 import {CREATE_COMMAND, FORMAT_COMMAND} from "./DiskCreate.js";
 import {BOOT_COMMAND} from "./DiskBoot.js";
@@ -530,7 +530,8 @@ const ADD_COMMAND: DiskCommand = {
 
     /**
      * Read the host files, convert them for the disk (see importHostFile()), and choose their TRSDOS
-     * names, then add them all in one change, so that either every file is added or none is.
+     * names, then add them all in one change, so that either every file is added or none is. The disk
+     * image itself (and the --output file) is never added, even when a wildcard matches it.
      * A name that's already on the disk is an error, unless --overwrite says to replace that file
      * in which case the new copy keeps the old file's attributes (a system file included).
      * Then say what was converted and which files were added or replaced, and warn once if the DOS couldn't
@@ -554,9 +555,19 @@ const ADD_COMMAND: DiskCommand = {
             date,
         };
 
+        // The disk image, and the --output file if there is one, are never added to the disk: a wildcard
+        // such as "*.*" matches them (whether the shell expanded it or expandInputPatterns() did), and no
+        // image fits on itself. They're skipped without a word, wherever they come in the list.
+        const sessionFiles = [session.name, session.saveName];
+        const pathnames = expandInputPatterns(command.args)
+            .filter(pathname => !sessionFiles.some(sessionFile => isSameHostFile(pathname, sessionFile)));
+        if (pathnames.length === 0) {
+            throw new ToolError("Nothing to add: the only file given is the disk image itself");
+        }
+
         // Read every file before changing anything.
         const sources: AddFileSource[] = [];
-        for (const pathname of expandInputPatterns(command.args)) {
+        for (const pathname of pathnames) {
             const stat = fs.statSync(pathname, {throwIfNoEntry: false});
             if (stat === undefined) {
                 throw new ToolError("Can't read \"" + pathname + "\": no such file", ToolErrorKind.NOT_FOUND);

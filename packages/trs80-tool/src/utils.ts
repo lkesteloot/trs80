@@ -538,6 +538,30 @@ function expandInputPatternArg(arg: string): string[] {
 }
 
 /**
+ * Whether two host pathnames name the same file, however they're spelled: "blank.dmk", "./BLANK.DMK" and a
+ * full path or a symbolic link to it are all one file. Files are matched by device and inode; where the file
+ * system has no inode numbers (Node gives 0 for some Windows drives), by real path, ignoring case on Windows.
+ * A pathname that doesn't exist matches nothing.
+ *
+ * @param a one pathname.
+ * @param b the other.
+ */
+export function isSameHostFile(a: string, b: string): boolean {
+    const aStat = fs.statSync(a, { bigint: true, throwIfNoEntry: false });
+    const bStat = fs.statSync(b, { bigint: true, throwIfNoEntry: false });
+    if (aStat === undefined || bStat === undefined) {
+        return false;
+    }
+    if (aStat.ino !== BigInt(0) && bStat.ino !== BigInt(0)) {
+        return aStat.dev === bStat.dev && aStat.ino === bStat.ino;
+    }
+    // Only Windows lacks inode numbers, and its file systems ignore case.
+    const aReal = fs.realpathSync.native(a).toLowerCase();
+    const bReal = fs.realpathSync.native(b).toLowerCase();
+    return aReal === bReal;
+}
+
+/**
  * Expand the wildcards in the command-line arguments that name host files. See
  * expandInputPatternArg() for the rules.
  *
